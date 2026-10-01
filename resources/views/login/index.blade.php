@@ -57,6 +57,12 @@
                         <!-- /.col -->
                     </div>
                 </form>
+
+                <div class="text-center mt-3 pt-3 border-top">
+                    <a href="/video" class="btn btn-outline-danger btn-block">
+                        <i class="fas fa-play-circle mr-1"></i> Buka Galeri Video (Publik)
+                    </a>
+                </div>
             </div>
             <!-- /.card-body -->
         </div>

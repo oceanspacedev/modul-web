@@ -49,7 +49,22 @@
                     <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i
                             class="fas fa-bars"></i></a>
                 </li>
+                <li class="nav-item d-none d-sm-inline-block">
+                    <a href="/video" class="nav-link font-weight-bold text-primary"><i class="fas fa-video mr-1"></i> Video Materi</a>
+                </li>
+            </ul>
 
+            <!-- Right navbar links -->
+            <ul class="navbar-nav ml-auto">
+                @auth
+                    <li class="nav-item">
+                        <a href="/dashboard" class="nav-link"><i class="fas fa-tachometer-alt mr-1"></i> Dashboard</a>
+                    </li>
+                @else
+                    <li class="nav-item">
+                        <a href="/login" class="nav-link text-muted"><i class="fas fa-sign-in-alt mr-1"></i> Login Admin</a>
+                    </li>
+                @endauth
             </ul>
         </nav>
         <!-- /.navbar -->

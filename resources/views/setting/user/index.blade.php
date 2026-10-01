@@ -54,8 +54,11 @@
                                 <thead>
                                     <tr>
                                         <th>No</th>
+                                        <th>ID Karyawan</th>
                                         <th>Nama Lengkap</th>
                                         <th>User Name</th>
+                                        <th>Email</th>
+                                        <th>No WA</th>
                                         <th>Divisi</th>
                                         <th>Sub Divisi</th>
                                         <th>Job Level</th>
@@ -68,8 +71,11 @@
                                     @foreach ($users as $user)
                                         <tr>
                                             <td>{{ $loop->iteration }}</td>
+                                            <td><span class="badge badge-light border">{{ $user->id_karyawan ?? '-' }}</span></td>
                                             <td>{{ $user->full_name }}</td>
                                             <td>{{ $user->username }}</td>
+                                            <td>{{ $user->email ?? '-' }}</td>
+                                            <td>{{ $user->no_wa ?? '-' }}</td>
                                             <td>{{ $user->divisi->name }}</td>
                                             <td>{{ $user->subdivisi->name ?? '-' }}</td>
                                             <td>{{ $user->joblevel->name }}</td>

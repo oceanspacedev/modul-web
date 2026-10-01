@@ -46,4 +46,9 @@ class Document extends Model
     {
         return $this->hasMany(QuizQuestion::class);
     }
+
+    public function versions()
+    {
+        return $this->hasMany(DocumentVersion::class, 'document_id')->orderBy('version_number', 'desc');
+    }
 }

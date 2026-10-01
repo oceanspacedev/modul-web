@@ -17,7 +17,7 @@
                                     @csrf
                                     <div class="row">
                                         <div class="col-lg-5">
-                                            <label for="file" class="form-label col-lg-12">Document File</label>
+                                            <label for="file" class="form-label col-lg-12">File Dokumen (PDF)</label>
                                             <input type="file" accept="application/pdf" class="form-control"
                                                 id="file" name="file" required>
                                         </div>
@@ -30,6 +30,11 @@
                                                     </option>
                                                 @endforeach
                                             </select>
+                                        </div>
+                                        <div class="col-lg-4">
+                                            <label for="change_note" class="form-label col-lg-12">Catatan</label>
+                                            <input type="text" class="form-control" id="change_note" name="change_note"
+                                                placeholder="Catatan versi (opsional)">
                                         </div>
                                     </div>
                                     <div class="my-3">

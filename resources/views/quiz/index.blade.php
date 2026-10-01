@@ -45,7 +45,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach ($quizs as $quiz)
+                                    @forelse ($quizs as $quiz)
                                         <tr>
                                             <td>{{ $loop->iteration }}</td>
                                             <td>
@@ -56,7 +56,7 @@
                                                             class="fas fa-edit"></i></span></a>
                                                             <a href="/quiz/delete/{{ $quiz->id }}"
                                                         class="badge bg-danger" data-toggle="tooltip" title="nonactive"
-                                                        onclick="return confirm('Apalah anda yakin menghapus quiz {{ $quiz->document->name }}?')"><span><i
+                                                        onclick="return confirm('Apalah anda yakin menghapus quiz {{ $quiz->document->name ?? '' }}?')"><span><i
                                                                 class="far fa-times-circle"></i></span></a>
                                                 @endif
                                             </td>
@@ -72,20 +72,25 @@
                                                         ? 'SCHEDULED'
                                                         : 'EXPIRED') }}
                                             </td>
-                                            <td>{{ $quiz->document->name }}</td>
-                                            <td>{{ $quiz->document->joblevel->name }}</td>
+                                            <td>{{ $quiz->document->name ?? '-' }}</td>
+                                            <td>{{ $quiz->document->joblevel->name ?? '-' }}</td>
                                             <td>{{ date('d M Y H:i', $quiz->start / 1000) }}</td>
                                             <td>{{ date('d M Y H:i', $quiz->end / 1000) }}</td>
                                             <td><a 
                                                     data-toggle="modal" title="download" class="badge bg-primary"><span><i
-                                                            class="fas fa-download" data-id="{{ $quiz->id }}" onclick="$('#dataid').val($(this).data('id')); $('#resultQuiz').modal('show');"></i> Result </span></a>
+                                                            class="fas fa-download" data-id="{{ $quiz->id }}" onclick="$('#dataid').val($(this).data('id')); $('#formExportResult').attr('action', '/quiz/result/export/' + $(this).data('id')); $('#resultQuiz').modal('show');"></i> Result </span></a>
                                                 <a href={{ '/quiz/history/exportall/' . $quiz->id }} target='#'
                                                     data-toggle="tooltip" title="download" class="badge bg-success"><span><i
                                                             class="fas fa-download"></i> Detailed </span></a>
-                                                {{-- <button data-id="{{ $quiz->id }}"  onclick="$('#dataid').val($(this).data('id')); $('#resultQuiz').modal('show');" >click me</button> --}}
                                             </td>
                                         </tr>
-                                    @endforeach
+                                    @empty
+                                        <tr>
+                                            <td colspan="8" class="text-center text-muted py-3">
+                                                Belum ada data Quiz. Silakan klik tombol <strong>Add Quiz</strong> di atas untuk membuat Quiz baru.
+                                            </td>
+                                        </tr>
+                                    @endforelse
                                 </tbody>
                             </table>
                         </div>
@@ -98,7 +103,7 @@
     </section>
 
     <!-- Modal Result-->
-    <form action="quiz/result/export/{{ $quiz->id }}" method="POST" enctype="multipart/form-data">
+    <form id="formExportResult" action="/quiz/result/export/{{ isset($quiz) ? $quiz->id : 0 }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="modal fade" id="resultQuiz" tabindex="-1" aria-labelledby="resultQuiz" aria-hidden="true">
             <div class="modal-dialog">

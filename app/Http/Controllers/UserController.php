@@ -88,6 +88,13 @@ class UserController extends Controller
     public function store(Request $request)
     {
         try {
+            $request->validate([
+                'username' => ['required', 'string', 'max:255', 'unique:users,username'],
+                'full_name' => ['required', 'string', 'max:255'],
+                'id_karyawan' => ['nullable', 'string', 'max:50'],
+                'email' => ['nullable', 'string', 'max:100'],
+                'no_wa' => ['nullable', 'string', 'max:25'],
+            ]);
             $data = $request->all();
             unset($data['_token']);
             $data['password'] = bcrypt($data['password']);
@@ -151,17 +158,23 @@ class UserController extends Controller
             $user = User::find($id);
             $request->validate([
                 'username' => ['required', 'string', 'max:255', 'unique:users,username,' . $user->id],
+                'full_name' => ['required', 'string', 'max:255'],
+                'id_karyawan' => ['nullable', 'string', 'max:50'],
+                'email' => ['nullable', 'string', 'max:100'],
+                'no_wa' => ['nullable', 'string', 'max:25'],
             ]);
             $data = $request->all();
             unset($data['_token']);
+            $data['full_name'] = strtoupper($data['full_name']);
             $subdivisi = SubDivisi::where('divisi_id', $request->divisi_id)->get();
             if (count($subdivisi) === 0) {
                 $data['sub_divisi_id'] = null;
             }
-            if ($request->password == null) {
-                $data['password'] = $user['password'];
+            if ($request->filled('password')) {
+                $data['password'] = bcrypt($request->password);
+            } else {
+                unset($data['password']);
             }
-            $data['password'] = bcrypt($data['password']);
             $user->update($data);
             return redirect('user')->with(['success' => 'Berhasil merubah user']);
         } catch (Exception $e) {

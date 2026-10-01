@@ -21,11 +21,14 @@ class UserImport implements ToModel, WithHeadingRow
             throw new Exception('username ' . $row['username'] . ' sudah dipakai');
         } else {
             return new User([
+                'id_karyawan' => !empty($row['id_karyawan']) ? $row['id_karyawan'] : null,
                 'full_name' => strtoupper($row['full_name']),
                 'username' => strtolower(str_replace(".", "", preg_replace('/\s+/', '', $row['username']))),
-                'password' => $row['password'] ? bcrypt($row['password']) : bcrypt('complete123'),
+                'email' => !empty($row['email']) ? $row['email'] : null,
+                'no_wa' => !empty($row['no_wa']) ? $row['no_wa'] : null,
+                'password' => !empty($row['password']) ? bcrypt($row['password']) : bcrypt('complete123'),
                 'divisi_id' => Divisi::where('name', preg_replace('/\s+/', '', $row['divisi']))->first()->id,
-                'sub_divisi_id' => $row['sub_divisi'] ? SubDivisi::where('name', $row['sub_divisi'])->first()->id : null,
+                'sub_divisi_id' => !empty($row['sub_divisi']) ? SubDivisi::where('name', $row['sub_divisi'])->first()?->id : null,
                 'job_level_id' => JobLevel::where('name', $row['job_level'])->first()->id,
             ]);
         }

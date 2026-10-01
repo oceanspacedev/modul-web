@@ -14,6 +14,7 @@ use App\Http\Controllers\QuizOptionController;
 use App\Http\Controllers\QuizQuestionController;
 use App\Http\Controllers\SubDivisiController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\VideoController;
 use App\Models\QuizHistory;
 
 /*
@@ -34,6 +35,10 @@ Route::get('/', function () {
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('download/app', [UserController::class, 'download']);
 
+## PUBLIC VIDEO ROUTES
+Route::get('video', [VideoController::class, 'index'])->name('video.index');
+Route::get('video/watch/{id}', [VideoController::class, 'show'])->name('video.show');
+
 Route::middleware(['auth','isAdmin'])->group(
     function () {
         ##LOGOUT
@@ -41,6 +46,13 @@ Route::middleware(['auth','isAdmin'])->group(
 
         ##DASHBOARD
         Route::get('dashboard', [DashboardController::class, 'index']);
+
+        ##VIDEO MANAGEMENT
+        Route::get('video-manage/create', [VideoController::class, 'create'])->name('video.create');
+        Route::post('video-manage', [VideoController::class, 'store'])->name('video.store');
+        Route::get('video-manage/{id}/edit', [VideoController::class, 'edit'])->name('video.edit');
+        Route::post('video-manage/update/{id}', [VideoController::class, 'update'])->name('video.update');
+        Route::post('video-manage/delete/{id}', [VideoController::class, 'destroy'])->name('video.destroy');
 
         ##QUIZ_QUESTION
         Route::get('question',[QuizQuestionController::class,'index']);
@@ -63,7 +75,7 @@ Route::middleware(['auth','isAdmin'])->group(
         Route::post('quiz/{quiz}', [QuizController::class, 'update']);
         Route::get('quiz/history/{quizHistory}', [QuizHistoryController::class, 'show']);
         Route::get('quiz/delete/{quiz}', [QuizController::class, 'destroy']);
-        Route::post('quiz/result/export/{quiz}', [QuizController::class, 'export']);
+        Route::post('quiz/result/export/{quiz?}', [QuizController::class, 'export']);
         Route::get('quiz/history/export/{quizHistory}', [QuizController::class, 'exporthistory']);
         Route::get('quiz/history/delete/{quizHistory}', [QuizHistoryController::class, 'destroy']);
         Route::get('quiz/history/exportall/{quiz}', [QuizController::class, 'exportAllHistory']);
@@ -73,6 +85,7 @@ Route::middleware(['auth','isAdmin'])->group(
         Route::get('document', [DocumentController::class, 'index']);
         Route::post('document', [DocumentController::class, 'store']);
         Route::get('document/create', [DocumentController::class, 'create']);
+        Route::get('document/history/{id}', [DocumentController::class, 'history']);
         Route::get('document/{document}', [DocumentController::class, 'edit']);
         Route::post('document/{document}', [DocumentController::class, 'update']);
         Route::get('document/delete/{id}', [DocumentController::class, 'destroy']);

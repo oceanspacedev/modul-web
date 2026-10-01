@@ -20,8 +20,11 @@ class UserExport implements FromCollection, WithHeadings, WithMapping
     public function headings(): array
     {
         return [
+            'id_karyawan',
             'nama',
             'username',
+            'email',
+            'no_wa',
             'job_level',
             'divisi',
             'sub_divisi',
@@ -31,8 +34,11 @@ class UserExport implements FromCollection, WithHeadings, WithMapping
     public function map($row): array
     {
         return [
+            $row->id_karyawan ?? '-',
             $row->full_name,
             $row->username,
+            $row->email ?? '-',
+            $row->no_wa ?? '-',
             $row->joblevel->name,
             $row->divisi->name,
             $row->subdivisi->name ?? '-',

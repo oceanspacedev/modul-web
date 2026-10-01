@@ -1,7 +1,7 @@
  <!-- Main Sidebar Container -->
  <aside class="main-sidebar main-sidebar-custom sidebar-dark-primary elevation-4">
      <!-- Brand Logo -->
-     <a href="#" class="brand-link">
+     <a href="/video" class="brand-link">
          <img src="{{ asset('favicon.ico') }}" alt="AdminLTE Logo" class="brand-image" style="opacity: .8">
          <span class="brand-text font-weight-light"><strong>MODUL APP</strong></span>
      </a>
@@ -11,7 +11,11 @@
          <!-- Sidebar user (optional) -->
          <div class="user-panel mt-3 pb-3 mb-3 d-flex">
              <div class="info">
-                 <a href="/dashboard" class="d-block"><strong>{{ strtoupper(auth()->user()->full_name)  }}</strong></a>
+                 @auth
+                     <a href="/dashboard" class="d-block"><strong>{{ strtoupper(auth()->user()->full_name) }}</strong></a>
+                 @else
+                     <a href="/login" class="d-block text-white-50"><i class="fas fa-user-circle mr-1"></i> <strong>PENGUNJUNG</strong></a>
+                 @endauth
              </div>
          </div>
          <!-- Sidebar Menu -->
@@ -20,20 +24,28 @@
                  data-accordion="false">
                  <!-- Add icons to the links using the .nav-icon class
                with font-awesome or any other icon font library -->
-                <li class="nav-item my-1=">
-                    <a href="/absent" class="nav-link">
+                <li class="nav-item">
+                    <a href="/video" class="nav-link {{ ($active ?? '') === 'video' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-video text-danger"></i>
+                        <p>Video Materi</p>
+                    </a>
+                </li>
+
+                @auth
+                <li class="nav-item">
+                    <a href="/absent" class="nav-link {{ ($active ?? '') === 'absent' ? 'active' : '' }}">
                         <i class="nav-icon fas fa-address-book"></i>
                         <p>Absent</p>
                     </a>
                 </li>
                  <li class="nav-item">
-                     <a href="/document" class="nav-link">
+                     <a href="/document" class="nav-link {{ ($active ?? '') === 'document' ? 'active' : '' }}">
                          <i class="nav-icon fas fa-folder"></i>
                          <p>Document</p>
                      </a>
                  </li>
                 <li class="nav-item">
-                     <a href="#" class="nav-link {{ $active === 'quiz' ? 'active' : '' }}">
+                     <a href="#" class="nav-link {{ ($active ?? '') === 'quiz' ? 'active' : '' }}">
                          <i class="nav-icon fas fa-feather"></i>
                          <p>
                              Quiz
@@ -62,7 +74,7 @@
                      </ul>
                  </li>
                  <li class="nav-item">
-                     <a href="#" class="nav-link {{ $active === 'setting' ? 'active' : '' }}">
+                     <a href="#" class="nav-link {{ ($active ?? '') === 'setting' ? 'active' : '' }}">
                          <i class="nav-icon fas fa-cogs"></i>
                          <p>
                              Settings
@@ -102,6 +114,7 @@
                          </li>
                      </ul>
                  </li>
+                 @endauth
              </ul>
          </nav>
          <!-- /.sidebar-menu -->
@@ -109,10 +122,14 @@
      <!-- /.sidebar -->
 
      <div class="sidebar-custom mb-3">
-         <form action="/logout" method="POST">
-             @csrf
-             <button type="submit" class="btn btn-link"><i class="fas fa-sign-out-alt"></i> Log Out</button>
-         </form>
+         @auth
+             <form action="/logout" method="POST">
+                 @csrf
+                 <button type="submit" class="btn btn-link text-white-50"><i class="fas fa-sign-out-alt"></i> Log Out</button>
+             </form>
+         @else
+             <a href="/login" class="btn btn-primary btn-sm btn-block text-white"><i class="fas fa-sign-in-alt mr-1"></i> Login Admin</a>
+         @endauth
      </div>
      <!-- /.sidebar-custom -->
  </aside>

@@ -14,8 +14,11 @@ class UserTemplate implements WithHeadings
     public function headings(): array
     {
         return [
+            'id_karyawan',
             'full_name',
             'username',
+            'email',
+            'no_wa',
             'password',
             'divisi',
             'sub_divisi',

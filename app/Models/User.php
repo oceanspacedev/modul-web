@@ -44,8 +44,14 @@ class User extends Authenticatable
     public function scopeFilter($query)
     {
         if (request('search')) {
-            $query->where('full_name', "like", '%' . request('search') . '%')
-            ->orWhere('username', "like", '%' . request('search') . '%');
+            $search = request('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('full_name', 'like', '%' . $search . '%')
+                    ->orWhere('username', 'like', '%' . $search . '%')
+                    ->orWhere('id_karyawan', 'like', '%' . $search . '%')
+                    ->orWhere('email', 'like', '%' . $search . '%')
+                    ->orWhere('no_wa', 'like', '%' . $search . '%');
+            });
         }
     }
 

@@ -22,7 +22,7 @@
 <script src="{{ asset('template') }}/plugins/daterangepicker/daterangepicker.js"></script>
 <!-- datepicker -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.2.0/js/bootstrap-datepicker.min.js"></script>
-<script src="{{ asset('script.js') }}"></script>
+<script src="{{ asset('script.js') }}?v={{ filemtime(public_path('script.js')) }}"></script>
 {{-- <script>
     $(document).on("click", ".passingID", function () {
      var ids = $(this).data('id');

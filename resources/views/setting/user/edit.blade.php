@@ -15,20 +15,37 @@
                             <div class="card-body">
                                 <form action="/user/{{ $user->id }}" method="POST">
                                     @csrf
-                                    <div class="mb-3">
-                                        <label for="full_name" class="form-label">Nama Lengkap</label>
-                                        <input type="text" class="form-control" id="full_name"
-                                            value="{{ $user->full_name }}" name="full_name" required>
-                                    </div>
                                     <div class="row">
-                                        <div class="mb-3 col-lg-6">
+                                        <div class="mb-3 col-lg-4">
+                                            <label for="id_karyawan" class="form-label">ID Karyawan</label>
+                                            <input type="text" class="form-control" id="id_karyawan" name="id_karyawan"
+                                                value="{{ $user->id_karyawan }}" placeholder="Contoh: KRY-001">
+                                        </div>
+                                        <div class="mb-3 col-lg-4">
+                                            <label for="full_name" class="form-label">Nama Lengkap</label>
+                                            <input type="text" class="form-control" id="full_name"
+                                                value="{{ $user->full_name }}" name="full_name" required>
+                                        </div>
+                                        <div class="mb-3 col-lg-4">
                                             <label for="username" class="form-label">User Name</label>
                                             <input type="text" class="form-control" id="username" name="username"
                                                 value="{{ $user->username }}" required>
                                         </div>
-                                        <div class="mb-3 col-lg-6">
-                                            <label for="password" class="form-label">Password</label>
-                                            <input type="text" class="form-control" id="password" name="password">
+                                    </div>
+                                    <div class="row">
+                                        <div class="mb-3 col-lg-4">
+                                            <label for="email" class="form-label">Email</label>
+                                            <input type="email" class="form-control" id="email" name="email"
+                                                value="{{ $user->email }}" placeholder="contoh@email.com">
+                                        </div>
+                                        <div class="mb-3 col-lg-4">
+                                            <label for="no_wa" class="form-label">No WhatsApp</label>
+                                            <input type="text" class="form-control" id="no_wa" name="no_wa"
+                                                value="{{ $user->no_wa }}" placeholder="08xxxxxxxxxx">
+                                        </div>
+                                        <div class="mb-3 col-lg-4">
+                                            <label for="password" class="form-label">Password <small class="text-muted">(Kosongkan jika tidak diubah)</small></label>
+                                            <input type="text" class="form-control" id="password" name="password" placeholder="Biarkan kosong jika tidak diubah">
                                         </div>
                                     </div>
                                     <div class="mb-3">
