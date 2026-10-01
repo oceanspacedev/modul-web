@@ -27,9 +27,12 @@ class DocumentController extends Controller
 
         $query = Document::with(['divisi', 'subdivisi', 'joblevel', 'dokumentype', 'versions'])->withTrashed();
 
-        if ($request->divisi_id && $request->doctype_id) {
-            $query->where('divisi_id', $request->divisi_id)
-                  ->where('document_type', $request->doctype_id);
+        if ($request->filled('divisi_id')) {
+            $query->where('divisi_id', $request->divisi_id);
+        }
+
+        if ($request->filled('doctype_id')) {
+            $query->where('document_type', $request->doctype_id);
         }
 
         if ($request->filled('search')) {

@@ -8,52 +8,54 @@
                 <div class="row">
                     <div class="col-12">
                         <div class="card">
-                            <div class="card-header bg-dark">
-                                <div class="row d-inline-flex">
-                                    <h3 class="card-title">User</h3>
-                                    {{-- <a href="/user/export">
-                                        <button class="badge bg-primary mx-3 elevation-0">EXPORT
-                                            ALL</button>
-                                    </a> --}}
-                                    <a href="/user/template"><button class="badge bg-warning mx-3 elevation-0">TEMPLATE
-                                            IMPORT</button>
+                            <div class="card-header">
+                                <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+                                    <h3 class="card-title mr-3">
+                                        <i class="fas fa-users-cog text-primary mr-1"></i> Data User
+                                    </h3>
+                                    <a href="/user/create" class="btn btn-sm btn-success">
+                                        <i class="fas fa-plus mr-1"></i> Tambah User
                                     </a>
-                                    <a href="#"><button class="badge bg-success mx-3 elevation-0" data-toggle="modal"
-                                            data-target="#imporUser">IMPORT</button>
-                                        <a href="/user/create"><button class="badge bg-success mx-3 elevation-0">+
-                                                ADD</button>
-                                        </a>
+                                    <a href="/user/export" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-file-export mr-1"></i> Export All
+                                    </a>
+                                    <a href="/user/template" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-download mr-1"></i> Template
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-info text-white" data-toggle="modal" data-target="#imporUser">
+                                        <i class="fas fa-file-import mr-1"></i> Import
+                                    </button>
                                 </div>
-                                <div class="card-tools">
-                                    <div class="input-group input-group-sm" style="width: 150px;">
-                                        <form action="/user" class="d-inline-flex">
-                                            <input type="text" name="search" class="form-control float-right"
-                                                placeholder="Cari">
+                                <div class="card-tools ml-auto">
+                                    <form action="/user" method="GET" class="d-inline-flex">
+                                        <div class="input-group input-group-sm" style="width: 220px;">
+                                            <input type="text" name="search" value="{{ request('search') }}" class="form-control"
+                                                placeholder="Cari user / ID...">
                                             <div class="input-group-append">
                                                 <button type="submit" class="btn btn-default">
                                                     <i class="fas fa-search"></i>
                                                 </button>
-                                        </form>
-                                    </div>
+                                            </div>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
-                        </div>
                         @if ($message = Session::get('success'))
-                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <div class="alert alert-success alert-dismissible fade show mx-3 mt-3 mb-0" role="alert">
                                 <strong>{{ $message }}</strong>
                             </div>
                         @endif
                         @if ($message = Session::get('error'))
-                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <div class="alert alert-danger alert-dismissible fade show mx-3 mt-3 mb-0" role="alert">
                                 <strong>{{ $message }}</strong>
                             </div>
                         @endif
                         <!-- /.card-header -->
-                        <div class="card-body table-responsive p-0" style="height: 500px;">
+                        <div class="card-body table-responsive p-0" style="height: 520px;">
                             <table class="table table-head-fixed text-nowrap">
                                 <thead>
                                     <tr>
-                                        <th>No</th>
+                                        <th style="width: 60px;">No</th>
                                         <th>ID Karyawan</th>
                                         <th>Nama Lengkap</th>
                                         <th>User Name</th>
@@ -64,7 +66,7 @@
                                         <th>Job Level</th>
                                         <th>Status</th>
                                         <th>Last Seen</th>
-                                        <th>Action</th>
+                                        <th style="width: 100px;">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -72,33 +74,41 @@
                                         <tr>
                                             <td>{{ $loop->iteration }}</td>
                                             <td><span class="badge badge-light border">{{ $user->id_karyawan ?? '-' }}</span></td>
-                                            <td>{{ $user->full_name }}</td>
-                                            <td>{{ $user->username }}</td>
+                                            <td><strong>{{ $user->full_name }}</strong></td>
+                                            <td><span class="text-muted">{{ $user->username }}</span></td>
                                             <td>{{ $user->email ?? '-' }}</td>
                                             <td>{{ $user->no_wa ?? '-' }}</td>
                                             <td>{{ $user->divisi->name }}</td>
                                             <td>{{ $user->subdivisi->name ?? '-' }}</td>
-                                            <td>{{ $user->joblevel->name }}</td>
+                                            <td><span class="badge badge-light border">{{ $user->joblevel->name }}</span></td>
                                             <td>
                                                 @if ($user->deleted_at)
-                                                    NONAKTIF
+                                                    <span class="badge badge-secondary">NONAKTIF</span>
                                                 @else
-                                                    AKTIF
+                                                    <span class="badge badge-success">AKTIF</span>
                                                 @endif
                                             </td>
-                                            <td>{{ count($user->lastSeen) ?  $user->lastSeen[0]->last_used_at->format('d M Y H:i') : 'Inactive' }}</td>
-                                            {{-- <td>{{ count($user->lastSeen) }}</td> --}}
                                             <td>
-                                                <a href="/user/{{ $user->id }}" class="badge bg-warning"><span><i
-                                                            class="fas fa-edit"></i></span></a>
-                                                @if ($user->deleted_at)
-                                                    <a href="/user/active/{{ $user->id }}" class="badge bg-success"
-                                                        onclick="return confirm('Mengaktifkan kembali user {{ $user->full_name }}?')"><span><i
-                                                                class="far fa-check-circle"></i></span></a>
+                                                @if(count($user->lastSeen))
+                                                    <span class="text-sm font-weight-500">{{ $user->lastSeen[0]->last_used_at->format('d M Y H:i') }}</span>
                                                 @else
-                                                    <a href="/user/delete/{{ $user->id }}" class="badge bg-danger"
-                                                        onclick="return confirm('Apalah anda yakin menonaktifkan user {{ $user->full_name }}?')"><span><i
-                                                                class="far fa-times-circle"></i></span></a>
+                                                    <span class="text-muted text-sm">Inactive</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <a href="/user/{{ $user->id }}" class="badge bg-warning" title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                @if ($user->deleted_at)
+                                                    <a href="/user/active/{{ $user->id }}" class="badge bg-success" title="Aktifkan"
+                                                        onclick="return confirm('Mengaktifkan kembali user {{ $user->full_name }}?')">
+                                                        <i class="far fa-check-circle"></i>
+                                                    </a>
+                                                @else
+                                                    <a href="/user/delete/{{ $user->id }}" class="badge bg-danger" title="Nonaktifkan"
+                                                        onclick="return confirm('Apakah anda yakin menonaktifkan user {{ $user->full_name }}?')">
+                                                        <i class="far fa-times-circle"></i>
+                                                    </a>
                                                 @endif
                                             </td>
                                         </tr>

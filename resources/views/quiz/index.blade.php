@@ -7,25 +7,23 @@
             <div class="row">
                 <div class="col-12">
                     <div class="card">
-                        <div class="card-header bg-dark">
-                            <div class="row d-inline-flex">
-                                <h3 class="card-title">Quiz</h3>
-                                <a href="#"><button class="badge bg-success mx-3 elevation-0" data-toggle="modal"
-                                        data-target="#addQuiz">ADD</button>
-                                </a>
-                            </div>
-                            <div class="card-tools">
-                                <div class="input-group input-group-sm" style="width: 150px;">
-                                </div>
+                        <div class="card-header">
+                            <div class="d-flex align-items-center" style="gap: 8px;">
+                                <h3 class="card-title mr-3">
+                                    <i class="fas fa-award mr-1" style="color: #a855f7;"></i> Data Quiz
+                                </h3>
+                                <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#addQuiz">
+                                    <i class="fas fa-plus mr-1"></i> Tambah Quiz
+                                </button>
                             </div>
                         </div>
                         @if ($message = Session::get('success'))
-                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <div class="alert alert-success alert-dismissible fade show mx-3 mt-3 mb-0" role="alert">
                                 <strong>{{ $message }}</strong>
                             </div>
                         @endif
                         @if ($message = Session::get('error'))
-                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <div class="alert alert-danger alert-dismissible fade show mx-3 mt-3 mb-0" role="alert">
                                 <strong>{{ $message }}</strong>
                             </div>
                         @endif

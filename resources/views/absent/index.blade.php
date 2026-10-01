@@ -9,26 +9,27 @@
                     <div class="col-12">
                         <!-- WILL ADD ABSENT TABLE HERE -->
                         <div class="card">
-                            <div class="card-header bg-dark">
-                                <div class="row d-inline-flex">
-                                    <h3 class="card-title">Presence</h3>
-                                    <a href="#">
-                                        <button class="badge bg-success mx-3 elevation-0" data-toggle="modal"
-                                            data-target="#exportAbsent">EXPORT</button>
-                                    </a>
+                            <div class="card-header">
+                                <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+                                    <h3 class="card-title mr-3">
+                                        <i class="fas fa-calendar-check text-success mr-1"></i> Data Presence
+                                    </h3>
+                                    <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#exportAbsent">
+                                        <i class="fas fa-file-export mr-1"></i> Export Data
+                                    </button>
                                 </div>
-                                <div class="card-tools d-flex">
-                                    <div class="input-group input-group-sm mr-3" style="widows: 400px;">
-                                        <form action="absent" class="d-inline-flex">
-                                            <input type="text" class="form-control float-right" value="" name="date"
-                                                id="tanggal" required>
+                                <div class="card-tools ml-auto">
+                                    <form action="absent" class="d-inline-flex">
+                                        <div class="input-group input-group-sm" style="width: 250px;">
+                                            <input type="text" class="form-control" value="" name="date"
+                                                id="tanggal" placeholder="Filter tanggal" required>
                                             <div class="input-group-append">
                                                 <button type="submit" class="btn btn-default">
                                                     <i class="fas fa-search"></i>
                                                 </button>
                                             </div>
-                                        </form>
-                                    </div>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                             <div class="card-body table-responsive p-0" style="height: 500px;">

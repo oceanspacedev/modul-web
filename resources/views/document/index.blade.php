@@ -8,66 +8,70 @@
                 <div class="row">
                     <div class="col-12">
                         <div class="card">
-                            <div class="card-header bg-dark">
-                                <div class="row d-inline-flex">
-                                    <h3 class="card-title">Documents</h3>
-                                    <a href="/document/export">
-                                        <button class="badge bg-primary mx-3 elevation-0">EXPORT
-                                            ALL</button>
-                                    </a>
-                                    {{-- <a href="/document/template"><button class="badge bg-warning mx-3 elevation-0">TEMPLATE
-                                            IMPORT</button>
-                                    </a>
-                                    <a href="#"><button class="badge bg-success mx-3 elevation-0" data-toggle="modal"
-                                            data-target="#impordocument">IMPORT</button> --}}
-                                    <a href="/document/create"><button class="badge bg-success mx-3 elevation-0">+
-                                            ADD</button>
-                                    </a>
+                            <div class="card-header">
+                                <div class="d-flex align-items-center">
+                                    <h3 class="card-title">
+                                        <i class="fas fa-file-alt text-warning mr-2"></i> Data Dokumen
+                                    </h3>
                                 </div>
-                                <div class="card-tools d-flex">
-                                    <div class="input-group input-group-sm mr-3" style="max-width: 440px;">
-                                        <form action="/document" class="d-inline-flex">
-                                            <select class="custom-select col-lg-12 mx-2" name="divisi_id" id="divisi_id"
-                                                required style="max-width: 180px">
-                                                <option value="">Choose Divisi</option>
-                                                @foreach ($divisis as $divisi)
-                                                    <option value="{{ $divisi->id }}">{{ $divisi->name }}</option>
-                                                @endforeach
-                                            </select>
-                                            <select class="custom-select col-lg-12 mx-2" name="doctype_id" id="doctype_id"
-                                                required style="max-width: 200px">
-                                                <option value="">Choose Document Type</option>
-                                                @foreach ($doctypes as $doctype)
-                                                    <option value="{{ $doctype->id }}">{{ $doctype->name }}</option>
-                                                @endforeach
-                                            </select>
-                                            <div class="input-group-append" style="max-width: 20px">
-                                                <button type="submit" class="btn btn-default">
-                                                    <i class="fas fa-search"></i>
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                    <div class="input-group input-group-sm" style="width: 220px;">
-                                        <form action="/document" class="d-inline-flex">
-                                            <input type="text" name="search" class="form-control"
-                                                placeholder="Cari">
-                                            <div class="input-group-append">
-                                                <button type="submit" class="btn btn-default">
-                                                    <i class="fas fa-search"></i>
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
+                                <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+                                    <a href="/document/create" class="btn btn-sm btn-success">
+                                        <i class="fas fa-plus mr-1"></i> Tambah Dokumen
+                                    </a>
+                                    <a href="/document/export" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-file-export mr-1"></i> Export All
+                                    </a>
                                 </div>
                             </div>
+
+                            <!-- Dedicated Filter & Search Bar -->
+                            <div class="filter-toolbar">
+                                <form action="/document" method="GET" class="d-flex flex-wrap align-items-center" style="gap: 12px;">
+                                    <div class="filter-group">
+                                        <div class="filter-group-icon">
+                                            <i class="fas fa-building text-primary"></i>
+                                        </div>
+                                        <select class="custom-select" name="divisi_id" id="divisi_id" onchange="this.form.submit()">
+                                            <option value="">Semua Divisi</option>
+                                            @foreach ($divisis as $divisi)
+                                                <option value="{{ $divisi->id }}" {{ request('divisi_id') == $divisi->id ? 'selected' : '' }}>{{ $divisi->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="filter-group">
+                                        <div class="filter-group-icon">
+                                            <i class="fas fa-tags text-info"></i>
+                                        </div>
+                                        <select class="custom-select" name="doctype_id" id="doctype_id" onchange="this.form.submit()">
+                                            <option value="">Semua Type</option>
+                                            @foreach ($doctypes as $doctype)
+                                                <option value="{{ $doctype->id }}" {{ request('doctype_id') == $doctype->id ? 'selected' : '' }}>{{ $doctype->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="filter-search flex-grow-1" style="min-width: 220px; max-width: 340px;">
+                                        <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama dokumen...">
+                                        <button type="submit" title="Cari Dokumen">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                    @if (request('divisi_id') || request('doctype_id') || request('search'))
+                                        <div>
+                                            <a href="/document" class="btn btn-sm btn-outline-secondary" title="Reset Filter" style="height: 38px; display: inline-flex; align-items: center; border-radius: 10px;">
+                                                <i class="fas fa-undo mr-1"></i> Reset
+                                            </a>
+                                        </div>
+                                    @endif
+                                </form>
+                            </div>
+
                         @if ($message = Session::get('success'))
-                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <div class="alert alert-success alert-dismissible fade show mx-3 mt-3 mb-0" role="alert">
                                 <strong>{{ $message }}</strong>
                             </div>
                         @endif
                         @if ($message = Session::get('error'))
-                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <div class="alert alert-danger alert-dismissible fade show mx-3 mt-3 mb-0" role="alert">
                                 <strong>{{ $message }}</strong>
                             </div>
                         @endif
@@ -113,9 +117,9 @@
                                                 <a href="{{ asset('storage/dokumen/'.$document->path) }}" target='_blank' data-toggle="tooltip" title="Buka File" class="badge bg-primary p-2">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
-                                                <button type="button" class="badge bg-purple text-white border-0 p-2" style="background-color: #6f42c1 !important;"
+                                                <button type="button" class="badge bg-purple border-0"
                                                     data-toggle="tooltip" title="Riwayat Versi" onclick="openDocumentHistory('{{ $document->id }}')">
-                                                    <i class="fas fa-history"></i>
+                                                    <i class="fas fa-history" style="color: #6b21a8 !important;"></i>
                                                 </button>
                                                 <a href="/document/{{ $document->id }}" data-toggle="tooltip" title="Edit Dokumen" class="badge bg-warning p-2">
                                                     <i class="fas fa-edit"></i>

@@ -7,53 +7,54 @@
             <div class="row">
                 <div class="col-12">
                     <div class="card">
-                        <div class="card-header bg-dark">
-                            <div class="row d-inline-flex">
-                                <h3 class="card-title">Divisi</h3>
-                                <a href="#"><button class="badge bg-success mx-3 elevation-0" data-toggle="modal"
-                                        data-target="#addDivisi">ADD</button>
-                                </a>
-                            </div>
-                            <div class="card-tools">
-                                <div class="input-group input-group-sm" style="width: 150px;">
-                                </div>
+                        <div class="card-header">
+                            <div class="d-flex align-items-center" style="gap: 8px;">
+                                <h3 class="card-title mr-3">
+                                    <i class="fas fa-city text-primary mr-1"></i> Data Divisi
+                                </h3>
+                                <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#addDivisi">
+                                    <i class="fas fa-plus mr-1"></i> Tambah Divisi
+                                </button>
                             </div>
                         </div>
                         @if ($message = Session::get('success'))
-                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <div class="alert alert-success alert-dismissible fade show mx-3 mt-3 mb-0" role="alert">
                                 <strong>{{ $message }}</strong>
                             </div>
                         @endif
                         @if ($message = Session::get('error'))
-                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <div class="alert alert-danger alert-dismissible fade show mx-3 mt-3 mb-0" role="alert">
                                 <strong>{{ $message }}</strong>
                             </div>
                         @endif
                         <!-- /.card-header -->
-                        <div class="card-body table-responsive p-0" style="height: 500px;">
+                        <div class="card-body table-responsive p-0" style="height: 520px;">
                             <table class="table table-head-fixed text-nowrap">
                                 <thead>
                                     <tr>
-                                        <th>No</th>
-                                        <th>Nama</th>
-                                        <th>Action</th>
+                                        <th style="width: 70px;">No</th>
+                                        <th>Nama Divisi</th>
+                                        <th style="width: 120px;">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach ($divisis as $divisi)
                                         <tr>
                                             <td>{{ $loop->iteration }}</td>
-                                            <td>{{ $divisi->name }}</td>
-                                            <td class="d-flex">
-                                                <a href="/divisi/{{ $divisi->id }}"><i class="btn fas fa-edit"
-                                                        style="color: rgb(239, 239, 54)"></i></a>
-                                                <form action="/divisi/delete" method="POST">
-                                                    @csrf
-                                                    <input type="hidden" name="id" value="{{ $divisi->id }}">
-                                                    <button type="submit" class="btn"
-                                                        style="color: rgb(204, 26, 26);"><i
-                                                            class="fas fa-trash"></i></button>
-                                                </form>
+                                            <td><strong>{{ $divisi->name }}</strong></td>
+                                            <td>
+                                                <div class="d-flex align-items-center" style="gap: 6px;">
+                                                    <a href="/divisi/{{ $divisi->id }}" class="badge bg-warning" title="Edit">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <form action="/divisi/delete" method="POST" class="d-inline m-0" onsubmit="return confirm('Hapus divisi {{ $divisi->name }}?')">
+                                                        @csrf
+                                                        <input type="hidden" name="id" value="{{ $divisi->id }}">
+                                                        <button type="submit" class="badge bg-danger border-0" title="Hapus">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
                                             </td>
                                         </tr>
                                     @endforeach
