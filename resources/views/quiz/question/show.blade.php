@@ -6,31 +6,37 @@
             <div class="row">
                 <div class="col-12">
                     <div class="card">
-                        <div class="card-header bg-dark">
-                            <div class="row d-inline-flex">
-                                <h3 class="card-title">Questions &raquo; {{ $document->name }} &raquo; {{ $nonactive ? 'NONACTIVE' : 'ACTIVE' }}</h3>
-                            </div>
-                            <div class="card-tools">
-                                <div class="input-group input-group-sm" style="width: 550px;">
-                                    <a href="/question/{{ $document->id }}/deleteAll"><button class="badge bg-danger">DELETE ALL</button></a>
-                                    <a href="/question/{{ $document->id }}/activeAll"><button class="badge bg-success">ACTIVE ALL</button></a>
-                                    <form action="/question/{{ $document->id }}" class="d-inline-flex">
-                                        <input type="text" name="search" class="form-control float-right"
-                                            placeholder="Cari">
-                                        <select class="custom-select col-4 mx-1" name="nonactive" id="nonactive"
-                                            required>
-                                            <option value="0">ACTIVE</option>
-                                            <option value="1">NONACTIVE</option>
+                        <div class="card-header bg-white py-3 d-block">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap" style="gap: 12px;">
+                                <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.15rem;">
+                                    Questions &raquo; {{ $document->name }} &raquo; <span class="badge {{ $nonactive ? 'badge-secondary' : 'badge-success' }}">{{ $nonactive ? 'NONACTIVE' : 'ACTIVE' }}</span>
+                                </h3>
+                                <div class="card-tools m-0">
+                                    <form action="/question/{{ $document->id }}" method="GET" class="d-inline-flex m-0 align-items-center" style="gap: 6px;">
+                                        <select class="custom-select custom-select-sm" name="nonactive" id="nonactive" style="width: 130px;" onchange="this.form.submit()">
+                                            <option value="0" {{ request('nonactive') == '0' ? 'selected' : '' }}>ACTIVE</option>
+                                            <option value="1" {{ request('nonactive') == '1' ? 'selected' : '' }}>NONACTIVE</option>
                                         </select>
-                                        <div class="input-group-append">
-                                            <button type="submit" class="btn btn-default">
-                                                <i class="fas fa-search"></i>
-                                            </button>
+                                        <div class="input-group input-group-sm" style="width: 200px;">
+                                            <input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Cari...">
+                                            <div class="input-group-append">
+                                                <button type="submit" class="btn btn-default">
+                                                    <i class="fas fa-search"></i>
+                                                </button>
+                                            </div>
+                                        </div>
                                     </form>
                                 </div>
                             </div>
+                            <div class="d-flex align-items-center flex-wrap mt-3" style="gap: 8px;">
+                                <a href="/question/{{ $document->id }}/deleteAll" class="btn btn-sm btn-danger" onclick="return confirm('Apakah Anda yakin ingin menghapus semua pertanyaan?')">
+                                    <i class="fas fa-trash-alt mr-1"></i> Delete All
+                                </a>
+                                <a href="/question/{{ $document->id }}/activeAll" class="btn btn-sm btn-success">
+                                    <i class="fas fa-check-circle mr-1"></i> Active All
+                                </a>
+                            </div>
                         </div>
-                    </div>
                     @if ($message = Session::get('success'))
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
                             <strong>{{ $message }}</strong>

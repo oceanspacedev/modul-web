@@ -42,6 +42,37 @@
                 </li>
 
                 @auth
+                <li class="nav-item {{ ($active ?? '') === 'training' ? 'menu-open' : '' }}">
+                    <a href="#" class="nav-link {{ ($active ?? '') === 'training' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-chalkboard-teacher text-info"></i>
+                        <p>
+                            Pelatihan
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        @if(auth()->user()->job_level_id == 1)
+                        <li class="nav-item">
+                            <a href="/training" class="nav-link">
+                                <i class="fas fa-list nav-icon text-xs"></i>
+                                <p>Jadwal Pelatihan</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/training/create" class="nav-link">
+                                <i class="fas fa-plus nav-icon text-xs"></i>
+                                <p>Tambah Pelatihan</p>
+                            </a>
+                        </li>
+                        @endif
+                        <li class="nav-item">
+                            <a href="/my-trainings" class="nav-link">
+                                <i class="fas fa-user nav-icon text-xs"></i>
+                                <p>Pelatihan Saya</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
                 <li class="nav-item">
                     <a href="/absent" class="nav-link {{ ($active ?? '') === 'absent' ? 'active' : '' }}">
                         <i class="nav-icon fas fa-calendar-check text-success"></i>

@@ -13,6 +13,9 @@ use App\Http\Controllers\QuizHistoryController;
 use App\Http\Controllers\QuizOptionController;
 use App\Http\Controllers\QuizQuestionController;
 use App\Http\Controllers\SubDivisiController;
+use App\Http\Controllers\TrainingController;
+use App\Http\Controllers\TrainingPortalController;
+use App\Http\Controllers\TrainingQuestionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VideoController;
 use App\Models\QuizHistory;
@@ -137,5 +140,41 @@ Route::middleware(['auth','isAdmin'])->group(
         ##ABSENT
         Route::get('absent', [AbsentController::class, 'index']);
         Route::post('absent/export', [AbsentController::class, 'exportAbsent']);
+
+        ##TRAINING MANAGEMENT
+        Route::get('training', [TrainingController::class, 'index'])->name('training.index');
+        Route::get('training/create', [TrainingController::class, 'create'])->name('training.create');
+        Route::post('training', [TrainingController::class, 'store'])->name('training.store');
+        Route::get('training/{id}', [TrainingController::class, 'show'])->name('training.show');
+        Route::get('training/{id}/edit', [TrainingController::class, 'edit'])->name('training.edit');
+        Route::post('training/{id}/update', [TrainingController::class, 'update'])->name('training.update');
+        Route::post('training/{id}/status', [TrainingController::class, 'updateStatus'])->name('training.status');
+        Route::post('training/{id}/toggle-quiz', [TrainingController::class, 'toggleQuiz'])->name('training.toggle-quiz');
+        Route::post('training/{id}/broadcast-wa', [TrainingController::class, 'broadcastWa'])->name('training.broadcast-wa');
+        Route::post('training/{id}/send-wa/{participantId}', [TrainingController::class, 'sendSingleWa'])->name('training.send-single-wa');
+        Route::post('training/{id}/reset-quiz/{participantId}', [TrainingController::class, 'resetParticipantQuiz'])->name('training.reset-quiz');
+        Route::get('training/{id}/export', [TrainingController::class, 'export'])->name('training.export');
+        Route::get('training/delete/{id}', [TrainingController::class, 'destroy'])->name('training.destroy');
+
+        ##TRAINING QUIZ QUESTIONS
+        Route::get('training/{trainingId}/questions', [TrainingQuestionController::class, 'index'])->name('training.questions.index');
+        Route::post('training/{trainingId}/questions', [TrainingQuestionController::class, 'store'])->name('training.questions.store');
+        Route::post('training/{trainingId}/questions/{questionId}/update', [TrainingQuestionController::class, 'update'])->name('training.questions.update');
+        Route::get('training/{trainingId}/questions/{questionId}/delete', [TrainingQuestionController::class, 'destroy'])->name('training.questions.destroy');
     }
 );
+
+## LOGGED-IN USER TRAINING PORTAL
+Route::middleware(['auth'])->group(function () {
+    Route::get('my-trainings', [TrainingPortalController::class, 'myTrainings'])->name('training.my-trainings');
+});
+
+## PUBLIC PARTICIPANT PORTAL (ACCESSIBLE VIA WHATSAPP TOKEN LINK)
+Route::get('training/portal/{token}', [TrainingPortalController::class, 'showPortal'])->name('training.portal');
+Route::post('training/portal/{token}/attendance', [TrainingPortalController::class, 'submitAttendance'])->name('training.portal.attendance');
+Route::get('training/portal/{token}/quiz', [TrainingPortalController::class, 'showQuiz'])->name('training.portal.quiz');
+Route::post('training/portal/{token}/quiz', [TrainingPortalController::class, 'submitQuiz'])->name('training.portal.quiz.submit');
+Route::get('training/portal/{token}/retake', [TrainingPortalController::class, 'retakeQuiz'])->name('training.portal.retake');
+Route::post('training/portal/{token}/retake', [TrainingPortalController::class, 'retakeQuiz'])->name('training.portal.retake.post');
+Route::get('training/portal/{token}/result', [TrainingPortalController::class, 'showResult'])->name('training.portal.result');
+

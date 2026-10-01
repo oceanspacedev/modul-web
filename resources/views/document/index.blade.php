@@ -8,13 +8,11 @@
                 <div class="row">
                     <div class="col-12">
                         <div class="card">
-                            <div class="card-header">
-                                <div class="d-flex align-items-center">
-                                    <h3 class="card-title">
-                                        <i class="fas fa-file-alt text-warning mr-2"></i> Data Dokumen
-                                    </h3>
-                                </div>
-                                <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+                            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap" style="gap: 12px;">
+                                <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.2rem;">
+                                    Data Dokumen
+                                </h3>
+                                <div class="card-tools m-0 d-flex align-items-center" style="gap: 8px;">
                                     <a href="/document/create" class="btn btn-sm btn-success">
                                         <i class="fas fa-plus mr-1"></i> Tambah Dokumen
                                     </a>
@@ -26,10 +24,10 @@
 
                             <!-- Dedicated Filter & Search Bar -->
                             <div class="filter-toolbar">
-                                <form action="/document" method="GET" class="d-flex flex-wrap align-items-center" style="gap: 12px;">
+                                <form action="/document" method="GET" class="d-flex flex-wrap align-items-center justify-content-end" style="gap: 12px;">
                                     <div class="filter-group">
                                         <div class="filter-group-icon">
-                                            <i class="fas fa-building text-primary"></i>
+                                            <i class="fas fa-building text-muted"></i>
                                         </div>
                                         <select class="custom-select" name="divisi_id" id="divisi_id" onchange="this.form.submit()">
                                             <option value="">Semua Divisi</option>
@@ -40,7 +38,7 @@
                                     </div>
                                     <div class="filter-group">
                                         <div class="filter-group-icon">
-                                            <i class="fas fa-tags text-info"></i>
+                                            <i class="fas fa-tags text-muted"></i>
                                         </div>
                                         <select class="custom-select" name="doctype_id" id="doctype_id" onchange="this.form.submit()">
                                             <option value="">Semua Type</option>
@@ -49,7 +47,7 @@
                                             @endforeach
                                         </select>
                                     </div>
-                                    <div class="filter-search flex-grow-1" style="min-width: 220px; max-width: 340px;">
+                                    <div class="filter-search" style="width: 260px;">
                                         <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama dokumen...">
                                         <button type="submit" title="Cari Dokumen">
                                             <i class="fas fa-search"></i>

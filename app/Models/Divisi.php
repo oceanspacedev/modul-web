@@ -17,9 +17,14 @@ class Divisi extends Model
         'updated_at',
     ];
 
+    public function users()
+    {
+        return $this->hasMany(User::class, 'divisi_id');
+    }
+
     public function user()
     {
-        return $this->belongsToMany(User::class);
+        return $this->hasMany(User::class, 'divisi_id');
     }
 
     public function subdivisi()

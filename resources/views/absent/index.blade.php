@@ -9,19 +9,17 @@
                     <div class="col-12">
                         <!-- WILL ADD ABSENT TABLE HERE -->
                         <div class="card">
-                            <div class="card-header">
-                                <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
-                                    <h3 class="card-title mr-3">
-                                        <i class="fas fa-calendar-check text-success mr-1"></i> Data Presence
-                                    </h3>
+                            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap" style="gap: 12px;">
+                                <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.2rem;">
+                                    Data Presence
+                                </h3>
+                                <div class="card-tools m-0 d-flex align-items-center flex-wrap ml-auto" style="gap: 8px;">
                                     <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#exportAbsent">
                                         <i class="fas fa-file-export mr-1"></i> Export Data
                                     </button>
-                                </div>
-                                <div class="card-tools ml-auto">
-                                    <form action="absent" class="d-inline-flex">
-                                        <div class="input-group input-group-sm" style="width: 250px;">
-                                            <input type="text" class="form-control" value="" name="date"
+                                    <form action="absent" class="d-inline-flex m-0">
+                                        <div class="input-group input-group-sm" style="width: 220px;">
+                                            <input type="text" class="form-control" value="{{ request('date') }}" name="date"
                                                 id="tanggal" placeholder="Filter tanggal" required>
                                             <div class="input-group-append">
                                                 <button type="submit" class="btn btn-default">

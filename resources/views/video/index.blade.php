@@ -3,20 +3,18 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <div class="row mb-2 align-items-center">
-            <div class="col-sm-6">
-                <h1 class="m-0 font-weight-bold">
-                    <i class="fas fa-video text-danger mr-2"></i>Galeri Video Materi
-                </h1>
-                <p class="text-muted small mt-1 mb-0">Tonton dan pelajari video materi pembelajaran kapan saja.</p>
-            </div>
-            <div class="col-sm-6 text-sm-right mt-2 mt-sm-0">
-                @auth
-                    <a href="{{ route('video.create') }}" class="btn btn-danger shadow-sm">
-                        <i class="fas fa-plus-circle mr-1"></i> Tambah Video Baru
+        <div class="mb-3">
+            <h1 class="m-0 font-weight-bold" style="font-size: 1.5rem;">
+                Galeri Video Materi
+            </h1>
+            <p class="text-muted small mt-1 mb-2">Tonton dan pelajari video materi pembelajaran kapan saja.</p>
+            @auth
+                <div>
+                    <a href="{{ route('video.create') }}" class="btn btn-sm btn-danger shadow-sm">
+                        <i class="fas fa-plus mr-1"></i> Tambah Video Baru
                     </a>
-                @endauth
-            </div>
+                </div>
+            @endauth
         </div>
     </div>
 </section>

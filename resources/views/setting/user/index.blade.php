@@ -8,11 +8,26 @@
                 <div class="row">
                     <div class="col-12">
                         <div class="card">
-                            <div class="card-header">
-                                <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
-                                    <h3 class="card-title mr-3">
-                                        <i class="fas fa-users-cog text-primary mr-1"></i> Data User
+                            <div class="card-header bg-white py-3 d-block">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap" style="gap: 12px;">
+                                    <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.2rem;">
+                                        Data User
                                     </h3>
+                                    <div class="card-tools m-0">
+                                        <form action="/user" method="GET" class="d-inline-flex m-0">
+                                            <div class="input-group input-group-sm" style="width: 240px;">
+                                                <input type="text" name="search" value="{{ request('search') }}" class="form-control"
+                                                    placeholder="Cari user / ID...">
+                                                <div class="input-group-append">
+                                                    <button type="submit" class="btn btn-default">
+                                                        <i class="fas fa-search"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center flex-wrap mt-3" style="gap: 8px;">
                                     <a href="/user/create" class="btn btn-sm btn-success">
                                         <i class="fas fa-plus mr-1"></i> Tambah User
                                     </a>
@@ -25,19 +40,6 @@
                                     <button type="button" class="btn btn-sm btn-info text-white" data-toggle="modal" data-target="#imporUser">
                                         <i class="fas fa-file-import mr-1"></i> Import
                                     </button>
-                                </div>
-                                <div class="card-tools ml-auto">
-                                    <form action="/user" method="GET" class="d-inline-flex">
-                                        <div class="input-group input-group-sm" style="width: 220px;">
-                                            <input type="text" name="search" value="{{ request('search') }}" class="form-control"
-                                                placeholder="Cari user / ID...">
-                                            <div class="input-group-append">
-                                                <button type="submit" class="btn btn-default">
-                                                    <i class="fas fa-search"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </form>
                                 </div>
                             </div>
                         @if ($message = Session::get('success'))

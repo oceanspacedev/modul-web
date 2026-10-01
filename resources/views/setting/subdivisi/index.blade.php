@@ -7,11 +7,11 @@
             <div class="row">
                 <div class="col-12">
                     <div class="card">
-                        <div class="card-header">
-                            <div class="d-flex align-items-center" style="gap: 8px;">
-                                <h3 class="card-title mr-3">
-                                    <i class="fas fa-building text-info mr-1"></i> Data Sub Divisi
-                                </h3>
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                            <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.2rem;">
+                                Data Sub Divisi
+                            </h3>
+                            <div class="card-tools m-0">
                                 <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#addsubdivisi">
                                     <i class="fas fa-plus mr-1"></i> Tambah Sub Divisi
                                 </button>

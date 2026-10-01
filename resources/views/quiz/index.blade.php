@@ -7,11 +7,11 @@
             <div class="row">
                 <div class="col-12">
                     <div class="card">
-                        <div class="card-header">
-                            <div class="d-flex align-items-center" style="gap: 8px;">
-                                <h3 class="card-title mr-3">
-                                    <i class="fas fa-award mr-1" style="color: #a855f7;"></i> Data Quiz
-                                </h3>
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                            <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.2rem;">
+                                Data Quiz
+                            </h3>
+                            <div class="card-tools m-0">
                                 <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#addQuiz">
                                     <i class="fas fa-plus mr-1"></i> Tambah Quiz
                                 </button>

@@ -8,34 +8,37 @@
                 <div class="row">
                     <div class="col-12">
                         <div class="card">
-                            <div class="card-header bg-dark">
-                                <div class="row d-inline-flex">
-                                    <h3 class="card-title">Questions</h3>
-                                    {{-- <a href="/question/export">
-                                        <button class="badge bg-primary mx-3 elevation-0">EXPORT
-                                            ALL</button></a> --}}
-                                    <a href="/question/template"><button class="badge bg-primary mx-3 elevation-0">TEMPLATE
-                                            IMPORT</button>
-                                    </a>
-                                    <a href="#"><button class="badge bg-success mx-3 elevation-0" data-toggle="modal"
-                                            data-target="#importQuestion">NEW IMPORT</button></a>
-                                    <a href="#"><button class="badge bg-warning mx-3 elevation-0" data-toggle="modal"
-                                            data-target="#extraimportQuestion">UPDATE QUESTION</button></a>
-                                </div>
-                                <div class="card-tools">
-                                    <div class="input-group input-group-sm" style="width: 150px;">
-                                        <form action="/question" class="d-inline-flex">
-                                            <input type="text" name="search" class="form-control float-right"
-                                                placeholder="Cari">
-                                            <div class="input-group-append">
-                                                <button type="submit" class="btn btn-default">
-                                                    <i class="fas fa-search"></i>
-                                                </button>
+                            <div class="card-header bg-white py-3 d-block">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap" style="gap: 12px;">
+                                    <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.2rem;">
+                                        Questions
+                                    </h3>
+                                    <div class="card-tools m-0">
+                                        <form action="/question" method="GET" class="d-inline-flex m-0">
+                                            <div class="input-group input-group-sm" style="width: 220px;">
+                                                <input type="text" name="search" value="{{ request('search') }}" class="form-control"
+                                                    placeholder="Cari pertanyaan...">
+                                                <div class="input-group-append">
+                                                    <button type="submit" class="btn btn-default">
+                                                        <i class="fas fa-search"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </form>
                                     </div>
                                 </div>
+                                <div class="d-flex align-items-center flex-wrap mt-3" style="gap: 8px;">
+                                    <a href="/question/template" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-download mr-1"></i> Template Import
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#importQuestion">
+                                        <i class="fas fa-file-import mr-1"></i> New Import
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-warning" data-toggle="modal" data-target="#extraimportQuestion">
+                                        <i class="fas fa-sync-alt mr-1"></i> Update Question
+                                    </button>
+                                </div>
                             </div>
-                        </div>
                         @if ($message = Session::get('success'))
                             <div class="alert alert-success alert-dismissible fade show" role="alert">
                                 <strong>{{ $message }}</strong>
