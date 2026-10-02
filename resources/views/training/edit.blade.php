@@ -97,9 +97,37 @@
                                        value="{{ old('zoom_link', $training->zoom_link) }}" required>
                             </div>
 
-                            <div class="form-group mb-0">
+                            <div class="form-group mb-4">
                                 <label for="description" class="font-weight-600 mb-2">Deskripsi / Silabus Materi</label>
                                 <textarea id="description" name="description" class="form-control" rows="3">{{ old('description', $training->description) }}</textarea>
+                            </div>
+
+                            <div class="form-group mb-0 pt-3 border-top">
+                                <label class="font-weight-600 mb-2 d-block">Tampilan / Mode Kuis Peserta</label>
+                                <div class="row">
+                                    <div class="col-md-6 mb-2 mb-md-0">
+                                        <div class="custom-control custom-radio p-3 border rounded h-100 bg-light">
+                                            <input type="radio" id="mode_formal" name="quiz_mode" value="formal" class="custom-control-input" {{ old('quiz_mode', $training->quiz_mode ?? 'formal') === 'formal' ? 'checked' : '' }}>
+                                            <label class="custom-control-label font-weight-bold text-dark d-block" for="mode_formal" style="cursor: pointer;">
+                                                <i class="fas fa-file-alt text-primary mr-1"></i> Mode Formal (Ujian)
+                                                <span class="d-block text-muted text-xs font-weight-normal mt-1">
+                                                    Formulir ujian lengkap, anti-cheat ketat, dan cocok untuk evaluasi akademik/essay.
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="custom-control custom-radio p-3 border rounded h-100 bg-light">
+                                            <input type="radio" id="mode_game" name="quiz_mode" value="game" class="custom-control-input" {{ old('quiz_mode', $training->quiz_mode ?? 'formal') === 'game' ? 'checked' : '' }}>
+                                            <label class="custom-control-label font-weight-bold text-dark d-block" for="mode_game" style="cursor: pointer;">
+                                                <i class="fas fa-gamepad text-success mr-1"></i> Mode Game (Quizizz)
+                                                <span class="d-block text-muted text-xs font-weight-normal mt-1">
+                                                    1 soal per layar, tombol warna-warni, timer per soal, sound effect, dan podium juara.
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

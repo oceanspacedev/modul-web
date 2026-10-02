@@ -50,9 +50,6 @@
                     <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i
                             class="fas fa-bars"></i></a>
                 </li>
-                <li class="nav-item d-none d-sm-inline-block">
-                    <a href="/video" class="nav-link font-weight-bold text-primary"><i class="fas fa-video mr-1"></i> Video Materi</a>
-                </li>
             </ul>
 
             <!-- Right navbar links -->

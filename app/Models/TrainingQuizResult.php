@@ -13,6 +13,9 @@ class TrainingQuizResult extends Model
 
     protected $casts = [
         'answers' => 'array',
+        'violation_logs' => 'array',
+        'is_force_submitted' => 'boolean',
+        'tab_switch_count' => 'integer',
         'submitted_at' => 'datetime',
         'score' => 'float',
     ];

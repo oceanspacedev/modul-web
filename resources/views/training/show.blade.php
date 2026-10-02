@@ -75,9 +75,16 @@
 
                             <span class="text-muted small mr-2">Akses Kuis:</span>
                             @if($training->is_quiz_active)
-                                <span class="badge badge-success px-2 py-1">Terbuka untuk Peserta</span>
+                                <span class="badge badge-success px-2 py-1 mr-3">Terbuka</span>
                             @else
-                                <span class="badge badge-secondary px-2 py-1">Terkunci</span>
+                                <span class="badge badge-secondary px-2 py-1 mr-3">Terkunci</span>
+                            @endif
+
+                            <span class="text-muted small mr-2">Tampilan Kuis:</span>
+                            @if($training->quiz_mode === 'game')
+                                <span class="badge badge-info px-2 py-1"><i class="fas fa-gamepad mr-1"></i> Game (Quizizz)</span>
+                            @else
+                                <span class="badge badge-light border text-dark px-2 py-1"><i class="fas fa-file-alt mr-1"></i> Ujian Formal</span>
                             @endif
                         </div>
 
@@ -130,6 +137,19 @@
                                 @else
                                     <button type="submit" class="btn btn-outline-primary btn-sm btn-block text-left py-2">
                                         Buka Akses Kuis Peserta
+                                    </button>
+                                @endif
+                            </form>
+
+                            <form action="/training/{{ $training->id }}/toggle-mode" method="POST">
+                                @csrf
+                                @if($training->quiz_mode === 'game')
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm btn-block text-left py-2" title="Ganti ke Mode Formal">
+                                        <i class="fas fa-file-alt text-primary mr-1"></i> Ganti ke Mode Formal
+                                    </button>
+                                @else
+                                    <button type="submit" class="btn btn-outline-info btn-sm btn-block text-left py-2" title="Ganti ke Mode Game Quizizz">
+                                        <i class="fas fa-gamepad text-success mr-1"></i> Ganti ke Mode Game (Quizizz)
                                     </button>
                                 @endif
                             </form>
@@ -261,14 +281,15 @@
                             <td class="text-center align-middle" style="padding: 16px;">
                                 @if($quiz)
                                     <span class="badge badge-info px-2 py-1">
-                                        Selesai ({{ $quiz->correct_answers }}/{{ $quiz->total_questions }})
+                                        Selesai ({{ $quiz->correct_answers }} PG Benar)
                                     </span>
-                                    @if($training->questions->count() > $quiz->total_questions)
-                                        <div class="mt-1">
-                                            <span class="badge badge-warning text-white text-xs px-2" title="Pemateri menambah soal baru">
-                                                +{{ $training->questions->count() - $quiz->total_questions }} Soal Baru
-                                            </span>
-                                        </div>
+                                    <span class="d-block text-muted text-xs mt-1">
+                                        Nilai PG: <strong>{{ $quiz->mc_score ?? $quiz->score }}</strong>
+                                    </span>
+                                    @if($quiz->essay_status === 'graded')
+                                        <span class="badge badge-success text-xs mt-1 d-inline-block">Essay: {{ $quiz->essay_score }}/100</span>
+                                    @elseif($quiz->essay_status === 'pending')
+                                        <span class="badge badge-warning text-white text-xs mt-1 d-inline-block">Essay: Menunggu Review</span>
                                     @endif
                                     <span class="d-block text-muted text-xs mt-1">
                                         {{ \Carbon\Carbon::parse($quiz->submitted_at)->format('d/m H:i') }}
@@ -279,9 +300,24 @@
                             </td>
                             <td class="text-center align-middle" style="padding: 16px;">
                                 @if($quiz)
-                                    <strong class="{{ $quiz->score >= 75 ? 'text-success' : ($quiz->score >= 50 ? 'text-warning' : 'text-danger') }}" style="font-size: 1.1rem;">
+                                    <strong class="{{ $quiz->score >= 75 ? 'text-success' : ($quiz->score >= 50 ? 'text-warning' : 'text-danger') }}" style="font-size: 1.2rem;">
                                         {{ $quiz->score }}
                                     </strong>
+                                    @if($quiz->essay_status === 'pending')
+                                        <span class="text-muted text-xs d-block font-italic">(Skor PG)</span>
+                                    @elseif($quiz->essay_status === 'graded')
+                                        <span class="text-success text-xs d-block font-weight-bold">(Nilai Akhir)</span>
+                                    @endif
+
+                                    @if($quiz->is_force_submitted)
+                                        <span class="badge badge-danger text-xs mt-1 d-block" title="Peserta dikeluarkan / kuis dikunci karena melanggar toleransi keluar tab">
+                                            <i class="fas fa-exclamation-triangle"></i> Curang (Auto-Submit)
+                                        </span>
+                                    @elseif(($quiz->tab_switch_count ?? 0) > 0)
+                                        <span class="badge badge-warning text-dark text-xs mt-1 d-block" title="Terdeteksi keluar tab {{ $quiz->tab_switch_count }} kali">
+                                            <i class="fas fa-exclamation-circle"></i> Pindah Tab: {{ $quiz->tab_switch_count }}x
+                                        </span>
+                                    @endif
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
@@ -314,7 +350,7 @@
 
                                     <!-- DETAIL MODAL -->
                                     @if($quiz && $quiz->answers)
-                                        <button type="button" class="btn btn-xs btn-default" data-toggle="modal" data-target="#answerModal_{{ $quiz->id }}" title="Lihat Lembar Jawaban">
+                                        <button type="button" class="btn btn-xs btn-default" data-toggle="modal" data-target="#answerModal_{{ $quiz->id }}" title="Lihat Lembar Jawaban & Beri Nilai Essay">
                                             <i class="fas fa-eye text-primary"></i>
                                         </button>
                                     @endif
@@ -325,47 +361,146 @@
                                 <div class="modal fade text-left" id="answerModal_{{ $quiz->id }}" tabindex="-1" role="dialog" aria-hidden="true">
                                     <div class="modal-dialog modal-lg" role="document">
                                         <div class="modal-content">
-                                            <div class="modal-header py-3">
+                                            <div class="modal-header py-3 bg-light">
                                                 <h5 class="modal-title font-weight-bold">
-                                                    Lembar Jawaban: {{ $user->full_name }}
+                                                    <i class="fas fa-file-alt text-primary mr-2"></i> Lembar Jawaban: {{ $user->full_name }}
                                                 </h5>
                                                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                                     <span aria-hidden="true">&times;</span>
                                                 </button>
                                             </div>
                                             <div class="modal-body p-4">
-                                                <div class="row mb-4 bg-light p-3 rounded border">
-                                                    <div class="col-4">
-                                                        <span class="text-muted small d-block">Nilai Akhir:</span>
-                                                        <strong class="h4 text-primary mb-0">{{ $quiz->score }} / 100</strong>
+                                                <div class="row mb-4 bg-light p-3 rounded border text-center">
+                                                    <div class="col-3 border-right">
+                                                        <span class="text-muted text-xs d-block">Nilai Akhir:</span>
+                                                        <strong class="h4 text-primary mb-0 font-weight-bold">{{ $quiz->score }}</strong>
                                                     </div>
-                                                    <div class="col-4">
-                                                        <span class="text-muted small d-block">Hasil:</span>
-                                                        <strong class="h5 text-success mb-0">{{ $quiz->correct_answers }} Benar</strong> dari {{ $quiz->total_questions }} Soal
+                                                    <div class="col-3 border-right">
+                                                        <span class="text-muted text-xs d-block">Nilai PG ({{ $quiz->correct_answers }} Benar):</span>
+                                                        <strong class="h5 text-dark mb-0">{{ $quiz->mc_score ?? $quiz->score }}</strong>
                                                     </div>
-                                                    <div class="col-4">
-                                                        <span class="text-muted small d-block">Waktu Submit:</span>
-                                                        <span class="small font-weight-bold">{{ \Carbon\Carbon::parse($quiz->submitted_at)->format('d/m/Y H:i') }} WIB</span>
+                                                    <div class="col-3 border-right">
+                                                        <span class="text-muted text-xs d-block">Nilai Essay:</span>
+                                                        <strong class="h5 {{ $quiz->essay_status === 'graded' ? 'text-success' : 'text-warning' }} mb-0">
+                                                            {{ $quiz->essay_status === 'graded' ? $quiz->essay_score : 'Belum Dinilai' }}
+                                                        </strong>
+                                                    </div>
+                                                    <div class="col-3">
+                                                        <span class="text-muted text-xs d-block">Waktu Submit:</span>
+                                                        <span class="small font-weight-bold text-muted">{{ \Carbon\Carbon::parse($quiz->submitted_at)->format('d/m/Y H:i') }}</span>
                                                     </div>
                                                 </div>
 
-                                                <h6 class="font-weight-bold mb-3">Rincian Pertanyaan:</h6>
+                                                <!-- CATATAN ANTI-CURANG AUDIT -->
+                                                @if(($quiz->tab_switch_count ?? 0) > 0 || $quiz->is_force_submitted)
+                                                <div class="alert alert-{{ $quiz->is_force_submitted ? 'danger' : 'warning' }} mb-4 p-3 text-left shadow-sm">
+                                                    <div class="d-flex align-items-center mb-1">
+                                                        <i class="fas fa-shield-alt fa-lg mr-2"></i>
+                                                        <strong class="font-weight-bold" style="font-size: 0.95rem;">
+                                                            Catatan Integritas & Anti-Curang: {{ $quiz->is_force_submitted ? 'Kuis Dikunci Otomatis (Melebihi Toleransi Pindah Tab)' : 'Terdeteksi Keluar dari Halaman Kuis' }}
+                                                        </strong>
+                                                    </div>
+                                                    <div class="small">
+                                                        Peserta terdeteksi keluar dari halaman kuis / membuka aplikasi lain sebanyak <strong>{{ $quiz->tab_switch_count }} kali</strong>.
+                                                        @if(!empty($quiz->violation_logs) && is_array($quiz->violation_logs))
+                                                            <div class="mt-2 pt-2 border-top border-{{ $quiz->is_force_submitted ? 'danger' : 'warning' }}">
+                                                                <span class="font-weight-bold d-block mb-1 text-xs">Riwayat Deteksi Pelanggaran:</span>
+                                                                <ul class="mb-0 pl-3 text-xs">
+                                                                    @foreach($quiz->violation_logs as $log)
+                                                                        <li>
+                                                                            <strong>{{ $log['type'] ?? 'Pindah Tab Browser' }}</strong>
+                                                                            (Pelanggaran ke-{{ $log['count'] ?? '1' }}) pada 
+                                                                            {{ isset($log['time']) ? \Carbon\Carbon::parse($log['time'])->timezone('Asia/Jakarta')->format('d/m/Y H:i:s') . ' WIB' : '-' }}
+                                                                        </li>
+                                                                    @endforeach
+                                                                </ul>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                                @endif
+
+                                                <!-- FORM PENILAIAN ESSAY OLEH PEMATERI -->
+                                                @if($training->questions()->where('type', 'essay')->count() > 0)
+                                                <div class="card border border-info mb-4 shadow-none" style="background-color: #f6fbff;">
+                                                    <div class="card-header bg-info text-white py-2 font-weight-bold text-sm">
+                                                        <i class="fas fa-pen-nib mr-1"></i> Penilaian Soal Essay oleh Pemateri
+                                                    </div>
+                                                    <div class="card-body p-3">
+                                                        <form action="/training/{{ $training->id }}/grade-essay/{{ $quiz->id }}" method="POST">
+                                                            @csrf
+                                                            <div class="row align-items-end">
+                                                                <div class="col-md-3 mb-2 mb-md-0">
+                                                                    <label class="font-weight-bold text-dark text-xs mb-1">Nilai Essay (0-100):</label>
+                                                                    <input type="number" name="essay_score" class="form-control form-control-sm font-weight-bold" min="0" max="100" step="1" value="{{ $quiz->essay_score !== null ? round($quiz->essay_score) : '' }}" placeholder="Contoh: 90" required>
+                                                                </div>
+                                                                <div class="col-md-6 mb-2 mb-md-0">
+                                                                    <label class="font-weight-bold text-dark text-xs mb-1">Catatan Evaluasi / Ulasan (Opsional):</label>
+                                                                    <input type="text" name="essay_feedback" class="form-control form-control-sm" value="{{ $quiz->essay_feedback ?? '' }}" placeholder="Contoh: Pemahaman konsep dan alur kerja sangat baik.">
+                                                                </div>
+                                                                <div class="col-md-3">
+                                                                    <button type="submit" class="btn btn-info btn-sm btn-block font-weight-bold">
+                                                                        <i class="fas fa-save mr-1"></i> Simpan Nilai
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            @if($quiz->essay_status === 'graded')
+                                                                <div class="text-xs text-success font-weight-bold mt-2">
+                                                                    <i class="fas fa-check-circle mr-1"></i> Nilai essay tersimpan {{ $quiz->essay_score }}/100. Nilai akhir total dihitung: (Nilai PG + Essay) secara proporsional.
+                                                                </div>
+                                                            @else
+                                                                <div class="text-xs text-muted mt-2">
+                                                                    <i class="fas fa-info-circle mr-1"></i> Nilai essay akan otomatis dikombinasikan dengan nilai PG secara proporsional.
+                                                                </div>
+                                                            @endif
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                                @endif
+
+                                                <h6 class="font-weight-bold mb-3 text-dark">Rincian Pertanyaan & Jawaban Peserta:</h6>
                                                 @foreach($training->questions as $qIndex => $question)
                                                     @php
                                                         $ansData = $quiz->answers[$question->id] ?? null;
                                                         $userAns = $ansData['user_answer'] ?? null;
+                                                        $isEssay = ($question->type === 'essay');
                                                         $isCorrect = $ansData['is_correct'] ?? false;
                                                     @endphp
-                                                    <div class="p-3 mb-3 rounded border {{ $isCorrect ? 'border-success' : 'border-danger' }}" style="background-color: {{ $isCorrect ? '#fafffa' : '#fff8f8' }};">
-                                                        <div class="d-flex justify-content-between mb-2">
-                                                            <strong>#{{ $qIndex + 1 }}. {{ $question->question }}</strong>
-                                                            <span class="badge {{ $isCorrect ? 'badge-success' : 'badge-danger' }} px-2 py-1">
-                                                                {{ $isCorrect ? 'Benar' : 'Salah' }}
-                                                            </span>
+                                                    <div class="p-3 mb-3 rounded border {{ $isEssay ? 'border-info' : ($isCorrect ? 'border-success' : 'border-danger') }}" style="background-color: {{ $isEssay ? '#f7faff' : ($isCorrect ? '#fafffa' : '#fff8f8') }};">
+                                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                                            <div>
+                                                                <span class="badge {{ $isEssay ? 'badge-info' : 'badge-secondary' }} mr-1">
+                                                                    #{{ $qIndex + 1 }} {{ $isEssay ? '(Essay)' : '(PG)' }}
+                                                                </span>
+                                                                <strong class="text-dark">{{ $question->question }}</strong>
+                                                            </div>
+                                                            <div>
+                                                                @if($isEssay)
+                                                                    <span class="badge badge-light border text-info px-2 py-1">Tersimpan</span>
+                                                                @else
+                                                                    <span class="badge {{ $isCorrect ? 'badge-success' : 'badge-danger' }} px-2 py-1">
+                                                                        {{ $isCorrect ? 'Benar' : 'Salah' }}
+                                                                    </span>
+                                                                @endif
+                                                            </div>
                                                         </div>
-                                                        <div class="small">
-                                                            <div class="mb-1">Jawaban Peserta: <strong>{{ strtoupper($userAns ?? '-') }}</strong> ({{ $question->{'option_' . $userAns} ?? '-' }})</div>
-                                                            <div class="text-success">Kunci Jawaban: <strong>{{ strtoupper($question->correct_answer) }}</strong> ({{ $question->{'option_' . $question->correct_answer} }})</div>
+
+                                                        <div class="small mt-2 pt-2 border-top">
+                                                            @if($isEssay)
+                                                                <div class="mb-2">
+                                                                    <span class="text-muted font-weight-bold d-block">Jawaban Essay Peserta:</span>
+                                                                    <div class="p-2 bg-white rounded border mt-1 text-dark" style="white-space: pre-wrap;">{{ $userAns ?: '(Tidak ada jawaban)' }}</div>
+                                                                </div>
+                                                                @if($question->correct_answer)
+                                                                    <div class="text-info small"><strong>Pedoman / Acuan Jawaban:</strong> {{ $question->correct_answer }}</div>
+                                                                @endif
+                                                            @else
+                                                                <div class="mb-1">Jawaban Peserta: <strong>{{ strtoupper($userAns ?? '-') }}</strong> ({{ $question->{'option_' . $userAns} ?? '-' }})</div>
+                                                                @if($question->correct_answer)
+                                                                    <div class="text-success">Kunci Jawaban: <strong>{{ strtoupper($question->correct_answer) }}</strong> ({{ $question->{'option_' . $question->correct_answer} ?? '-' }})</div>
+                                                                @endif
+                                                            @endif
+
                                                             @if($question->explanation)
                                                                 <div class="text-muted mt-2 pt-2 border-top font-italic">Catatan: {{ $question->explanation }}</div>
                                                             @endif

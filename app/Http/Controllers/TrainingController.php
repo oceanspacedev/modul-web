@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Divisi;
 use App\Models\Training;
 use App\Models\TrainingParticipant;
+use App\Models\TrainingQuizResult;
 use App\Models\User;
 use App\Services\WhatsAppService;
 use Carbon\Carbon;
@@ -70,6 +71,7 @@ class TrainingController extends Controller
             'participants' => 'required|array|min:1',
             'participants.*' => 'exists:users,id',
             'send_wa_now' => 'nullable|boolean',
+            'quiz_mode' => 'nullable|in:formal,game',
         ]);
 
         $training = Training::create([
@@ -82,6 +84,7 @@ class TrainingController extends Controller
             'zoom_link' => $validated['zoom_link'],
             'status' => 'scheduled',
             'is_quiz_active' => false,
+            'quiz_mode' => $request->input('quiz_mode', 'formal'),
         ]);
 
         // Add participants
@@ -180,6 +183,7 @@ class TrainingController extends Controller
             'status' => 'required|in:scheduled,ongoing,completed,cancelled',
             'participants' => 'required|array|min:1',
             'participants.*' => 'exists:users,id',
+            'quiz_mode' => 'nullable|in:formal,game',
         ]);
 
         $training->update([
@@ -191,6 +195,7 @@ class TrainingController extends Controller
             'end_time' => $validated['end_time'],
             'zoom_link' => $validated['zoom_link'],
             'status' => $validated['status'],
+            'quiz_mode' => $request->input('quiz_mode', $training->quiz_mode ?? 'formal'),
         ]);
 
         // Sync participants
@@ -250,6 +255,19 @@ class TrainingController extends Controller
     }
 
     /**
+     * Quick toggle quiz mode (formal <-> game)
+     */
+    public function toggleQuizMode($id)
+    {
+        $training = Training::findOrFail($id);
+        $newMode = ($training->quiz_mode === 'game') ? 'formal' : 'game';
+        $training->update(['quiz_mode' => $newMode]);
+
+        $label = ($newMode === 'game') ? 'Mode Game Interaktif (Quizizz Style)' : 'Mode Ujian Formal';
+        return back()->with('success', "Mode tampilan kuis berhasil diubah ke: {$label}");
+    }
+
+    /**
      * Broadcast WhatsApp notification to all participants
      */
     public function broadcastWa($id)
@@ -287,6 +305,48 @@ class TrainingController extends Controller
         TrainingQuizResult::where('training_id', $id)->where('user_id', $participant->user_id)->delete();
 
         return back()->with('success', "Status kuis untuk {$participant->user->full_name} berhasil di-reset. Peserta dapat mengerjakan kuis kembali.");
+    }
+
+    /**
+     * Grade essay answers by trainer
+     */
+    public function gradeEssay(Request $request, $id, $quizResultId)
+    {
+        $training = Training::findOrFail($id);
+        $result = TrainingQuizResult::where('training_id', $training->id)->findOrFail($quizResultId);
+
+        $validated = $request->validate([
+            'essay_score' => 'required|numeric|min:0|max:100',
+            'essay_feedback' => 'nullable|string|max:500',
+        ]);
+
+        $essayScore = (float)$validated['essay_score'];
+        $mcScore = $result->mc_score !== null ? (float)$result->mc_score : 100;
+
+        $mcQuestionsCount = $training->questions()->where('type', '!=', 'essay')->count();
+        $essayQuestionsCount = $training->questions()->where('type', 'essay')->count();
+        $totalQuestions = $mcQuestionsCount + $essayQuestionsCount;
+
+        if ($totalQuestions > 0 && $mcQuestionsCount > 0 && $essayQuestionsCount > 0) {
+            // Proportional weighting based on questions count
+            $mcWeight = $mcQuestionsCount / $totalQuestions;
+            $essayWeight = $essayQuestionsCount / $totalQuestions;
+            $finalScore = round(($mcScore * $mcWeight) + ($essayScore * $essayWeight), 2);
+        } elseif ($essayQuestionsCount > 0 && $mcQuestionsCount === 0) {
+            $finalScore = $essayScore;
+        } else {
+            $finalScore = $mcScore;
+        }
+
+        $result->update([
+            'essay_score' => $essayScore,
+            'essay_feedback' => $validated['essay_feedback'] ?? null,
+            'essay_status' => 'graded',
+            'reviewed_at' => now(),
+            'score' => $finalScore,
+        ]);
+
+        return back()->with('success', "Nilai essay berhasil disimpan! Nilai akhir peserta kini {$finalScore}/100.");
     }
 
     /**
@@ -341,9 +401,13 @@ class TrainingController extends Controller
                 'Status Kehadiran',
                 'Waktu Absen',
                 'Status Kuis',
-                'Benar',
-                'Total Soal',
-                'Nilai Kuis (0-100)',
+                'Nilai PG (0-100)',
+                'Status Essay',
+                'Nilai Essay (0-100)',
+                'Nilai Akhir (0-100)',
+                'Catatan Review Essay',
+                'Pelanggaran Keluar Tab',
+                'Status Submit',
                 'Waktu Submit Kuis',
             ]);
 
@@ -351,6 +415,20 @@ class TrainingController extends Controller
             foreach ($training->participants as $participant) {
                 $user = $participant->user;
                 $quiz = $participant->quizResult;
+
+                $essayStatusLabel = 'Tidak Ada Essay';
+                if ($quiz) {
+                    if ($quiz->essay_status === 'graded') {
+                        $essayStatusLabel = 'Sudah Dinilai';
+                    } elseif ($quiz->essay_status === 'pending') {
+                        $essayStatusLabel = 'Menunggu Dinilai';
+                    }
+                }
+
+                $submitTypeLabel = '-';
+                if ($quiz) {
+                    $submitTypeLabel = $quiz->is_force_submitted ? 'Auto-Submit (Melanggar)' : 'Normal';
+                }
 
                 fputcsv($file, [
                     $no++,
@@ -361,9 +439,13 @@ class TrainingController extends Controller
                     strtoupper($participant->attendance_status),
                     $participant->attended_at ? Carbon::parse($participant->attended_at)->format('d-m-Y H:i') : '-',
                     $quiz ? 'Sudah Mengerjakan' : 'Belum Mengerjakan',
-                    $quiz ? $quiz->correct_answers : 0,
-                    $quiz ? $quiz->total_questions : $training->questions()->count(),
+                    $quiz ? ($quiz->mc_score ?? $quiz->score) : 0,
+                    $essayStatusLabel,
+                    $quiz && $quiz->essay_score !== null ? $quiz->essay_score : '-',
                     $quiz ? $quiz->score : 0,
+                    $quiz ? ($quiz->essay_feedback ?? '-') : '-',
+                    $quiz ? (($quiz->tab_switch_count ?? 0) . ' kali') : '-',
+                    $submitTypeLabel,
                     $quiz && $quiz->submitted_at ? Carbon::parse($quiz->submitted_at)->format('d-m-Y H:i') : '-',
                 ]);
             }

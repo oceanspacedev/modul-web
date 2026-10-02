@@ -150,14 +150,20 @@ Route::middleware(['auth','isAdmin'])->group(
         Route::post('training/{id}/update', [TrainingController::class, 'update'])->name('training.update');
         Route::post('training/{id}/status', [TrainingController::class, 'updateStatus'])->name('training.status');
         Route::post('training/{id}/toggle-quiz', [TrainingController::class, 'toggleQuiz'])->name('training.toggle-quiz');
+        Route::post('training/{id}/toggle-mode', [TrainingController::class, 'toggleQuizMode'])->name('training.toggle-mode');
         Route::post('training/{id}/broadcast-wa', [TrainingController::class, 'broadcastWa'])->name('training.broadcast-wa');
         Route::post('training/{id}/send-wa/{participantId}', [TrainingController::class, 'sendSingleWa'])->name('training.send-single-wa');
         Route::post('training/{id}/reset-quiz/{participantId}', [TrainingController::class, 'resetParticipantQuiz'])->name('training.reset-quiz');
+        Route::post('training/{id}/grade-essay/{quizResultId}', [TrainingController::class, 'gradeEssay'])->name('training.grade-essay');
         Route::get('training/{id}/export', [TrainingController::class, 'export'])->name('training.export');
         Route::get('training/delete/{id}', [TrainingController::class, 'destroy'])->name('training.destroy');
 
         ##TRAINING QUIZ QUESTIONS
         Route::get('training/{trainingId}/questions', [TrainingQuestionController::class, 'index'])->name('training.questions.index');
+        Route::get('training/{trainingId}/questions/template', [TrainingQuestionController::class, 'downloadTemplate'])->name('training.questions.template');
+        Route::post('training/{trainingId}/questions/import-excel', [TrainingQuestionController::class, 'importExcel'])->name('training.questions.import-excel');
+        Route::post('training/{trainingId}/questions/import-text', [TrainingQuestionController::class, 'importText'])->name('training.questions.import-text');
+        Route::post('training/{trainingId}/questions/delete-all', [TrainingQuestionController::class, 'deleteAll'])->name('training.questions.delete-all');
         Route::post('training/{trainingId}/questions', [TrainingQuestionController::class, 'store'])->name('training.questions.store');
         Route::post('training/{trainingId}/questions/{questionId}/update', [TrainingQuestionController::class, 'update'])->name('training.questions.update');
         Route::get('training/{trainingId}/questions/{questionId}/delete', [TrainingQuestionController::class, 'destroy'])->name('training.questions.destroy');

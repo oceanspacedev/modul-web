@@ -99,11 +99,24 @@ class TrainingPortalController extends Controller
             );
         }
 
-        return view('training.portal.quiz', [
+        $viewName = ($training->quiz_mode === 'game') ? 'training.portal.quiz_game' : 'training.portal.quiz';
+
+        $leaderboard = [];
+        if ($training->quiz_mode === 'game') {
+            $leaderboard = TrainingQuizResult::with('user')
+                ->where('training_id', $training->id)
+                ->orderByDesc('score')
+                ->orderBy('submitted_at')
+                ->take(10)
+                ->get();
+        }
+
+        return view($viewName, [
             'title' => 'Kuis Evaluasi: ' . $training->title,
             'participant' => $participant,
             'training' => $training,
             'questions' => $questions,
+            'leaderboard' => $leaderboard,
         ]);
     }
 
@@ -146,25 +159,48 @@ class TrainingPortalController extends Controller
         $totalQuestions = $questions->count();
         $submittedAnswers = $request->input('answers', []);
 
+        $mcTotal = 0;
         $correctCount = 0;
+        $essayTotal = 0;
         $answersDetails = [];
 
         foreach ($questions as $q) {
             $userAns = $submittedAnswers[$q->id] ?? null;
-            $isCorrect = ($userAns === $q->correct_answer);
 
-            if ($isCorrect) {
-                $correctCount++;
+            if ($q->type === 'essay') {
+                $essayTotal++;
+                $answersDetails[$q->id] = [
+                    'type' => 'essay',
+                    'user_answer' => is_string($userAns) ? trim($userAns) : '',
+                    'correct_answer' => $q->correct_answer,
+                    'is_correct' => null,
+                ];
+            } else {
+                $mcTotal++;
+                $isCorrect = ($userAns && strtolower((string)$userAns) === strtolower((string)$q->correct_answer));
+
+                if ($isCorrect) {
+                    $correctCount++;
+                }
+
+                $answersDetails[$q->id] = [
+                    'type' => 'multiple_choice',
+                    'user_answer' => $userAns,
+                    'correct_answer' => $q->correct_answer,
+                    'is_correct' => $isCorrect,
+                ];
             }
-
-            $answersDetails[$q->id] = [
-                'user_answer' => $userAns,
-                'correct_answer' => $q->correct_answer,
-                'is_correct' => $isCorrect,
-            ];
         }
 
-        $score = $totalQuestions > 0 ? round(($correctCount / $totalQuestions) * 100, 2) : 0;
+        // Anti-cheat parameters
+        $tabSwitchCount = (int)$request->input('tab_switch_count', 0);
+        $isForceSubmitted = (bool)$request->input('is_force_submitted', false);
+        $violationLogsInput = $request->input('violation_logs');
+        $violationLogs = is_string($violationLogsInput) ? json_decode($violationLogsInput, true) : (is_array($violationLogsInput) ? $violationLogsInput : []);
+
+        // Calculate score based on multiple choice questions, or 100 if quiz only contains essay
+        $mcScore = $mcTotal > 0 ? round(($correctCount / $mcTotal) * 100, 2) : 100;
+        $essayStatus = ($essayTotal > 0) ? 'pending' : 'none';
 
         TrainingQuizResult::create([
             'training_id' => $training->id,
@@ -172,15 +208,48 @@ class TrainingPortalController extends Controller
             'training_participant_id' => $participant->id,
             'total_questions' => $totalQuestions,
             'correct_answers' => $correctCount,
-            'score' => $score,
+            'score' => $mcScore,
+            'mc_score' => $mcScore,
+            'essay_score' => null,
+            'essay_status' => $essayStatus,
+            'tab_switch_count' => $tabSwitchCount,
+            'is_force_submitted' => $isForceSubmitted,
+            'violation_logs' => $violationLogs,
             'answers' => $answersDetails,
             'submitted_at' => now(),
         ]);
 
-        return redirect("/training/portal/{$token}/result")->with(
-            'success', 
-            'Jawaban kuis Anda berhasil dikirim! Nilai Anda telah dihitung.'
-        );
+        if ($request->ajax() || $request->wantsJson()) {
+            $updatedLeaderboard = TrainingQuizResult::with('user')
+                ->where('training_id', $training->id)
+                ->orderByDesc('score')
+                ->orderBy('submitted_at')
+                ->take(10)
+                ->get()
+                ->map(function($r, $idx) {
+                    return [
+                        'rank' => $idx + 1,
+                        'user_id' => $r->user_id,
+                        'name' => $r->user ? $r->user->full_name : 'Peserta',
+                        'score' => (float)$r->score,
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'score' => $mcScore,
+                'leaderboard' => $updatedLeaderboard,
+                'redirect_url' => "/training/portal/{$token}/result",
+            ]);
+        }
+
+        $flashMsg = $isForceSubmitted 
+            ? 'Kuis telah otomatis dikumpulkan karena Anda terdeteksi berpindah tab melebihi batas toleransi!'
+            : 'Jawaban kuis Anda berhasil dikirim dan tersimpan di sistem!';
+
+        $flashType = $isForceSubmitted ? 'warning' : 'success';
+
+        return redirect("/training/portal/{$token}/result")->with($flashType, $flashMsg);
     }
 
     /**
