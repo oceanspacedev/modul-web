@@ -129,6 +129,9 @@
                             </td>
                             <td class="text-center align-middle" style="padding: 16px;">
                                 <div class="d-flex justify-content-center align-items-center" style="gap: 6px;">
+                                    <button type="button" class="badge bg-danger p-2 border-0 btn-upload-video-shortcut" title="Upload Video Materi Pelatihan" data-toggle="modal" data-target="#uploadTrainingVideoModal" data-id="{{ $t->id }}" data-title="{{ addslashes($t->title) }}" data-date="{{ \Carbon\Carbon::parse($t->training_date)->format('d F Y') }}">
+                                        <i class="fas fa-video"></i>
+                                    </button>
                                     <a href="/training/{{ $t->id }}" class="badge bg-info p-2" title="Detail & Nilai">
                                         <i class="fas fa-eye"></i>
                                     </a>
@@ -166,4 +169,172 @@
         </div>
     </div>
 </section>
+
+{{-- MODAL UPLOAD VIDEO MATERI PELATIHAN (INDEX SHORTCUT) --}}
+<div class="modal fade" id="uploadTrainingVideoModal" tabindex="-1" role="dialog" aria-labelledby="uploadTrainingVideoModalLabel" aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content shadow border-0" style="border-radius: 14px;">
+            <div class="modal-header bg-white border-bottom py-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-danger text-white mr-2" style="width: 38px; height: 38px;">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title font-weight-bold text-dark mb-0" id="uploadTrainingVideoModalLabel">Upload Video Materi Pelatihan</h5>
+                        <small class="text-muted">Video akan otomatis masuk ke Galeri Video Materi dengan judul pelatihan ini.</small>
+                    </div>
+                </div>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="{{ route('video.store') }}" method="POST" enctype="multipart/form-data" id="uploadTrainingVideoIndexForm">
+                @csrf
+                <input type="hidden" name="training_id" id="indexModalTrainingId" value="">
+                <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
+
+                <div class="modal-body p-4">
+                    {{-- Judul Video Otomatis --}}
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold text-dark">
+                            Judul Video Materi <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="title" id="indexModalVideoTitle" class="form-control" required placeholder="Judul video...">
+                        <small class="text-muted">
+                            <i class="fas fa-magic text-primary mr-1"></i> Terisi otomatis sesuai judul sesi pelatihan yang dipilih.
+                        </small>
+                    </div>
+
+                    {{-- Pilihan Tipe Video: Upload File vs Tautan Link --}}
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold text-dark d-block">Sumber Video <span class="text-danger">*</span></label>
+                        <div class="d-flex p-2 bg-light rounded border" style="gap: 20px;">
+                            <div class="custom-control custom-radio">
+                                <input type="radio" id="indexTypeFile" name="video_type" value="file" class="custom-control-input" checked onchange="toggleVideoTypeInIndex('file')">
+                                <label class="custom-control-label font-weight-bold" for="indexTypeFile" style="cursor: pointer;">
+                                    <i class="fas fa-file-video text-danger mr-1"></i> Upload File Video
+                                </label>
+                            </div>
+                            <div class="custom-control custom-radio">
+                                <input type="radio" id="indexTypeLink" name="video_type" value="link" class="custom-control-input" onchange="toggleVideoTypeInIndex('link')">
+                                <label class="custom-control-label font-weight-bold" for="indexTypeLink" style="cursor: pointer;">
+                                    <i class="fab fa-youtube text-danger mr-1"></i> Tautan / Link (YouTube / Drive / Zoom)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Group 1: File Input --}}
+                    <div class="form-group mb-3" id="indexFileInputGroup">
+                        <label class="font-weight-bold text-dark">Pilih File Video Rekaman <span class="text-danger">*</span></label>
+                        <div class="custom-file">
+                            <input type="file" name="video_file" id="indexVideoFileInput" class="custom-file-input" accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-matroska" required onchange="updateIndexFileName(this)">
+                            <label class="custom-file-label" id="indexVideoFileLabel" for="indexVideoFileInput">Pilih file video (MP4, MKV, WEBM, MOV)...</label>
+                        </div>
+                        <small class="text-muted">Maksimal ukuran file video: 2 GB.</small>
+                    </div>
+
+                    {{-- Group 2: Link Input --}}
+                    <div class="form-group mb-3" id="indexLinkInputGroup" style="display: none;">
+                        <label class="font-weight-bold text-dark">URL / Tautan Video <span class="text-danger">*</span></label>
+                        <input type="url" name="video_link" id="indexVideoLinkInput" class="form-control" placeholder="https://www.youtube.com/watch?v=... atau https://drive.google.com/file/d/...">
+                        <small class="text-muted">Mendukung link YouTube, Zoom Cloud Recording, atau Google Drive.</small>
+                    </div>
+
+                    {{-- Deskripsi Otomatis --}}
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold text-dark">Deskripsi & Catatan Sesi (Opsional)</label>
+                        <textarea name="description" id="indexModalVideoDesc" class="form-control" rows="3" placeholder="Rangkuman materi atau topik yang dibahas..."></textarea>
+                    </div>
+
+                    {{-- Thumbnail Cover (Opsional) --}}
+                    <div class="form-group mb-0">
+                        <label class="font-weight-bold text-dark">Cover / Thumbnail Video (Opsional)</label>
+                        <div class="custom-file">
+                            <input type="file" name="thumbnail" id="indexThumbInput" class="custom-file-input" accept="image/png,image/jpeg,image/webp" onchange="updateIndexThumbLabel(this)">
+                            <label class="custom-file-label" id="indexThumbLabel" for="indexThumbInput">Pilih gambar thumbnail (JPG, PNG, WEBP)...</label>
+                        </div>
+                        <small class="text-muted">Biarkan kosong jika ingin menggunakan cover video bawaan sistem.</small>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light py-3 border-top d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary px-3" data-dismiss="modal">
+                        Batal
+                    </button>
+                    <button type="submit" class="btn btn-danger font-weight-bold px-4 shadow-sm" id="btnIndexSubmitVideo">
+                        <i class="fas fa-cloud-upload-alt mr-1"></i> Simpan & Publikasikan ke Video Materi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleVideoTypeInIndex(type) {
+    var fileGroup = document.getElementById('indexFileInputGroup');
+    var linkGroup = document.getElementById('indexLinkInputGroup');
+    var fileInput = document.getElementById('indexVideoFileInput');
+    var linkInput = document.getElementById('indexVideoLinkInput');
+
+    if (type === 'file') {
+        fileGroup.style.display = 'block';
+        linkGroup.style.display = 'none';
+        fileInput.setAttribute('required', 'required');
+        linkInput.removeAttribute('required');
+    } else {
+        fileGroup.style.display = 'none';
+        linkGroup.style.display = 'block';
+        fileInput.removeAttribute('required');
+        linkInput.setAttribute('required', 'required');
+    }
+}
+
+function updateIndexFileName(input) {
+    if (input.files && input.files[0]) {
+        document.getElementById('indexVideoFileLabel').innerText = input.files[0].name;
+    }
+}
+
+function updateIndexThumbLabel(input) {
+    if (input.files && input.files[0]) {
+        document.getElementById('indexThumbLabel').innerText = input.files[0].name;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // When clicking shortcut upload video button in table
+    $('.btn-upload-video-shortcut').on('click', function() {
+        var id = $(this).data('id');
+        var title = $(this).data('title');
+        var date = $(this).data('date');
+
+        $('#indexModalTrainingId').val(id);
+        $('#indexModalVideoTitle').val(title);
+        $('#indexModalVideoDesc').val('Rekaman video materi sesi pelatihan ' + title + ' yang dilaksanakan pada ' + date + '.');
+    });
+
+    var form = document.getElementById('uploadTrainingVideoIndexForm');
+    if (form) {
+        var isSubmitting = false;
+        form.addEventListener('submit', function(e) {
+            if (isSubmitting) {
+                e.preventDefault();
+                return false;
+            }
+            isSubmitting = true;
+            var btn = document.getElementById('btnIndexSubmitVideo');
+            if (btn) {
+                btn.style.pointerEvents = 'none';
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span> Mengunggah Video, mohon tunggu...';
+                setTimeout(function() {
+                    btn.disabled = true;
+                }, 50);
+            }
+            form.style.pointerEvents = 'none';
+        });
+    }
+});
+</script>
 @endsection

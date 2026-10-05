@@ -1,8 +1,19 @@
 <footer class="main-footer">
-    <div class="float-right d-none d-sm-block">
-        <b>Version</b> 1.0.0
-    </div>
-    <strong>Copyright &copy; 2026 <a href="#">MAGANG WIKRAMA</a>.</strong> All rights reserved.
+    @auth
+        <div class="float-right d-none d-sm-block">
+            <b>Version</b> 1.0.0
+        </div>
+        <strong>Copyright &copy; 2026 <a href="#">MAGANG WIKRAMA</a>.</strong> All rights reserved.
+    @else
+        <div class="container text-center text-md-left d-md-flex justify-content-between align-items-center">
+            <div>
+                <strong>Copyright &copy; 2026 <a href="#">MAGANG WIKRAMA</a>.</strong> All rights reserved.
+            </div>
+            <div class="d-none d-md-block text-muted small">
+                Modul App &bull; Galeri Publik
+            </div>
+        </div>
+    @endauth
 </footer>
 
 <!-- jQuery -->

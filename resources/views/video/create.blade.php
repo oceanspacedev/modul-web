@@ -247,10 +247,19 @@ function displaySelectedThumbnail(input) {
 }
 
 // Upload progress tracking
+var isVideoSubmitting = false;
 document.getElementById('uploadVideoForm').addEventListener('submit', function(e) {
+    if (isVideoSubmitting) {
+        e.preventDefault();
+        return false;
+    }
+    isVideoSubmitting = true;
     var submitBtn = document.getElementById('submitBtn');
-    submitBtn.disabled = true;
+    submitBtn.style.pointerEvents = 'none';
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...';
+    setTimeout(function() {
+        submitBtn.disabled = true;
+    }, 50);
 
     var isFile = document.getElementById('option_file').checked;
     if (isFile && document.getElementById('video_file').files.length) {

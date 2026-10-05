@@ -38,11 +38,12 @@
     </style>
 </head>
 
-<body class="hold-transition sidebar-mini layout-fixed">
+<body class="hold-transition @auth sidebar-mini layout-fixed @else layout-top-nav @endauth">
 
     <!-- Site wrapper -->
     <div class="wrapper">
-        <!-- Navbar -->
+        @auth
+        <!-- Navbar for Authenticated Users -->
         <nav class="main-header navbar navbar-expand navbar-white navbar-light">
             <!-- Left navbar links -->
             <ul class="navbar-nav">
@@ -53,16 +54,47 @@
             </ul>
 
             <!-- Right navbar links -->
-            <ul class="navbar-nav ml-auto">
-                @auth
-                    <li class="nav-item">
-                        <a href="/dashboard" class="nav-link"><i class="fas fa-tachometer-alt mr-1"></i> Dashboard</a>
-                    </li>
-                @else
-                    <li class="nav-item">
-                        <a href="/login" class="nav-link text-muted"><i class="fas fa-sign-in-alt mr-1"></i> Login Admin</a>
-                    </li>
-                @endauth
+            <ul class="navbar-nav ml-auto align-items-center">
+                @can('view-dashboard')
+                <li class="nav-item mr-2">
+                    <a href="/dashboard" class="nav-link"><i class="fas fa-tachometer-alt mr-1"></i> Dashboard</a>
+                </li>
+                @endcan
+                <li class="nav-item">
+                    <form action="/logout" method="POST" class="d-inline">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-danger btn-sm px-3" style="border-radius: 6px;">
+                            <i class="fas fa-sign-out-alt mr-1"></i> Logout
+                        </button>
+                    </form>
+                </li>
             </ul>
         </nav>
         <!-- /.navbar -->
+        @else
+        <!-- Navbar for Public Visitors (No Sidebar) -->
+        <nav class="main-header navbar navbar-expand navbar-white navbar-light border-bottom shadow-sm">
+            <div class="container">
+                <a href="/video" class="navbar-brand d-flex align-items-center">
+                    <span class="d-inline-flex align-items-center justify-content-center bg-primary rounded-circle mr-2" style="width: 32px; height: 32px;">
+                        <i class="fas fa-layer-group text-white" style="font-size: 0.9rem;"></i>
+                    </span>
+                    <span class="brand-text font-weight-bold text-dark" style="letter-spacing: -0.01em;">MODUL <span class="badge badge-primary font-weight-normal ml-1">APP</span></span>
+                </a>
+
+                <ul class="navbar-nav ml-auto align-items-center">
+                    <li class="nav-item mr-3 d-none d-sm-block">
+                        <a href="/video" class="nav-link font-weight-bold {{ ($active ?? '') === 'video' ? 'text-primary' : 'text-muted' }}">
+                            <i class="fas fa-play-circle mr-1"></i> Galeri Video
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('login') }}" class="btn btn-primary btn-sm px-3 shadow-sm font-weight-bold">
+                            <i class="fas fa-sign-in-alt mr-1"></i> Masuk
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        <!-- /.navbar -->
+        @endauth

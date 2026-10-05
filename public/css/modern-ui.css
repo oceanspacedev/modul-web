@@ -30,6 +30,13 @@ body, html {
     background-color: #f8fafc !important;
 }
 
+/* Public top-nav layout (no sidebar) */
+body.layout-top-nav .content-wrapper,
+body.layout-top-nav .main-header,
+body.layout-top-nav .main-footer {
+    margin-left: 0 !important;
+}
+
 /* =========================================================
    TOP NAVBAR
    ========================================================= */

@@ -124,6 +124,20 @@
                             </div>
 
                             <div class="form-group mb-0 pt-3 border-top">
+                                <div class="custom-control custom-checkbox mb-2">
+                                    <input type="checkbox" class="custom-control-input" id="is_attendance_active" name="is_attendance_active" value="1" {{ old('is_attendance_active') ? 'checked' : '' }}>
+                                    <label class="custom-control-label font-weight-bold" for="is_attendance_active">
+                                        Langsung buka akses presensi kehadiran peserta
+                                    </label>
+                                    <small class="form-text text-muted mt-0">Bisa dibuka/ditutup kapan saja oleh admin di halaman detail pelatihan.</small>
+                                </div>
+                                <div class="custom-control custom-checkbox mb-2">
+                                    <input type="checkbox" class="custom-control-input" id="require_attendance_proof" name="require_attendance_proof" value="1" {{ old('require_attendance_proof') ? 'checked' : '' }}>
+                                    <label class="custom-control-label font-weight-bold" for="require_attendance_proof">
+                                        Wajibkan peserta unggah screenshot bukti Zoom/Pelatihan
+                                    </label>
+                                    <small class="form-text text-muted mt-0">Peserta harus melampirkan screenshot layar Zoom saat konfirmasi kehadiran.</small>
+                                </div>
                                 <div class="custom-control custom-checkbox">
                                     <input type="checkbox" class="custom-control-input" id="send_wa_now" name="send_wa_now" value="1" checked>
                                     <label class="custom-control-label font-weight-bold" for="send_wa_now">

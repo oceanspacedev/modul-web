@@ -30,4 +30,9 @@ class TrainingParticipant extends Model
     {
         return $this->hasOne(TrainingQuizResult::class, 'training_participant_id')->latestOfMany();
     }
+
+    public function getAttendanceProofUrlAttribute()
+    {
+        return $this->attendance_proof ? asset('storage/' . $this->attendance_proof) : null;
+    }
 }

@@ -7,6 +7,8 @@ use App\Models\TrainingParticipant;
 use App\Models\TrainingQuizResult;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class TrainingPortalController extends Controller
 {
@@ -37,17 +39,50 @@ class TrainingPortalController extends Controller
      */
     public function submitAttendance(Request $request, $token)
     {
-        $participant = TrainingParticipant::where('token', $token)->firstOrFail();
+        $participant = TrainingParticipant::with('training')->where('token', $token)->firstOrFail();
+        $training = $participant->training;
 
-        $validated = $request->validate([
+        // Check if attendance is activated by trainer/admin (either via attendance toggle or quiz open)
+        if (!$training->is_attendance_active && !$training->is_quiz_active) {
+            return back()->with('warning', 'Presensi kehadiran saat ini belum dibuka oleh Pemateri / Admin. Harap menunggu instruksi dari pemateri.');
+        }
+
+        $rules = [
             'status' => 'required|in:hadir,tidak_hadir',
             'notes' => 'nullable|string|max:255',
-        ]);
+        ];
+
+        // Validate screenshot proof if required when marking "hadir"
+        if ($training->require_attendance_proof && $request->input('status') === 'hadir') {
+            $rules['attendance_proof'] = 'required|image|mimes:jpeg,png,jpg,webp|max:5120';
+        } else {
+            $rules['attendance_proof'] = 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120';
+        }
+
+        $messages = [
+            'attendance_proof.required' => 'Wajib mengunggah screenshot bukti Anda mengikuti pelatihan / Zoom untuk konfirmasi kehadiran.',
+            'attendance_proof.image' => 'File bukti kehadiran harus berupa gambar (JPG, PNG, atau WEBP).',
+            'attendance_proof.max' => 'Ukuran file screenshot bukti maksimal 5MB.',
+        ];
+
+        $validated = $request->validate($rules, $messages);
+
+        $proofPath = $participant->attendance_proof;
+        if ($request->hasFile('attendance_proof')) {
+            // Delete old proof if present
+            if ($proofPath && Storage::disk('public')->exists($proofPath)) {
+                Storage::disk('public')->delete($proofPath);
+            }
+            $file = $request->file('attendance_proof');
+            $fileName = Str::random(30) . '.' . $file->getClientOriginalExtension();
+            $proofPath = $file->storeAs('attendance_proofs', $fileName, 'public');
+        }
 
         $participant->update([
             'attendance_status' => $validated['status'],
             'attended_at' => now(),
             'attendance_notes' => $validated['notes'] ?? null,
+            'attendance_proof' => $proofPath,
         ]);
 
         $msg = $validated['status'] === 'hadir' 

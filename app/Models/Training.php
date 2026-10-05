@@ -15,6 +15,8 @@ class Training extends Model
     protected $casts = [
         'training_date' => 'date',
         'is_quiz_active' => 'boolean',
+        'is_attendance_active' => 'boolean',
+        'require_attendance_proof' => 'boolean',
     ];
 
     public function trainer()
@@ -35,6 +37,16 @@ class Training extends Model
     public function quizResults()
     {
         return $this->hasMany(TrainingQuizResult::class, 'training_id');
+    }
+
+    public function videos()
+    {
+        return $this->hasMany(Video::class, 'training_id');
+    }
+
+    public function video()
+    {
+        return $this->hasOne(Video::class, 'training_id')->latestOfMany();
     }
 
     public function scopeFilter($query)

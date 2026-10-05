@@ -2,25 +2,27 @@
 
 @section('content')
 <section class="content-header">
-    <div class="container-fluid">
+    <div class="@auth container-fluid @else container @endauth">
         <div class="mb-3">
             <h1 class="m-0 font-weight-bold" style="font-size: 1.5rem;">
                 Galeri Video Materi
             </h1>
             <p class="text-muted small mt-1 mb-2">Tonton dan pelajari video materi pembelajaran kapan saja.</p>
             @auth
+                @if(auth()->user()->can('manage-videos') || auth()->user()->job_level_id == 1)
                 <div>
                     <a href="{{ route('video.create') }}" class="btn btn-sm btn-danger shadow-sm">
                         <i class="fas fa-plus mr-1"></i> Tambah Video Baru
                     </a>
                 </div>
+                @endif
             @endauth
         </div>
     </div>
 </section>
 
 <section class="content">
-    <div class="container-fluid">
+    <div class="@auth container-fluid @else container @endauth">
         {{-- Flash Alert Messages --}}
         @if (session('success'))
             <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
@@ -84,9 +86,7 @@
                     <div class="col-xl-4 col-md-6 col-12 mb-4 d-flex align-items-stretch">
                         <div class="card shadow-sm h-100 w-100 border-0 rounded-lg overflow-hidden video-card" style="transition: transform 0.2s, box-shadow 0.2s;">
                             {{-- Video Poster / Preview Box --}}
-                            <div class="position-relative bg-dark video-thumbnail-wrapper" style="height: 200px; cursor: pointer;"
-                                onclick="openVideoPlayer('{{ $v->id }}', '{{ addslashes($v->title) }}', '{{ $v->video_type }}', '{{ $v->video_url }}', '{{ $v->embed_url }}', '{{ addslashes($v->description) }}')">
-                                
+                            <a href="{{ route('video.show', $v->id) }}" class="position-relative bg-dark video-thumbnail-wrapper d-block text-decoration-none" style="height: 200px;">
                                 @if($v->thumbnail_url)
                                     <img src="{{ $v->thumbnail_url }}" alt="{{ $v->title }}" class="w-100 h-100" style="object-fit: cover;">
                                 @elseif($v->isFile())
@@ -118,7 +118,7 @@
                                         <i class="fas fa-file-video mr-1"></i> {{ $v->file_size ?? 'File Video' }}
                                     @endif
                                 </span>
-                            </div>
+                            </a>
 
                             {{-- Card Body --}}
                             <div class="card-body d-flex flex-column p-3">
@@ -143,26 +143,18 @@
                             </div>
 
                             {{-- Card Footer --}}
-                            <div class="card-footer bg-light p-2 d-flex justify-content-between align-items-center">
-                                <button type="button" class="btn btn-sm btn-outline-danger font-weight-bold"
-                                    onclick="openVideoPlayer('{{ $v->id }}', '{{ addslashes($v->title) }}', '{{ $v->video_type }}', '{{ $v->video_url }}', '{{ $v->embed_url }}', '{{ addslashes($v->description) }}')">
-                                    <i class="fas fa-play mr-1"></i> Putar Video
-                                </button>
-                                
+                            @auth
+                            <div class="card-footer bg-light px-3 py-2 d-flex justify-content-end align-items-center">
                                 <div class="btn-group">
-                                    <a href="{{ route('video.show', $v->id) }}" class="btn btn-sm btn-default" title="Halaman Penuh">
-                                        <i class="fas fa-expand"></i>
+                                    <a href="{{ route('video.edit', $v->id) }}" class="btn btn-sm btn-info" title="Edit Video">
+                                        <i class="fas fa-pencil-alt mr-1"></i> Edit
                                     </a>
-                                    @auth
-                                        <a href="{{ route('video.edit', $v->id) }}" class="btn btn-sm btn-info" title="Edit Video">
-                                            <i class="fas fa-pencil-alt"></i>
-                                        </a>
-                                        <button type="button" class="btn btn-sm btn-danger" title="Hapus Video" onclick="confirmDelete('{{ $v->id }}', '{{ addslashes($v->title) }}')">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    @endauth
+                                    <button type="button" class="btn btn-sm btn-danger" title="Hapus Video" onclick="confirmDelete('{{ $v->id }}', '{{ addslashes($v->title) }}')">
+                                        <i class="fas fa-trash mr-1"></i> Hapus
+                                    </button>
                                 </div>
                             </div>
+                            @endauth
                         </div>
                     </div>
                 @endforeach

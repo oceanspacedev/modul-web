@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\WhatsAppService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class TrainingController extends Controller
@@ -72,6 +73,8 @@ class TrainingController extends Controller
             'participants.*' => 'exists:users,id',
             'send_wa_now' => 'nullable|boolean',
             'quiz_mode' => 'nullable|in:formal,game',
+            'is_attendance_active' => 'nullable|boolean',
+            'require_attendance_proof' => 'nullable|boolean',
         ]);
 
         $training = Training::create([
@@ -84,6 +87,8 @@ class TrainingController extends Controller
             'zoom_link' => $validated['zoom_link'],
             'status' => 'scheduled',
             'is_quiz_active' => false,
+            'is_attendance_active' => $request->boolean('is_attendance_active', false),
+            'require_attendance_proof' => $request->boolean('require_attendance_proof', false),
             'quiz_mode' => $request->input('quiz_mode', 'formal'),
         ]);
 
@@ -184,9 +189,11 @@ class TrainingController extends Controller
             'participants' => 'required|array|min:1',
             'participants.*' => 'exists:users,id',
             'quiz_mode' => 'nullable|in:formal,game',
+            'is_attendance_active' => 'nullable|boolean',
+            'require_attendance_proof' => 'nullable|boolean',
         ]);
 
-        $training->update([
+        $updateData = [
             'title' => $validated['title'],
             'trainer_id' => $validated['trainer_id'],
             'description' => $validated['description'] ?? null,
@@ -196,7 +203,16 @@ class TrainingController extends Controller
             'zoom_link' => $validated['zoom_link'],
             'status' => $validated['status'],
             'quiz_mode' => $request->input('quiz_mode', $training->quiz_mode ?? 'formal'),
-        ]);
+        ];
+
+        if ($request->has('is_attendance_active')) {
+            $updateData['is_attendance_active'] = $request->boolean('is_attendance_active');
+        }
+        if ($request->has('require_attendance_proof')) {
+            $updateData['require_attendance_proof'] = $request->boolean('require_attendance_proof');
+        }
+
+        $training->update($updateData);
 
         // Sync participants
         $newParticipantIds = array_unique($validated['participants']);
@@ -255,6 +271,38 @@ class TrainingController extends Controller
     }
 
     /**
+     * Toggle attendance active status (Open/Close Absen)
+     */
+    public function toggleAttendance($id)
+    {
+        $training = Training::findOrFail($id);
+        $newStatus = !$training->is_attendance_active;
+        $training->update(['is_attendance_active' => $newStatus]);
+
+        $message = $newStatus 
+            ? 'Presensi kehadiran pelatihan telah DIBUKA untuk seluruh peserta!' 
+            : 'Presensi kehadiran pelatihan telah DITUTUP sementara.';
+
+        return back()->with('success', $message);
+    }
+
+    /**
+     * Toggle whether screenshot proof is required for attendance
+     */
+    public function toggleAttendanceProof($id)
+    {
+        $training = Training::findOrFail($id);
+        $newStatus = !$training->require_attendance_proof;
+        $training->update(['require_attendance_proof' => $newStatus]);
+
+        $message = $newStatus 
+            ? 'Screenshot bukti kehadiran (Zoom/Pelatihan) kini DIWAJIBKAN untuk peserta!' 
+            : 'Syarat upload screenshot bukti kehadiran kini DINONAKTIFKAN (opsional).';
+
+        return back()->with('success', $message);
+    }
+
+    /**
      * Quick toggle quiz mode (formal <-> game)
      */
     public function toggleQuizMode($id)
@@ -305,6 +353,62 @@ class TrainingController extends Controller
         TrainingQuizResult::where('training_id', $id)->where('user_id', $participant->user_id)->delete();
 
         return back()->with('success', "Status kuis untuk {$participant->user->full_name} berhasil di-reset. Peserta dapat mengerjakan kuis kembali.");
+    }
+
+    /**
+     * Reset participant attendance status back to 'pending' (Belum Absen)
+     */
+    public function resetParticipantAttendance($id, $participantId)
+    {
+        $participant = TrainingParticipant::where('training_id', $id)->findOrFail($participantId);
+
+        // Delete proof image file from disk if exists
+        if ($participant->attendance_proof && Storage::disk('public')->exists($participant->attendance_proof)) {
+            Storage::disk('public')->delete($participant->attendance_proof);
+        }
+
+        $participant->update([
+            'attendance_status' => 'pending',
+            'attended_at' => null,
+            'attendance_notes' => null,
+            'attendance_proof' => null,
+        ]);
+
+        return back()->with('success', "Status presensi untuk {$participant->user->full_name} berhasil diubah menjadi BELUM ABSEN.");
+    }
+
+    /**
+     * Update participant attendance status & notes manually by admin
+     */
+    public function updateParticipantAttendance(Request $request, $id, $participantId)
+    {
+        $participant = TrainingParticipant::where('training_id', $id)->findOrFail($participantId);
+
+        $validated = $request->validate([
+            'attendance_status' => 'required|in:pending,hadir,tidak_hadir',
+            'attendance_notes' => 'nullable|string|max:255',
+        ]);
+
+        $data = [
+            'attendance_status' => $validated['attendance_status'],
+            'attendance_notes' => $validated['attendance_notes'] ?? null,
+        ];
+
+        if ($validated['attendance_status'] === 'pending') {
+            if ($participant->attendance_proof && Storage::disk('public')->exists($participant->attendance_proof)) {
+                Storage::disk('public')->delete($participant->attendance_proof);
+            }
+            $data['attended_at'] = null;
+            $data['attendance_proof'] = null;
+        } elseif ($validated['attendance_status'] === 'hadir' && !$participant->attended_at) {
+            $data['attended_at'] = now();
+        } elseif ($validated['attendance_status'] === 'tidak_hadir') {
+            $data['attended_at'] = now();
+        }
+
+        $participant->update($data);
+
+        return back()->with('success', "Presensi {$participant->user->full_name} berhasil diperbarui.");
     }
 
     /**
@@ -400,6 +504,7 @@ class TrainingController extends Controller
                 'No WhatsApp',
                 'Status Kehadiran',
                 'Waktu Absen',
+                'Bukti Screenshot Absen',
                 'Status Kuis',
                 'Nilai PG (0-100)',
                 'Status Essay',
@@ -438,6 +543,7 @@ class TrainingController extends Controller
                     $user->no_wa ?? '-',
                     strtoupper($participant->attendance_status),
                     $participant->attended_at ? Carbon::parse($participant->attended_at)->format('d-m-Y H:i') : '-',
+                    $participant->attendance_proof ? asset('storage/' . $participant->attendance_proof) : '-',
                     $quiz ? 'Sudah Mengerjakan' : 'Belum Mengerjakan',
                     $quiz ? ($quiz->mc_score ?? $quiz->score) : 0,
                     $essayStatusLabel,

@@ -13,6 +13,7 @@ use Exception;
 use Illuminate\Http\Request;
 use Laravel\Sanctum\PersonalAccessToken;
 use Maatwebsite\Excel\Facades\Excel;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
@@ -22,18 +23,13 @@ class UserController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function index()
-     {
-    //     $last_seen = User::with(['lastSeen'=> function($q){
-    //         $q -> orderBy('last_used_at', 'DESC');
-    //     }])->get();
-    //     dd($last_seen[1]);
+    {
         return view('setting.user.index', [
             'title' => 'User',
             'active' => 'setting',
-            'users' => User::with(['joblevel', 'divisi', 'subdivisi', 'lastSeen'=> function($q){
+            'users' => User::with(['joblevel', 'divisi', 'subdivisi', 'roles', 'lastSeen'=> function($q){
                 $q -> orderBy('last_used_at', 'DESC');
             }])->filter()->withTrashed()->orderBy('full_name')->get(),
-
         ]);
     }
 
@@ -76,6 +72,7 @@ class UserController extends Controller
             'active' => 'setting',
             'joblevels' => JobLevel::all(),
             'divisis' => Divisi::all(),
+            'roles' => Role::all(),
         ]);
     }
 
@@ -94,12 +91,17 @@ class UserController extends Controller
                 'id_karyawan' => ['nullable', 'string', 'max:50'],
                 'email' => ['nullable', 'string', 'max:100'],
                 'no_wa' => ['nullable', 'string', 'max:25'],
+                'role' => ['required', 'string', 'exists:roles,name'],
             ]);
             $data = $request->all();
             unset($data['_token']);
+            $roleName = $request->input('role', 'Staff');
+            unset($data['role']);
             $data['password'] = bcrypt($data['password']);
             $data['full_name'] = strtoupper($data['full_name']);
-            User::create($data);
+            $newUser = User::create($data);
+            $newUser->assignRole($roleName);
+
             return redirect('user')->with(['success' => 'Berhasil menambahkan user']);
         } catch (Exception $e) {
             return redirect('user')->with(['error' => $e->getMessage()]);
@@ -125,7 +127,7 @@ class UserController extends Controller
      */
     public function edit($id)
     {
-        $user = User::with(['joblevel', 'divisi', 'subdivisi.divisi'])->find($id);
+        $user = User::with(['joblevel', 'divisi', 'subdivisi.divisi', 'roles'])->find($id);
 
         if (!$user) {
             return redirect('user')->with(['error' => 'Tidak bisa mengedit user yang nonaktif, aktifkan terlebih dahulu']);
@@ -138,6 +140,7 @@ class UserController extends Controller
             'joblevels' => JobLevel::all(),
             'divisis' => Divisi::all(),
             'subdivisis' => SubDivisi::where('divisi_id', $user->divisi_id)->get(),
+            'roles' => Role::all(),
         ]);
     }
 
@@ -162,9 +165,16 @@ class UserController extends Controller
                 'id_karyawan' => ['nullable', 'string', 'max:50'],
                 'email' => ['nullable', 'string', 'max:100'],
                 'no_wa' => ['nullable', 'string', 'max:25'],
+                'role' => ['nullable', 'string', 'exists:roles,name'],
             ]);
             $data = $request->all();
             unset($data['_token']);
+
+            if ($request->filled('role')) {
+                $user->syncRoles([$request->role]);
+            }
+            unset($data['role']);
+
             $data['full_name'] = strtoupper($data['full_name']);
             $subdivisi = SubDivisi::where('divisi_id', $request->divisi_id)->get();
             if (count($subdivisi) === 0) {

@@ -29,6 +29,8 @@ class TrainingQuizComprehensiveTest extends TestCase
                 'password' => bcrypt('complete123'),
                 'job_level_id' => 1,
             ]);
+        } else {
+            $admin->update(['password' => bcrypt('complete123')]);
         }
 
         // Test login

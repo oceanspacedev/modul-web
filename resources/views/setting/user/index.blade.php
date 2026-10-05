@@ -63,9 +63,10 @@
                                         <th>User Name</th>
                                         <th>Email</th>
                                         <th>No WA</th>
+                                        <th>Role</th>
+                                        <th>Job Level</th>
                                         <th>Divisi</th>
                                         <th>Sub Divisi</th>
-                                        <th>Job Level</th>
                                         <th>Status</th>
                                         <th>Last Seen</th>
                                         <th style="width: 100px;">Aksi</th>
@@ -80,9 +81,22 @@
                                             <td><span class="text-muted">{{ $user->username }}</span></td>
                                             <td>{{ $user->email ?? '-' }}</td>
                                             <td>{{ $user->no_wa ?? '-' }}</td>
-                                            <td>{{ $user->divisi->name }}</td>
+                                            <td>
+                                                @forelse ($user->roles as $role)
+                                                    @if ($role->name === 'Admin')
+                                                        <span class="badge badge-danger">{{ $role->name }}</span>
+                                                    @elseif ($role->name === 'Trainer')
+                                                        <span class="badge badge-success">{{ $role->name }}</span>
+                                                    @else
+                                                        <span class="badge badge-info">{{ $role->name }}</span>
+                                                    @endif
+                                                @empty
+                                                    <span class="badge badge-secondary">-</span>
+                                                @endforelse
+                                            </td>
+                                            <td><span class="badge badge-light border">{{ $user->joblevel->name ?? '-' }}</span></td>
+                                            <td>{{ $user->divisi->name ?? '-' }}</td>
                                             <td>{{ $user->subdivisi->name ?? '-' }}</td>
-                                            <td><span class="badge badge-light border">{{ $user->joblevel->name }}</span></td>
                                             <td>
                                                 @if ($user->deleted_at)
                                                     <span class="badge badge-secondary">NONAKTIF</span>

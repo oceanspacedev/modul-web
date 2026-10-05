@@ -1,7 +1,8 @@
+@auth
  <!-- Main Sidebar Container -->
  <aside class="main-sidebar main-sidebar-custom sidebar-dark-primary elevation-4">
      <!-- Brand Logo -->
-     <a href="/video" class="brand-link">
+     <a href="/dashboard" class="brand-link">
          <span class="d-inline-flex align-items-center justify-content-center bg-primary rounded-circle mr-2" style="width: 34px; height: 34px;">
              <i class="fas fa-layer-group text-white" style="font-size: 0.95rem;"></i>
          </span>
@@ -10,38 +11,29 @@
 
      <!-- Sidebar -->
      <div class="sidebar">
-         <!-- Sidebar user (optional) -->
-         <div class="user-panel mt-3 pb-3 mb-3 d-flex align-items-center">
-             <div class="image mr-2">
-                 <div class="rounded-circle d-flex align-items-center justify-content-center text-white font-weight-bold" style="width: 36px; height: 36px; background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
-                     @auth
-                         {{ substr(auth()->user()->full_name, 0, 1) }}
-                     @else
-                         <i class="fas fa-user"></i>
-                     @endauth
-                 </div>
-             </div>
-             <div class="info">
-                 @auth
-                     <a href="/dashboard" class="d-block text-truncate" style="max-width: 150px;">{{ strtoupper(auth()->user()->full_name) }}</a>
-                     <span class="user-role"><i class="fas fa-circle text-success mr-1" style="font-size: 0.45rem;"></i> Online</span>
-                 @else
-                     <a href="/login" class="d-block text-white-50">PENGUNJUNG</a>
-                 @endauth
-             </div>
-         </div>
          <!-- Sidebar Menu -->
-         <nav class="mt-2">
+         <nav class="mt-3">
              <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu"
                  data-accordion="false">
+                @can('view-dashboard')
+                <li class="nav-item">
+                    <a href="/dashboard" class="nav-link {{ ($active ?? '') === 'dashboard' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-tachometer-alt text-primary"></i>
+                        <p>Dashboard</p>
+                    </a>
+                </li>
+                @endcan
+
+                @can('view-videos')
                 <li class="nav-item">
                     <a href="/video" class="nav-link {{ ($active ?? '') === 'video' ? 'active' : '' }}">
                         <i class="nav-icon fas fa-play-circle text-danger"></i>
                         <p>Video Materi</p>
                     </a>
                 </li>
+                @endcan
 
-                @auth
+                @canany(['manage-trainings', 'view-my-trainings'])
                 <li class="nav-item {{ ($active ?? '') === 'training' ? 'menu-open' : '' }}">
                     <a href="#" class="nav-link {{ ($active ?? '') === 'training' ? 'active' : '' }}">
                         <i class="nav-icon fas fa-chalkboard-teacher text-info"></i>
@@ -51,7 +43,7 @@
                         </p>
                     </a>
                     <ul class="nav nav-treeview">
-                        @if(auth()->user()->job_level_id == 1)
+                        @can('manage-trainings')
                         <li class="nav-item">
                             <a href="/training" class="nav-link">
                                 <i class="fas fa-list nav-icon text-xs"></i>
@@ -64,27 +56,38 @@
                                 <p>Tambah Pelatihan</p>
                             </a>
                         </li>
-                        @endif
+                        @endcan
+                        @can('view-my-trainings')
                         <li class="nav-item">
                             <a href="/my-trainings" class="nav-link">
                                 <i class="fas fa-user nav-icon text-xs"></i>
                                 <p>Pelatihan Saya</p>
                             </a>
                         </li>
+                        @endcan
                     </ul>
                 </li>
+                @endcanany
+
+                @can('manage-presence')
                 <li class="nav-item">
                     <a href="/absent" class="nav-link {{ ($active ?? '') === 'absent' ? 'active' : '' }}">
                         <i class="nav-icon fas fa-calendar-check text-success"></i>
                         <p>Presence</p>
                     </a>
                 </li>
-                 <li class="nav-item">
-                     <a href="/document" class="nav-link {{ ($active ?? '') === 'document' ? 'active' : '' }}">
-                         <i class="nav-icon fas fa-file-alt text-warning"></i>
-                         <p>Document</p>
-                     </a>
-                 </li>
+                @endcan
+
+                @canany(['manage-documents', 'view-documents'])
+                <li class="nav-item">
+                    <a href="/document" class="nav-link {{ ($active ?? '') === 'document' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-file-alt text-warning"></i>
+                        <p>Document</p>
+                    </a>
+                </li>
+                @endcanany
+
+                @can('manage-quizzes')
                 <li class="nav-item">
                      <a href="#" class="nav-link {{ ($active ?? '') === 'quiz' ? 'active' : '' }}">
                          <i class="nav-icon fas fa-award" style="color: #a855f7;"></i>
@@ -114,6 +117,9 @@
                          </li>
                      </ul>
                  </li>
+                @endcan
+
+                @canany(['manage-users', 'manage-roles', 'manage-master-data'])
                  <li class="nav-item">
                      <a href="#" class="nav-link {{ ($active ?? '') === 'setting' ? 'active' : '' }}">
                          <i class="nav-icon fas fa-sliders-h" style="color: #06b6d4;"></i>
@@ -123,12 +129,16 @@
                          </p>
                      </a>
                      <ul class="nav nav-treeview">
+                        @can('manage-users')
                         <li class="nav-item">
                              <a href="/user" class="nav-link">
                                  <i class="fas fa-users-cog nav-icon text-xs"></i>
                                  <p>User</p>
                              </a>
                          </li>
+                        @endcan
+
+                        @can('manage-master-data')
                          <li class="nav-item">
                              <a href="/divisi" class="nav-link">
                                  <i class="fas fa-city nav-icon text-xs"></i>
@@ -153,9 +163,19 @@
                                  <p>Document Type</p>
                              </a>
                          </li>
+                        @endcan
+
+                        @can('manage-roles')
+                         <li class="nav-item">
+                             <a href="/roles" class="nav-link">
+                                 <i class="fas fa-user-shield nav-icon text-xs text-primary"></i>
+                                 <p>Role & Hak Akses</p>
+                             </a>
+                         </li>
+                        @endcan
                      </ul>
                  </li>
-                 @endauth
+                @endcanany
              </ul>
          </nav>
          <!-- /.sidebar-menu -->
@@ -178,3 +198,4 @@
      </div>
      <!-- /.sidebar-custom -->
  </aside>
+@endauth

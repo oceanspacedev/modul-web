@@ -276,6 +276,7 @@ KUNCI: Menjadi unit kerja yang transparan, akuntabel, dan adaptif.";
             'zoom_link' => 'https://zoom.us/test',
             'status' => 'ongoing',
             'is_quiz_active' => false, // Start inactive
+            'is_attendance_active' => true,
         ]);
 
         // Q1: MC (A-D)

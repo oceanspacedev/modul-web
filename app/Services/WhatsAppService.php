@@ -32,6 +32,121 @@ class WhatsAppService
     }
 
     /**
+     * Send WhatsApp OTP message to a phone number
+     */
+    public static function sendOtp(string $phone, string $otp, string $recipientName = 'Pengguna'): array
+    {
+        $formattedPhone = self::formatPhoneNumber($phone);
+        if (!$formattedPhone) {
+            return ['status' => false, 'message' => 'Nomor WhatsApp tidak valid atau kosong'];
+        }
+
+        $rawUrl = env('wag_url') ?: env('WAG_URL') ?: 'waghub.mekayastudio.com';
+        $token = env('wag_token') ?: env('WAG_TOKEN');
+
+        if (!preg_match('/^https?:\/\//i', $rawUrl)) {
+            $baseUrl = 'https://' . $rawUrl;
+        } else {
+            $baseUrl = $rawUrl;
+        }
+        $endpoint = rtrim($baseUrl, '/') . '/api/v1/messages';
+
+        $appName = config('app.name', 'Modul App');
+        $message = "*KODE OTP LOGIN - {$appName}*\n\n"
+                 . "Halo *{$recipientName}*,\n\n"
+                 . "Kode verifikasi (OTP) untuk login ke akun Anda adalah:\n\n"
+                 . "*{$otp}*\n\n"
+                 . "Kode ini berlaku selama *5 menit*. Jangan bagikan kode ini kepada siapa pun demi keamanan akun Anda.\n\n"
+                 . "Terima kasih.";
+
+        // If no token configured, simulate and log
+        if (empty($token)) {
+            Log::info("WAGHub OTP Simulated to [{$formattedPhone}] ({$recipientName}): OTP = {$otp}");
+            return [
+                'status' => true,
+                'message' => 'Simulasi sukses (token gateway belum diisi di .env)',
+                'simulated' => true,
+                'otp' => $otp,
+            ];
+        }
+
+        $idempotencyKey = 'otp-' . $formattedPhone . '-' . time() . '-' . Str::random(4);
+
+        $payload = [
+            'recipient' => [
+                'type' => 'phone',
+                'value' => $formattedPhone,
+            ],
+            'message' => [
+                'type' => 'text',
+                'text' => $message,
+            ],
+            'purpose' => 'otp',
+            'mode' => 'sync',
+            'route_key' => 'default',
+            'idempotency_key' => $idempotencyKey,
+            'expires_at' => now()->addMinutes(10)->toIso8601String(),
+            'client_reference' => 'otp-' . time(),
+        ];
+
+        try {
+            $response = Http::withHeaders([
+                'Accept' => 'application/json',
+                'Authorization' => 'Bearer ' . $token,
+                'Idempotency-Key' => $idempotencyKey,
+                'Content-Type' => 'application/json',
+            ])->withOptions([
+                'curl' => [
+                    CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+                ],
+            ])->connectTimeout(5)->timeout(15)->retry(2, 500)->post($endpoint, $payload);
+
+            if ($response->successful()) {
+                Log::info("WAGHub OTP successfully sent to [{$formattedPhone}]");
+                return ['status' => true, 'message' => 'Kode OTP berhasil dikirim ke WhatsApp Anda'];
+            } else {
+                $errJson = $response->json();
+                $errorMsg = $errJson['message'] ?? ('HTTP Error ' . $response->status());
+                
+                // If 502 / upstream gateway down, provide friendly dev fallback so local testing is never blocked
+                if ($response->status() == 502) {
+                    $errorMsg = 'Gateway 502 (Server WAGHub sedang sibuk/offline)';
+                    Log::warning("WAGHub OTP Gateway 502. Fallback to local log. OTP for [{$formattedPhone}]: {$otp}");
+                    if (app()->environment('local') || config('app.debug')) {
+                        return [
+                            'status' => true,
+                            'message' => 'Kode OTP dibuat (Server WAGHub 502, kode dikirim via simulasi log)',
+                            'dev_otp' => $otp,
+                            'simulated' => true,
+                        ];
+                    }
+                }
+                
+                Log::error("WAGHub OTP error: " . $errorMsg, ['response' => $response->body()]);
+                return ['status' => false, 'message' => 'Gagal mengirim OTP: ' . $errorMsg];
+            }
+        } catch (\Throwable $th) {
+            Log::error('WAGHub OTP exception: ' . $th->getMessage());
+            
+            if (app()->environment('local') || config('app.debug')) {
+                Log::warning("WAGHub Exception fallback. OTP for [{$formattedPhone}]: {$otp}");
+                return [
+                    'status' => true,
+                    'message' => 'Kode OTP dibuat (Koneksi gateway gagal, kode dikirim via simulasi log)',
+                    'dev_otp' => $otp,
+                    'simulated' => true,
+                ];
+            }
+            
+            $errorMsg = $th->getMessage();
+            if (str_contains($errorMsg, 'cURL error 28') || str_contains($errorMsg, 'timed out')) {
+                $errorMsg = 'Koneksi ke gateway WhatsApp timeout. Silakan coba sesaat lagi.';
+            }
+            return ['status' => false, 'message' => 'Koneksi ke gateway WhatsApp gagal: ' . $errorMsg];
+        }
+    }
+
+    /**
      * Build WhatsApp message text for a training invitation
      */
     public static function buildInvitationMessage(Training $training, TrainingParticipant $participant): string
@@ -74,6 +189,13 @@ class WhatsAppService
         }
 
         $training = $participant->training;
+        if (!$training) {
+            $participant->update([
+                'wa_status' => 'Gagal: Data pelatihan tidak ditemukan',
+            ]);
+            return ['status' => false, 'message' => 'Data pelatihan tidak ditemukan'];
+        }
+
         $message = self::buildInvitationMessage($training, $participant);
 
         // Get config from .env (supports wag_url / WAG_URL and wag_token / WAG_TOKEN)
@@ -111,6 +233,7 @@ class WhatsAppService
             'purpose' => 'otp',
             'mode' => 'sync',
             'route_key' => 'default',
+            'idempotency_key' => $idempotencyKey,
             'expires_at' => now()->addDays(7)->toIso8601String(),
             'client_reference' => 'trn-' . $training->id . '-' . $participant->id,
         ];
@@ -121,7 +244,11 @@ class WhatsAppService
                 'Authorization' => 'Bearer ' . $token,
                 'Idempotency-Key' => $idempotencyKey,
                 'Content-Type' => 'application/json',
-            ])->timeout(15)->post($endpoint, $payload);
+            ])->withOptions([
+                'curl' => [
+                    CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+                ],
+            ])->connectTimeout(5)->timeout(15)->retry(2, 500)->post($endpoint, $payload);
 
             if ($response->successful()) {
                 $participant->update([
@@ -145,10 +272,14 @@ class WhatsAppService
             }
         } catch (\Throwable $th) {
             Log::error('WAGHub send exception: ' . $th->getMessage());
+            $errorMsg = $th->getMessage();
+            if (str_contains($errorMsg, 'cURL error 28') || str_contains($errorMsg, 'timed out')) {
+                $errorMsg = 'Koneksi ke gateway WhatsApp timeout (server gateway sedang lambat/tidak terjangkau). Coba kirim ulang beberapa saat lagi.';
+            }
             $participant->update([
-                'wa_status' => 'Error: ' . substr($th->getMessage(), 0, 100),
+                'wa_status' => 'Error: ' . substr($errorMsg, 0, 100),
             ]);
-            return ['status' => false, 'message' => $th->getMessage()];
+            return ['status' => false, 'message' => $errorMsg];
         }
     }
 

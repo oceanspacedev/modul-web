@@ -12,6 +12,7 @@ use App\Http\Controllers\QuizController;
 use App\Http\Controllers\QuizHistoryController;
 use App\Http\Controllers\QuizOptionController;
 use App\Http\Controllers\QuizQuestionController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SubDivisiController;
 use App\Http\Controllers\TrainingController;
 use App\Http\Controllers\TrainingPortalController;
@@ -31,22 +32,38 @@ use App\Models\QuizHistory;
 |
 */
 
-Route::get('/', function () {
+Route::get('/', function (\Illuminate\Http\Request $request) {
+    if ($request->filled('redirect')) {
+        session(['url.intended' => $request->redirect]);
+    }
     return view('login.index');
 })->name('login');
 
+Route::get('/login', function (\Illuminate\Http\Request $request) {
+    if ($request->filled('redirect')) {
+        session(['url.intended' => $request->redirect]);
+    }
+    return redirect()->route('login', $request->only('redirect'));
+});
+
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login/otp/request', [AuthController::class, 'requestOtp'])->name('login.otp.request');
+Route::post('/login/otp/verify', [AuthController::class, 'verifyOtp'])->name('login.otp.verify');
 Route::get('download/app', [UserController::class, 'download']);
 
 ## PUBLIC VIDEO ROUTES
 Route::get('video', [VideoController::class, 'index'])->name('video.index');
 Route::get('video/watch/{id}', [VideoController::class, 'show'])->name('video.show');
 
+## AUTHENTICATED COMMON ROUTES
+Route::middleware('auth')->group(function () {
+    Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::post('video/{id}/comments', [VideoController::class, 'storeComment'])->name('video.comments.store');
+    Route::delete('video/comments/{id}', [VideoController::class, 'destroyComment'])->name('video.comments.destroy');
+});
+
 Route::middleware(['auth','isAdmin'])->group(
     function () {
-        ##LOGOUT
-        Route::post('/logout', [AuthController::class, 'logout']);
-
         ##DASHBOARD
         Route::get('dashboard', [DashboardController::class, 'index']);
 
@@ -134,6 +151,10 @@ Route::middleware(['auth','isAdmin'])->group(
         Route::get('user/{id}', [UserController::class, 'edit']);
         Route::post('user/{id}', [UserController::class, 'update']);
 
+        ##ROLES & PERMISSIONS
+        Route::resource('roles', RoleController::class);
+        Route::post('roles/assign', [RoleController::class, 'assignUserRole'])->name('roles.assign');
+
         ##HELPERS
         Route::get('subdivisi/get/{id}', [SubDivisiController::class, 'show']);
 
@@ -150,10 +171,14 @@ Route::middleware(['auth','isAdmin'])->group(
         Route::post('training/{id}/update', [TrainingController::class, 'update'])->name('training.update');
         Route::post('training/{id}/status', [TrainingController::class, 'updateStatus'])->name('training.status');
         Route::post('training/{id}/toggle-quiz', [TrainingController::class, 'toggleQuiz'])->name('training.toggle-quiz');
+        Route::post('training/{id}/toggle-attendance', [TrainingController::class, 'toggleAttendance'])->name('training.toggle-attendance');
+        Route::post('training/{id}/toggle-proof', [TrainingController::class, 'toggleAttendanceProof'])->name('training.toggle-proof');
         Route::post('training/{id}/toggle-mode', [TrainingController::class, 'toggleQuizMode'])->name('training.toggle-mode');
         Route::post('training/{id}/broadcast-wa', [TrainingController::class, 'broadcastWa'])->name('training.broadcast-wa');
         Route::post('training/{id}/send-wa/{participantId}', [TrainingController::class, 'sendSingleWa'])->name('training.send-single-wa');
         Route::post('training/{id}/reset-quiz/{participantId}', [TrainingController::class, 'resetParticipantQuiz'])->name('training.reset-quiz');
+        Route::post('training/{id}/reset-attendance/{participantId}', [TrainingController::class, 'resetParticipantAttendance'])->name('training.reset-attendance');
+        Route::post('training/{id}/update-attendance/{participantId}', [TrainingController::class, 'updateParticipantAttendance'])->name('training.update-attendance');
         Route::post('training/{id}/grade-essay/{quizResultId}', [TrainingController::class, 'gradeEssay'])->name('training.grade-essay');
         Route::get('training/{id}/export', [TrainingController::class, 'export'])->name('training.export');
         Route::get('training/delete/{id}', [TrainingController::class, 'destroy'])->name('training.destroy');

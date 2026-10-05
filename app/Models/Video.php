@@ -10,6 +10,7 @@ class Video extends Model
     use HasFactory;
 
     protected $fillable = [
+        'training_id',
         'title',
         'description',
         'video_type',
@@ -20,6 +21,30 @@ class Video extends Model
         'file_size',
         'views_count',
     ];
+
+    /**
+     * Associated training session (optional).
+     */
+    public function training()
+    {
+        return $this->belongsTo(Training::class, 'training_id');
+    }
+
+    /**
+     * Top-level comments on this video.
+     */
+    public function comments()
+    {
+        return $this->hasMany(VideoComment::class, 'video_id')->whereNull('parent_id')->latest();
+    }
+
+    /**
+     * All comments including replies.
+     */
+    public function allComments()
+    {
+        return $this->hasMany(VideoComment::class, 'video_id');
+    }
 
     /**
      * Check if video is from external link.

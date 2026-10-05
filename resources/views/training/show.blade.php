@@ -21,6 +21,9 @@
             </div>
             <div class="col-sm-5 text-right mt-2 mt-sm-0">
                 <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-danger font-weight-bold" data-toggle="modal" data-target="#uploadTrainingVideoModal">
+                        <i class="fas fa-video mr-1"></i> Upload Video Materi
+                    </button>
                     <a href="/training/{{ $training->id }}/questions" class="btn btn-default">
                         Soal Kuis ({{ $training->questions->count() }})
                     </a>
@@ -75,9 +78,23 @@
 
                             <span class="text-muted small mr-2">Akses Kuis:</span>
                             @if($training->is_quiz_active)
-                                <span class="badge badge-success px-2 py-1 mr-3">Terbuka</span>
+                                <span class="badge badge-success px-2 py-1 mr-3"><i class="fas fa-check-circle mr-1"></i> Terbuka</span>
                             @else
-                                <span class="badge badge-secondary px-2 py-1 mr-3">Terkunci</span>
+                                <span class="badge badge-secondary px-2 py-1 mr-3"><i class="fas fa-lock mr-1"></i> Terkunci</span>
+                            @endif
+
+                            <span class="text-muted small mr-2">Akses Absensi:</span>
+                            @if($training->is_attendance_active)
+                                <span class="badge badge-success px-2 py-1 mr-3"><i class="fas fa-user-check mr-1"></i> Terbuka</span>
+                            @else
+                                <span class="badge badge-secondary px-2 py-1 mr-3"><i class="fas fa-user-slash mr-1"></i> Terkunci</span>
+                            @endif
+
+                            <span class="text-muted small mr-2">Bukti Screenshot:</span>
+                            @if($training->require_attendance_proof)
+                                <span class="badge badge-info px-2 py-1 mr-3"><i class="fas fa-camera mr-1"></i> Wajib</span>
+                            @else
+                                <span class="badge badge-light border text-muted px-2 py-1 mr-3"><i class="fas fa-camera mr-1"></i> Opsional</span>
                             @endif
 
                             <span class="text-muted small mr-2">Tampilan Kuis:</span>
@@ -115,12 +132,54 @@
                                 {{ $training->description }}
                             </div>
                         @endif
+
+                        {{-- Section Rekaman Video Materi --}}
+                        @if($training->video)
+                            <div class="p-3 bg-light rounded text-sm border mt-3 d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded mr-3 bg-danger text-white d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
+                                        <i class="fas fa-play" style="font-size: 1.1rem;"></i>
+                                    </div>
+                                    <div>
+                                        <span class="badge badge-success px-2 py-1 mb-1">Video Materi Tersedia</span>
+                                        <h6 class="mb-0 font-weight-bold text-dark">{{ $training->video->title }}</h6>
+                                        <small class="text-muted">{{ $training->video->views_count }} ditonton &bull; Diunggah {{ $training->video->created_at->format('d M Y') }}</small>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center" style="gap: 6px;">
+                                    <a href="{{ route('video.show', $training->video->id) }}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-play mr-1"></i> Tonton Video
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-toggle="modal" data-target="#uploadTrainingVideoModal" title="Upload Video Rekaman Lain">
+                                        <i class="fas fa-cloud-upload-alt mr-1"></i> Tambah / Ganti
+                                    </button>
+                                </div>
+                            </div>
+                        @else
+                            <div class="p-3 rounded text-sm border mt-3 d-flex align-items-center justify-content-between" style="background: #fff8f8; border-color: #fecaca !important;">
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded mr-3 bg-white text-danger border d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px; border-color: #fecaca !important;">
+                                        <i class="fas fa-video" style="font-size: 1.1rem;"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1 font-weight-bold text-dark">Belum Ada Rekaman Video Materi</h6>
+                                        <small class="text-muted">Pelatihan sudah selesai? Klik tombol di samping untuk langsung mengunggah video ke Video Materi.</small>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-danger font-weight-bold flex-shrink-0 ml-2" data-toggle="modal" data-target="#uploadTrainingVideoModal">
+                                    <i class="fas fa-cloud-upload-alt mr-1"></i> Upload Video Sekarang
+                                </button>
+                            </div>
+                        @endif
                     </div>
 
                     <!-- CONTROL ACTIONS -->
                     <div class="col-lg-4 pl-lg-4 border-left">
                         <span class="text-muted small font-weight-bold text-uppercase d-block mb-3">Aksi Pelatihan</span>
                         <div class="d-flex flex-column" style="gap: 10px;">
+                            <button type="button" class="btn btn-danger btn-sm btn-block text-left py-2 font-weight-bold" data-toggle="modal" data-target="#uploadTrainingVideoModal">
+                                <i class="fas fa-video mr-1"></i> Upload Video Materi Pelatihan
+                            </button>
                             <form action="/training/{{ $training->id }}/broadcast-wa" method="POST" onsubmit="return confirm('Kirim notifikasi WhatsApp ke {{ $training->participants->count() }} peserta?')">
                                 @csrf
                                 <button type="submit" class="btn btn-success btn-sm btn-block text-left py-2 font-weight-bold">
@@ -128,15 +187,41 @@
                                 </button>
                             </form>
 
+                            <form action="/training/{{ $training->id }}/toggle-attendance" method="POST">
+                                @csrf
+                                @if($training->is_attendance_active)
+                                    <button type="submit" class="btn btn-outline-danger btn-sm btn-block text-left py-2 font-weight-bold" title="Tutup sesi presensi peserta">
+                                        <i class="fas fa-user-slash mr-1"></i> Tutup Akses Absensi
+                                    </button>
+                                @else
+                                    <button type="submit" class="btn btn-outline-success btn-sm btn-block text-left py-2 font-weight-bold" title="Buka sesi presensi peserta">
+                                        <i class="fas fa-user-check mr-1"></i> Buka Akses Absensi Peserta
+                                    </button>
+                                @endif
+                            </form>
+
                             <form action="/training/{{ $training->id }}/toggle-quiz" method="POST">
                                 @csrf
                                 @if($training->is_quiz_active)
-                                    <button type="submit" class="btn btn-outline-danger btn-sm btn-block text-left py-2">
-                                        Tutup Akses Kuis
+                                    <button type="submit" class="btn btn-outline-danger btn-sm btn-block text-left py-2 font-weight-bold" title="Tutup akses pengerjaan kuis">
+                                        <i class="fas fa-lock mr-1"></i> Tutup Akses Kuis
                                     </button>
                                 @else
-                                    <button type="submit" class="btn btn-outline-primary btn-sm btn-block text-left py-2">
-                                        Buka Akses Kuis Peserta
+                                    <button type="submit" class="btn btn-outline-primary btn-sm btn-block text-left py-2 font-weight-bold" title="Buka akses pengerjaan kuis peserta">
+                                        <i class="fas fa-unlock-alt mr-1"></i> Buka Akses Kuis Peserta
+                                    </button>
+                                @endif
+                            </form>
+
+                            <form action="/training/{{ $training->id }}/toggle-proof" method="POST">
+                                @csrf
+                                @if($training->require_attendance_proof)
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm btn-block text-left py-2" title="Klik untuk menonaktifkan syarat upload screenshot">
+                                        <i class="fas fa-camera text-info mr-1"></i> Syarat Screenshot: <strong>Wajib</strong>
+                                    </button>
+                                @else
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm btn-block text-left py-2" title="Klik untuk mewajibkan upload screenshot saat absen">
+                                        <i class="fas fa-camera text-muted mr-1"></i> Syarat Screenshot: <strong>Opsional</strong>
                                     </button>
                                 @endif
                             </form>
@@ -269,6 +354,11 @@
                                     <span class="d-block text-muted text-xs mt-1">
                                         {{ \Carbon\Carbon::parse($part->attended_at)->format('H:i') }} WIB
                                     </span>
+                                    @if($part->attendance_proof)
+                                        <button type="button" class="btn btn-xs btn-outline-info mt-1 d-inline-block font-weight-bold" data-toggle="modal" data-target="#proofModal_{{ $part->id }}" title="Lihat Screenshot Bukti Pelatihan">
+                                            <i class="fas fa-camera mr-1"></i> Bukti Foto
+                                        </button>
+                                    @endif
                                 @elseif($part->attendance_status === 'tidak_hadir')
                                     <span class="badge badge-danger px-2 py-1">Tidak Hadir</span>
                                     @if($part->attendance_notes)
@@ -337,6 +427,21 @@
                                             <i class="fab fa-whatsapp text-success"></i>
                                         </button>
                                     </form>
+
+                                    <!-- RESET ATTENDANCE (Jadikan Belum Absen) -->
+                                    @if($part->attendance_status !== 'pending')
+                                        <form action="/training/{{ $training->id }}/reset-attendance/{{ $part->id }}" method="POST" class="d-inline m-0" onsubmit="return confirm('Ubah status presensi {{ $user->full_name }} menjadi BELUM ABSEN?')">
+                                            @csrf
+                                            <button type="submit" class="btn btn-xs btn-default text-danger" title="Ubah Jadi Belum Absen">
+                                                <i class="fas fa-user-times"></i>
+                                            </button>
+                                        </form>
+                                    @endif
+
+                                    <!-- EDIT ATTENDANCE MODAL BUTTON -->
+                                    <button type="button" class="btn btn-xs btn-default text-info" data-toggle="modal" data-target="#editAttendanceModal_{{ $part->id }}" title="Atur Presensi Manual">
+                                        <i class="fas fa-user-edit"></i>
+                                    </button>
 
                                     <!-- RESET QUIZ -->
                                     @if($quiz)
@@ -515,6 +620,91 @@
                                     </div>
                                 </div>
                                 @endif
+
+                                <!-- MODAL BUKTI SCREENSHOT -->
+                                @if($part->attendance_proof)
+                                <div class="modal fade text-left" id="proofModal_{{ $part->id }}" tabindex="-1" role="dialog" aria-hidden="true">
+                                    <div class="modal-dialog modal-md modal-dialog-centered" role="document">
+                                        <div class="modal-content shadow-lg border-0" style="border-radius: 12px;">
+                                            <div class="modal-header py-3 bg-light">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="rounded-circle bg-info text-white d-flex align-items-center justify-content-center mr-2" style="width: 32px; height: 32px;">
+                                                        <i class="fas fa-camera"></i>
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="modal-title font-weight-bold text-dark mb-0">Bukti Kehadiran Peserta</h6>
+                                                        <small class="text-muted">{{ $user->full_name }} &bull; {{ $user->divisi->name ?? '-' }}</small>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <div class="modal-body p-3 text-center">
+                                                <div class="mb-2 text-left small text-muted">
+                                                    <i class="fas fa-clock mr-1"></i> Waktu Absen: <strong>{{ \Carbon\Carbon::parse($part->attended_at)->format('d F Y, H:i') }} WIB</strong>
+                                                </div>
+                                                <div class="bg-light p-2 rounded border">
+                                                    <a href="{{ asset('storage/' . $part->attendance_proof) }}" target="_blank" title="Buka gambar ukuran asli">
+                                                        <img src="{{ asset('storage/' . $part->attendance_proof) }}" alt="Screenshot Bukti" class="img-fluid rounded border shadow-sm" style="max-height: 380px; object-fit: contain;">
+                                                    </a>
+                                                </div>
+                                                <small class="text-muted mt-2 d-block">
+                                                    <i class="fas fa-external-link-alt mr-1"></i> Klik foto di atas untuk membuka ukuran penuh di tab baru.
+                                                </small>
+                                            </div>
+                                            <div class="modal-footer py-2 bg-light">
+                                                <a href="{{ asset('storage/' . $part->attendance_proof) }}" target="_blank" download class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-download mr-1"></i> Unduh Foto
+                                                </a>
+                                                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Tutup</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endif
+
+                                <!-- MODAL ATUR PRESENSI MANUAL -->
+                                <div class="modal fade text-left" id="editAttendanceModal_{{ $part->id }}" tabindex="-1" role="dialog" aria-hidden="true">
+                                    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+                                        <div class="modal-content shadow border-0" style="border-radius: 12px;">
+                                            <div class="modal-header py-3 bg-light">
+                                                <h6 class="modal-title font-weight-bold text-dark mb-0">
+                                                    <i class="fas fa-user-edit mr-1 text-info"></i> Atur Presensi Peserta
+                                                </h6>
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <form action="/training/{{ $training->id }}/update-attendance/{{ $part->id }}" method="POST">
+                                                @csrf
+                                                <div class="modal-body p-3">
+                                                    <div class="mb-2">
+                                                        <strong class="d-block text-dark small">{{ $user->full_name }}</strong>
+                                                        <span class="text-muted text-xs">{{ $user->id_karyawan ?? '-' }} &bull; {{ $user->divisi->name ?? '-' }}</span>
+                                                    </div>
+                                                    <div class="form-group mb-3">
+                                                        <label class="small font-weight-bold mb-1">Status Kehadiran:</label>
+                                                        <select name="attendance_status" class="form-control form-control-sm">
+                                                            <option value="pending" {{ $part->attendance_status === 'pending' ? 'selected' : '' }}>Belum Absen</option>
+                                                            <option value="hadir" {{ $part->attendance_status === 'hadir' ? 'selected' : '' }}>Hadir</option>
+                                                            <option value="tidak_hadir" {{ $part->attendance_status === 'tidak_hadir' ? 'selected' : '' }}>Tidak Hadir</option>
+                                                        </select>
+                                                        <small class="text-muted d-block mt-1">Pilih 'Belum Absen' untuk mengizinkan peserta absen kembali.</small>
+                                                    </div>
+                                                    <div class="form-group mb-0">
+                                                        <label class="small font-weight-bold mb-1">Catatan / Alasan:</label>
+                                                        <input type="text" name="attendance_notes" class="form-control form-control-sm" value="{{ $part->attendance_notes }}" placeholder="Keterangan izin/sakit/hadir...">
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer py-2 bg-light">
+                                                    <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Batal</button>
+                                                    <button type="submit" class="btn btn-primary btn-sm px-3 font-weight-bold">Simpan</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                         @empty
@@ -531,7 +721,139 @@
     </div>
 </section>
 
+{{-- MODAL UPLOAD VIDEO MATERI PELATIHAN --}}
+<div class="modal fade" id="uploadTrainingVideoModal" tabindex="-1" role="dialog" aria-labelledby="uploadTrainingVideoModalLabel" aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content shadow border-0" style="border-radius: 14px;">
+            <div class="modal-header bg-white border-bottom py-3">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-danger text-white mr-2" style="width: 38px; height: 38px;">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title font-weight-bold text-dark mb-0" id="uploadTrainingVideoModalLabel">Upload Video Materi Pelatihan</h5>
+                        <small class="text-muted">Video akan otomatis masuk ke Galeri Video Materi dengan judul pelatihan ini.</small>
+                    </div>
+                </div>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="{{ route('video.store') }}" method="POST" enctype="multipart/form-data" id="uploadTrainingVideoForm">
+                @csrf
+                <input type="hidden" name="training_id" value="{{ $training->id }}">
+                <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
+
+                <div class="modal-body p-4">
+                    {{-- Judul Video Otomatis --}}
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold text-dark">
+                            Judul Video Materi <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="title" class="form-control" value="{{ $training->title }}" required placeholder="Contoh: {{ $training->title }}">
+                        <small class="text-muted">
+                            <i class="fas fa-magic text-primary mr-1"></i> Terisi otomatis sesuai judul sesi pelatihan saat ini.
+                        </small>
+                    </div>
+
+                    {{-- Pilihan Tipe Video: Upload File vs Tautan Link --}}
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold text-dark d-block">Sumber Video <span class="text-danger">*</span></label>
+                        <div class="d-flex p-2 bg-light rounded border" style="gap: 20px;">
+                            <div class="custom-control custom-radio">
+                                <input type="radio" id="showTypeFile" name="video_type" value="file" class="custom-control-input" checked onchange="toggleVideoTypeInShow('file')">
+                                <label class="custom-control-label font-weight-bold" for="showTypeFile" style="cursor: pointer;">
+                                    <i class="fas fa-file-video text-danger mr-1"></i> Upload File Video
+                                </label>
+                            </div>
+                            <div class="custom-control custom-radio">
+                                <input type="radio" id="showTypeLink" name="video_type" value="link" class="custom-control-input" onchange="toggleVideoTypeInShow('link')">
+                                <label class="custom-control-label font-weight-bold" for="showTypeLink" style="cursor: pointer;">
+                                    <i class="fab fa-youtube text-danger mr-1"></i> Tautan / Link (YouTube / Drive / Zoom)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Group 1: File Input --}}
+                    <div class="form-group mb-3" id="showFileInputGroup">
+                        <label class="font-weight-bold text-dark">Pilih File Video Rekaman <span class="text-danger">*</span></label>
+                        <div class="custom-file">
+                            <input type="file" name="video_file" id="showVideoFileInput" class="custom-file-input" accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-matroska" required onchange="updateShowFileName(this)">
+                            <label class="custom-file-label" id="showVideoFileLabel" for="showVideoFileInput">Pilih file video (MP4, MKV, WEBM, MOV)...</label>
+                        </div>
+                        <small class="text-muted">Maksimal ukuran file video: 2 GB.</small>
+                    </div>
+
+                    {{-- Group 2: Link Input --}}
+                    <div class="form-group mb-3" id="showLinkInputGroup" style="display: none;">
+                        <label class="font-weight-bold text-dark">URL / Tautan Video <span class="text-danger">*</span></label>
+                        <input type="url" name="video_link" id="showVideoLinkInput" class="form-control" placeholder="https://www.youtube.com/watch?v=... atau https://drive.google.com/file/d/...">
+                        <small class="text-muted">Mendukung link YouTube, Zoom Cloud Recording, atau Google Drive.</small>
+                    </div>
+
+                    {{-- Deskripsi Otomatis --}}
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold text-dark">Deskripsi & Catatan Sesi (Opsional)</label>
+                        <textarea name="description" class="form-control" rows="3" placeholder="Rangkuman materi atau topik yang dibahas...">Rekaman video materi sesi pelatihan {{ $training->title }} yang dilaksanakan pada {{ \Carbon\Carbon::parse($training->training_date)->format('d F Y') }}.</textarea>
+                    </div>
+
+                    {{-- Thumbnail Cover (Opsional) --}}
+                    <div class="form-group mb-0">
+                        <label class="font-weight-bold text-dark">Cover / Thumbnail Video (Opsional)</label>
+                        <div class="custom-file">
+                            <input type="file" name="thumbnail" id="showThumbInput" class="custom-file-input" accept="image/png,image/jpeg,image/webp" onchange="updateShowThumbLabel(this)">
+                            <label class="custom-file-label" id="showThumbLabel" for="showThumbInput">Pilih gambar thumbnail (JPG, PNG, WEBP)...</label>
+                        </div>
+                        <small class="text-muted">Biarkan kosong jika ingin menggunakan cover video bawaan sistem.</small>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light py-3 border-top d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary px-3" data-dismiss="modal">
+                        Batal
+                    </button>
+                    <button type="submit" class="btn btn-danger font-weight-bold px-4 shadow-sm" id="btnSubmitVideo">
+                        <i class="fas fa-cloud-upload-alt mr-1"></i> Simpan & Publikasikan ke Video Materi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
+function toggleVideoTypeInShow(type) {
+    var fileGroup = document.getElementById('showFileInputGroup');
+    var linkGroup = document.getElementById('showLinkInputGroup');
+    var fileInput = document.getElementById('showVideoFileInput');
+    var linkInput = document.getElementById('showVideoLinkInput');
+
+    if (type === 'file') {
+        fileGroup.style.display = 'block';
+        linkGroup.style.display = 'none';
+        fileInput.setAttribute('required', 'required');
+        linkInput.removeAttribute('required');
+    } else {
+        fileGroup.style.display = 'none';
+        linkGroup.style.display = 'block';
+        fileInput.removeAttribute('required');
+        linkInput.setAttribute('required', 'required');
+    }
+}
+
+function updateShowFileName(input) {
+    if (input.files && input.files[0]) {
+        document.getElementById('showVideoFileLabel').innerText = input.files[0].name;
+    }
+}
+
+function updateShowThumbLabel(input) {
+    if (input.files && input.files[0]) {
+        document.getElementById('showThumbLabel').innerText = input.files[0].name;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const copyButtons = document.querySelectorAll('.copy-link-btn');
     copyButtons.forEach(btn => {
@@ -559,6 +881,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     rows[i].style.display = "none";
                 }
             }
+        });
+    }
+
+    const videoForm = document.getElementById('uploadTrainingVideoForm');
+    if (videoForm) {
+        let isSubmitting = false;
+        videoForm.addEventListener('submit', function(e) {
+            if (isSubmitting) {
+                e.preventDefault();
+                return false;
+            }
+            isSubmitting = true;
+            const submitBtn = document.getElementById('btnSubmitVideo');
+            if (submitBtn) {
+                submitBtn.style.pointerEvents = 'none';
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span> Mengunggah Video, mohon tunggu...';
+                setTimeout(function() {
+                    submitBtn.disabled = true;
+                }, 50);
+            }
+            videoForm.style.pointerEvents = 'none';
         });
     }
 });
