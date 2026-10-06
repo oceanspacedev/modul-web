@@ -260,37 +260,37 @@
             <div class="col-md-2 col-4 mb-2">
                 <div class="card p-3 text-center mb-0 bg-light">
                     <span class="text-muted small d-block">Total Peserta</span>
-                    <strong class="h4 mb-0 text-dark">{{ $stats['total'] }}</strong>
+                    <strong class="h4 mb-0 text-dark" id="statTotal">{{ $stats['total'] }}</strong>
                 </div>
             </div>
             <div class="col-md-2 col-4 mb-2">
                 <div class="card p-3 text-center mb-0 bg-light">
                     <span class="text-muted small d-block">Hadir</span>
-                    <strong class="h4 mb-0 text-success">{{ $stats['attended'] }}</strong>
+                    <strong class="h4 mb-0 text-success" id="statAttended">{{ $stats['attended'] }}</strong>
                 </div>
             </div>
             <div class="col-md-2 col-4 mb-2">
                 <div class="card p-3 text-center mb-0 bg-light">
                     <span class="text-muted small d-block">Tidak Hadir</span>
-                    <strong class="h4 mb-0 text-danger">{{ $stats['absent'] }}</strong>
+                    <strong class="h4 mb-0 text-danger" id="statAbsent">{{ $stats['absent'] }}</strong>
                 </div>
             </div>
             <div class="col-md-2 col-4 mb-2">
                 <div class="card p-3 text-center mb-0 bg-light">
                     <span class="text-muted small d-block">Belum Absen</span>
-                    <strong class="h4 mb-0 text-warning">{{ $stats['pending'] }}</strong>
+                    <strong class="h4 mb-0 text-warning" id="statPending">{{ $stats['pending'] }}</strong>
                 </div>
             </div>
             <div class="col-md-2 col-4 mb-2">
                 <div class="card p-3 text-center mb-0 bg-light">
                     <span class="text-muted small d-block">Selesai Kuis</span>
-                    <strong class="h4 mb-0 text-primary">{{ $stats['quizSubmitted'] }}</strong>
+                    <strong class="h4 mb-0 text-primary" id="statQuiz">{{ $stats['quizSubmitted'] }}</strong>
                 </div>
             </div>
             <div class="col-md-2 col-4 mb-2">
                 <div class="card p-3 text-center mb-0 bg-light">
                     <span class="text-muted small d-block">Rata-rata Nilai</span>
-                    <strong class="h4 mb-0 text-info">{{ $stats['avgScore'] }}</strong>
+                    <strong class="h4 mb-0 text-info" id="statAvg">{{ $stats['avgScore'] }}</strong>
                 </div>
             </div>
         </div>
@@ -905,5 +905,40 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// ---------------------------------------------------------------
+// LIVE STATS POLLING — update counter admin setiap 10 detik
+// ---------------------------------------------------------------
+(function () {
+    const STATS_URL = '/training/{{ $training->id }}/live-stats';
+
+    function updateStat(id, value) {
+        const el = document.getElementById(id);
+        if (el && el.textContent != value) {
+            el.textContent = value;
+            // Flash animasi kecil saat nilai berubah
+            el.style.transition = 'color 0.3s';
+            const orig = el.style.color;
+            el.style.color = '#fd7e14';
+            setTimeout(function() { el.style.color = orig; }, 600);
+        }
+    }
+
+    function pollStats() {
+        fetch(STATS_URL)
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                updateStat('statTotal',    data.total);
+                updateStat('statAttended', data.attended);
+                updateStat('statAbsent',   data.absent);
+                updateStat('statPending',  data.pending);
+                updateStat('statQuiz',     data.quizSubmitted);
+                updateStat('statAvg',      data.avgScore);
+            })
+            .catch(function() { /* silent fail */ });
+    }
+
+    setInterval(pollStats, 10000);
+})();
 </script>
 @endsection

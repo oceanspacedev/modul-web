@@ -181,6 +181,7 @@ Route::middleware(['auth','isAdmin'])->group(
         Route::post('training/{id}/update-attendance/{participantId}', [TrainingController::class, 'updateParticipantAttendance'])->name('training.update-attendance');
         Route::post('training/{id}/grade-essay/{quizResultId}', [TrainingController::class, 'gradeEssay'])->name('training.grade-essay');
         Route::get('training/{id}/export', [TrainingController::class, 'export'])->name('training.export');
+        Route::get('training/{id}/live-stats', [TrainingController::class, 'liveStats'])->name('training.live-stats');
         Route::get('training/delete/{id}', [TrainingController::class, 'destroy'])->name('training.destroy');
 
         ##TRAINING QUIZ QUESTIONS
@@ -202,6 +203,7 @@ Route::middleware(['auth'])->group(function () {
 
 ## PUBLIC PARTICIPANT PORTAL (ACCESSIBLE VIA WHATSAPP TOKEN LINK)
 Route::get('training/portal/{token}', [TrainingPortalController::class, 'showPortal'])->name('training.portal');
+Route::get('training/portal/{token}/status', [TrainingPortalController::class, 'getStatus'])->name('training.portal.status');
 Route::post('training/portal/{token}/attendance', [TrainingPortalController::class, 'submitAttendance'])->name('training.portal.attendance');
 Route::get('training/portal/{token}/quiz', [TrainingPortalController::class, 'showQuiz'])->name('training.portal.quiz');
 Route::post('training/portal/{token}/quiz', [TrainingPortalController::class, 'submitQuiz'])->name('training.portal.quiz.submit');

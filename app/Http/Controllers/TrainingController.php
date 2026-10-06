@@ -454,6 +454,35 @@ class TrainingController extends Controller
     }
 
     /**
+     * Return live attendance & quiz stats as JSON for admin polling
+     */
+    public function liveStats($id)
+    {
+        $training = Training::with(['participants.quizResult'])->findOrFail($id);
+
+        $participants = $training->participants;
+        $total        = $participants->count();
+        $attended     = $participants->where('attendance_status', 'hadir')->count();
+        $absent       = $participants->where('attendance_status', 'tidak_hadir')->count();
+        $pending      = $total - $attended - $absent;
+        $quizDone     = $participants->filter(fn($p) => $p->quizResult !== null)->count();
+        $avgScore     = $quizDone > 0
+            ? round($participants->filter(fn($p) => $p->quizResult)->avg(fn($p) => $p->quizResult->score), 1)
+            : 0;
+
+        return response()->json([
+            'total'          => $total,
+            'attended'       => $attended,
+            'absent'         => $absent,
+            'pending'        => $pending,
+            'quizSubmitted'  => $quizDone,
+            'avgScore'       => $avgScore,
+            'is_attendance_active' => (bool) $training->is_attendance_active,
+            'is_quiz_active'       => (bool) $training->is_quiz_active,
+        ]);
+    }
+
+    /**
      * Delete a training
      */
     public function destroy($id)
@@ -465,100 +494,21 @@ class TrainingController extends Controller
     }
 
     /**
-     * Export attendance and quiz results to CSV
+     * Export attendance and quiz results to Excel (.xlsx)
      */
     public function export($id)
     {
-        $training = Training::with(['participants.user.divisi', 'participants.quizResult'])->findOrFail($id);
+        $training = Training::with([
+            'trainer',
+            'participants.user.divisi',
+            'participants.quizResult',
+        ])->findOrFail($id);
 
-        $filename = 'rekap_pelatihan_' . Str::slug($training->title) . '_' . date('Ymd_His') . '.csv';
+        $filename = 'rekap_pelatihan_' . Str::slug($training->title) . '_' . date('Ymd_His') . '.xlsx';
 
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-            'Pragma' => 'no-cache',
-            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
-            'Expires' => '0',
-        ];
-
-        $callback = function () use ($training) {
-            $file = fopen('php://output', 'w');
-            
-            // UTF-8 BOM for Excel compatibility
-            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
-
-            // Header info
-            fputcsv($file, ['REKAP HASIL PELATIHAN']);
-            fputcsv($file, ['Topik Pelatihan', $training->title]);
-            fputcsv($file, ['Pemateri', $training->trainer->full_name ?? '-']);
-            fputcsv($file, ['Tanggal', Carbon::parse($training->training_date)->format('d-m-Y')]);
-            fputcsv($file, ['Waktu', $training->start_time . ' - ' . $training->end_time]);
-            fputcsv($file, []);
-
-            // Column titles
-            fputcsv($file, [
-                'No',
-                'ID Karyawan',
-                'Nama Peserta',
-                'Divisi',
-                'No WhatsApp',
-                'Status Kehadiran',
-                'Waktu Absen',
-                'Bukti Screenshot Absen',
-                'Status Kuis',
-                'Nilai PG (0-100)',
-                'Status Essay',
-                'Nilai Essay (0-100)',
-                'Nilai Akhir (0-100)',
-                'Catatan Review Essay',
-                'Pelanggaran Keluar Tab',
-                'Status Submit',
-                'Waktu Submit Kuis',
-            ]);
-
-            $no = 1;
-            foreach ($training->participants as $participant) {
-                $user = $participant->user;
-                $quiz = $participant->quizResult;
-
-                $essayStatusLabel = 'Tidak Ada Essay';
-                if ($quiz) {
-                    if ($quiz->essay_status === 'graded') {
-                        $essayStatusLabel = 'Sudah Dinilai';
-                    } elseif ($quiz->essay_status === 'pending') {
-                        $essayStatusLabel = 'Menunggu Dinilai';
-                    }
-                }
-
-                $submitTypeLabel = '-';
-                if ($quiz) {
-                    $submitTypeLabel = $quiz->is_force_submitted ? 'Auto-Submit (Melanggar)' : 'Normal';
-                }
-
-                fputcsv($file, [
-                    $no++,
-                    $user->id_karyawan ?? '-',
-                    $user->full_name ?? '-',
-                    $user->divisi->name ?? '-',
-                    $user->no_wa ?? '-',
-                    strtoupper($participant->attendance_status),
-                    $participant->attended_at ? Carbon::parse($participant->attended_at)->format('d-m-Y H:i') : '-',
-                    $participant->attendance_proof ? asset('storage/' . $participant->attendance_proof) : '-',
-                    $quiz ? 'Sudah Mengerjakan' : 'Belum Mengerjakan',
-                    $quiz ? ($quiz->mc_score ?? $quiz->score) : 0,
-                    $essayStatusLabel,
-                    $quiz && $quiz->essay_score !== null ? $quiz->essay_score : '-',
-                    $quiz ? $quiz->score : 0,
-                    $quiz ? ($quiz->essay_feedback ?? '-') : '-',
-                    $quiz ? (($quiz->tab_switch_count ?? 0) . ' kali') : '-',
-                    $submitTypeLabel,
-                    $quiz && $quiz->submitted_at ? Carbon::parse($quiz->submitted_at)->format('d-m-Y H:i') : '-',
-                ]);
-            }
-
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\TrainingRekapExport($training),
+            $filename
+        );
     }
 }
