@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Exports\TrainingQuestionTemplate;
 use App\Imports\TrainingQuestionImport;
+use App\Models\Document;
 use App\Models\Training;
 use App\Models\TrainingQuestion;
+use App\Services\GeminiQuestionService;
 use Exception;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
@@ -17,13 +19,18 @@ class TrainingQuestionController extends Controller
      */
     public function index($trainingId)
     {
-        $training = Training::with('questions')->findOrFail($trainingId);
+        $training = Training::with(['questions', 'documents.versions'])->findOrFail($trainingId);
+        $allDocuments = Document::with('dokumentype')->orderBy('name')->get();
+        $isGeminiConfigured = !empty(config('services.gemini.api_key', env('GEMINI_API_KEY')));
 
         return view('training.questions.index', [
             'title' => 'Kelola Kuis Pelatihan: ' . $training->title,
             'active' => 'training',
             'training' => $training,
             'questions' => $training->questions,
+            'documents' => $training->documents,
+            'allDocuments' => $allDocuments,
+            'isGeminiConfigured' => $isGeminiConfigured,
         ]);
     }
 
@@ -323,5 +330,99 @@ class TrainingQuestionController extends Controller
         $training->questions()->delete();
 
         return back()->with('success', 'Semua soal kuis berhasil dihapus!');
+    }
+
+    /**
+     * Generate questions using Google Gemini AI from selected training documents
+     */
+    public function generateAiQuestions(Request $request, $trainingId)
+    {
+        $training = Training::findOrFail($trainingId);
+
+        $request->validate([
+            'document_ids' => 'required|array|min:1',
+            'document_ids.*' => 'exists:documents,id',
+            'question_count' => 'required|integer|min:1|max:100',
+            'question_type' => 'required|in:multiple_choice,essay',
+            'difficulty' => 'required|in:mudah,sedang,sulit,campuran',
+            'custom_prompt' => 'nullable|string|max:1000',
+            'api_key' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            $documents = Document::with('versions')->whereIn('id', $request->document_ids)->get();
+
+            if ($documents->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dokumen yang dipilih tidak ditemukan.',
+                ], 422);
+            }
+
+            // Also auto-attach these documents to training if not already attached
+            $training->documents()->syncWithoutDetaching($request->document_ids);
+
+            $geminiService = new GeminiQuestionService($request->api_key);
+            $questions = $geminiService->generateQuestions(
+                $documents->all(),
+                (int) $request->question_count,
+                $request->question_type,
+                $request->difficulty,
+                $request->custom_prompt
+            );
+
+            return response()->json([
+                'success' => true,
+                'count' => count($questions),
+                'questions' => $questions,
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Save AI-generated questions in batch after trainer review
+     */
+    public function saveAiBatch(Request $request, $trainingId)
+    {
+        $training = Training::findOrFail($trainingId);
+
+        $request->validate([
+            'questions' => 'required|array|min:1',
+            'questions.*.question' => 'required|string',
+            'questions.*.type' => 'required|in:multiple_choice,essay',
+            'questions.*.correct_answer' => 'required|string',
+        ]);
+
+        $savedCount = 0;
+        foreach ($request->questions as $q) {
+            $type = $q['type'] ?? 'multiple_choice';
+            TrainingQuestion::create([
+                'training_id' => $training->id,
+                'type' => $type,
+                'question' => $q['question'],
+                'option_a' => ($type === 'multiple_choice') ? ($q['option_a'] ?? null) : null,
+                'option_b' => ($type === 'multiple_choice') ? ($q['option_b'] ?? null) : null,
+                'option_c' => ($type === 'multiple_choice') ? ($q['option_c'] ?? null) : null,
+                'option_d' => ($type === 'multiple_choice') ? ($q['option_d'] ?? null) : null,
+                'option_e' => ($type === 'multiple_choice') ? ($q['option_e'] ?? null) : null,
+                'correct_answer' => $q['correct_answer'] ?? 'a',
+                'explanation' => $q['explanation'] ?? null,
+            ]);
+            $savedCount++;
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Berhasil menyimpan {$savedCount} butir soal hasil AI ke kuis pelatihan!",
+            ]);
+        }
+
+        return back()->with('success', "Berhasil menyimpan {$savedCount} butir soal hasil AI!");
     }
 }

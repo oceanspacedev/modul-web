@@ -49,6 +49,11 @@ class Training extends Model
         return $this->hasOne(Video::class, 'training_id')->latestOfMany();
     }
 
+    public function documents()
+    {
+        return $this->belongsToMany(Document::class, 'training_documents', 'training_id', 'document_id')->withTimestamps();
+    }
+
     public function scopeFilter($query)
     {
         if (request('search')) {

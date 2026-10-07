@@ -96,6 +96,20 @@
                             </div>
 
                             <div class="form-group mb-4">
+                                <label for="documents" class="font-weight-600 mb-2 d-flex justify-content-between align-items-center">
+                                    <span>Dokumen Materi (SOP / Modul)</span>
+                                    <span class="badge badge-light border text-muted font-weight-normal">Opsional</span>
+                                </label>
+                                <select id="documents" name="documents[]" class="form-control select2" multiple="multiple" data-placeholder="-- Pilih dokumen materi acuan --">
+                                    @foreach($documents as $doc)
+                                        <option value="{{ $doc->id }}" {{ (is_array(old('documents')) && in_array($doc->id, old('documents'))) ? 'selected' : '' }}>
+                                            {{ $doc->name }} ({{ $doc->dokumentype->name ?? 'Dokumen' }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="form-group mb-4">
                                 <label class="font-weight-600 mb-2 d-block">Tampilan / Mode Kuis Peserta</label>
                                 <div class="row">
                                     <div class="col-md-6 mb-2 mb-md-0">
@@ -281,6 +295,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     filterDivisi.addEventListener('change', applyFilter);
     searchInput.addEventListener('input', applyFilter);
+
+    // Initialize select2 for documents
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+        $('#documents').select2({
+            theme: 'bootstrap4',
+            width: '100%',
+            placeholder: '-- Pilih satu atau beberapa dokumen materi --'
+        });
+    }
 });
 </script>
 @endsection

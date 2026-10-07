@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Divisi;
+use App\Models\Document;
 use App\Models\Training;
 use App\Models\TrainingParticipant;
 use App\Models\TrainingQuizResult;
@@ -20,7 +21,7 @@ class TrainingController extends Controller
      */
     public function index()
     {
-        $trainings = Training::with(['trainer', 'participants.user', 'quizResults'])
+        $trainings = Training::with(['trainer', 'participants.user', 'quizResults', 'documents'])
             ->filter()
             ->latest('training_date')
             ->paginate(15);
@@ -47,12 +48,14 @@ class TrainingController extends Controller
     {
         $users = User::orderBy('full_name')->get();
         $divisis = Divisi::with('users')->orderBy('name')->get();
+        $documents = Document::with('dokumentype')->orderBy('name')->get();
 
         return view('training.create', [
             'title' => 'Buat Jadwal Pelatihan',
             'active' => 'training',
             'users' => $users,
             'divisis' => $divisis,
+            'documents' => $documents,
         ]);
     }
 
@@ -71,6 +74,8 @@ class TrainingController extends Controller
             'zoom_link' => 'required|string',
             'participants' => 'required|array|min:1',
             'participants.*' => 'exists:users,id',
+            'documents' => 'nullable|array',
+            'documents.*' => 'exists:documents,id',
             'send_wa_now' => 'nullable|boolean',
             'quiz_mode' => 'nullable|in:formal,game',
             'is_attendance_active' => 'nullable|boolean',
@@ -91,6 +96,11 @@ class TrainingController extends Controller
             'require_attendance_proof' => $request->boolean('require_attendance_proof', false),
             'quiz_mode' => $request->input('quiz_mode', 'formal'),
         ]);
+
+        // Attach documents if selected
+        if (!empty($validated['documents'])) {
+            $training->documents()->sync($validated['documents']);
+        }
 
         // Add participants
         $participantsData = [];
@@ -127,7 +137,11 @@ class TrainingController extends Controller
             'participants.quizResult',
             'questions',
             'quizResults.user',
+            'documents.versions',
+            'documents.dokumentype',
         ])->findOrFail($id);
+
+        $allDocuments = Document::with('dokumentype')->orderBy('name')->get();
 
         $totalParticipants = $training->participants->count();
         $attendedCount = $training->participants->where('attendance_status', 'hadir')->count();
@@ -139,6 +153,7 @@ class TrainingController extends Controller
             'title' => 'Detail Pelatihan: ' . $training->title,
             'active' => 'training',
             'training' => $training,
+            'allDocuments' => $allDocuments,
             'stats' => [
                 'total' => $totalParticipants,
                 'attended' => $attendedCount,
@@ -155,10 +170,12 @@ class TrainingController extends Controller
      */
     public function edit($id)
     {
-        $training = Training::with('participants')->findOrFail($id);
+        $training = Training::with(['participants', 'documents'])->findOrFail($id);
         $users = User::orderBy('full_name')->get();
         $divisis = Divisi::with('users')->orderBy('name')->get();
+        $documents = Document::with('dokumentype')->orderBy('name')->get();
         $selectedParticipants = $training->participants->pluck('user_id')->toArray();
+        $selectedDocuments = $training->documents->pluck('id')->toArray();
 
         return view('training.edit', [
             'title' => 'Edit Jadwal Pelatihan',
@@ -166,7 +183,9 @@ class TrainingController extends Controller
             'training' => $training,
             'users' => $users,
             'divisis' => $divisis,
+            'documents' => $documents,
             'selectedParticipants' => $selectedParticipants,
+            'selectedDocuments' => $selectedDocuments,
         ]);
     }
 
@@ -188,6 +207,8 @@ class TrainingController extends Controller
             'status' => 'required|in:scheduled,ongoing,completed,cancelled',
             'participants' => 'required|array|min:1',
             'participants.*' => 'exists:users,id',
+            'documents' => 'nullable|array',
+            'documents.*' => 'exists:documents,id',
             'quiz_mode' => 'nullable|in:formal,game',
             'is_attendance_active' => 'nullable|boolean',
             'require_attendance_proof' => 'nullable|boolean',
@@ -214,6 +235,9 @@ class TrainingController extends Controller
 
         $training->update($updateData);
 
+        // Sync documents
+        $training->documents()->sync($request->input('documents', []));
+
         // Sync participants
         $newParticipantIds = array_unique($validated['participants']);
         $existingParticipants = $training->participants()->pluck('user_id')->toArray();
@@ -239,6 +263,33 @@ class TrainingController extends Controller
         return redirect('/training/' . $training->id)->with([
             'success' => 'Pelatihan berhasil diperbarui!',
         ]);
+    }
+
+    /**
+     * Attach documents to training from detail page
+     */
+    public function attachDocument(Request $request, $id)
+    {
+        $training = Training::findOrFail($id);
+        $request->validate([
+            'document_ids' => 'required|array|min:1',
+            'document_ids.*' => 'exists:documents,id',
+        ]);
+
+        $training->documents()->syncWithoutDetaching($request->document_ids);
+
+        return back()->with('success', 'Dokumen materi berhasil dilampirkan ke pelatihan!');
+    }
+
+    /**
+     * Detach document from training
+     */
+    public function detachDocument($id, $docId)
+    {
+        $training = Training::findOrFail($id);
+        $training->documents()->detach($docId);
+
+        return back()->with('success', 'Dokumen materi berhasil dilepas dari pelatihan.');
     }
 
     /**

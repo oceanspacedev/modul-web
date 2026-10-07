@@ -40,6 +40,8 @@ class TrainingPortalController extends Controller
         $participant = $this->findParticipant($token, [
             'training.trainer',
             'training.questions',
+            'training.documents.versions',
+            'training.documents.dokumentype',
             'user.divisi',
             'quizResult',
         ]);
@@ -123,17 +125,12 @@ class TrainingPortalController extends Controller
 
         $training = $participant->training;
 
-        // If already submitted quiz and not retaking, redirect to result
-        if ($participant->quizResult && request('retake') != 1) {
-            return redirect("/training/portal/{$token}/result");
-        }
-
-        // If retaking, clear previous attempt
-        if (request('retake') == 1) {
-            TrainingQuizResult::where('training_participant_id', $participant->id)->delete();
-            TrainingQuizResult::where('training_id', $participant->training_id)
-                ->where('user_id', $participant->user_id)
-                ->delete();
+        // If already submitted quiz, redirect to result (quiz cannot be retaken by participant)
+        if ($participant->quizResult) {
+            return redirect("/training/portal/{$token}/result")->with(
+                'warning',
+                'Anda sudah menyelesaikan kuis ini. Kuis tidak dapat dikerjakan ulang.'
+            );
         }
 
         // Check if quiz is activated by trainer
@@ -175,20 +172,15 @@ class TrainingPortalController extends Controller
     }
 
     /**
-     * Retake quiz action
+     * Retake quiz action - blocked for participants
      */
     public function retakeQuiz($token)
     {
-        $participant = $this->findParticipant($token);
+        $participant = $this->findParticipant($token, ['quizResult']);
 
-        TrainingQuizResult::where('training_participant_id', $participant->id)->delete();
-        TrainingQuizResult::where('training_id', $participant->training_id)
-            ->where('user_id', $participant->user_id)
-            ->delete();
-
-        return redirect("/training/portal/{$token}/quiz")->with(
-            'success',
-            'Kuis telah di-reset. Silakan kerjakan soal terbaru!'
+        return redirect("/training/portal/{$token}/result")->with(
+            'warning',
+            'Kuis hanya dapat dikerjakan satu kali dan tidak dapat dikerjakan ulang.'
         );
     }
 
@@ -200,11 +192,21 @@ class TrainingPortalController extends Controller
         $participant = $this->findParticipant($token, ['training.questions', 'quizResult']);
         $training    = $participant->training;
 
-        // Clear previous results to record fresh score
-        TrainingQuizResult::where('training_participant_id', $participant->id)->delete();
-        TrainingQuizResult::where('training_id', $training->id)
-            ->where('user_id', $participant->user_id)
-            ->delete();
+        // Prevent resubmission if participant has already submitted quiz
+        if ($participant->quizResult) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success'      => false,
+                    'message'      => 'Anda sudah menyelesaikan kuis ini dan tidak dapat mengerjakan ulang.',
+                    'redirect_url' => "/training/portal/{$token}/result",
+                ], 403);
+            }
+
+            return redirect("/training/portal/{$token}/result")->with(
+                'warning',
+                'Anda sudah menyelesaikan kuis ini dan tidak dapat mengerjakan ulang.'
+            );
+        }
 
         $questions        = $training->questions;
         $totalQuestions   = $questions->count();

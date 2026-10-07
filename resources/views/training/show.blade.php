@@ -171,6 +171,69 @@
                                 </button>
                             </div>
                         @endif
+
+                        {{-- Section Dokumen Materi Pelatihan --}}
+                        <div class="card border mt-3 shadow-none">
+                            <div class="card-header py-2 bg-light d-flex align-items-center justify-content-between flex-wrap" style="gap: 8px;">
+                                <div>
+                                    <strong class="text-sm font-weight-bold text-dark">Dokumen Materi ({{ $training->documents->count() }})</strong>
+                                </div>
+                                <div class="d-flex align-items-center" style="gap: 6px;">
+                                    <button type="button" class="btn btn-xs btn-default" data-toggle="modal" data-target="#attachDocumentModal">
+                                        Lampirkan Dokumen
+                                    </button>
+                                    <a href="/training/{{ $training->id }}/questions?open_ai=1" class="btn btn-xs btn-primary">
+                                        Buat Soal AI
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="card-body p-3">
+                                @if($training->documents->isEmpty())
+                                    <div class="text-center py-3 text-muted small">
+                                        Belum ada dokumen materi yang dilampirkan.
+                                        <div class="mt-2">
+                                            <button type="button" class="btn btn-default btn-xs" data-toggle="modal" data-target="#attachDocumentModal">
+                                                Lampirkan Dokumen
+                                            </button>
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="list-group list-group-flush">
+                                        @foreach($training->documents as $doc)
+                                            @php
+                                                $latestVer = $doc->versions->first();
+                                                $fileUrl = $latestVer ? asset('storage/dokumen/' . $latestVer->path) : asset('storage/dokumen/' . $doc->path);
+                                            @endphp
+                                            <div class="list-group-item px-0 py-2 d-flex align-items-center justify-content-between border-bottom">
+                                                <div class="mr-2 text-truncate">
+                                                    <a href="{{ $fileUrl }}" target="_blank" class="font-weight-bold text-dark text-sm text-truncate d-block" title="{{ $doc->name }}">
+                                                        {{ $doc->name }}
+                                                    </a>
+                                                    <div class="text-xs text-muted">
+                                                        <span class="badge badge-light border">{{ $doc->dokumentype->name ?? 'Dokumen' }}</span>
+                                                        <span class="ml-1 text-secondary">v{{ $doc->version ?? ($latestVer->version_number ?? 1) }}</span>
+                                                        @if($latestVer && $latestVer->file_size)
+                                                            &bull; {{ $latestVer->file_size }}
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex align-items-center flex-shrink-0" style="gap: 5px;">
+                                                    <a href="{{ $fileUrl }}" target="_blank" class="btn btn-xs btn-default">
+                                                        Buka
+                                                    </a>
+                                                    <form action="/training/{{ $training->id }}/detach-document/{{ $doc->id }}" method="POST" class="d-inline" onsubmit="return confirm('Lepas dokumen {{ $doc->name }} dari pelatihan ini?')">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-xs btn-outline-danger">
+                                                            Lepas
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
                     </div>
 
                     <!-- CONTROL ACTIONS -->
@@ -822,6 +885,46 @@
     </div>
 </div>
 
+{{-- MODAL ATTACH DOKUMEN MATERI PELATIHAN --}}
+<div class="modal fade" id="attachDocumentModal" tabindex="-1" role="dialog" aria-labelledby="attachDocumentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content shadow border-0" style="border-radius: 8px;">
+            <div class="modal-header bg-white border-bottom py-3">
+                <h5 class="modal-title font-weight-bold text-dark mb-0" id="attachDocumentModalLabel">Lampirkan Dokumen Materi</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="/training/{{ $training->id }}/attach-document" method="POST">
+                @csrf
+                <div class="modal-body p-4">
+                    <div class="form-group mb-0">
+                        <label class="font-weight-bold text-dark mb-2">Pilih Dokumen <span class="text-danger">*</span></label>
+                        <select name="document_ids[]" id="modalDocSelect" class="form-control select2" multiple="multiple" style="width: 100%;" required data-placeholder="-- Pilih dokumen untuk dilampirkan --">
+                            @foreach($allDocuments as $d)
+                                @php
+                                    $alreadyAttached = $training->documents->contains('id', $d->id);
+                                @endphp
+                                <option value="{{ $d->id }}" {{ $alreadyAttached ? 'selected' : '' }}>
+                                    {{ $d->name }} ({{ $d->dokumentype->name ?? 'Dokumen' }}) {{ $alreadyAttached ? '[Sudah Terlampir]' : '' }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2 border-top d-flex justify-content-between">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">
+                        Batal
+                    </button>
+                    <button type="submit" class="btn btn-primary px-3">
+                        Simpan Lampiran
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 function toggleVideoTypeInShow(type) {
     var fileGroup = document.getElementById('showFileInputGroup');
@@ -940,5 +1043,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setInterval(pollStats, 10000);
 })();
+
+$(document).ready(function() {
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+        $('#modalDocSelect').select2({
+            theme: 'bootstrap4',
+            dropdownParent: $('#attachDocumentModal'),
+            placeholder: '-- Pilih dokumen untuk dilampirkan --',
+            width: '100%'
+        });
+    }
+});
 </script>
 @endsection

@@ -51,4 +51,9 @@ class Document extends Model
     {
         return $this->hasMany(DocumentVersion::class, 'document_id')->orderBy('version_number', 'desc');
     }
+
+    public function trainings()
+    {
+        return $this->belongsToMany(Training::class, 'training_documents', 'document_id', 'training_id')->withTimestamps();
+    }
 }

@@ -102,6 +102,20 @@
                                 <textarea id="description" name="description" class="form-control" rows="3">{{ old('description', $training->description) }}</textarea>
                             </div>
 
+                            <div class="form-group mb-4">
+                                <label for="documents" class="font-weight-600 mb-2 d-flex justify-content-between align-items-center">
+                                    <span>Dokumen Materi (SOP / Modul)</span>
+                                    <span class="badge badge-light border text-muted font-weight-normal">{{ count($selectedDocuments) }} Terpilih</span>
+                                </label>
+                                <select id="documents" name="documents[]" class="form-control select2" multiple="multiple" data-placeholder="-- Pilih dokumen materi acuan --">
+                                    @foreach($documents as $doc)
+                                        <option value="{{ $doc->id }}" {{ in_array($doc->id, old('documents', $selectedDocuments ?? [])) ? 'selected' : '' }}>
+                                            {{ $doc->name }} ({{ $doc->dokumentype->name ?? 'Dokumen' }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
                             <div class="form-group mb-0 pt-3 border-top">
                                 <label class="font-weight-600 mb-2 d-block">Tampilan / Mode Kuis Peserta</label>
                                 <div class="row">
@@ -280,6 +294,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     filterDivisi.addEventListener('change', applyFilter);
     searchInput.addEventListener('input', applyFilter);
+
+    // Initialize select2 for documents
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+        $('#documents').select2({
+            theme: 'bootstrap4',
+            width: '100%',
+            placeholder: '-- Pilih satu atau beberapa dokumen materi --'
+        });
+    }
 });
 </script>
 @endsection

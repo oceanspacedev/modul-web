@@ -124,11 +124,6 @@
                 <a href="/training/portal/{{ $participant->token }}" class="btn btn-default px-4">
                     Kembali ke Halaman Pelatihan
                 </a>
-                @if($training->is_quiz_active)
-                    <a href="/training/portal/{{ $participant->token }}/retake" onclick="return confirm('Apakah Anda ingin mengulang kuis ini?')" class="btn btn-warning text-white px-4 font-weight-bold">
-                        Kerjakan Ulang Kuis
-                    </a>
-                @endif
             </div>
         </div>
 

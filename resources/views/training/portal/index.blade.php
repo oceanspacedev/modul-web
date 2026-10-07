@@ -133,6 +133,27 @@
                     <i class="fas fa-video mr-1"></i> Buka Tautan Zoom
                 </a>
             </div>
+
+            @if($training->documents->isNotEmpty())
+                <div class="mt-3 pt-3 border-top">
+                    <strong class="d-block text-dark small mb-2">Dokumen Materi Pelatihan</strong>
+                    <div class="list-group list-group-flush border rounded">
+                        @foreach($training->documents as $pdoc)
+                            @php
+                                $pver = $pdoc->versions->first();
+                                $purl = $pver ? asset('storage/dokumen/' . $pver->path) : asset('storage/dokumen/' . $pdoc->path);
+                            @endphp
+                            <a href="{{ $purl }}" target="_blank" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-2">
+                                <div class="text-truncate mr-2">
+                                    <span class="font-weight-bold text-dark small text-truncate d-block">{{ $pdoc->name }}</span>
+                                    <span class="text-xs text-muted">{{ $pdoc->dokumentype->name ?? 'Dokumen' }} &bull; Versi {{ $pdoc->version ?? 1 }}</span>
+                                </div>
+                                <span class="badge badge-light border text-secondary font-weight-bold">Buka</span>
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
         </div>
 
         <!-- KONFIRMASI KEHADIRAN -->
@@ -281,12 +302,6 @@
             </div>
 
             @if($participant->quizResult)
-                @if($training->questions->count() > $participant->quizResult->total_questions)
-                    <div class="alert alert-warning mb-3 small">
-                        Pemateri telah menambahkan soal baru pada pelatihan ini (Total: {{ $training->questions->count() }} soal). Anda dapat mengulang kuis untuk melengkapi jawaban.
-                    </div>
-                @endif
-
                 <div class="p-4 bg-light rounded text-center border mb-3">
                     <span class="text-muted small text-uppercase font-weight-bold d-block mb-1">Nilai Akhir Anda</span>
                     <h2 class="display-4 font-weight-bold text-primary mb-2">{{ $participant->quizResult->score }}</h2>
@@ -296,16 +311,9 @@
                 </div>
 
                 <div class="d-flex justify-content-center" style="gap: 10px;">
-                    <a href="/training/portal/{{ $participant->token }}/result" class="btn btn-outline-primary btn-sm px-3 py-2 font-weight-bold">
+                    <a href="/training/portal/{{ $participant->token }}/result" class="btn btn-outline-primary btn-sm px-4 py-2 font-weight-bold">
                         Lihat Pembahasan
                     </a>
-                    <div id="quizRetakeBtn">
-                    @if($training->is_quiz_active)
-                        <a href="/training/portal/{{ $participant->token }}/retake" onclick="return confirm('Kerjakan kuis kembali?')" class="btn btn-warning text-white btn-sm px-3 py-2 font-weight-bold">
-                            Kerjakan Ulang
-                        </a>
-                    @endif
-                    </div>
                 </div>
             @else
                 <div id="quizBody">
@@ -370,7 +378,6 @@
             const TOKEN      = '{{ $participant->token }}';
             const STATUS_URL = '/training/portal/' + TOKEN + '/status';
             const QUIZ_URL   = '/training/portal/' + TOKEN + '/quiz';
-            const RETAKE_URL = '/training/portal/' + TOKEN + '/retake';
 
             // State saat ini dari server (render awal Blade)
             // Absen HANYA track is_attendance_active, tidak terpengaruh is_quiz_active
@@ -584,22 +591,6 @@
                             } else if (!data.is_quiz_active && currentQuizActive) {
                                 currentQuizActive = false;
                                 quizBody.innerHTML = buildQuizLockedHTML();
-                            }
-                        }
-
-                        // ---- Tombol retake (jika sudah ada hasil) ----
-                        if (hasQuizResult) {
-                            const retakeBtn = document.getElementById('quizRetakeBtn');
-                            if (retakeBtn) {
-                                if (data.is_quiz_active) {
-                                    retakeBtn.innerHTML = `<a href="${RETAKE_URL}"
-                                        onclick="return confirm('Kerjakan kuis kembali?')"
-                                        class="btn btn-warning text-white btn-sm px-3 py-2 font-weight-bold">
-                                        Kerjakan Ulang
-                                    </a>`;
-                                } else {
-                                    retakeBtn.innerHTML = '';
-                                }
                             }
                         }
                     })
