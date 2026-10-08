@@ -11,7 +11,7 @@
             @auth
                 @if(auth()->user()->can('manage-videos') || auth()->user()->job_level_id == 1)
                 <div>
-                    <a href="{{ route('video.create') }}" class="btn btn-sm btn-danger shadow-sm">
+                    <a href="{{ route('video.create') }}" class="btn btn-sm btn-primary">
                         <i class="fas fa-plus mr-1"></i> Tambah Video Baru
                     </a>
                 </div>
@@ -25,7 +25,7 @@
     <div class="@auth container-fluid @else container @endauth">
         {{-- Flash Alert Messages --}}
         @if (session('success'))
-            <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
                 <i class="fas fa-check-circle mr-1"></i> {{ session('success') }}
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
@@ -34,7 +34,7 @@
         @endif
 
         {{-- Search & Filter Bar --}}
-        <div class="card card-outline card-danger shadow-sm mb-4">
+        <div class="card shadow-sm mb-4 border">
             <div class="card-body p-3">
                 <form action="{{ route('video.index') }}" method="GET" class="row g-2 align-items-center">
                     <div class="col-md-9 col-sm-8 mb-2 mb-sm-0">
@@ -47,11 +47,11 @@
                         </div>
                     </div>
                     <div class="col-md-3 col-sm-4 d-flex">
-                        <button type="submit" class="btn btn-danger btn-block mr-2">
+                        <button type="submit" class="btn btn-primary btn-block mr-2">
                             <i class="fas fa-search mr-1"></i> Cari
                         </button>
                         @if(request('search'))
-                            <a href="{{ route('video.index') }}" class="btn btn-secondary" title="Reset Pencarian">
+                            <a href="{{ route('video.index') }}" class="btn btn-default" title="Reset Pencarian">
                                 <i class="fas fa-redo"></i>
                             </a>
                         @endif
@@ -144,15 +144,13 @@
 
                             {{-- Card Footer --}}
                             @auth
-                            <div class="card-footer bg-light px-3 py-2 d-flex justify-content-end align-items-center">
-                                <div class="btn-group">
-                                    <a href="{{ route('video.edit', $v->id) }}" class="btn btn-sm btn-info" title="Edit Video">
-                                        <i class="fas fa-pencil-alt mr-1"></i> Edit
-                                    </a>
-                                    <button type="button" class="btn btn-sm btn-danger" title="Hapus Video" onclick="confirmDelete('{{ $v->id }}', '{{ addslashes($v->title) }}')">
-                                        <i class="fas fa-trash mr-1"></i> Hapus
-                                    </button>
-                                </div>
+                            <div class="card-footer bg-white px-3 py-2 d-flex justify-content-end align-items-center border-top">
+                                <a href="{{ route('video.edit', $v->id) }}" class="btn btn-default btn-xs mr-1" title="Edit Video">
+                                    Edit
+                                </a>
+                                <button type="button" class="btn btn-outline-danger btn-xs" title="Hapus Video" onclick="confirmDelete('{{ $v->id }}', '{{ addslashes($v->title) }}')">
+                                    Hapus
+                                </button>
                             </div>
                             @endauth
                         </div>

@@ -686,3 +686,39 @@ select.form-control-sm {
     color: #991b1b !important;
     border-left: 4px solid #ef4444 !important;
 }
+
+/* =========================================================
+   TABLE DROPDOWNS & SCROLLING FIX
+   Prevents dropdown menus from being clipped by table-responsive
+   and enables smooth internal scrolling
+   ========================================================= */
+.table .dropdown-menu,
+.table-responsive .dropdown-menu {
+    max-height: 280px !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    z-index: 1055 !important;
+}
+
+/* Custom sleek scrollbar for dropdown menus */
+.dropdown-menu::-webkit-scrollbar {
+    width: 5px;
+}
+.dropdown-menu::-webkit-scrollbar-track {
+    background: #f8fafc;
+}
+.dropdown-menu::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+.dropdown-menu::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* On desktop, keep table-responsive unclipped unless explicitly fixed-height */
+@media (min-width: 768px) {
+    .card-body.table-responsive:not([style*="height:"]) {
+        overflow: visible;
+    }
+}
+

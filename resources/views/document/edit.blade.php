@@ -6,15 +6,15 @@
             <div class="container-fluid">
                 <div class="row">
                     <div class="col-12">
-                        <div class="card card-outline card-dark shadow-sm">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h3 class="card-title font-weight-bold m-0">
-                                    <i class="fas fa-file-alt mr-1"></i> {{ $document->name }}
+                        <div class="card border shadow-sm">
+                            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                                <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.15rem;">
+                                    <i class="fas fa-file-alt mr-1 text-primary"></i> {{ $document->name }}
                                 </h3>
                                 <div>
-                                    <span class="badge badge-info px-2 py-1">v{{ $document->version ?? 1 }}</span>
-                                    <a href="{{ asset('storage/dokumen/' . $document->path) }}" target="_blank" class="btn btn-xs btn-primary ml-2">
-                                        <i class="fas fa-eye mr-1"></i> Buka File
+                                    <span class="badge badge-light border px-2 py-1">v{{ $document->version ?? 1 }}</span>
+                                    <a href="{{ asset('storage/dokumen/' . $document->path) }}" target="_blank" class="btn btn-xs btn-default ml-2">
+                                        <i class="fas fa-external-link-alt mr-1"></i> Buka File
                                     </a>
                                 </div>
                             </div>
@@ -89,7 +89,7 @@
                                         <a href="/document" class="btn btn-secondary btn-sm">
                                             <i class="fas fa-arrow-left mr-1"></i> Kembali
                                         </a>
-                                        <button type="submit" class="btn btn-success btn-sm px-4">
+                                        <button type="submit" class="btn btn-primary btn-sm px-4">
                                             <i class="fas fa-save mr-1"></i> Simpan
                                         </button>
                                     </div>

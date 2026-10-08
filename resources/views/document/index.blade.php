@@ -13,11 +13,11 @@
                                     Data Dokumen
                                 </h3>
                                 <div class="card-tools m-0 d-flex align-items-center" style="gap: 8px;">
-                                    <a href="/document/create" class="btn btn-sm btn-success">
-                                        <i class="fas fa-plus mr-1"></i> Tambah Dokumen
+                                    <a href="/document/create" class="btn btn-sm btn-primary">
+                                        Tambah Dokumen
                                     </a>
-                                    <a href="/document/export" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-file-export mr-1"></i> Export All
+                                    <a href="/document/export" class="btn btn-sm btn-default">
+                                        Export All
                                     </a>
                                 </div>
                             </div>
@@ -99,9 +99,9 @@
                                             <td>{{ $document->joblevel->name }}</td>
                                             <td>{{ $document->dokumentype->name }}</td>
                                             <td>
-                                                <button type="button" class="btn btn-xs btn-outline-info font-weight-bold"
+                                                <button type="button" class="btn btn-xs btn-default font-weight-bold"
                                                     onclick="openDocumentHistory('{{ $document->id }}')" title="Klik untuk lihat riwayat versi">
-                                                    <i class="fas fa-code-branch mr-1"></i>v{{ $document->version ?? 1 }}
+                                                    v{{ $document->version ?? 1 }}
                                                 </button>
                                             </td>
                                             <td>
@@ -112,29 +112,34 @@
                                                 @endif
                                             </td>
                                             <td>
-                                                <a href="{{ asset('storage/dokumen/'.$document->path) }}" target='_blank' data-toggle="tooltip" title="Buka File" class="badge bg-primary p-2">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                                <button type="button" class="badge bg-purple border-0"
-                                                    data-toggle="tooltip" title="Riwayat Versi" onclick="openDocumentHistory('{{ $document->id }}')">
-                                                    <i class="fas fa-history" style="color: #6b21a8 !important;"></i>
-                                                </button>
-                                                <a href="/document/{{ $document->id }}" data-toggle="tooltip" title="Edit Dokumen" class="badge bg-warning p-2">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                                @if ($document->deleted_at)
-                                                    <a href="/document/active/{{ $document->id }}"
-                                                        class="badge bg-success p-2" data-toggle="tooltip" title="Aktifkan"
-                                                        onclick="return confirm('Mengaktifkan kembali dokumen {{ $document->name }}?')">
-                                                        <i class="far fa-check-circle"></i>
+                                                <div class="d-inline-flex align-items-center" style="gap: 4px;">
+                                                    <a href="{{ asset('storage/dokumen/'.$document->path) }}" target='_blank' class="btn btn-default btn-xs" title="Buka File Dokumen">
+                                                        Buka
                                                     </a>
-                                                @else
-                                                    <a href="/document/delete/{{ $document->id }}"
-                                                        class="badge bg-danger p-2" data-toggle="tooltip" title="Nonaktifkan"
-                                                        onclick="return confirm('Apakah anda yakin menonaktifkan dokumen {{ $document->name }}?')">
-                                                        <i class="far fa-times-circle"></i>
-                                                    </a>
-                                                @endif
+                                                    <div class="dropdown">
+                                                        <button class="btn btn-default btn-xs dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                            Aksi
+                                                        </button>
+                                                        <div class="dropdown-menu dropdown-menu-right shadow-sm border text-sm" style="font-size: 0.85rem;">
+                                                            <a class="dropdown-item py-1" href="javascript:void(0)" onclick="openDocumentHistory('{{ $document->id }}')">
+                                                                Riwayat Versi
+                                                            </a>
+                                                            <a class="dropdown-item py-1" href="/document/{{ $document->id }}">
+                                                                Edit Dokumen
+                                                            </a>
+                                                            <div class="dropdown-divider my-1"></div>
+                                                            @if ($document->deleted_at)
+                                                                <a class="dropdown-item py-1 text-success" href="/document/active/{{ $document->id }}" onclick="return confirm('Mengaktifkan kembali dokumen {{ $document->name }}?')">
+                                                                    Aktifkan Dokumen
+                                                                </a>
+                                                            @else
+                                                                <a class="dropdown-item py-1 text-danger" href="/document/delete/{{ $document->id }}" onclick="return confirm('Apakah anda yakin menonaktifkan dokumen {{ $document->name }}?')">
+                                                                    Nonaktifkan Dokumen
+                                                                </a>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </td>
                                         </tr>
                                     @endforeach

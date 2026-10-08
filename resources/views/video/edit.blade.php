@@ -19,10 +19,9 @@
 <section class="content">
     <div class="container-fluid">
         <div class="row justify-content-center">
-            <div class="col-lg-8 col-md-10">
-                <div class="card card-outline card-info shadow-sm">
-                    <div class="card-header">
-                        <h3 class="card-title font-weight-bold">Ubah Informasi Video</h3>
+                <div class="card shadow-sm border">
+                    <div class="card-header bg-white py-3">
+                        <h3 class="card-title font-weight-bold m-0" style="font-size: 1.15rem;">Ubah Informasi Video</h3>
                     </div>
 
                     <form id="editVideoForm" action="{{ route('video.update', $video->id) }}" method="POST" enctype="multipart/form-data">
@@ -128,7 +127,7 @@
 
                         <div class="card-footer bg-light d-flex justify-content-between">
                             <a href="{{ route('video.index') }}" class="btn btn-secondary">Batal</a>
-                            <button type="submit" class="btn btn-info font-weight-bold px-4">
+                            <button type="submit" class="btn btn-primary font-weight-bold px-4">
                                 <i class="fas fa-save mr-1"></i> Simpan Perubahan
                             </button>
                         </div>

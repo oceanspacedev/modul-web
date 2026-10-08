@@ -64,8 +64,8 @@ class TrainingPortalController extends Controller
         $participant = $this->findParticipant($token, ['training']);
         $training = $participant->training;
 
-        // Check if attendance is specifically activated by admin
-        if (!$training->is_attendance_active) {
+        // Check if attendance is activated by admin (or quiz is active)
+        if (!$training->is_attendance_active && !$training->is_quiz_active) {
             return back()->with('warning', 'Presensi kehadiran saat ini belum dibuka oleh Pemateri / Admin. Harap menunggu instruksi dari pemateri.');
         }
 

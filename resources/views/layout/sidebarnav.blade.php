@@ -18,7 +18,7 @@
                 @can('view-dashboard')
                 <li class="nav-item">
                     <a href="/dashboard" class="nav-link {{ ($active ?? '') === 'dashboard' ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-tachometer-alt text-primary"></i>
+                        <i class="nav-icon fas fa-tachometer-alt"></i>
                         <p>Dashboard</p>
                     </a>
                 </li>
@@ -27,7 +27,7 @@
                 @can('view-videos')
                 <li class="nav-item">
                     <a href="/video" class="nav-link {{ ($active ?? '') === 'video' ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-play-circle text-danger"></i>
+                        <i class="nav-icon fas fa-play-circle"></i>
                         <p>Video Materi</p>
                     </a>
                 </li>
@@ -36,7 +36,7 @@
                 @canany(['manage-trainings', 'view-my-trainings'])
                 <li class="nav-item {{ ($active ?? '') === 'training' ? 'menu-open' : '' }}">
                     <a href="#" class="nav-link {{ ($active ?? '') === 'training' ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-chalkboard-teacher text-info"></i>
+                        <i class="nav-icon fas fa-chalkboard-teacher"></i>
                         <p>
                             Pelatihan
                             <i class="right fas fa-angle-left"></i>
@@ -46,13 +46,13 @@
                         @can('manage-trainings')
                         <li class="nav-item">
                             <a href="/training" class="nav-link">
-                                <i class="fas fa-list nav-icon text-xs"></i>
+                                <i class="far fa-circle nav-icon text-xs"></i>
                                 <p>Jadwal Pelatihan</p>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/training/create" class="nav-link">
-                                <i class="fas fa-plus nav-icon text-xs"></i>
+                                <i class="far fa-circle nav-icon text-xs"></i>
                                 <p>Tambah Pelatihan</p>
                             </a>
                         </li>
@@ -60,7 +60,7 @@
                         @can('view-my-trainings')
                         <li class="nav-item">
                             <a href="/my-trainings" class="nav-link">
-                                <i class="fas fa-user nav-icon text-xs"></i>
+                                <i class="far fa-circle nav-icon text-xs"></i>
                                 <p>Pelatihan Saya</p>
                             </a>
                         </li>
@@ -72,7 +72,7 @@
                 @can('manage-presence')
                 <li class="nav-item">
                     <a href="/absent" class="nav-link {{ ($active ?? '') === 'absent' ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-calendar-check text-success"></i>
+                        <i class="nav-icon fas fa-calendar-check"></i>
                         <p>Presence</p>
                     </a>
                 </li>
@@ -81,7 +81,7 @@
                 @canany(['manage-documents', 'view-documents'])
                 <li class="nav-item">
                     <a href="/document" class="nav-link {{ ($active ?? '') === 'document' ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-file-alt text-warning"></i>
+                        <i class="nav-icon fas fa-file-alt"></i>
                         <p>Document</p>
                     </a>
                 </li>
@@ -90,7 +90,7 @@
                 @can('manage-quizzes')
                 <li class="nav-item">
                      <a href="#" class="nav-link {{ ($active ?? '') === 'quiz' ? 'active' : '' }}">
-                         <i class="nav-icon fas fa-award" style="color: #a855f7;"></i>
+                         <i class="nav-icon fas fa-award"></i>
                          <p>
                              Quiz
                              <i class="right fas fa-angle-left"></i>
@@ -99,19 +99,19 @@
                      <ul class="nav nav-treeview">
                         <li class="nav-item">
                              <a href="/quiz" class="nav-link">
-                                 <i class="fas fa-plus nav-icon text-xs"></i>
+                                 <i class="far fa-circle nav-icon text-xs"></i>
                                  <p>Add Quiz</p>
                              </a>
                          </li>
                          <li class="nav-item">
                              <a href="/question" class="nav-link">
-                                 <i class="fas fa-question nav-icon text-xs"></i>
+                                 <i class="far fa-circle nav-icon text-xs"></i>
                                  <p>Question</p>
                              </a>
                          </li>
                          <li class="nav-item">
                              <a href="/quiz/history" class="nav-link">
-                                 <i class="fas fa-poll nav-icon text-xs"></i>
+                                 <i class="far fa-circle nav-icon text-xs"></i>
                                  <p>History</p>
                              </a>
                          </li>
@@ -122,7 +122,7 @@
                 @canany(['manage-users', 'manage-roles', 'manage-master-data'])
                  <li class="nav-item">
                      <a href="#" class="nav-link {{ ($active ?? '') === 'setting' ? 'active' : '' }}">
-                         <i class="nav-icon fas fa-sliders-h" style="color: #06b6d4;"></i>
+                         <i class="nav-icon fas fa-sliders-h"></i>
                          <p>
                              Settings
                              <i class="right fas fa-angle-left"></i>
@@ -132,7 +132,7 @@
                         @can('manage-users')
                         <li class="nav-item">
                              <a href="/user" class="nav-link">
-                                 <i class="fas fa-users-cog nav-icon text-xs"></i>
+                                 <i class="far fa-circle nav-icon text-xs"></i>
                                  <p>User</p>
                              </a>
                          </li>
@@ -141,25 +141,25 @@
                         @can('manage-master-data')
                          <li class="nav-item">
                              <a href="/divisi" class="nav-link">
-                                 <i class="fas fa-city nav-icon text-xs"></i>
+                                 <i class="far fa-circle nav-icon text-xs"></i>
                                  <p>Divisi</p>
                              </a>
                          </li>
                          <li class="nav-item">
                              <a href="/subdivisi" class="nav-link">
-                                 <i class="fas fa-building nav-icon text-xs"></i>
+                                 <i class="far fa-circle nav-icon text-xs"></i>
                                  <p>Sub Divisi</p>
                              </a>
                          </li>
                          <li class="nav-item">
                              <a href="/joblevel" class="nav-link">
-                                 <i class="fas fa-briefcase nav-icon text-xs"></i>
+                                 <i class="far fa-circle nav-icon text-xs"></i>
                                  <p>Job Level</p>
                              </a>
                          </li>
                          <li class="nav-item">
                              <a href="/dokumentype" class="nav-link">
-                                 <i class="fas fa-bookmark nav-icon text-xs"></i>
+                                 <i class="far fa-circle nav-icon text-xs"></i>
                                  <p>Document Type</p>
                              </a>
                          </li>
@@ -168,7 +168,7 @@
                         @can('manage-roles')
                          <li class="nav-item">
                              <a href="/roles" class="nav-link">
-                                 <i class="fas fa-user-shield nav-icon text-xs text-primary"></i>
+                                 <i class="far fa-circle nav-icon text-xs"></i>
                                  <p>Role & Hak Akses</p>
                              </a>
                          </li>

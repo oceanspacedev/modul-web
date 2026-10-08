@@ -58,28 +58,28 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($questions as $question)
-                                    <tr>
-                                        <td>{{ $loop->iteration }}</td>
-                                        <td>
-                                            <a href="#" data-id="{{ $question->id }}" data-toggle="tooltip"
-                                                title="View" class="badge bg-primary viewoption"><span><i
-                                                        class="fas fa-eye"></i></span></a>
-                                            @if ($question->deleted_at)
-                                                <a href="/question/active/{{ $question->id }}" class="badge bg-success"
-                                                    data-toggle="tooltip" title="Activate"
-                                                    onclick="return confirm('Mengaktifkan kembali question {{ $question->question }}?')"><span><i
-                                                            class="far fa-check-circle"></i></span></a>
-                                            @else
-                                                <a href="/question/delete/{{ $question->id }}" class="badge bg-danger"
-                                                    data-toggle="tooltip" title="Deactivate"
-                                                    onclick="return confirm('Apalah anda yakin menonaktifkan {{ $question->question }}?')"><span><i
-                                                            class="far fa-times-circle"></i></span></a>
-                                            @endif
-                                        </td>
-                                        <td>{{ $question->question }}</td>
-                                    </tr>
-                                @endforeach
+                                    @foreach ($questions as $question)
+                                        <tr>
+                                            <td>{{ $loop->iteration }}</td>
+                                            <td>
+                                                <button type="button" data-id="{{ $question->id }}" class="btn btn-default btn-xs mr-1 viewoption" title="Lihat Pilihan">
+                                                    Lihat
+                                                </button>
+                                                @if ($question->deleted_at)
+                                                    <a href="/question/active/{{ $question->id }}" class="btn btn-outline-success btn-xs"
+                                                        onclick="return confirm('Mengaktifkan kembali question {{ $question->question }}?')">
+                                                        Aktifkan
+                                                    </a>
+                                                @else
+                                                    <a href="/question/delete/{{ $question->id }}" class="btn btn-outline-danger btn-xs"
+                                                        onclick="return confirm('Apakah Anda yakin menonaktifkan {{ $question->question }}?')">
+                                                        Nonaktifkan
+                                                    </a>
+                                                @endif
+                                            </td>
+                                            <td>{{ $question->question }}</td>
+                                        </tr>
+                                    @endforeach
                             </tbody>
                         </table>
                     </div>

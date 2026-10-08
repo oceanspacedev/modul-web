@@ -62,10 +62,16 @@ class TrainingRekapExport implements FromArray, WithTitle, WithEvents
                 };
             }
 
+            $offCamSuffix = '';
+            if ($participant->is_off_cam) {
+                $count = $participant->off_cam_count ?: 1;
+                $offCamSuffix = " (Off Cam {$count}x)";
+            }
+
             $attendanceLabel = match ($participant->attendance_status) {
-                'hadir'       => 'Hadir',
-                'tidak_hadir' => 'Tidak Hadir',
-                default       => 'Belum Absen',
+                'hadir'       => 'Hadir' . $offCamSuffix,
+                'tidak_hadir' => 'Tidak Hadir' . $offCamSuffix,
+                default       => 'Belum Absen' . $offCamSuffix,
             };
 
             $rows[] = [

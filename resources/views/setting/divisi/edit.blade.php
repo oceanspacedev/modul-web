@@ -7,20 +7,20 @@
             <div class="container-fluid">
                 <div class="row">
                     <div class="col-12">
-                        <div class="card card-dark">
-                            <!-- /.card-header -->
-                            <div class="card-header">
-                                <h3 class="card-title">EDIT &raquo; {{ $divisi->name }}</h3>
+                        <div class="card border shadow-sm">
+                            <div class="card-header bg-white py-3">
+                                <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.15rem;">Edit Divisi &raquo; {{ $divisi->name }}</h3>
                             </div>
                             <div class="card-body">
                                 <form action="/divisi/{{ $divisi->id }}" method="POST">
                                     @csrf
-                                    <div class="mb-3 col-lg-3">
-                                        <label for="name" class="form-label">Nama Divisi</label>
+                                    <div class="mb-3 col-lg-4">
+                                        <label for="name" class="form-label font-weight-bold">Nama Divisi</label>
                                         <input type="text" class="form-control" id="name" name="name"
                                             value="{{ $divisi->name }}" required>
                                     </div>
-                                    <button type="submit" class="btn btn-success mt-3">Update</button>
+                                    <a href="/divisi" class="btn btn-secondary mt-3 mr-1">Kembali</a>
+                                    <button type="submit" class="btn btn-primary mt-3">Simpan Perubahan</button>
                                 </form>
                             </div>
                         </div>

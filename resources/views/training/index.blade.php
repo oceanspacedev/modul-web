@@ -64,7 +64,7 @@
                 </div>
             </div>
 
-            <div class="card-body p-0 table-responsive">
+            <div class="card-body p-0 table-responsive" style="min-height: 260px;">
                 <table class="table table-hover mb-0" style="font-size: 0.92rem;">
                     <thead class="bg-light text-muted">
                         <tr>
@@ -127,23 +127,31 @@
                                     <span class="badge badge-danger px-2 py-1">Dibatalkan</span>
                                 @endif
                             </td>
-                            <td class="text-center align-middle" style="padding: 16px;">
-                                <div class="d-flex justify-content-center align-items-center" style="gap: 6px;">
-                                    <button type="button" class="badge bg-danger p-2 border-0 btn-upload-video-shortcut" title="Upload Video Materi Pelatihan" data-toggle="modal" data-target="#uploadTrainingVideoModal" data-id="{{ $t->id }}" data-title="{{ addslashes($t->title) }}" data-date="{{ \Carbon\Carbon::parse($t->training_date)->format('d F Y') }}">
-                                        <i class="fas fa-video"></i>
-                                    </button>
-                                    <a href="/training/{{ $t->id }}" class="badge bg-info p-2" title="Detail & Nilai">
-                                        <i class="fas fa-eye"></i>
+                            <td class="text-center align-middle" style="padding: 14px;">
+                                <div class="d-inline-flex align-items-center" style="gap: 4px;">
+                                    <a href="/training/{{ $t->id }}" class="btn btn-default btn-xs">
+                                        Detail
                                     </a>
-                                    <a href="/training/{{ $t->id }}/questions" class="badge bg-primary p-2" title="Kelola Kuis">
-                                        <i class="fas fa-question"></i>
-                                    </a>
-                                    <a href="/training/{{ $t->id }}/edit" class="badge bg-warning p-2" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <a href="/training/delete/{{ $t->id }}" onclick="return confirm('Hapus jadwal pelatihan ini?')" class="badge bg-danger p-2 border-0" title="Hapus">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
+                                    <div class="dropdown">
+                                        <button class="btn btn-default btn-xs dropdown-toggle" type="button" data-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false">
+                                            Aksi
+                                        </button>
+                                        <div class="dropdown-menu dropdown-menu-right shadow-sm border text-sm" style="font-size: 0.85rem;">
+                                            <a class="dropdown-item py-1" href="/training/{{ $t->id }}/questions">
+                                                Kelola Soal Kuis
+                                            </a>
+                                            <a class="dropdown-item py-1 btn-upload-video-shortcut" href="javascript:void(0)" data-toggle="modal" data-target="#uploadTrainingVideoModal" data-id="{{ $t->id }}" data-title="{{ addslashes($t->title) }}" data-date="{{ \Carbon\Carbon::parse($t->training_date)->format('d F Y') }}">
+                                                Upload Video Materi
+                                            </a>
+                                            <a class="dropdown-item py-1" href="/training/{{ $t->id }}/edit">
+                                                Edit Pelatihan
+                                            </a>
+                                            <div class="dropdown-divider my-1"></div>
+                                            <a class="dropdown-item py-1 text-danger" href="/training/delete/{{ $t->id }}" onclick="return confirm('Hapus jadwal pelatihan ini?')">
+                                                Hapus Pelatihan
+                                            </a>
+                                        </div>
+                                    </div>
                                 </div>
                             </td>
                         </tr>

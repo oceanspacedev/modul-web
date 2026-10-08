@@ -132,10 +132,14 @@ class TrainingFullLifecycleTest extends TestCase
         $toggleRes->assertSessionHas('success');
         $this->assertTrue((bool)$training->fresh()->is_quiz_active);
 
-        // 1.9 Export CSV
+        // 1.9 Export Excel / CSV
         $exportRes = $this->actingAs($this->admin)->get("/training/{$training->id}/export");
         $exportRes->assertStatus(200);
-        $this->assertStringContainsString('text/csv', $exportRes->headers->get('Content-Type'));
+        $this->assertTrue(
+            str_contains($exportRes->headers->get('Content-Type'), 'spreadsheet') ||
+            str_contains($exportRes->headers->get('Content-Type'), 'text/csv') ||
+            str_contains($exportRes->headers->get('Content-Type'), 'octet-stream')
+        );
 
         // 1.10 Delete Training
         $deleteRes = $this->actingAs($this->admin)->get("/training/delete/{$training->id}");

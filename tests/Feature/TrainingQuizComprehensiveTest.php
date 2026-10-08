@@ -142,9 +142,11 @@ KUNCI: Pemaparan mengenai alur kerja sistem dan verifikasi kehadiran.";
             'type' => 'essay',
         ]);
 
-        // Toggle Quiz Active so participant can take it
+        // Toggle Quiz and Attendance Active so participant can take it
         $this->actingAs($admin)->post("/training/{$training->id}/toggle-quiz");
         $this->assertTrue($training->fresh()->is_quiz_active);
+        $this->actingAs($admin)->post("/training/{$training->id}/toggle-attendance");
+        $this->assertTrue($training->fresh()->is_attendance_active);
 
         // ==========================================
         // 3. PARTICIPANT PORTAL WORKFLOW

@@ -54,42 +54,37 @@
                         </div>              
                         <br>
                         <div class="card">
-                            <div class="card-header bg-dark">
-                                <div class="row d-inline-flex">
-                                    <h3 class="card-title">Quiz History</h3>
-                                    {{-- <a href="/question/export">
-                                        <button class="badge bg-primary mx-3 elevation-0">EXPORT
-                                            ALL</button></a> --}}
-                                </div>
-                                <div class="card-tools d-flex">
-                                    <div class="input-group input-group-sm mr-3" style="max-width: 440px;">
-                                        <form action="/quiz/history" class="d-inline-flex">
-                                            <select class="custom-select col-lg-12 mx-2" name="filterJobLevel"
-                                            required>
+                            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap" style="gap: 12px;">
+                                <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.2rem;">
+                                    Quiz History
+                                </h3>
+                                <div class="card-tools d-flex align-items-center flex-wrap m-0" style="gap: 8px;">
+                                    <form action="/quiz/history" class="d-inline-flex m-0">
+                                        <div class="input-group input-group-sm" style="width: 200px;">
+                                            <select class="custom-select" name="filterJobLevel" required>
                                                 @foreach ($joblevels as $joblevel)
                                                     <option value="{{ $joblevel->id }}">{{ $joblevel->name }}</option>
                                                 @endforeach
                                             </select>
-                                            <div class="input-group-append float-right">
+                                            <div class="input-group-append">
+                                                <button type="submit" class="btn btn-default">
+                                                    <i class="fas fa-filter"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                    <form action="/quiz/history" class="d-inline-flex m-0">
+                                        <div class="input-group input-group-sm" style="width: 220px;">
+                                            <input type="text" name="search" class="form-control" placeholder="Cari nama...">
+                                            <div class="input-group-append">
                                                 <button type="submit" class="btn btn-default">
                                                     <i class="fas fa-search"></i>
                                                 </button>
                                             </div>
-                                        </form>
-                                    </div>
-                                    <div class="input-group input-group-sm" style="width: 300px;">
-                                        <form action="/quiz/history" class="d-inline-flex">
-                                            <input type="text" name="search" class="form-control"
-                                                placeholder="Cari">
-                                            <div class="input-group-append float-right">
-                                                <button type="submit" class="btn btn-default">
-                                                    <i class="fas fa-search"></i>
-                                                </button>
-                                        </form>
-                                    </div>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
-                        </div>
                         @if ($message = Session::get('success'))
                             <div class="alert alert-success alert-dismissible fade show" role="alert">
                                 <strong>{{ $message }}</strong>
@@ -122,17 +117,19 @@
                                             <td>{{ $history->value }}</td>
                                             <td>{{ date('d M Y H:i', $history->created_at / 1000) }}</td>
                                             <td>
-                                                <a href={{ '/quiz/history/' . $history->id }} target='_blank'
-                                                    data-toggle="tooltip" title="view" class="badge bg-primary"><span><i
-                                                            class="fas fa-eye"></i></span></a>
-                                                <a href={{ '/quiz/history/delete/' . $history->id }}
-                                                    onclick="return confirm('Apalah anda yakin menghapus quiz {{ $history->quiz->document->name }} atas nama {{ $history->user->full_name ?? 'Nonactive user' }}?')"
-                                                     data-toggle="tooltip" title="view"
-                                                    class="badge bg-danger"><span><i
-                                                            class="fas fa-times-circle"></i></span></a>
-                                                <a href={{ '/quiz/history/export/' . $history->id }} target='#'
-                                                    data-toggle="tooltip" title="export" class="badge bg-success"><span><i
-                                                            class="fas fa-download"></i></span></a>
+                                                <a href="{{ '/quiz/history/' . $history->id }}" target="_blank"
+                                                    class="btn btn-default btn-xs mr-1" title="Lihat Detail">
+                                                    Lihat
+                                                </a>
+                                                <a href="{{ '/quiz/history/export/' . $history->id }}"
+                                                    class="btn btn-default btn-xs mr-1" title="Export Excel">
+                                                    Export
+                                                </a>
+                                                <a href="{{ '/quiz/history/delete/' . $history->id }}"
+                                                    onclick="return confirm('Apakah Anda yakin menghapus quiz {{ $history->quiz->document->name }} atas nama {{ $history->user->full_name ?? 'Nonactive user' }}?')"
+                                                    class="btn btn-outline-danger btn-xs" title="Hapus">
+                                                    Hapus
+                                                </a>
                                             </td>
                                         </tr>
                                     @endforeach

@@ -12,7 +12,7 @@
                                 Data Quiz
                             </h3>
                             <div class="card-tools m-0">
-                                <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#addQuiz">
+                                <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#addQuiz">
                                     <i class="fas fa-plus mr-1"></i> Tambah Quiz
                                 </button>
                             </div>
@@ -48,44 +48,45 @@
                                             <td>{{ $loop->iteration }}</td>
                                             <td>
                                                 @if (now() > Carbon\Carbon::parse($quiz->start / 1000))
-                                                    -
+                                                    <span class="text-muted">-</span>
                                                 @else
-                                                    <a href="/quiz/{{ $quiz->id }}" data-toggle="tooltip" title="edit" class="badge bg-warning"><span><i
-                                                            class="fas fa-edit"></i></span></a>
-                                                            <a href="/quiz/delete/{{ $quiz->id }}"
-                                                        class="badge bg-danger" data-toggle="tooltip" title="nonactive"
-                                                        onclick="return confirm('Apalah anda yakin menghapus quiz {{ $quiz->document->name ?? '' }}?')"><span><i
-                                                                class="far fa-times-circle"></i></span></a>
+                                                    <a href="/quiz/{{ $quiz->id }}" class="btn btn-default btn-xs mr-1" title="Edit Quiz">
+                                                        Edit
+                                                    </a>
+                                                    <a href="/quiz/delete/{{ $quiz->id }}"
+                                                       class="btn btn-outline-danger btn-xs"
+                                                       title="Hapus Quiz"
+                                                       onclick="return confirm('Apakah Anda yakin menghapus quiz {{ $quiz->document->name ?? '' }}?')">
+                                                        Hapus
+                                                    </a>
                                                 @endif
                                             </td>
-                                            <td
-                                                class={{ now() > Carbon\Carbon::parse($quiz->start / 1000) && now() < Carbon\Carbon::parse($quiz->end / 1000)
-                                                    ? 'text-success'
-                                                    : (now() < Carbon\Carbon::parse($quiz->start / 1000)
-                                                        ? 'text-primary'
-                                                        : 'text-danger') }}>
-                                                {{ now() > Carbon\Carbon::parse($quiz->start / 1000) && now() < Carbon\Carbon::parse($quiz->end / 1000)
-                                                    ? 'ON GOING'
-                                                    : (now() < Carbon\Carbon::parse($quiz->start / 1000)
-                                                        ? 'SCHEDULED'
-                                                        : 'EXPIRED') }}
+                                            <td>
+                                                @if(now() > Carbon\Carbon::parse($quiz->start / 1000) && now() < Carbon\Carbon::parse($quiz->end / 1000))
+                                                    <span class="badge badge-success px-2 py-1">ON GOING</span>
+                                                @elseif(now() < Carbon\Carbon::parse($quiz->start / 1000))
+                                                    <span class="badge badge-primary px-2 py-1">SCHEDULED</span>
+                                                @else
+                                                    <span class="badge badge-secondary px-2 py-1">EXPIRED</span>
+                                                @endif
                                             </td>
                                             <td>{{ $quiz->document->name ?? '-' }}</td>
                                             <td>{{ $quiz->document->joblevel->name ?? '-' }}</td>
                                             <td>{{ date('d M Y H:i', $quiz->start / 1000) }}</td>
                                             <td>{{ date('d M Y H:i', $quiz->end / 1000) }}</td>
-                                            <td><a 
-                                                    data-toggle="modal" title="download" class="badge bg-primary"><span><i
-                                                            class="fas fa-download" data-id="{{ $quiz->id }}" onclick="$('#dataid').val($(this).data('id')); $('#formExportResult').attr('action', '/quiz/result/export/' + $(this).data('id')); $('#resultQuiz').modal('show');"></i> Result </span></a>
-                                                <a href={{ '/quiz/history/exportall/' . $quiz->id }} target='#'
-                                                    data-toggle="tooltip" title="download" class="badge bg-success"><span><i
-                                                            class="fas fa-download"></i> Detailed </span></a>
+                                            <td>
+                                                <button type="button" class="btn btn-default btn-xs mr-1" title="Unduh Hasil" onclick="$('#dataid').val('{{ $quiz->id }}'); $('#formExportResult').attr('action', '/quiz/result/export/{{ $quiz->id }}'); $('#resultQuiz').modal('show');">
+                                                    Result
+                                                </button>
+                                                <a href="/quiz/history/exportall/{{ $quiz->id }}" target="_blank" class="btn btn-default btn-xs" title="Unduh Rincian">
+                                                    Detailed
+                                                </a>
                                             </td>
                                         </tr>
                                     @empty
                                         <tr>
                                             <td colspan="8" class="text-center text-muted py-3">
-                                                Belum ada data Quiz. Silakan klik tombol <strong>Add Quiz</strong> di atas untuk membuat Quiz baru.
+                                                Belum ada data Quiz. Silakan klik tombol <strong>Tambah Quiz</strong> di atas untuk membuat Quiz baru.
                                             </td>
                                         </tr>
                                     @endforelse

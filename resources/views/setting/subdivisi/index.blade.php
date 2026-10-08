@@ -12,8 +12,8 @@
                                 Data Sub Divisi
                             </h3>
                             <div class="card-tools m-0">
-                                <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#addsubdivisi">
-                                    <i class="fas fa-plus mr-1"></i> Tambah Sub Divisi
+                                <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#addsubdivisi">
+                                    Tambah Sub Divisi
                                 </button>
                             </div>
                         </div>
@@ -45,15 +45,15 @@
                                             <td><span class="badge badge-light border">{{ $subdivisi->divisi->name }}</span></td>
                                             <td><strong>{{ $subdivisi->name }}</strong></td>
                                             <td>
-                                                <div class="d-flex align-items-center" style="gap: 6px;">
-                                                    <a href="subdivisi/{{ $subdivisi->id }}" class="badge bg-warning" title="Edit">
-                                                        <i class="fas fa-edit"></i>
+                                                <div class="d-flex align-items-center" style="gap: 4px;">
+                                                    <a href="subdivisi/{{ $subdivisi->id }}" class="btn btn-default btn-xs">
+                                                        Edit
                                                     </a>
                                                     <form action="/subdivisi/delete" method="POST" class="d-inline m-0" onsubmit="return confirm('Hapus subdivisi {{ $subdivisi->name }}?')">
                                                         @csrf
                                                         <input type="hidden" name="id" value="{{ $subdivisi->id }}">
-                                                        <button type="submit" class="badge bg-danger border-0" title="Hapus">
-                                                            <i class="fas fa-trash"></i>
+                                                        <button type="submit" class="btn btn-default btn-xs text-danger">
+                                                            Hapus
                                                         </button>
                                                     </form>
                                                 </div>

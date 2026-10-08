@@ -15,7 +15,7 @@
                                 </h3>
                                 <div class="card-tools m-0 d-flex align-items-center flex-wrap ml-auto" style="gap: 8px;">
                                     <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#exportAbsent">
-                                        <i class="fas fa-file-export mr-1"></i> Export Data
+                                        Export Data
                                     </button>
                                     <form action="absent" class="d-inline-flex m-0">
                                         <div class="input-group input-group-sm" style="width: 220px;">

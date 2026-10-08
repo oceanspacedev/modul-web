@@ -12,8 +12,8 @@
                                 Data Document Type
                             </h3>
                             <div class="card-tools m-0">
-                                <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#adddokumentype">
-                                    <i class="fas fa-plus mr-1"></i> Tambah Document Type
+                                <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#adddokumentype">
+                                    Tambah Document Type
                                 </button>
                             </div>
                         </div>
@@ -43,15 +43,15 @@
                                             <td>{{ $loop->iteration }}</td>
                                             <td><strong>{{ $dokumentype->name }}</strong></td>
                                             <td>
-                                                <div class="d-flex align-items-center" style="gap: 6px;">
-                                                    <a href="dokumentype/{{ $dokumentype->id }}" class="badge bg-warning" title="Edit">
-                                                        <i class="fas fa-edit"></i>
+                                                <div class="d-flex align-items-center" style="gap: 4px;">
+                                                    <a href="dokumentype/{{ $dokumentype->id }}" class="btn btn-default btn-xs">
+                                                        Edit
                                                     </a>
                                                     <form action="/dokumentype/delete" method="POST" class="d-inline m-0" onsubmit="return confirm('Hapus type dokumen {{ $dokumentype->name }}?')">
                                                         @csrf
                                                         <input type="hidden" name="id" value="{{ $dokumentype->id }}">
-                                                        <button type="submit" class="badge bg-danger border-0" title="Hapus">
-                                                            <i class="fas fa-trash"></i>
+                                                        <button type="submit" class="btn btn-default btn-xs text-danger">
+                                                            Hapus
                                                         </button>
                                                     </form>
                                                 </div>

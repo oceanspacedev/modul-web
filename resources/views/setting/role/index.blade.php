@@ -5,14 +5,14 @@
     <div class="container-fluid">
         <div class="row mb-2 align-items-center">
             <div class="col-sm-6">
-                <h1 class="m-0 font-weight-bold">
-                    <i class="fas fa-user-shield text-primary mr-2"></i>Manajemen Role & Hak Akses
+                <h1 class="m-0 font-weight-bold" style="font-size: 1.4rem;">
+                    Manajemen Role & Hak Akses
                 </h1>
                 <small class="text-muted">Kelola peran pengguna dan tentukan fitur apa saja yang dapat diakses oleh setiap role.</small>
             </div>
             <div class="col-sm-6 text-sm-right mt-2 mt-sm-0">
-                <a href="{{ route('roles.create') }}" class="btn btn-primary font-weight-bold shadow-sm">
-                    <i class="fas fa-plus-circle mr-1"></i> Tambah Role Baru
+                <a href="{{ route('roles.create') }}" class="btn btn-primary btn-sm font-weight-bold">
+                    Tambah Role Baru
                 </a>
             </div>
         </div>
@@ -24,7 +24,7 @@
         {{-- Flash Messages --}}
         @if(session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="fas fa-check-circle mr-1"></i> {{ session('success') }}
+                {{ session('success') }}
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -32,7 +32,7 @@
         @endif
         @if(session('error'))
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="fas fa-exclamation-circle mr-1"></i> {{ session('error') }}
+                {{ session('error') }}
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -42,29 +42,26 @@
         {{-- SUMMARY STATS --}}
         <div class="row mb-3">
             <div class="col-md-4 col-sm-6 col-12">
-                <div class="info-box shadow-sm border-0">
-                    <span class="info-box-icon bg-primary elevation-1"><i class="fas fa-user-tag"></i></span>
+                <div class="info-box shadow-none border">
                     <div class="info-box-content">
                         <span class="info-box-text text-muted">Total Role Terdaftar</span>
-                        <span class="info-box-number h4 font-weight-bold mb-0">{{ $roles->count() }} Role</span>
+                        <span class="info-box-number h4 font-weight-bold mb-0 text-dark">{{ $roles->count() }} Role</span>
                     </div>
                 </div>
             </div>
             <div class="col-md-4 col-sm-6 col-12">
-                <div class="info-box shadow-sm border-0">
-                    <span class="info-box-icon bg-info elevation-1"><i class="fas fa-key"></i></span>
+                <div class="info-box shadow-none border">
                     <div class="info-box-content">
                         <span class="info-box-text text-muted">Fitur / Permission</span>
-                        <span class="info-box-number h4 font-weight-bold mb-0">{{ $permissions->count() }} Hak Akses</span>
+                        <span class="info-box-number h4 font-weight-bold mb-0 text-dark">{{ $permissions->count() }} Hak Akses</span>
                     </div>
                 </div>
             </div>
             <div class="col-md-4 col-sm-6 col-12">
-                <div class="info-box shadow-sm border-0">
-                    <span class="info-box-icon bg-success elevation-1"><i class="fas fa-users"></i></span>
+                <div class="info-box shadow-none border">
                     <div class="info-box-content">
                         <span class="info-box-text text-muted">Pengguna Aktif</span>
-                        <span class="info-box-number h4 font-weight-bold mb-0">{{ $users->count() }} User</span>
+                        <span class="info-box-number h4 font-weight-bold mb-0 text-dark">{{ $users->count() }} User</span>
                     </div>
                 </div>
             </div>
@@ -76,12 +73,12 @@
                 <ul class="nav nav-tabs" id="roleTab" role="tablist">
                     <li class="nav-item">
                         <a class="nav-link active font-weight-bold" id="roles-tab" data-toggle="pill" href="#tab-roles" role="tab" aria-controls="tab-roles" aria-selected="true">
-                            <i class="fas fa-shield-alt mr-1"></i> Daftar Role & Hak Akses Fitur ({{ $roles->count() }})
+                            Daftar Role & Hak Akses Fitur ({{ $roles->count() }})
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link font-weight-bold" id="users-tab" data-toggle="pill" href="#tab-users" role="tab" aria-controls="tab-users" aria-selected="false">
-                            <i class="fas fa-users-cog mr-1"></i> Penetapan Role Pengguna ({{ $users->count() }})
+                            Penetapan Role Pengguna ({{ $users->count() }})
                         </a>
                     </li>
                 </ul>
@@ -135,15 +132,15 @@
                                             </div>
                                         </div>
                                         <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center py-2">
-                                            <a href="{{ route('roles.edit', $role->id) }}" class="btn btn-outline-primary btn-sm font-weight-bold flex-grow-1 mr-1">
-                                                <i class="fas fa-sliders-h mr-1"></i> Atur Hak Akses
+                                            <a href="{{ route('roles.edit', $role->id) }}" class="btn btn-default btn-sm font-weight-bold flex-grow-1 mr-1">
+                                                Atur Hak Akses
                                             </a>
                                             @if(!in_array($role->name, ['Admin', 'Staff', 'Trainer']))
                                                 <form action="{{ route('roles.destroy', $role->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus role {{ $role->name }}?')">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="btn btn-outline-danger btn-sm" title="Hapus Role">
-                                                        <i class="fas fa-trash"></i>
+                                                        <i class="fas fa-trash-alt"></i>
                                                     </button>
                                                 </form>
                                             @endif
@@ -192,11 +189,11 @@
                                         </td>
                                         <td class="align-middle">
                                             @forelse($u->roles as $r)
-                                                <span class="badge {{ $r->name === 'Admin' ? 'badge-danger' : ($r->name === 'Trainer' ? 'badge-success' : 'badge-primary') }} px-2 py-1">
+                                                <span class="badge border px-2 py-1 {{ $r->name === 'Admin' ? 'bg-light text-danger border-danger' : ($r->name === 'Trainer' ? 'bg-light text-success border-success' : 'bg-light text-primary border-primary') }}">
                                                     {{ $r->name }}
                                                 </span>
                                             @empty
-                                                <span class="badge badge-secondary px-2 py-1">Belum Ada Role</span>
+                                                <span class="badge badge-light border text-muted px-2 py-1">Belum Ada Role</span>
                                             @endforelse
                                         </td>
                                         <td class="align-middle text-center">

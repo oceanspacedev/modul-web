@@ -25,7 +25,7 @@
                     Tambah Manual
                 </button>
                 <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#importTextModal">
-                    Import Teks
+                    Import Teks Cepat
                 </button>
                 <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#importExcelModal">
                     Import Excel / CSV

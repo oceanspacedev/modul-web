@@ -15,10 +15,10 @@
             <div class="col-sm-6 text-sm-right mt-2 mt-sm-0">
                 @auth
                     @if(auth()->user()->can('manage-videos') || auth()->user()->job_level_id == 1)
-                    <a href="{{ route('video.edit', $video->id) }}" class="btn btn-info btn-sm mr-1">
+                    <a href="{{ route('video.edit', $video->id) }}" class="btn btn-default btn-sm mr-1">
                         <i class="fas fa-pencil-alt mr-1"></i> Edit Video
                     </a>
-                    <button type="button" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ $video->id }}')">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmDelete('{{ $video->id }}')">
                         <i class="fas fa-trash mr-1"></i> Hapus
                     </button>
                     <form id="deleteForm" action="{{ route('video.destroy', $video->id) }}" method="POST" style="display: none;">

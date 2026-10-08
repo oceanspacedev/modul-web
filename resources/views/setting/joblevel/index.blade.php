@@ -12,8 +12,8 @@
                                 Data Job Level
                             </h3>
                             <div class="card-tools m-0">
-                                <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#addjoblevel">
-                                    <i class="fas fa-plus mr-1"></i> Tambah Job Level
+                                <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#addjoblevel">
+                                    Tambah Job Level
                                 </button>
                             </div>
                         </div>
@@ -43,15 +43,15 @@
                                             <td>{{ $loop->iteration }}</td>
                                             <td><strong>{{ $joblevel->name }}</strong></td>
                                             <td>
-                                                <div class="d-flex align-items-center" style="gap: 6px;">
-                                                    <a href="joblevel/{{ $joblevel->id }}" class="badge bg-warning" title="Edit">
-                                                        <i class="fas fa-edit"></i>
+                                                <div class="d-flex align-items-center" style="gap: 4px;">
+                                                    <a href="joblevel/{{ $joblevel->id }}" class="btn btn-default btn-xs">
+                                                        Edit
                                                     </a>
                                                     <form action="/joblevel/delete" method="POST" class="d-inline m-0" onsubmit="return confirm('Hapus job level {{ $joblevel->name }}?')">
                                                         @csrf
                                                         <input type="hidden" name="id" value="{{ $joblevel->id }}">
-                                                        <button type="submit" class="badge bg-danger border-0" title="Hapus">
-                                                            <i class="fas fa-trash"></i>
+                                                        <button type="submit" class="btn btn-default btn-xs text-danger">
+                                                            Hapus
                                                         </button>
                                                     </form>
                                                 </div>

@@ -8,28 +8,11 @@
                 <div class="row">
                     <div class="col-12">
                         <div class="card">
-                            <div class="card-header bg-dark">
-                                <div class="row d-inline-flex">
-                                    <h3 class="card-title">HISTORY QUIZ &raquo; {{ $history->quiz->document->name }} &raquo;
-                                        {{ $history->user->full_name }}</h3>
-                                    {{-- <a href="/question/export">
-                                        <button class="badge bg-primary mx-3 elevation-0">EXPORT
-                                            ALL</button></a> --}}
-                                </div>
-                                {{-- <div class="card-tools">
-                                    <div class="input-group input-group-sm" style="width: 150px;">
-                                        <form action={{ '/quiz/history/' . $history->id }} class="d-inline-flex">
-                                            <input type="text" name="search" class="form-control float-right"
-                                                placeholder="Cari">
-                                            <div class="input-group-append">
-                                                <button type="submit" class="btn btn-default">
-                                                    <i class="fas fa-search"></i>
-                                                </button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div> --}}
-                        </div>
+                            <div class="card-header bg-white py-3">
+                                <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.15rem;">
+                                    History Quiz &raquo; {{ $history->quiz->document->name }} &raquo; {{ $history->user->full_name }}
+                                </h3>
+                            </div>
                         @if ($message = Session::get('success'))
                             <div class="alert alert-success alert-dismissible fade show" role="alert">
                                 <strong>{{ $message }}</strong>
@@ -45,7 +28,7 @@
                             <table class="table table-head-fixed text-nowrap">
                                 <thead>
                                     <tr>
-                                        <th>Value</th>
+                                        <th>Status</th>
                                         <th>Question</th>
                                         <th>Answer</th>
                                         <th>Right Answer</th>
@@ -54,15 +37,12 @@
                                 <tbody>
                                     @foreach ($questions as $question)
                                         <tr>
-                                            <td>@if ($question->value)
-                                                <a href="#"
-                                                        class="badge bg-success" data-toggle="tooltip" title="activate"><span><i
-                                                                class="far fa-check-circle"></i></span></a>
-                                            @else
-                                                <a href="#"
-                                                        class="badge bg-danger" data-toggle="tooltip" title="activate"><span><i
-                                                                class="far fa-times-circle"></i></span></a>
-                                            @endif
+                                            <td>
+                                                @if ($question->value)
+                                                    <span class="badge badge-success px-2 py-1"><i class="fas fa-check mr-1"></i> Benar</span>
+                                                @else
+                                                    <span class="badge badge-danger px-2 py-1"><i class="fas fa-times mr-1"></i> Salah</span>
+                                                @endif
                                             </td>
                                             <td>{{ $question->question->question }}</td>
                                             <td>{{ $question->option->content }}</td>

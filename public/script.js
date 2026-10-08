@@ -138,4 +138,13 @@ $(document).ready(function () {
     });
 
     $("#tanggalChart").daterangepicker();
+    
+    // Fix Bootstrap table-responsive clipping dropdowns dynamically
+    $(document).on('show.bs.dropdown', '.table-responsive', function () {
+        $(this).css('overflow', 'inherit');
+    });
+    $(document).on('hide.bs.dropdown', '.table-responsive', function () {
+        $(this).css('overflow', '');
+    });
 });
+

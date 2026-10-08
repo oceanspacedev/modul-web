@@ -19,10 +19,9 @@
 <section class="content">
     <div class="container-fluid">
         <div class="row justify-content-center">
-            <div class="col-lg-8 col-md-10">
-                <div class="card card-outline card-danger shadow-sm">
-                    <div class="card-header">
-                        <h3 class="card-title font-weight-bold">Form Materi Video Baru</h3>
+                <div class="card shadow-sm border">
+                    <div class="card-header bg-white py-3">
+                        <h3 class="card-title font-weight-bold m-0" style="font-size: 1.15rem;">Form Materi Video Baru</h3>
                     </div>
 
                     <form id="uploadVideoForm" action="{{ route('video.store') }}" method="POST" enctype="multipart/form-data">
@@ -155,7 +154,7 @@
                                     <span id="uploadPercent" class="font-weight-bold small text-primary">0%</span>
                                 </div>
                                 <div class="progress" style="height: 20px;">
-                                    <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-danger" role="progressbar" style="width: 0%"></div>
+                                    <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%"></div>
                                 </div>
                                 <small class="text-muted mt-1 d-block">Mohon tunggu hingga proses selesai dan jangan menutup halaman ini.</small>
                             </div>
@@ -163,7 +162,7 @@
 
                         <div class="card-footer bg-light d-flex justify-content-between">
                             <a href="{{ route('video.index') }}" class="btn btn-secondary">Batal</a>
-                            <button type="submit" id="submitBtn" class="btn btn-danger font-weight-bold px-4">
+                            <button type="submit" id="submitBtn" class="btn btn-primary font-weight-bold px-4">
                                 <i class="fas fa-save mr-1"></i> Simpan Video
                             </button>
                         </div>

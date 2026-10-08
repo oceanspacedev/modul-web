@@ -183,6 +183,10 @@ Route::middleware(['auth','isAdmin'])->group(
         Route::get('training/{id}/export', [TrainingController::class, 'export'])->name('training.export');
         Route::post('training/{id}/attach-document', [TrainingController::class, 'attachDocument'])->name('training.attach-document');
         Route::post('training/{id}/detach-document/{docId}', [TrainingController::class, 'detachDocument'])->name('training.detach-document');
+        Route::post('training/{id}/scan-zoom-ai', [TrainingController::class, 'scanZoomAi'])->name('training.scan-zoom-ai');
+        Route::post('training/{id}/save-zoom-off-cam', [TrainingController::class, 'saveZoomOffCam'])->name('training.save-zoom-off-cam');
+        Route::post('training/{id}/reset-zoom-off-cam/{participantId}', [TrainingController::class, 'resetZoomOffCam'])->name('training.reset-zoom-off-cam');
+        Route::post('training/{id}/update-offcam-count/{participantId}', [TrainingController::class, 'updateOffCamCount'])->name('training.update-offcam-count');
         Route::get('training/delete/{id}', [TrainingController::class, 'destroy'])->name('training.destroy');
 
         ##TRAINING QUIZ QUESTIONS

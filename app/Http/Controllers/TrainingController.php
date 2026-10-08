@@ -9,6 +9,7 @@ use App\Models\TrainingParticipant;
 use App\Models\TrainingQuizResult;
 use App\Models\User;
 use App\Services\WhatsAppService;
+use App\Services\ZoomAttendanceAiService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -561,5 +562,198 @@ class TrainingController extends Controller
             new \App\Exports\TrainingRekapExport($training),
             $filename
         );
+    }
+
+    /**
+     * Scan Zoom screenshots using Gemini AI to detect off-cam participants
+     */
+    public function scanZoomAi(Request $request, $id)
+    {
+        $training = Training::with(['participants.user'])->findOrFail($id);
+
+        $request->validate([
+            'images' => 'required|array|min:1|max:10',
+            'images.*' => 'required|string', // base64 strings compressed client-side
+        ]);
+
+        try {
+            $participantsList = $training->participants->map(function ($part) {
+                return [
+                    'id' => $part->id,
+                    'user_id' => $part->user_id,
+                    'name' => $part->user->full_name ?? ($part->name ?? 'Peserta'),
+                    'id_karyawan' => $part->user->id_karyawan ?? '-',
+                    'email' => $part->user->email ?? '-',
+                ];
+            })->values()->toArray();
+
+            $zoomService = new ZoomAttendanceAiService();
+            $result = $zoomService->detectOffCamParticipants(
+                $request->images,
+                $participantsList
+            );
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'registered_participants' => $participantsList,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Save supervisor-verified off-cam participants
+     */
+    public function saveZoomOffCam(Request $request, $id)
+    {
+        $training = Training::findOrFail($id);
+
+        $request->validate([
+            'off_cam_items' => 'required|array',
+            'off_cam_items.*.participant_id' => 'required|exists:training_participants,id',
+            'off_cam_items.*.zoom_name' => 'nullable|string|max:255',
+            'off_cam_items.*.reason' => 'nullable|string|max:255',
+            'mark_as_tidak_hadir' => 'nullable|boolean',
+        ]);
+
+        $markAsTidakHadir = $request->boolean('mark_as_tidak_hadir', false);
+        $updatedCount = 0;
+
+        foreach ($request->off_cam_items as $item) {
+            $participant = TrainingParticipant::where('training_id', $id)
+                ->where('id', $item['participant_id'])
+                ->first();
+
+            if (!$participant) {
+                continue;
+            }
+
+            $zoomName = $item['zoom_name'] ?? '-';
+            $existingNote = $participant->attendance_notes ?: '';
+            $offCamNote = 'Off Cam Zoom (' . $zoomName . ')';
+
+            if (!str_contains($existingNote, 'Off Cam Zoom')) {
+                $newNote = trim(($existingNote ? $existingNote . '; ' : '') . $offCamNote);
+            } else {
+                $newNote = $existingNote;
+            }
+
+            $itemCount = isset($item['off_cam_count']) ? (int)$item['off_cam_count'] : max(1, (int)$participant->off_cam_count);
+
+            $updateData = [
+                'is_off_cam' => true,
+                'off_cam_count' => $itemCount,
+                'zoom_display_name' => $zoomName,
+                'zoom_off_cam_at' => now(),
+                'attendance_notes' => $newNote,
+            ];
+
+            if ($markAsTidakHadir) {
+                $updateData['attendance_status'] = 'tidak_hadir';
+            }
+
+            $participant->update($updateData);
+            $updatedCount++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$updatedCount} peserta berhasil diverifikasi & dicatat sebagai OFF CAM!",
+            'updated_count' => $updatedCount,
+        ]);
+    }
+
+    /**
+     * Reset/unmark off-cam status for a participant
+     */
+    public function resetZoomOffCam(Request $request, $id, $participantId)
+    {
+        $participant = TrainingParticipant::where('training_id', $id)->findOrFail($participantId);
+
+        // Remove off-cam note if present
+        $cleanNote = preg_replace('/;?\s*Off Cam Zoom [^;]+/', '', $participant->attendance_notes ?? '');
+        $cleanNote = trim($cleanNote, " ;");
+
+        $participant->update([
+            'is_off_cam' => false,
+            'off_cam_count' => 0,
+            'zoom_display_name' => null,
+            'zoom_off_cam_at' => null,
+            'attendance_notes' => $cleanNote ?: null,
+        ]);
+
+        $name = $participant->user->full_name ?? ($participant->name ?? 'Peserta');
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'is_off_cam' => false,
+                'off_cam_count' => 0,
+                'message' => "Status Off Cam untuk {$name} berhasil dibatalkan.",
+            ]);
+        }
+
+        return back()->with('success', "Status Off Cam untuk {$name} berhasil dibatalkan.");
+    }
+
+    /**
+     * Update participant's off-cam frequency count (increment / decrement / set)
+     */
+    public function updateOffCamCount(Request $request, $id, $participantId)
+    {
+        $participant = TrainingParticipant::where('training_id', $id)->findOrFail($participantId);
+
+        $action = $request->input('action', 'increment');
+        $currentCount = (int) ($participant->off_cam_count ?? ($participant->is_off_cam ? 1 : 0));
+
+        if ($action === 'increment') {
+            $newCount = $currentCount + 1;
+        } elseif ($action === 'decrement') {
+            $newCount = max(0, $currentCount - 1);
+        } else {
+            $newCount = max(0, (int) $request->input('count', 0));
+        }
+
+        $participantName = $participant->user->full_name ?? ($participant->name ?? 'Peserta');
+
+        if ($newCount > 0) {
+            $cleanNote = preg_replace('/;?\s*Off Cam Zoom [^;]+/', '', $participant->attendance_notes ?? '');
+            $cleanNote = trim($cleanNote, " ;");
+            $offCamNote = "Off Cam Zoom ({$newCount}x)";
+            $newNote = trim(($cleanNote ? $cleanNote . '; ' : '') . $offCamNote);
+
+            $participant->update([
+                'is_off_cam' => true,
+                'off_cam_count' => $newCount,
+                'zoom_display_name' => $participant->zoom_display_name ?: $participantName,
+                'zoom_off_cam_at' => $participant->zoom_off_cam_at ?: now(),
+                'attendance_notes' => $newNote,
+            ]);
+        } else {
+            $cleanNote = preg_replace('/;?\s*Off Cam Zoom [^;]+/', '', $participant->attendance_notes ?? '');
+            $cleanNote = trim($cleanNote, " ;");
+
+            $participant->update([
+                'is_off_cam' => false,
+                'off_cam_count' => 0,
+                'zoom_display_name' => null,
+                'zoom_off_cam_at' => null,
+                'attendance_notes' => $cleanNote ?: null,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'is_off_cam' => (bool) ($newCount > 0),
+            'off_cam_count' => $newCount,
+            'message' => $newCount > 0 
+                ? "{$participantName} tercatat Off Cam {$newCount}x" 
+                : "Status Off Cam {$participantName} dibatalkan",
+        ]);
     }
 }
