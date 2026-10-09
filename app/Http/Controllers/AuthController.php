@@ -26,34 +26,34 @@ class AuthController extends Controller
 
         // Build phone variations (e.g. 08..., 628..., +628...)
         $phoneCandidates = [];
-        if (!empty($digitsOnly) && strlen($digitsOnly) >= 7) {
+        if (! empty($digitsOnly) && strlen($digitsOnly) >= 7) {
             $phoneCandidates[] = $loginInput;
             $phoneCandidates[] = $digitsOnly;
 
             if (str_starts_with($digitsOnly, '62')) {
-                $phoneCandidates[] = '0' . substr($digitsOnly, 2);
+                $phoneCandidates[] = '0'.substr($digitsOnly, 2);
             } elseif (str_starts_with($digitsOnly, '0')) {
-                $phoneCandidates[] = '62' . substr($digitsOnly, 1);
-                $phoneCandidates[] = '+62' . substr($digitsOnly, 1);
+                $phoneCandidates[] = '62'.substr($digitsOnly, 1);
+                $phoneCandidates[] = '+62'.substr($digitsOnly, 1);
             } elseif (str_starts_with($digitsOnly, '8')) {
-                $phoneCandidates[] = '0' . $digitsOnly;
-                $phoneCandidates[] = '62' . $digitsOnly;
-                $phoneCandidates[] = '+62' . $digitsOnly;
+                $phoneCandidates[] = '0'.$digitsOnly;
+                $phoneCandidates[] = '62'.$digitsOnly;
+                $phoneCandidates[] = '+62'.$digitsOnly;
             }
         }
 
         return User::where(function ($query) use ($loginInput, $digitsOnly, $phoneCandidates) {
             $query->where('username', $loginInput);
 
-            if (!empty($phoneCandidates)) {
+            if (! empty($phoneCandidates)) {
                 $query->orWhereIn('no_wa', array_unique($phoneCandidates));
 
                 if (strlen($digitsOnly) >= 7) {
                     $query->orWhereRaw("REPLACE(REPLACE(REPLACE(no_wa, '-', ''), ' ', ''), '+', '') = ?", [$digitsOnly]);
                     if (str_starts_with($digitsOnly, '62')) {
-                        $query->orWhereRaw("REPLACE(REPLACE(REPLACE(no_wa, '-', ''), ' ', ''), '+', '') = ?", ['0' . substr($digitsOnly, 2)]);
+                        $query->orWhereRaw("REPLACE(REPLACE(REPLACE(no_wa, '-', ''), ' ', ''), '+', '') = ?", ['0'.substr($digitsOnly, 2)]);
                     } elseif (str_starts_with($digitsOnly, '0')) {
-                        $query->orWhereRaw("REPLACE(REPLACE(REPLACE(no_wa, '-', ''), ' ', ''), '+', '') = ?", ['62' . substr($digitsOnly, 1)]);
+                        $query->orWhereRaw("REPLACE(REPLACE(REPLACE(no_wa, '-', ''), ' ', ''), '+', '') = ?", ['62'.substr($digitsOnly, 1)]);
                     }
                 }
             }
@@ -79,6 +79,7 @@ class AuthController extends Controller
         if ($user && Hash::check($password, $user->password)) {
             Auth::login($user, $remember);
             $request->session()->regenerate();
+
             return redirect()->intended('dashboard');
         }
 
@@ -98,7 +99,7 @@ class AuthController extends Controller
 
         $user = $this->findUserByIdentifier($request->input('username'));
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'status' => false,
                 'message' => 'Akun dengan username atau nomor WhatsApp tersebut tidak ditemukan.',
@@ -113,7 +114,7 @@ class AuthController extends Controller
         }
 
         $formattedPhone = WhatsAppService::formatPhoneNumber($user->no_wa);
-        if (!$formattedPhone) {
+        if (! $formattedPhone) {
             return response()->json([
                 'status' => false,
                 'message' => 'Format nomor WhatsApp pengguna tidak valid.',
@@ -127,7 +128,8 @@ class AuthController extends Controller
             ->first();
 
         if ($recentOtp) {
-            $secondsRemaining = max(1, 60 - now()->diffInSeconds($recentOtp->created_at));
+            $secondsRemaining = max(1, 60 - (int) now()->diffInSeconds($recentOtp->created_at, true));
+
             return response()->json([
                 'status' => false,
                 'message' => "Mohon tunggu {$secondsRemaining} detik sebelum meminta kode OTP kembali.",
@@ -159,7 +161,7 @@ class AuthController extends Controller
             $user->full_name ?: $user->username
         );
 
-        if (!$sendResult['status']) {
+        if (! $sendResult['status']) {
             return response()->json([
                 'status' => false,
                 'message' => $sendResult['message'] ?? 'Gagal mengirim kode OTP ke WhatsApp.',
@@ -189,7 +191,7 @@ class AuthController extends Controller
 
         $user = $this->findUserByIdentifier($request->input('username'));
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'status' => false,
                 'message' => 'Akun tidak ditemukan.',
@@ -203,7 +205,7 @@ class AuthController extends Controller
             ->latest()
             ->first();
 
-        if (!$otpRecord || $otpRecord->otp_code !== $otpInput) {
+        if (! $otpRecord || $otpRecord->otp_code !== $otpInput) {
             return response()->json([
                 'status' => false,
                 'message' => 'Kode OTP salah atau telah kadaluarsa. Silakan periksa kembali atau minta kode baru.',
@@ -233,7 +235,8 @@ class AuthController extends Controller
         if ($len <= 7) {
             return $phone;
         }
-        return substr($phone, 0, 4) . '****' . substr($phone, -4);
+
+        return substr($phone, 0, 4).'****'.substr($phone, -4);
     }
 
     public function logout(Request $request)

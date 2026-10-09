@@ -21,10 +21,10 @@ class TrainingQuestionController extends Controller
     {
         $training = Training::with(['questions', 'documents.versions'])->findOrFail($trainingId);
         $allDocuments = Document::with('dokumentype')->orderBy('name')->get();
-        $isGeminiConfigured = !empty(config('services.gemini.api_key', env('GEMINI_API_KEY')));
+        $isGeminiConfigured = ! empty(config('services.gemini.api_key'));
 
         return view('training.questions.index', [
-            'title' => 'Kelola Kuis Pelatihan: ' . $training->title,
+            'title' => 'Kelola Kuis Pelatihan: '.$training->title,
             'active' => 'training',
             'training' => $training,
             'questions' => $training->questions,
@@ -40,7 +40,8 @@ class TrainingQuestionController extends Controller
     public function downloadTemplate($trainingId)
     {
         $training = Training::findOrFail($trainingId);
-        $filename = 'template_soal_kuis_' . \Str::slug($training->title) . '.xlsx';
+        $filename = 'template_soal_kuis_'.\Str::slug($training->title).'.xlsx';
+
         return Excel::download(new TrainingQuestionTemplate, $filename);
     }
 
@@ -60,9 +61,10 @@ class TrainingQuestionController extends Controller
             Excel::import($import, $request->file('file'));
 
             $count = $import->getImportedCount();
+
             return back()->with('success', "Berhasil mengimpor {$count} soal kuis dari file Excel!");
         } catch (Exception $e) {
-            return back()->with('error', 'Gagal impor file: ' . $e->getMessage());
+            return back()->with('error', 'Gagal impor file: '.$e->getMessage());
         }
     }
 
@@ -85,7 +87,7 @@ class TrainingQuestionController extends Controller
 
             return back()->with('success', "Berhasil menambahkan {$count} soal kuis dari teks copy-paste!");
         } catch (Exception $e) {
-            return back()->with('error', 'Gagal memproses teks: ' . $e->getMessage());
+            return back()->with('error', 'Gagal memproses teks: '.$e->getMessage());
         }
     }
 
@@ -127,18 +129,21 @@ class TrainingQuestionController extends Controller
                     if (in_array($val, ['essay', 'esai', 'uraian', 'text'])) {
                         $type = 'essay';
                     }
+
                     continue;
                 }
 
                 // Check ANSWER KEY
                 if (preg_match('/^(?:KUNCI|JAWABAN|ANSWER|KEY)\s*:\s*(.*)$/i', $line, $m)) {
                     $key = trim($m[1]);
+
                     continue;
                 }
 
                 // Check EXPLANATION / NOTES
                 if (preg_match('/^(?:PENJELASAN|PEMBAHASAN|CATATAN|EXPLANATION|NOTE)\s*:\s*(.*)$/i', $line, $m)) {
                     $explanation = trim($m[1]);
+
                     continue;
                 }
 
@@ -146,6 +151,7 @@ class TrainingQuestionController extends Controller
                 if (preg_match('/^([A-Fa-f])[\.\)]\s*(.*)$/', $line, $m)) {
                     $optLetter = strtolower($m[1]);
                     $options[$optLetter] = trim($m[2]);
+
                     continue;
                 }
 
@@ -167,7 +173,7 @@ class TrainingQuestionController extends Controller
             }
 
             // If no option A or B found, treat as Essay automatically
-            if (!isset($options['a']) || !isset($options['b'])) {
+            if (! isset($options['a']) || ! isset($options['b'])) {
                 $type = 'essay';
             }
 

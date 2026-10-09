@@ -3,21 +3,17 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Models\Video;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Spatie\Permission\Models\Permission;
+use Database\Seeders\RoleAndPermissionSeeder;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class RolePermissionTest extends TestCase
 {
-    use DatabaseTransactions;
-
     protected function setUp(): void
     {
         parent::setUp();
         // Ensure core roles and permissions exist
-        $this->seed(\Database\Seeders\RoleAndPermissionSeeder::class);
+        $this->seed(RoleAndPermissionSeeder::class);
     }
 
     public function test_admin_can_access_roles_management_page()
@@ -39,7 +35,7 @@ class RolePermissionTest extends TestCase
         $admin = User::where('job_level_id', 1)->first() ?? User::factory()->create(['job_level_id' => 1]);
         $admin->assignRole('Admin');
 
-        $roleName = 'Supervisor Testing ' . rand(100, 999);
+        $roleName = 'Supervisor Testing '.rand(100, 999);
         $permissions = ['view-dashboard', 'view-documents', 'comment-videos'];
 
         $response = $this->actingAs($admin)->post('/roles', [
@@ -62,10 +58,10 @@ class RolePermissionTest extends TestCase
         $admin = User::where('job_level_id', 1)->first() ?? User::factory()->create(['job_level_id' => 1]);
         $admin->assignRole('Admin');
 
-        $role = Role::create(['name' => 'Custom Role ' . rand(100, 999), 'guard_name' => 'web']);
+        $role = Role::create(['name' => 'Custom Role '.rand(100, 999), 'guard_name' => 'web']);
         $role->syncPermissions(['view-dashboard']);
 
-        $response = $this->actingAs($admin)->put('/roles/' . $role->id, [
+        $response = $this->actingAs($admin)->put('/roles/'.$role->id, [
             'name' => $role->name,
             'permissions' => ['view-dashboard', 'manage-trainings'],
         ]);
@@ -114,17 +110,17 @@ class RolePermissionTest extends TestCase
         $admin = User::where('job_level_id', 1)->first() ?? User::factory()->create(['job_level_id' => 1]);
         $admin->assignRole('Admin');
 
-        $username = 'testuser_' . rand(1000, 9999);
+        $username = 'testuser_'.rand(1000, 9999);
         $payload = [
             'username' => $username,
             'full_name' => 'Testing Role User',
-            'id_karyawan' => 'EMP-' . rand(100, 999),
+            'id_karyawan' => 'EMP-'.rand(100, 999),
             'password' => 'secret123',
             'divisi_id' => 1,
             'subdivisi_id' => null,
             'job_level_id' => 2, // Perusahaan: STAFF
             'role' => 'Trainer', // Sistem: Trainer
-            'email' => $username . '@example.com',
+            'email' => $username.'@example.com',
             'no_wa' => '08123456789',
         ];
 
@@ -150,7 +146,7 @@ class RolePermissionTest extends TestCase
         ]);
         $user->assignRole('Staff');
 
-        $response = $this->actingAs($admin)->post('/user/' . $user->id, [
+        $response = $this->actingAs($admin)->post('/user/'.$user->id, [
             'username' => $user->username,
             'full_name' => $user->full_name,
             'divisi_id' => $user->divisi_id,

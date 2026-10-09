@@ -19,7 +19,7 @@ class DokumenTypeSeeder extends Seeder
                 'name' => 'GENERAL',
             ],
             [
-                'name' => 'JOB DESC'
+                'name' => 'JOB DESC',
             ],
             [
                 'name' => 'OPERASIONAL',

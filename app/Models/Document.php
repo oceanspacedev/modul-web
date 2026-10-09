@@ -19,7 +19,7 @@ class Document extends Model
 
     public function scopeFilter($query)
     {
-        $query->where('name', "like", '%' . request('search') . '%');
+        $query->where('name', 'like', '%'.request('search').'%');
     }
 
     public function dokumentype()

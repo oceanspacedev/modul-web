@@ -68,8 +68,9 @@ class Video extends Model
     public function getVideoUrlAttribute()
     {
         if ($this->video_type === 'file') {
-            return $this->video_file ? asset('storage/' . $this->video_file) : '';
+            return $this->video_file ? asset('storage/'.$this->video_file) : '';
         }
+
         return $this->video_link ?: '';
     }
 
@@ -87,18 +88,21 @@ class Video extends Model
         // 1. YouTube (Standard, Short, Embed, Shorts)
         if (preg_match('/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/|youtube\.com\/shorts\/)([^"&?\/ ]{11})/i', $url, $matches)) {
             $youtubeId = $matches[1];
+
             return "https://www.youtube.com/embed/{$youtubeId}?autoplay=1&rel=0";
         }
 
         // 2. Google Drive
         if (preg_match('/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/i', $url, $matches)) {
             $driveId = $matches[1];
+
             return "https://drive.google.com/file/d/{$driveId}/preview";
         }
 
         // 3. Vimeo
         if (preg_match('/vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/([^\/]*)\/videos\/|album\/(\d+)\/video\/|video\/|)(\d+)/i', $url, $matches)) {
             $vimeoId = end($matches);
+
             return "https://player.vimeo.com/video/{$vimeoId}?autoplay=1";
         }
 
@@ -115,6 +119,7 @@ class Video extends Model
         }
 
         $url = strtolower($this->video_link);
+
         return str_contains($url, 'youtube.com') ||
                str_contains($url, 'youtu.be') ||
                str_contains($url, 'drive.google.com') ||
@@ -127,14 +132,15 @@ class Video extends Model
     public function getThumbnailUrlAttribute()
     {
         // Custom uploaded thumbnail
-        if (!empty($this->thumbnail)) {
-            return asset('storage/' . $this->thumbnail);
+        if (! empty($this->thumbnail)) {
+            return asset('storage/'.$this->thumbnail);
         }
 
         // Auto YouTube thumbnail
-        if ($this->video_type === 'link' && !empty($this->video_link)) {
+        if ($this->video_type === 'link' && ! empty($this->video_link)) {
             if (preg_match('/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/|youtube\.com\/shorts\/)([^"&?\/ ]{11})/i', $this->video_link, $matches)) {
                 $youtubeId = $matches[1];
+
                 return "https://img.youtube.com/vi/{$youtubeId}/hqdefault.jpg";
             }
         }

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('document_id');
             $table->string('question');
-            $table->integer('seconds'); //edited by dvn
+            $table->integer('seconds'); // edited by dvn
             $table->softDeletes();
             $table->timestamps();
         });

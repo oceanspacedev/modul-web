@@ -9,12 +9,13 @@ use Illuminate\Support\Facades\Log;
 class ZoomAttendanceAiService
 {
     protected ?string $apiKey;
+
     protected string $model;
 
     public function __construct(?string $apiKey = null)
     {
-        $this->apiKey = $apiKey ?: config('services.gemini.api_key', env('GEMINI_API_KEY'));
-        $this->model = config('services.gemini.model', env('GEMINI_MODEL', 'gemini-3.5-flash-lite'));
+        $this->apiKey = $apiKey ?: config('services.gemini.api_key');
+        $this->model = config('services.gemini.model', 'gemini-3.5-flash-lite');
     }
 
     /**
@@ -22,25 +23,25 @@ class ZoomAttendanceAiService
      */
     public function isConfigured(): bool
     {
-        return !empty($this->apiKey);
+        return ! empty($this->apiKey);
     }
 
     /**
      * Analyze Zoom screenshots for off-cam participants
      *
-     * @param array $images Array of file paths or base64 data URIs
-     * @param array $registeredParticipants List of registered participants: [['id' => 1, 'name' => 'John', 'id_karyawan' => '123'], ...]
-     * @return array
+     * @param  array  $images  Array of file paths or base64 data URIs
+     * @param  array  $registeredParticipants  List of registered participants: [['id' => 1, 'name' => 'John', 'id_karyawan' => '123'], ...]
+     *
      * @throws Exception
      */
     public function detectOffCamParticipants(array $images, array $registeredParticipants): array
     {
-        if (!$this->isConfigured()) {
-            throw new Exception("GEMINI_API_KEY belum dikonfigurasi di file .env!");
+        if (! $this->isConfigured()) {
+            throw new Exception('GEMINI_API_KEY belum dikonfigurasi di file .env!');
         }
 
         if (empty($images)) {
-            throw new Exception("Tidak ada file screenshot Zoom yang diunggah.");
+            throw new Exception('Tidak ada file screenshot Zoom yang diunggah.');
         }
 
         $parts = [];
@@ -54,7 +55,7 @@ class ZoomAttendanceAiService
         }
 
         if (empty($parts)) {
-            throw new Exception("Format gambar screenshot tidak valid atau file tidak dapat dibaca.");
+            throw new Exception('Format gambar screenshot tidak valid atau file tidak dapat dibaca.');
         }
 
         // Build prompt instruction with participant list
@@ -160,17 +161,17 @@ class ZoomAttendanceAiService
 
         $prompt .= "FORMAT OUTPUT (WAJIB JSON VALID TANPA TEKS LAIN):\n";
         $prompt .= "{\n";
-        $prompt .= '  "total_screens_analyzed": ' . $imageCount . ",\n";
-        $prompt .= '  "total_off_cam_detected": 0,' . "\n";
-        $prompt .= '  "detected_off_cam": [' . "\n";
+        $prompt .= '  "total_screens_analyzed": '.$imageCount.",\n";
+        $prompt .= '  "total_off_cam_detected": 0,'."\n";
+        $prompt .= '  "detected_off_cam": ['."\n";
         $prompt .= "    {\n";
-        $prompt .= '      "zoom_name": "Teks nama persis yang terbaca di Zoom",' . "\n";
-        $prompt .= '      "matched_participant_id": 12,' . "\n";
-        $prompt .= '      "matched_official_name": "Nama Resmi di Database",' . "\n";
-        $prompt .= '      "similarity_score": 95,' . "\n";
-        $prompt .= '      "match_reason": "Alasan pencocokan (misal: singkatan ' . "'M.'" . ' cocok dengan ' . "'Muhammad'" . ')",' . "\n";
-        $prompt .= '      "visual_evidence": "Layar hitam polos dengan teks nama di tengah",' . "\n";
-        $prompt .= '      "confidence": "high"' . "\n";
+        $prompt .= '      "zoom_name": "Teks nama persis yang terbaca di Zoom",'."\n";
+        $prompt .= '      "matched_participant_id": 12,'."\n";
+        $prompt .= '      "matched_official_name": "Nama Resmi di Database",'."\n";
+        $prompt .= '      "similarity_score": 95,'."\n";
+        $prompt .= '      "match_reason": "Alasan pencocokan (misal: singkatan '."'M.'".' cocok dengan '."'Muhammad'".')",'."\n";
+        $prompt .= '      "visual_evidence": "Layar hitam polos dengan teks nama di tengah",'."\n";
+        $prompt .= '      "confidence": "high"'."\n";
         $prompt .= "    }\n";
         $prompt .= "  ]\n";
         $prompt .= "}\n";
@@ -195,7 +196,7 @@ class ZoomAttendanceAiService
         $lastError = null;
 
         foreach ($modelsToTry as $modelName) {
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key=" . urlencode($this->apiKey);
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key=".urlencode($this->apiKey);
 
             $payload = [
                 'contents' => [
@@ -221,11 +222,11 @@ class ZoomAttendanceAiService
 
                 $errBody = $response->json();
                 $errMsg = $errBody['error']['message'] ?? $response->body();
-                $lastError = "Gemini API ({$modelName}) Error: " . $errMsg;
-                Log::warning("Gemini model {$modelName} failed for Zoom inspection: " . $errMsg);
+                $lastError = "Gemini API ({$modelName}) Error: ".$errMsg;
+                Log::warning("Gemini model {$modelName} failed for Zoom inspection: ".$errMsg);
 
                 if (str_contains($errMsg, 'API_KEY_INVALID') || str_contains($errMsg, 'API key not valid')) {
-                    throw new Exception("API Key Gemini tidak valid. Silakan periksa kembali GEMINI_API_KEY Anda di file .env.");
+                    throw new Exception('API Key Gemini tidak valid. Silakan periksa kembali GEMINI_API_KEY Anda di file .env.');
                 }
             } catch (Exception $e) {
                 if (str_contains($e->getMessage(), 'API Key Gemini tidak valid')) {
@@ -235,7 +236,7 @@ class ZoomAttendanceAiService
             }
         }
 
-        throw new Exception($lastError ?: "Gagal menghubungi layanan Google Gemini Vision. Pastikan koneksi internet stabil.");
+        throw new Exception($lastError ?: 'Gagal menghubungi layanan Google Gemini Vision. Pastikan koneksi internet stabil.');
     }
 
     /**
@@ -244,8 +245,8 @@ class ZoomAttendanceAiService
     protected function parseResponse(array $response, array $registeredParticipants): array
     {
         $rawText = $response['candidates'][0]['content']['parts'][0]['text'] ?? null;
-        if (!$rawText) {
-            throw new Exception("Google Gemini tidak mengembalikan respons teks visual yang valid.");
+        if (! $rawText) {
+            throw new Exception('Google Gemini tidak mengembalikan respons teks visual yang valid.');
         }
 
         // Clean json backticks if any
@@ -261,13 +262,13 @@ class ZoomAttendanceAiService
         $cleanJson = trim($cleanJson);
 
         $decoded = json_decode($cleanJson, true);
-        if (!$decoded || !isset($decoded['detected_off_cam'])) {
+        if (! $decoded || ! isset($decoded['detected_off_cam'])) {
             // Check if array directly
             if (is_array($decoded) && isset($decoded[0]['zoom_name'])) {
                 $offCamList = $decoded;
             } else {
-                Log::error("Failed to parse Gemini Zoom JSON: " . $cleanJson);
-                throw new Exception("Format respons dari AI tidak dapat diproses. Silakan coba kembali dengan screenshot yang lebih jelas.");
+                Log::error('Failed to parse Gemini Zoom JSON: '.$cleanJson);
+                throw new Exception('Format respons dari AI tidak dapat diproses. Silakan coba kembali dengan screenshot yang lebih jelas.');
             }
         } else {
             $offCamList = $decoded['detected_off_cam'];
@@ -308,7 +309,7 @@ class ZoomAttendanceAiService
                     $officialName = $fuzzyResult['name'];
                     $idKaryawan = $fuzzyResult['id_karyawan'];
                     $score = max($score, $fuzzyResult['score']);
-                    $reason = $reason ?: "Pencocokan nama otomatis sistem (" . $fuzzyResult['score'] . "%)";
+                    $reason = $reason ?: 'Pencocokan nama otomatis sistem ('.$fuzzyResult['score'].'%)';
                 } else {
                     $matchedId = null;
                 }
@@ -331,7 +332,7 @@ class ZoomAttendanceAiService
                 'match_reason' => $reason,
                 'visual_evidence' => $evidence,
                 'confidence' => $item['confidence'] ?? 'medium',
-                'is_registered' => !empty($matchedId),
+                'is_registered' => ! empty($matchedId),
             ];
         }
 
@@ -351,7 +352,7 @@ class ZoomAttendanceAiService
         $highestScore = 0;
 
         $cleanZoom = $this->sanitizeName($zoomName);
-        $zoomTokens = array_values(array_filter(explode(' ', $cleanZoom), fn($t) => strlen($t) > 0));
+        $zoomTokens = array_values(array_filter(explode(' ', $cleanZoom), fn ($t) => strlen($t) > 0));
 
         if (empty($zoomTokens)) {
             return null;
@@ -359,7 +360,7 @@ class ZoomAttendanceAiService
 
         foreach ($participants as $p) {
             $cleanOfficial = $this->sanitizeName($p['name']);
-            $officialTokens = array_values(array_filter(explode(' ', $cleanOfficial), fn($t) => strlen($t) > 0));
+            $officialTokens = array_values(array_filter(explode(' ', $cleanOfficial), fn ($t) => strlen($t) > 0));
 
             // Exact match
             if ($cleanZoom === $cleanOfficial) {
@@ -433,6 +434,7 @@ class ZoomAttendanceAiService
         $clean = preg_replace('/\((.*?)\)/', '', $name);
         // Remove non-alphanumeric except space
         $clean = preg_replace('/[^a-zA-Z0-9\s]/', ' ', $clean);
+
         // Lowercase and trim extra spaces
         return strtolower(trim(preg_replace('/\s+/', ' ', $clean)));
     }

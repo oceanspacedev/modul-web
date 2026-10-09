@@ -6,17 +6,18 @@ use App\Models\Divisi;
 use App\Models\SubDivisi;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class SubDivisiController extends Controller
 {
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function index()
     {
-        return view('setting.subdivisi.index',[
+        return view('setting.subdivisi.index', [
             'title' => 'Divisi',
             'active' => 'setting',
             'divisis' => Divisi::all(),
@@ -27,18 +28,14 @@ class SubDivisiController extends Controller
     /**
      * Show the form for creating a new resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
-    public function create()
-    {
-
-    }
+    public function create() {}
 
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function store(Request $request)
     {
@@ -47,6 +44,7 @@ class SubDivisiController extends Controller
                 'divisi_id' => $request->divisi_id,
                 'name' => strtoupper($request->name),
             ]);
+
             return redirect('subdivisi')->with(['success' => 'berhasil menambahkan subdivisi']);
         } catch (Exception $e) {
             return redirect('subdivisi')->with(['error' => $e->getMessage()]);
@@ -57,11 +55,12 @@ class SubDivisiController extends Controller
      * Display the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function show($id)
     {
         $subdivisi = SubDivisi::where('divisi_id', $id)->orderBy('name')->get();
+
         return response()->json($subdivisi);
     }
 
@@ -69,7 +68,7 @@ class SubDivisiController extends Controller
      * Show the form for editing the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function edit($id)
     {
@@ -84,9 +83,8 @@ class SubDivisiController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function update(Request $request, $id)
     {
@@ -94,8 +92,9 @@ class SubDivisiController extends Controller
             $subdivisi = SubDivisi::find($id);
             $subdivisi->update([
                 'divisi_id' => $request->divisi_id,
-                'name' => strtoupper($request->name)
+                'name' => strtoupper($request->name),
             ]);
+
             return redirect('subdivisi')->with(['success' => 'berhasil merubah subdivisi']);
         } catch (Exception $e) {
             return redirect('subdivisi')->with(['error' => $e->getMessage()]);
@@ -106,13 +105,14 @@ class SubDivisiController extends Controller
      * Remove the specified resource from storage.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function destroy(Request $request)
     {
         try {
             $subdivisi = SubDivisi::find($request->id);
             $subdivisi->delete();
+
             return redirect('subdivisi')->with(['success' => 'berhasil menghapus subdivisi']);
         } catch (Exception $e) {
             return redirect('subdivisi')->with(['error' => $e->getMessage()]);

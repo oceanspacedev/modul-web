@@ -9,6 +9,7 @@ use App\Models\Quiz;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Str;
 
 class DocumentController extends Controller
@@ -16,7 +17,7 @@ class DocumentController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function index(Request $request)
     {
@@ -26,12 +27,12 @@ class DocumentController extends Controller
                 case 'general':
                     if (Str::contains($request->search, 'budaya')) {
                         if (auth()->user()->job_level_id > 2) {
-                            $document = Document::where('name', 'like', '%' . $request->search . '%')->whereNotIn('job_level_id', [1, 2])->first();
+                            $document = Document::where('name', 'like', '%'.$request->search.'%')->whereNotIn('job_level_id', [1, 2])->first();
                         } else {
-                            $document = Document::where('name', 'like', '%' . $request->search . '%')->where('job_level_id', 2)->first();
+                            $document = Document::where('name', 'like', '%'.$request->search.'%')->where('job_level_id', 2)->first();
                         }
                     } else {
-                        $document = Document::where('name', 'like', '%' . $request->search . '%')->where('document_type', 1)->first();
+                        $document = Document::where('name', 'like', '%'.$request->search.'%')->where('document_type', 1)->first();
                     }
                     break;
                 case 'job-desc':
@@ -51,16 +52,16 @@ class DocumentController extends Controller
                     break;
                 case 'budaya-sales':
                     if (Str::contains($request->search, 'budaya')) {
-                            $document = Document::where('name', 'like', '%' . $request->search . '%')->where('document_type', 8)->first();
+                        $document = Document::where('name', 'like', '%'.$request->search.'%')->where('document_type', 8)->first();
                     } else {
-                        $document = Document::where('name', 'like', '%' . $request->search . '%')->where('document_type', 8)->first();
+                        $document = Document::where('name', 'like', '%'.$request->search.'%')->where('document_type', 8)->first();
                     }
                     break;
                 default:
-                    $document = Document::where('document_type',6)->orderBy('name')->get();
+                    $document = Document::where('document_type', 6)->orderBy('name')->get();
                     break;
             }
-            if (!$document) {
+            if (! $document) {
                 return ResponseFormatter::error(null, 'Dokumen tidak di temukan');
             }
 
@@ -81,7 +82,6 @@ class DocumentController extends Controller
                 $document['is_quizable'] = $isquiz ?? false;
                 $document['quiz_id'] = $isquizeable ? $isquizeable->id : null;
             }
-
 
             return ResponseFormatter::success($document, 'Berhasil');
         } catch (Exception $e) {

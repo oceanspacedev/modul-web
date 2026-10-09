@@ -6,7 +6,6 @@ use App\Models\Divisi;
 use App\Models\Training;
 use App\Models\TrainingParticipant;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -14,11 +13,12 @@ use Tests\TestCase;
 
 class TrainingAttendanceFeatureTest extends TestCase
 {
-    use DatabaseTransactions;
-
     protected $admin;
+
     protected $participantUser;
+
     protected $training;
+
     protected $participant;
 
     protected function setUp(): void
@@ -34,9 +34,9 @@ class TrainingAttendanceFeatureTest extends TestCase
         $divisi = Divisi::first() ?? Divisi::create(['name' => 'Divisi Test']);
 
         $this->participantUser = User::create([
-            'username' => 'peserta_absen_' . uniqid(),
+            'username' => 'peserta_absen_'.uniqid(),
             'full_name' => 'Peserta Uji Absensi',
-            'email' => 'peserta_' . uniqid() . '@example.com',
+            'email' => 'peserta_'.uniqid().'@example.com',
             'password' => bcrypt('password'),
             'job_level_id' => 2,
             'divisi_id' => $divisi->id,
@@ -59,7 +59,7 @@ class TrainingAttendanceFeatureTest extends TestCase
         $this->participant = TrainingParticipant::create([
             'training_id' => $this->training->id,
             'user_id' => $this->participantUser->id,
-            'token' => Str::random(40) . '_' . time(),
+            'token' => Str::random(40).'_'.time(),
             'attendance_status' => 'pending',
         ]);
     }

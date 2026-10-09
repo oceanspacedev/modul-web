@@ -143,7 +143,7 @@ class RoleController extends Controller
         $rolePermissions = $role->permissions->pluck('name')->toArray();
 
         return view('setting.role.edit', [
-            'title' => 'Atur Hak Akses: ' . $role->name,
+            'title' => 'Atur Hak Akses: '.$role->name,
             'active' => 'setting',
             'role' => $role,
             'rolePermissions' => $rolePermissions,
@@ -159,7 +159,7 @@ class RoleController extends Controller
         $role = Role::findOrFail($id);
 
         $request->validate([
-            'name' => 'required|string|max:100|unique:roles,name,' . $role->id,
+            'name' => 'required|string|max:100|unique:roles,name,'.$role->id,
             'permissions' => 'nullable|array',
             'permissions.*' => 'exists:permissions,name',
         ]);

@@ -8,14 +8,12 @@ use App\Models\TrainingParticipant;
 use App\Models\TrainingQuestion;
 use App\Models\TrainingQuizResult;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class TrainingQuizModeTest extends TestCase
 {
-    use DatabaseTransactions;
-
     protected $admin;
+
     protected $participantUser;
 
     protected function setUp(): void
@@ -30,9 +28,9 @@ class TrainingQuizModeTest extends TestCase
         $divisi = Divisi::first() ?? Divisi::create(['name' => 'Divisi Test']);
 
         $this->participantUser = User::create([
-            'username' => 'peserta_mode_' . uniqid(),
+            'username' => 'peserta_mode_'.uniqid(),
             'full_name' => 'Peserta Uji Mode',
-            'email' => 'mode_' . uniqid() . '@example.com',
+            'email' => 'mode_'.uniqid().'@example.com',
             'password' => bcrypt('password'),
             'job_level_id' => 2,
             'divisi_id' => $divisi->id,
@@ -116,6 +114,6 @@ class TrainingQuizModeTest extends TestCase
         // Verify result recorded
         $result = TrainingQuizResult::where('training_participant_id', $participant->id)->first();
         $this->assertNotNull($result);
-        $this->assertEquals(100, (int)$result->score);
+        $this->assertEquals(100, (int) $result->score);
     }
 }

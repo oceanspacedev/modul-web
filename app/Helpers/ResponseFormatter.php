@@ -2,46 +2,41 @@
 
 namespace App\Helpers;
 
+use Illuminate\Http\JsonResponse;
+
 /**
- * Format response.
+ * Format API responses with a consistent envelope.
+ *
+ * Responses are built fresh on every call so no state leaks between
+ * requests served by the same PHP process (tests, Octane, queue workers).
  */
 class ResponseFormatter
 {
     /**
-     * API Response
-     *
-     * @var array
-     */
-    protected static $response = [
-        'meta' => [
-            'code' => 200,
-            'status' => 'success',
-            'message' => null,
-        ],
-        'data' => null,
-    ];
-
-    /**
      * Give success response.
      */
-    public static function success($data = null, $message = null)
+    public static function success($data = null, $message = null): JsonResponse
     {
-        self::$response['meta']['message'] = $message;
-        self::$response['data'] = $data;
-
-        return response()->json(self::$response, self::$response['meta']['code']);
+        return static::respond('success', 200, $message, $data);
     }
 
     /**
      * Give error response.
      */
-    public static function error($data = null, $message = null, $code = 400)
+    public static function error($data = null, $message = null, $code = 400): JsonResponse
     {
-        self::$response['meta']['status'] = 'error';
-        self::$response['meta']['code'] = $code;
-        self::$response['meta']['message'] = $message;
-        self::$response['data'] = $data;
+        return static::respond('error', $code, $message, $data);
+    }
 
-        return response()->json(self::$response, self::$response['meta']['code']);
+    protected static function respond(string $status, int $code, $message, $data): JsonResponse
+    {
+        return response()->json([
+            'meta' => [
+                'code' => $code,
+                'status' => $status,
+                'message' => $message,
+            ],
+            'data' => $data,
+        ], $code);
     }
 }

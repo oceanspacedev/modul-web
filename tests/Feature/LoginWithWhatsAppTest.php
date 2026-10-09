@@ -2,15 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\LoginOtp;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class LoginWithWhatsAppTest extends TestCase
 {
-    use DatabaseTransactions;
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -137,7 +135,7 @@ class LoginWithWhatsAppTest extends TestCase
             'username' => '081299990011',
         ]);
 
-        $otpRecord = \App\Models\LoginOtp::where('user_id', $user->id)->latest()->first();
+        $otpRecord = LoginOtp::where('user_id', $user->id)->latest()->first();
         $this->assertNotNull($otpRecord);
 
         // Verify with wrong OTP

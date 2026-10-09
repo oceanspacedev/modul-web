@@ -3,16 +3,14 @@
 namespace App\Exports;
 
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 
 class UserExport implements FromCollection, WithHeadings, WithMapping
 {
-    /**
-     * @return \Illuminate\Support\Collection
-     */
-    public function collection()
+    public function collection(): Collection
     {
         return User::with(['joblevel', 'divisi', 'subdivisi'])->orderBy('full_name')->get();
     }
@@ -31,7 +29,7 @@ class UserExport implements FromCollection, WithHeadings, WithMapping
         ];
     }
 
-    public function map($row): array
+    public function map(mixed $row): array
     {
         return [
             $row->id_karyawan ?? '-',

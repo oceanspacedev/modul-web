@@ -8,14 +8,12 @@ use App\Models\TrainingParticipant;
 use App\Models\TrainingQuestion;
 use App\Models\TrainingQuizResult;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class TrainingQuizNoRetakeTest extends TestCase
 {
-    use DatabaseTransactions;
-
     protected $admin;
+
     protected $participantUser;
 
     protected function setUp(): void
@@ -30,9 +28,9 @@ class TrainingQuizNoRetakeTest extends TestCase
         $divisi = Divisi::first() ?? Divisi::create(['name' => 'Divisi Test']);
 
         $this->participantUser = User::create([
-            'username' => 'peserta_noretake_' . uniqid(),
+            'username' => 'peserta_noretake_'.uniqid(),
             'full_name' => 'Peserta No Retake',
-            'email' => 'noretake_' . uniqid() . '@example.com',
+            'email' => 'noretake_'.uniqid().'@example.com',
             'password' => bcrypt('password'),
             'job_level_id' => 2,
             'divisi_id' => $divisi->id,
@@ -69,7 +67,7 @@ class TrainingQuizNoRetakeTest extends TestCase
         $participant = TrainingParticipant::create([
             'training_id' => $training->id,
             'user_id' => $this->participantUser->id,
-            'token' => 'token_noretake_' . uniqid(),
+            'token' => 'token_noretake_'.uniqid(),
             'attendance_status' => 'hadir',
             'attended_at' => now(),
         ]);
@@ -86,7 +84,7 @@ class TrainingQuizNoRetakeTest extends TestCase
 
         $result = TrainingQuizResult::where('training_participant_id', $participant->id)->first();
         $this->assertNotNull($result);
-        $this->assertEquals(100, (int)$result->score);
+        $this->assertEquals(100, (int) $result->score);
 
         // 3. Participant attempts to revisit /quiz directly -> redirected to /result
         $quizPageRes = $this->get("/training/portal/{$token}/quiz");
@@ -117,7 +115,7 @@ class TrainingQuizNoRetakeTest extends TestCase
         $resubmitRes->assertRedirect("/training/portal/{$token}/result");
 
         // Score should still be intact (100)
-        $this->assertEquals(100, (int)$result->fresh()->score);
+        $this->assertEquals(100, (int) $result->fresh()->score);
 
         // 7. Verify UI does not show "Kerjakan Ulang" buttons
         $portalPage = $this->get("/training/portal/{$token}");

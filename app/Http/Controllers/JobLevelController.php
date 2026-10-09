@@ -5,13 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\JobLevel;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class JobLevelController extends Controller
 {
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function index()
     {
@@ -25,7 +26,7 @@ class JobLevelController extends Controller
     /**
      * Show the form for creating a new resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function create()
     {
@@ -35,8 +36,7 @@ class JobLevelController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function store(Request $request)
     {
@@ -44,6 +44,7 @@ class JobLevelController extends Controller
             JobLevel::insert([
                 'name' => strtoupper($request->name),
             ]);
+
             return redirect('joblevel')->with(['success' => 'berhasil menambahkan job level']);
         } catch (Exception $e) {
             return redirect('joblevel')->with(['error' => $e->getMessage()]);
@@ -54,7 +55,7 @@ class JobLevelController extends Controller
      * Display the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function show($id)
     {
@@ -65,7 +66,7 @@ class JobLevelController extends Controller
      * Show the form for editing the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function edit($id)
     {
@@ -79,17 +80,17 @@ class JobLevelController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function update(Request $request, $id)
     {
         try {
             $joblevel = JobLevel::find($id);
             $joblevel->update([
-                'name' => strtoupper($request->name)
+                'name' => strtoupper($request->name),
             ]);
+
             return redirect('joblevel')->with(['success' => 'berhasil merubah job level']);
         } catch (Exception $e) {
             return redirect('joblevel')->with(['error' => $e->getMessage()]);
@@ -100,13 +101,14 @@ class JobLevelController extends Controller
      * Remove the specified resource from storage.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function destroy(Request $request)
     {
         try {
             $joblevel = JobLevel::find($request->id);
             $joblevel->delete();
+
             return redirect('joblevel')->with(['success' => 'berhasil menghapus job level']);
         } catch (Exception $e) {
             return redirect('joblevel')->with(['error' => $e->getMessage()]);

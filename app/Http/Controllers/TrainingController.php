@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\TrainingRekapExport;
 use App\Models\Divisi;
 use App\Models\Document;
 use App\Models\Training;
@@ -10,10 +11,10 @@ use App\Models\TrainingQuizResult;
 use App\Models\User;
 use App\Services\WhatsAppService;
 use App\Services\ZoomAttendanceAiService;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Maatwebsite\Excel\Facades\Excel;
 
 class TrainingController extends Controller
 {
@@ -99,7 +100,7 @@ class TrainingController extends Controller
         ]);
 
         // Attach documents if selected
-        if (!empty($validated['documents'])) {
+        if (! empty($validated['documents'])) {
             $training->documents()->sync($validated['documents']);
         }
 
@@ -111,19 +112,19 @@ class TrainingController extends Controller
             $participant = TrainingParticipant::create([
                 'training_id' => $training->id,
                 'user_id' => $userId,
-                'token' => Str::random(40) . '_' . time(),
+                'token' => Str::random(40).'_'.time(),
                 'attendance_status' => 'pending',
             ]);
             $participantsData[] = $participant;
         }
 
         // Send WA immediately if selected
-        if (!empty($request->send_wa_now)) {
+        if (! empty($request->send_wa_now)) {
             WhatsAppService::broadcastTraining($training);
         }
 
-        return redirect('/training/' . $training->id)->with([
-            'success' => 'Jadwal pelatihan berhasil dibuat dengan ' . count($participantsData) . ' peserta terdaftar!',
+        return redirect('/training/'.$training->id)->with([
+            'success' => 'Jadwal pelatihan berhasil dibuat dengan '.count($participantsData).' peserta terdaftar!',
         ]);
     }
 
@@ -151,7 +152,7 @@ class TrainingController extends Controller
         $avgScore = $quizSubmittedCount > 0 ? round($training->quizResults->avg('score'), 1) : 0;
 
         return view('training.show', [
-            'title' => 'Detail Pelatihan: ' . $training->title,
+            'title' => 'Detail Pelatihan: '.$training->title,
             'active' => 'training',
             'training' => $training,
             'allDocuments' => $allDocuments,
@@ -245,11 +246,11 @@ class TrainingController extends Controller
 
         // Add newly added participants
         foreach ($newParticipantIds as $userId) {
-            if (!in_array($userId, $existingParticipants)) {
+            if (! in_array($userId, $existingParticipants)) {
                 TrainingParticipant::create([
                     'training_id' => $training->id,
                     'user_id' => $userId,
-                    'token' => Str::random(40) . '_' . time(),
+                    'token' => Str::random(40).'_'.time(),
                     'attendance_status' => 'pending',
                 ]);
             }
@@ -257,11 +258,11 @@ class TrainingController extends Controller
 
         // Delete removed participants
         $toRemove = array_diff($existingParticipants, $newParticipantIds);
-        if (!empty($toRemove)) {
+        if (! empty($toRemove)) {
             $training->participants()->whereIn('user_id', $toRemove)->delete();
         }
 
-        return redirect('/training/' . $training->id)->with([
+        return redirect('/training/'.$training->id)->with([
             'success' => 'Pelatihan berhasil diperbarui!',
         ]);
     }
@@ -312,11 +313,11 @@ class TrainingController extends Controller
     public function toggleQuiz($id)
     {
         $training = Training::findOrFail($id);
-        $newStatus = !$training->is_quiz_active;
+        $newStatus = ! $training->is_quiz_active;
         $training->update(['is_quiz_active' => $newStatus]);
 
-        $message = $newStatus 
-            ? 'Kuis pelatihan telah DIBUKA untuk seluruh peserta!' 
+        $message = $newStatus
+            ? 'Kuis pelatihan telah DIBUKA untuk seluruh peserta!'
             : 'Kuis pelatihan telah DITUTUP sementara.';
 
         return back()->with('success', $message);
@@ -328,11 +329,11 @@ class TrainingController extends Controller
     public function toggleAttendance($id)
     {
         $training = Training::findOrFail($id);
-        $newStatus = !$training->is_attendance_active;
+        $newStatus = ! $training->is_attendance_active;
         $training->update(['is_attendance_active' => $newStatus]);
 
-        $message = $newStatus 
-            ? 'Presensi kehadiran pelatihan telah DIBUKA untuk seluruh peserta!' 
+        $message = $newStatus
+            ? 'Presensi kehadiran pelatihan telah DIBUKA untuk seluruh peserta!'
             : 'Presensi kehadiran pelatihan telah DITUTUP sementara.';
 
         return back()->with('success', $message);
@@ -344,11 +345,11 @@ class TrainingController extends Controller
     public function toggleAttendanceProof($id)
     {
         $training = Training::findOrFail($id);
-        $newStatus = !$training->require_attendance_proof;
+        $newStatus = ! $training->require_attendance_proof;
         $training->update(['require_attendance_proof' => $newStatus]);
 
-        $message = $newStatus 
-            ? 'Screenshot bukti kehadiran (Zoom/Pelatihan) kini DIWAJIBKAN untuk peserta!' 
+        $message = $newStatus
+            ? 'Screenshot bukti kehadiran (Zoom/Pelatihan) kini DIWAJIBKAN untuk peserta!'
             : 'Syarat upload screenshot bukti kehadiran kini DINONAKTIFKAN (opsional).';
 
         return back()->with('success', $message);
@@ -364,6 +365,7 @@ class TrainingController extends Controller
         $training->update(['quiz_mode' => $newMode]);
 
         $label = ($newMode === 'game') ? 'Mode Game Interaktif (Quizizz Style)' : 'Mode Ujian Formal';
+
         return back()->with('success', "Mode tampilan kuis berhasil diubah ke: {$label}");
     }
 
@@ -452,7 +454,7 @@ class TrainingController extends Controller
             }
             $data['attended_at'] = null;
             $data['attendance_proof'] = null;
-        } elseif ($validated['attendance_status'] === 'hadir' && !$participant->attended_at) {
+        } elseif ($validated['attendance_status'] === 'hadir' && ! $participant->attended_at) {
             $data['attended_at'] = now();
         } elseif ($validated['attendance_status'] === 'tidak_hadir') {
             $data['attended_at'] = now();
@@ -476,8 +478,8 @@ class TrainingController extends Controller
             'essay_feedback' => 'nullable|string|max:500',
         ]);
 
-        $essayScore = (float)$validated['essay_score'];
-        $mcScore = $result->mc_score !== null ? (float)$result->mc_score : 100;
+        $essayScore = (float) $validated['essay_score'];
+        $mcScore = $result->mc_score !== null ? (float) $result->mc_score : 100;
 
         $mcQuestionsCount = $training->questions()->where('type', '!=', 'essay')->count();
         $essayQuestionsCount = $training->questions()->where('type', 'essay')->count();
@@ -513,24 +515,24 @@ class TrainingController extends Controller
         $training = Training::with(['participants.quizResult'])->findOrFail($id);
 
         $participants = $training->participants;
-        $total        = $participants->count();
-        $attended     = $participants->where('attendance_status', 'hadir')->count();
-        $absent       = $participants->where('attendance_status', 'tidak_hadir')->count();
-        $pending      = $total - $attended - $absent;
-        $quizDone     = $participants->filter(fn($p) => $p->quizResult !== null)->count();
-        $avgScore     = $quizDone > 0
-            ? round($participants->filter(fn($p) => $p->quizResult)->avg(fn($p) => $p->quizResult->score), 1)
+        $total = $participants->count();
+        $attended = $participants->where('attendance_status', 'hadir')->count();
+        $absent = $participants->where('attendance_status', 'tidak_hadir')->count();
+        $pending = $total - $attended - $absent;
+        $quizDone = $participants->filter(fn ($p) => $p->quizResult !== null)->count();
+        $avgScore = $quizDone > 0
+            ? round($participants->filter(fn ($p) => $p->quizResult)->avg(fn ($p) => $p->quizResult->score), 1)
             : 0;
 
         return response()->json([
-            'total'          => $total,
-            'attended'       => $attended,
-            'absent'         => $absent,
-            'pending'        => $pending,
-            'quizSubmitted'  => $quizDone,
-            'avgScore'       => $avgScore,
+            'total' => $total,
+            'attended' => $attended,
+            'absent' => $absent,
+            'pending' => $pending,
+            'quizSubmitted' => $quizDone,
+            'avgScore' => $avgScore,
             'is_attendance_active' => (bool) $training->is_attendance_active,
-            'is_quiz_active'       => (bool) $training->is_quiz_active,
+            'is_quiz_active' => (bool) $training->is_quiz_active,
         ]);
     }
 
@@ -556,10 +558,10 @@ class TrainingController extends Controller
             'participants.quizResult',
         ])->findOrFail($id);
 
-        $filename = 'rekap_pelatihan_' . Str::slug($training->title) . '_' . date('Ymd_His') . '.xlsx';
+        $filename = 'rekap_pelatihan_'.Str::slug($training->title).'_'.date('Ymd_His').'.xlsx';
 
-        return \Maatwebsite\Excel\Facades\Excel::download(
-            new \App\Exports\TrainingRekapExport($training),
+        return Excel::download(
+            new TrainingRekapExport($training),
             $filename
         );
     }
@@ -587,7 +589,7 @@ class TrainingController extends Controller
                 ];
             })->values()->toArray();
 
-            $zoomService = new ZoomAttendanceAiService();
+            $zoomService = new ZoomAttendanceAiService;
             $result = $zoomService->detectOffCamParticipants(
                 $request->images,
                 $participantsList
@@ -629,21 +631,21 @@ class TrainingController extends Controller
                 ->where('id', $item['participant_id'])
                 ->first();
 
-            if (!$participant) {
+            if (! $participant) {
                 continue;
             }
 
             $zoomName = $item['zoom_name'] ?? '-';
             $existingNote = $participant->attendance_notes ?: '';
-            $offCamNote = 'Off Cam Zoom (' . $zoomName . ')';
+            $offCamNote = 'Off Cam Zoom ('.$zoomName.')';
 
-            if (!str_contains($existingNote, 'Off Cam Zoom')) {
-                $newNote = trim(($existingNote ? $existingNote . '; ' : '') . $offCamNote);
+            if (! str_contains($existingNote, 'Off Cam Zoom')) {
+                $newNote = trim(($existingNote ? $existingNote.'; ' : '').$offCamNote);
             } else {
                 $newNote = $existingNote;
             }
 
-            $itemCount = isset($item['off_cam_count']) ? (int)$item['off_cam_count'] : max(1, (int)$participant->off_cam_count);
+            $itemCount = isset($item['off_cam_count']) ? (int) $item['off_cam_count'] : max(1, (int) $participant->off_cam_count);
 
             $updateData = [
                 'is_off_cam' => true,
@@ -677,7 +679,7 @@ class TrainingController extends Controller
 
         // Remove off-cam note if present
         $cleanNote = preg_replace('/;?\s*Off Cam Zoom [^;]+/', '', $participant->attendance_notes ?? '');
-        $cleanNote = trim($cleanNote, " ;");
+        $cleanNote = trim($cleanNote, ' ;');
 
         $participant->update([
             'is_off_cam' => false,
@@ -723,9 +725,9 @@ class TrainingController extends Controller
 
         if ($newCount > 0) {
             $cleanNote = preg_replace('/;?\s*Off Cam Zoom [^;]+/', '', $participant->attendance_notes ?? '');
-            $cleanNote = trim($cleanNote, " ;");
+            $cleanNote = trim($cleanNote, ' ;');
             $offCamNote = "Off Cam Zoom ({$newCount}x)";
-            $newNote = trim(($cleanNote ? $cleanNote . '; ' : '') . $offCamNote);
+            $newNote = trim(($cleanNote ? $cleanNote.'; ' : '').$offCamNote);
 
             $participant->update([
                 'is_off_cam' => true,
@@ -736,7 +738,7 @@ class TrainingController extends Controller
             ]);
         } else {
             $cleanNote = preg_replace('/;?\s*Off Cam Zoom [^;]+/', '', $participant->attendance_notes ?? '');
-            $cleanNote = trim($cleanNote, " ;");
+            $cleanNote = trim($cleanNote, ' ;');
 
             $participant->update([
                 'is_off_cam' => false,
@@ -751,8 +753,8 @@ class TrainingController extends Controller
             'success' => true,
             'is_off_cam' => (bool) ($newCount > 0),
             'off_cam_count' => $newCount,
-            'message' => $newCount > 0 
-                ? "{$participantName} tercatat Off Cam {$newCount}x" 
+            'message' => $newCount > 0
+                ? "{$participantName} tercatat Off Cam {$newCount}x"
                 : "Status Off Cam {$participantName} dibatalkan",
         ]);
     }

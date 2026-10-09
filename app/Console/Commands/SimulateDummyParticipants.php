@@ -35,7 +35,7 @@ class SimulateDummyParticipants extends Command
         $trainingId = $this->argument('training_id') ?? 2;
         $training = Training::find($trainingId);
 
-        if (!$training) {
+        if (! $training) {
             $admin = User::where('username', 'admin')->first();
             $training = Training::create([
                 'title' => 'Pelatihan Implementasi Modul Web',
@@ -58,7 +58,7 @@ class SimulateDummyParticipants extends Command
         }
 
         // 1. SETUP / UPDATE QUESTIONS (4 Soal: PG A-D, PG A-B, PG A-F, dan Essay)
-        $this->info("Menyiapkan bank soal kuis pelatihan...");
+        $this->info('Menyiapkan bank soal kuis pelatihan...');
         $training->questions()->delete();
 
         $q1 = TrainingQuestion::create([
@@ -105,7 +105,7 @@ class SimulateDummyParticipants extends Command
             'explanation' => 'Penilaian mencakup pemahaman alur kerja dan implementasi praktis.',
         ]);
 
-        $this->info("Berhasil membuat 4 soal (PG A-D, PG A-B True/False, PG A-F, dan Essay).");
+        $this->info('Berhasil membuat 4 soal (PG A-D, PG A-B True/False, PG A-F, dan Essay).');
 
         // 2. DATA 5 DUMMY PESERTA
         $dummyUsers = [
@@ -181,7 +181,7 @@ class SimulateDummyParticipants extends Command
             ],
         ];
 
-        $this->info("Memproses 5 peserta dan simulasi pengerjaan pelatihan...");
+        $this->info('Memproses 5 peserta dan simulasi pengerjaan pelatihan...');
 
         $resultsTable = [];
 
@@ -193,14 +193,14 @@ class SimulateDummyParticipants extends Command
                     'email' => $data['email'],
                     'id_karyawan' => $data['id_karyawan'],
                     'no_wa' => $data['no_wa'],
-                    'password' => bcrypt('password123'),
+                    'password' => 'password123',
                     'divisi_id' => 1,
                     'job_level_id' => 2,
                 ]
             );
 
             // Create or get participant token
-            $token = Str::random(40) . '_' . time() . $index;
+            $token = Str::random(40).'_'.time().$index;
             $participant = TrainingParticipant::updateOrCreate(
                 ['training_id' => $training->id, 'user_id' => $user->id],
                 [
@@ -225,13 +225,13 @@ class SimulateDummyParticipants extends Command
                 if ($q->type === 'essay') {
                     $answersDetails[$q->id] = [
                         'type' => 'essay',
-                        'user_answer' => (string)$userAns,
+                        'user_answer' => (string) $userAns,
                         'correct_answer' => $q->correct_answer,
                         'is_correct' => null,
                     ];
                 } else {
                     $mcTotal++;
-                    $isCorrect = ($userAns && strtolower((string)$userAns) === strtolower((string)$q->correct_answer));
+                    $isCorrect = ($userAns && strtolower((string) $userAns) === strtolower((string) $q->correct_answer));
                     if ($isCorrect) {
                         $correctCount++;
                     }
@@ -296,7 +296,7 @@ class SimulateDummyParticipants extends Command
         }
 
         $this->table(['No', 'Nama Peserta', 'Kehadiran', 'Nilai PG', 'Nilai Essay', 'Nilai Akhir', 'Tautan Akses Portal Peserta'], $resultsTable);
-        $this->info("Simulasi 5 peserta selesai dengan sukses!");
+        $this->info('Simulasi 5 peserta selesai dengan sukses!');
         $this->info("Silakan cek halaman Admin: http://127.0.0.1:8000/training/{$training->id}");
 
         return 0;

@@ -11,14 +11,22 @@ class TrainingQuizResult extends Model
 
     protected $guarded = ['id'];
 
-    protected $casts = [
-        'answers' => 'array',
-        'violation_logs' => 'array',
-        'is_force_submitted' => 'boolean',
-        'tab_switch_count' => 'integer',
-        'submitted_at' => 'datetime',
-        'score' => 'float',
-    ];
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'answers' => 'array',
+            'violation_logs' => 'array',
+            'is_force_submitted' => 'boolean',
+            'tab_switch_count' => 'integer',
+            'submitted_at' => 'datetime',
+            'score' => 'float',
+        ];
+    }
 
     public function training()
     {

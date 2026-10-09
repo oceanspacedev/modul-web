@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\SubDivisi;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class SubDivisiSeeder extends Seeder
@@ -18,87 +17,87 @@ class SubDivisiSeeder extends Seeder
         SubDivisi::insert([
             [
                 'divisi_id' => 3,
-                'name' => 'CREATIVE'
+                'name' => 'CREATIVE',
             ],
             [
                 'divisi_id' => 3,
-                'name' => 'DIGITAL MARKETTING'
+                'name' => 'DIGITAL MARKETTING',
             ],
             [
                 'divisi_id' => 4,
-                'name' => 'DATA'
+                'name' => 'DATA',
             ],
             [
                 'divisi_id' => 4,
-                'name' => 'IT SUPPORT'
+                'name' => 'IT SUPPORT',
             ],
             [
                 'divisi_id' => 5,
-                'name' => 'FINANCE & ACCOUNTING MITRA'
+                'name' => 'FINANCE & ACCOUNTING MITRA',
             ],
             [
                 'divisi_id' => 5,
-                'name' => 'ACCOUNTING'
+                'name' => 'ACCOUNTING',
             ],
             [
                 'divisi_id' => 5,
-                'name' => 'KAS BESAR'
+                'name' => 'KAS BESAR',
             ],
             [
                 'divisi_id' => 5,
-                'name' => 'FINANCE TRANSFER'
+                'name' => 'FINANCE TRANSFER',
             ],
             [
                 'divisi_id' => 5,
-                'name' => 'FINANCE PAJAK'
+                'name' => 'FINANCE PAJAK',
             ],
             [
                 'divisi_id' => 5,
-                'name' => 'FINANCE ACCOUNT RECEIVABLE'
+                'name' => 'FINANCE ACCOUNT RECEIVABLE',
             ],
             [
                 'divisi_id' => 5,
-                'name' => 'FINANCE ACCOUNT PAYABLE'
+                'name' => 'FINANCE ACCOUNT PAYABLE',
             ],
             [
                 'divisi_id' => 5,
-                'name' => 'ARSIP'
+                'name' => 'ARSIP',
             ],
             [
                 'divisi_id' => 6,
-                'name' => 'WAREHOUSE'
+                'name' => 'WAREHOUSE',
             ],
             [
                 'divisi_id' => 6,
-                'name' => 'RETUR'
+                'name' => 'RETUR',
             ],
             [
                 'divisi_id' => 6,
-                'name' => 'PURHCHASING'
+                'name' => 'PURHCHASING',
             ],
             [
                 'divisi_id' => 6,
-                'name' => 'LOGISTIK'
+                'name' => 'LOGISTIK',
             ],
             [
                 'divisi_id' => 6,
-                'name' => 'PROGRAM & REFUND'
+                'name' => 'PROGRAM & REFUND',
             ],
             [
                 'divisi_id' => 7,
-                'name' => 'PERSONNEL'
+                'name' => 'PERSONNEL',
             ],
             [
                 'divisi_id' => 7,
-                'name' => 'TALENT ACQUISITION'
+                'name' => 'TALENT ACQUISITION',
             ],
             [
                 'divisi_id' => 7,
-                'name' => 'GENERAL AFFAIR'
+                'name' => 'GENERAL AFFAIR',
             ],
             [
                 'divisi_id' => 12,
-                'name' => 'ALL'
+                'name' => 'ALL',
             ],
         ]);
     }

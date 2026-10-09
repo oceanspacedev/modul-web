@@ -16,28 +16,28 @@ class JobLevelSeeder extends Seeder
     {
         JobLevel::insert([
             [
-                'name' => 'ADMIN'
+                'name' => 'ADMIN',
             ],
             [
-                'name' => 'STAFF'
+                'name' => 'STAFF',
             ],
             [
-                'name' => 'TEAM LEADER'
+                'name' => 'TEAM LEADER',
             ],
             [
-                'name' => 'COORDINATOR'
+                'name' => 'COORDINATOR',
             ],
             [
-                'name' => 'MANAGER'
+                'name' => 'MANAGER',
             ],
             [
-                'name' => 'CHIEF'
+                'name' => 'CHIEF',
             ],
             [
-                'name' => 'BOD'
+                'name' => 'BOD',
             ],
             [
-                'name' => 'ALL'
+                'name' => 'ALL',
             ],
         ]);
     }

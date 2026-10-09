@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\Divisi;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DivisiSeeder extends Seeder
@@ -17,41 +16,41 @@ class DivisiSeeder extends Seeder
     {
         Divisi::insert([
             [
-                'name' => 'EO'
+                'name' => 'EO',
             ],
             [
-                'name' => 'BUSDEV'
+                'name' => 'BUSDEV',
             ],
             [
-                'name' => 'MARCOMM'
+                'name' => 'MARCOMM',
             ],
             [
-                'name' => 'MIS'
+                'name' => 'MIS',
             ],
             [
-                'name' => 'FAM'
+                'name' => 'FAM',
             ],
             [
-                'name' => 'SCM'
+                'name' => 'SCM',
             ],
             [
-                'name' => 'HCM'
+                'name' => 'HCM',
             ],
             [
-                'name' => 'CIA'
+                'name' => 'CIA',
             ],
             [
-                'name' => 'ONLINE'
+                'name' => 'ONLINE',
             ],
             [
-                'name' => 'RETAIL'
+                'name' => 'RETAIL',
             ],
             [
-                'name' => 'DS'
+                'name' => 'DS',
             ],
             [
-                'name' => 'ALL'
-            ]
+                'name' => 'ALL',
+            ],
         ]);
     }
 }

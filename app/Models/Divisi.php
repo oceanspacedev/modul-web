@@ -34,6 +34,6 @@ class Divisi extends Model
 
     public function dokumen()
     {
-        return $this->hasMany(Document::class,'id','divisi_id');
+        return $this->hasMany(Document::class, 'id', 'divisi_id');
     }
 }

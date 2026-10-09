@@ -14,7 +14,7 @@ return new class extends Migration
     public function up()
     {
         Schema::table('trainings', function (Blueprint $table) {
-            if (!Schema::hasColumn('trainings', 'quiz_mode')) {
+            if (! Schema::hasColumn('trainings', 'quiz_mode')) {
                 $table->string('quiz_mode', 20)->default('formal')->after('is_quiz_active');
             }
         });

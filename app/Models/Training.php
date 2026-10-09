@@ -12,12 +12,20 @@ class Training extends Model
 
     protected $guarded = ['id'];
 
-    protected $casts = [
-        'training_date' => 'date',
-        'is_quiz_active' => 'boolean',
-        'is_attendance_active' => 'boolean',
-        'require_attendance_proof' => 'boolean',
-    ];
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'training_date' => 'date',
+            'is_quiz_active' => 'boolean',
+            'is_attendance_active' => 'boolean',
+            'require_attendance_proof' => 'boolean',
+        ];
+    }
 
     public function trainer()
     {
@@ -60,10 +68,10 @@ class Training extends Model
             $search = request('search');
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhereHas('trainer', function ($t) use ($search) {
-                      $t->where('full_name', 'like', "%{$search}%");
-                  });
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhereHas('trainer', function ($t) use ($search) {
+                        $t->where('full_name', 'like', "%{$search}%");
+                    });
             });
         }
 

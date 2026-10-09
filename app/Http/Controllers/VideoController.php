@@ -21,7 +21,7 @@ class VideoController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                    ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
@@ -47,7 +47,7 @@ class VideoController extends Controller
                     'user.divisi',
                     'replies.user.divisi',
                 ]);
-            }
+            },
         ])->findOrFail($id);
 
         // Increment view count
@@ -104,7 +104,7 @@ class VideoController extends Controller
         if ($videoType === 'file' && $request->hasFile('video_file')) {
             $videoFile = $request->file('video_file');
             $fileSize = $this->formatBytes($videoFile->getSize());
-            $videoFileName = Str::random(20) . '.' . $videoFile->getClientOriginalExtension();
+            $videoFileName = Str::random(20).'.'.$videoFile->getClientOriginalExtension();
             $videoPath = $videoFile->storeAs('videos', $videoFileName, 'public');
         }
 
@@ -112,15 +112,16 @@ class VideoController extends Controller
         $thumbnailPath = null;
         if ($request->hasFile('thumbnail')) {
             $thumbFile = $request->file('thumbnail');
-            $thumbName = Str::random(20) . '.' . $thumbFile->getClientOriginalExtension();
+            $thumbName = Str::random(20).'.'.$thumbFile->getClientOriginalExtension();
             $thumbnailPath = $thumbFile->storeAs('videos/thumbnails', $thumbName, 'public');
         }
 
         // Debounce: prevent duplicate rapid submissions within 10 seconds
         $userId = auth()->id() ?? 'guest';
-        $lockKey = 'video_upload_lock_' . $userId . '_' . md5($request->title . '_' . $request->training_id);
+        $lockKey = 'video_upload_lock_'.$userId.'_'.md5($request->title.'_'.$request->training_id);
         if (cache()->has($lockKey)) {
             $redirectTo = $request->input('redirect_to', '/video');
+
             return redirect($redirectTo)->with('info', 'Video Anda sedang diproses atau sudah berhasil disimpan.');
         }
         cache()->put($lockKey, true, now()->addSeconds(10));
@@ -148,6 +149,7 @@ class VideoController extends Controller
                 ]);
 
                 $redirectTo = $request->input('redirect_to', '/video');
+
                 return redirect($redirectTo)->with('success', 'Video materi pelatihan berhasil diperbarui!');
             }
         }
@@ -164,6 +166,7 @@ class VideoController extends Controller
         ]);
 
         $redirectTo = $request->input('redirect_to', '/video');
+
         return redirect($redirectTo)->with('success', 'Video materi pelatihan berhasil diunggah!');
     }
 
@@ -175,7 +178,7 @@ class VideoController extends Controller
         $video = Video::findOrFail($id);
 
         return view('video.edit', [
-            'title' => 'Edit Video: ' . $video->title,
+            'title' => 'Edit Video: '.$video->title,
             'active' => 'video',
             'video' => $video,
         ]);
@@ -226,7 +229,7 @@ class VideoController extends Controller
 
                 $newVideo = $request->file('video_file');
                 $video->file_size = $this->formatBytes($newVideo->getSize());
-                $videoFileName = Str::random(20) . '.' . $newVideo->getClientOriginalExtension();
+                $videoFileName = Str::random(20).'.'.$newVideo->getClientOriginalExtension();
                 $video->video_file = $newVideo->storeAs('videos', $videoFileName, 'public');
             }
         }
@@ -238,7 +241,7 @@ class VideoController extends Controller
             }
 
             $thumbFile = $request->file('thumbnail');
-            $thumbName = Str::random(20) . '.' . $thumbFile->getClientOriginalExtension();
+            $thumbName = Str::random(20).'.'.$thumbFile->getClientOriginalExtension();
             $video->thumbnail = $thumbFile->storeAs('videos/thumbnails', $thumbName, 'public');
         }
 
@@ -278,7 +281,7 @@ class VideoController extends Controller
         $pow = min($pow, count($units) - 1);
         $bytes /= pow(1024, $pow);
 
-        return round($bytes, $precision) . ' ' . $units[$pow];
+        return round($bytes, $precision).' '.$units[$pow];
     }
 
     /**
@@ -286,12 +289,12 @@ class VideoController extends Controller
      */
     public function storeComment(Request $request, $id)
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             return redirect()->route('login', ['redirect' => route('video.show', $id)])
                 ->with('error', 'Silakan login terlebih dahulu untuk menyampaikan pertanyaan atau komentar.');
         }
 
-        if (!auth()->user()->can('comment-videos') && auth()->user()->job_level_id != 1) {
+        if (! auth()->user()->can('comment-videos') && auth()->user()->job_level_id != 1) {
             return back()->with('error', 'Role akun Anda tidak memiliki izin untuk mengirim komentar.');
         }
 
@@ -322,7 +325,7 @@ class VideoController extends Controller
             'comment' => trim($request->comment),
         ]);
 
-        return redirect(route('video.show', $video->id) . '#comments')
+        return redirect(route('video.show', $video->id).'#comments')
             ->with('success', $parentId ? 'Balasan berhasil dikirim!' : 'Pertanyaan / komentar berhasil dikirim!');
     }
 
@@ -331,7 +334,7 @@ class VideoController extends Controller
      */
     public function destroyComment($id)
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             return back()->with('error', 'Akses ditolak.');
         }
 
@@ -345,7 +348,7 @@ class VideoController extends Controller
         $videoId = $comment->video_id;
         $comment->delete();
 
-        return redirect(route('video.show', $videoId) . '#comments')
+        return redirect(route('video.show', $videoId).'#comments')
             ->with('success', 'Komentar berhasil dihapus.');
     }
 }

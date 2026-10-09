@@ -5,17 +5,18 @@ namespace App\Http\Controllers;
 use App\Models\Divisi;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class DivisiController extends Controller
 {
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function index()
     {
-        return view('setting.divisi.index',[
+        return view('setting.divisi.index', [
             'title' => 'Divisi',
             'active' => 'setting',
             'divisis' => Divisi::all(),
@@ -25,7 +26,7 @@ class DivisiController extends Controller
     /**
      * Show the form for creating a new resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function create()
     {
@@ -35,8 +36,7 @@ class DivisiController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function store(Request $request)
     {
@@ -44,6 +44,7 @@ class DivisiController extends Controller
             Divisi::insert([
                 'name' => strtoupper($request->name),
             ]);
+
             return redirect('divisi')->with(['success' => 'berhasil menambahkan divisi']);
         } catch (Exception $e) {
             return redirect('divisi')->with(['error' => $e->getMessage()]);
@@ -54,7 +55,7 @@ class DivisiController extends Controller
      * Display the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function show($id)
     {
@@ -65,7 +66,7 @@ class DivisiController extends Controller
      * Show the form for editing the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function edit($id)
     {
@@ -79,17 +80,17 @@ class DivisiController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function update(Request $request, $id)
     {
         try {
             $divisi = Divisi::find($id);
             $divisi->update([
-                'name' => strtoupper($request->name)
+                'name' => strtoupper($request->name),
             ]);
+
             return redirect('divisi')->with(['success' => 'berhasil merubah divisi']);
         } catch (Exception $e) {
             return redirect('divisi')->with(['error' => $e->getMessage()]);
@@ -100,13 +101,14 @@ class DivisiController extends Controller
      * Remove the specified resource from storage.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function destroy(Request $request)
     {
         try {
             $divisi = Divisi::find($request->id);
             $divisi->delete();
+
             return redirect('divisi')->with(['success' => 'berhasil menghapus divisi']);
         } catch (Exception $e) {
             return redirect('divisi')->with(['error' => $e->getMessage()]);

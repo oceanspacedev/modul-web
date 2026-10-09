@@ -11,6 +11,7 @@ use App\Models\SubDivisi;
 use App\Models\User;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Laravel\Sanctum\PersonalAccessToken;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Permission\Models\Role;
@@ -20,15 +21,15 @@ class UserController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function index()
     {
         return view('setting.user.index', [
             'title' => 'User',
             'active' => 'setting',
-            'users' => User::with(['joblevel', 'divisi', 'subdivisi', 'roles', 'lastSeen'=> function($q){
-                $q -> orderBy('last_used_at', 'DESC');
+            'users' => User::with(['joblevel', 'divisi', 'subdivisi', 'roles', 'lastSeen' => function ($q) {
+                $q->orderBy('last_used_at', 'DESC');
             }])->filter()->withTrashed()->orderBy('full_name')->get(),
         ]);
     }
@@ -40,10 +41,11 @@ class UserController extends Controller
             $namaFile = $file->getClientOriginalName();
             $file->move(public_path('import'), $namaFile);
 
-            Excel::import(new UserImport, public_path('/import/' . $namaFile));
+            Excel::import(new UserImport, public_path('/import/'.$namaFile));
             unlink(
-                public_path('import/' . $namaFile)
+                public_path('import/'.$namaFile)
             );
+
             return redirect('user')->with(['success' => 'berhasil import user']);
         } catch (Exception $e) {
             return redirect('user')->with(['error' => $e->getMessage()]);
@@ -63,7 +65,7 @@ class UserController extends Controller
     /**
      * Show the form for creating a new resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function create()
     {
@@ -79,8 +81,7 @@ class UserController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function store(Request $request)
     {
@@ -97,7 +98,6 @@ class UserController extends Controller
             unset($data['_token']);
             $roleName = $request->input('role', 'Staff');
             unset($data['role']);
-            $data['password'] = bcrypt($data['password']);
             $data['full_name'] = strtoupper($data['full_name']);
             $newUser = User::create($data);
             $newUser->assignRole($roleName);
@@ -112,7 +112,7 @@ class UserController extends Controller
      * Display the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function show($id)
     {
@@ -123,13 +123,13 @@ class UserController extends Controller
      * Show the form for editing the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function edit($id)
     {
         $user = User::with(['joblevel', 'divisi', 'subdivisi.divisi', 'roles'])->find($id);
 
-        if (!$user) {
+        if (! $user) {
             return redirect('user')->with(['error' => 'Tidak bisa mengedit user yang nonaktif, aktifkan terlebih dahulu']);
         }
 
@@ -147,9 +147,8 @@ class UserController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function update(Request $request, $id)
     {
@@ -160,7 +159,7 @@ class UserController extends Controller
             }
             $user = User::find($id);
             $request->validate([
-                'username' => ['required', 'string', 'max:255', 'unique:users,username,' . $user->id],
+                'username' => ['required', 'string', 'max:255', 'unique:users,username,'.$user->id],
                 'full_name' => ['required', 'string', 'max:255'],
                 'id_karyawan' => ['nullable', 'string', 'max:50'],
                 'email' => ['nullable', 'string', 'max:100'],
@@ -181,11 +180,12 @@ class UserController extends Controller
                 $data['sub_divisi_id'] = null;
             }
             if ($request->filled('password')) {
-                $data['password'] = bcrypt($request->password);
+                $data['password'] = $request->password;
             } else {
                 unset($data['password']);
             }
             $user->update($data);
+
             return redirect('user')->with(['success' => 'Berhasil merubah user']);
         } catch (Exception $e) {
             return redirect('user')->with(['error' => $e->getMessage()]);
@@ -196,12 +196,13 @@ class UserController extends Controller
      * Remove the specified resource from storage.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function destroy(User $user)
     {
         try {
             $user->delete();
+
             return redirect('user')->with(['success' => 'Berhasil menonaktifkan user']);
         } catch (Exception $e) {
             return redirect('user')->with(['error' => $e->getMessage()]);
@@ -214,6 +215,7 @@ class UserController extends Controller
             $user = User::withTrashed()->find($id);
             $user['deleted_at'] = null;
             $user->save();
+
             return redirect('user')->with(['success' => 'Berhasil mengaktifkan user']);
         } catch (Exception $e) {
             return redirect('user')->with(['error' => $e->getMessage()]);

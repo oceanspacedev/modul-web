@@ -21,7 +21,7 @@ class QuizQuestion extends Model
     public function scopeFilter($query)
     {
         if (request('search')) {
-            $query->where('question', 'like', '%' . request('search') . '%');
+            $query->where('question', 'like', '%'.request('search').'%');
         }
     }
 

@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use App\Models\Training;
+use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
-    use DatabaseTransactions;
     /**
      * A basic test example.
      *
@@ -22,7 +24,7 @@ class ExampleTest extends TestCase
 
     public function test_dashboard_page_loads_with_all_metrics()
     {
-        $user = \App\Models\User::first() ?? \App\Models\User::factory()->create();
+        $user = User::first() ?? User::factory()->create();
 
         $response = $this->actingAs($user)->get('/dashboard');
 
@@ -44,12 +46,12 @@ class ExampleTest extends TestCase
 
     public function test_training_video_shortcut_upload_creates_video()
     {
-        \Illuminate\Support\Facades\Storage::fake('public');
-        $user = \App\Models\User::first() ?? \App\Models\User::factory()->create();
-        $training = \App\Models\Training::first();
+        Storage::fake('public');
+        $user = User::first() ?? User::factory()->create();
+        $training = Training::first();
 
-        if (!$training) {
-            $training = \App\Models\Training::create([
+        if (! $training) {
+            $training = Training::create([
                 'title' => 'Sesi Training Docker',
                 'trainer_id' => $user->id,
                 'training_date' => now()->toDateString(),
@@ -61,23 +63,23 @@ class ExampleTest extends TestCase
         }
 
         // 1. Check training detail page has shortcut button and modal
-        $showResponse = $this->actingAs($user)->get('/training/' . $training->id);
+        $showResponse = $this->actingAs($user)->get('/training/'.$training->id);
         $showResponse->assertStatus(200);
         $showResponse->assertSee('Upload Video Materi');
         $showResponse->assertSee('uploadTrainingVideoModal');
 
         // 2. Submit shortcut video upload
-        $videoFile = \Illuminate\Http\UploadedFile::fake()->create('rekaman_pelatihan.mp4', 500, 'video/mp4');
+        $videoFile = UploadedFile::fake()->create('rekaman_pelatihan.mp4', 500, 'video/mp4');
         $uploadResponse = $this->actingAs($user)->post(route('video.store'), [
             'training_id' => $training->id,
             'title' => $training->title,
-            'description' => 'Rekaman video materi sesi pelatihan ' . $training->title,
+            'description' => 'Rekaman video materi sesi pelatihan '.$training->title,
             'video_type' => 'file',
             'video_file' => $videoFile,
-            'redirect_to' => '/training/' . $training->id,
+            'redirect_to' => '/training/'.$training->id,
         ]);
 
-        $uploadResponse->assertRedirect('/training/' . $training->id);
+        $uploadResponse->assertRedirect('/training/'.$training->id);
         $uploadResponse->assertSessionHas('success');
 
         // 3. Verify video exists in database and is linked to the training

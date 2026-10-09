@@ -22,14 +22,13 @@ class QuizController extends Controller
                 return ResponseFormatter::error(null, 'Anda sudah mengikuti quiz ini');
             }
 
-            if (!$isExist) {
+            if (! $isExist) {
                 $create = QuizHistory::create([
                     'user_id' => auth()->id(),
                     'quiz_id' => $quiz->id,
                     'total_question' => $quiz->document->question->count(),
                 ]);
             }
-
 
             return ResponseFormatter::success($create ?? 'ok', 'berhasil');
         } catch (Exception $e) {
@@ -49,6 +48,7 @@ class QuizController extends Controller
             foreach ($questions as $question) {
                 $question['quiz_id'] = $quiz->id;
             }
+
             return ResponseFormatter::success($questions, 'berhasil');
         } catch (Exception $e) {
             return ResponseFormatter::error(null, $e->getMessage());
@@ -63,8 +63,9 @@ class QuizController extends Controller
                 'quiz_id' => $request->quiz_id,
                 'quiz_question_id' => $quizQuestion->id,
                 'quiz_option_id' => $request->quiz_option_id,
-                'value' => $request->value
+                'value' => $request->value,
             ]);
+
             return ResponseFormatter::success($quizAnswer, 'berhasil');
         } catch (Exception $e) {
             return ResponseFormatter::error(null, $e->getMessage());
@@ -90,6 +91,7 @@ class QuizController extends Controller
                 'correct_answer' => $point,
                 'value' => $total,
             ]);
+
             return ResponseFormatter::success(
                 $history,
                 'berhasil'
@@ -105,6 +107,7 @@ class QuizController extends Controller
             $history = QuizHistory::with(['quiz.document' => function ($q) {
                 $q->withTrashed();
             }])->where('user_id', auth()->id())->get();
+
             return ResponseFormatter::success($history, 'berhasil');
         } catch (Exception $e) {
             return ResponseFormatter::error(null, $e->getMessage());
@@ -118,14 +121,15 @@ class QuizController extends Controller
 
         try {
             $highestValue = QuizHistory::with(['user', 'user.divisi', 'user.subdivisi', 'user.joblevel'])
-            ->whereHas('user', function ($q) {
-                $q->where('divisi_id', auth()->user()->divisi_id);
-            })
-            ->whereBetween('created_at', [$startMonth, $endMonth])
+                ->whereHas('user', function ($q) {
+                    $q->where('divisi_id', auth()->user()->divisi_id);
+                })
+                ->whereBetween('created_at', [$startMonth, $endMonth])
                 ->selectRaw('user_id, sum(value) as highestValue')
                 ->groupBy('user_id')
                 ->orderBy('highestValue', 'DESC')
                 ->get();
+
             return ResponseFormatter::success($highestValue, 'berhasil');
         } catch (Exception $e) {
             return ResponseFormatter::error(null, $e->getMessage());

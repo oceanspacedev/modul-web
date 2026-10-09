@@ -5,13 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\DokumenType;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class DokumenTypeController extends Controller
 {
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function index()
     {
@@ -25,7 +26,7 @@ class DokumenTypeController extends Controller
     /**
      * Show the form for creating a new resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function create()
     {
@@ -35,8 +36,7 @@ class DokumenTypeController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function store(Request $request)
     {
@@ -44,6 +44,7 @@ class DokumenTypeController extends Controller
             DokumenType::insert([
                 'name' => strtoupper($request->name),
             ]);
+
             return redirect('dokumentype')->with(['success' => 'berhasil menambahkan dokumentype']);
         } catch (Exception $e) {
             return redirect('dokumentype')->with(['error' => $e->getMessage()]);
@@ -54,7 +55,7 @@ class DokumenTypeController extends Controller
      * Display the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function show($id)
     {
@@ -65,7 +66,7 @@ class DokumenTypeController extends Controller
      * Show the form for editing the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function edit($id)
     {
@@ -79,17 +80,17 @@ class DokumenTypeController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function update(Request $request, $id)
     {
         try {
             $dokumentype = DokumenType::find($id);
             $dokumentype->update([
-                'name' => strtoupper($request->name)
+                'name' => strtoupper($request->name),
             ]);
+
             return redirect('dokumentype')->with(['success' => 'berhasil merubah dokumentype']);
         } catch (Exception $e) {
             return redirect('dokumentype')->with(['error' => $e->getMessage()]);
@@ -100,13 +101,14 @@ class DokumenTypeController extends Controller
      * Remove the specified resource from storage.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function destroy(Request $request)
     {
         try {
             $dokumentype = DokumenType::find($request->id);
             $dokumentype->delete();
+
             return redirect('dokumentype')->with(['success' => 'berhasil menghapus dokumentype']);
         } catch (Exception $e) {
             return redirect('dokumentype')->with(['error' => $e->getMessage()]);

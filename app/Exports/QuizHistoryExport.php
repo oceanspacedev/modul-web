@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\QuizUserAnswer;
+use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -10,15 +11,16 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 class QuizHistoryExport implements FromCollection, WithHeadings, WithMapping
 {
     protected int $quizId;
+
     protected int $userId;
 
-    function __construct(int $quizId, int $userId)
+    public function __construct(int $quizId, int $userId)
     {
         $this->quizId = $quizId;
         $this->userId = $userId;
     }
 
-    public function collection()
+    public function collection(): Collection
     {
         return QuizUserAnswer::with(['user' => function ($q) {
             $q->withTrashed();
@@ -43,7 +45,7 @@ class QuizHistoryExport implements FromCollection, WithHeadings, WithMapping
         ];
     }
 
-    public function map($row): array
+    public function map(mixed $row): array
     {
         return [
             $row->user->full_name ?? 'Nonactive user',

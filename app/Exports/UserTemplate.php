@@ -2,14 +2,17 @@
 
 namespace App\Exports;
 
+use Illuminate\Support\Collection;
+use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
-class UserTemplate implements WithHeadings
+class UserTemplate implements Export, WithHeadings
 {
     use Exportable;
+
     /**
-     * @return \Illuminate\Support\Collection
+     * @return Collection
      */
     public function headings(): array
     {

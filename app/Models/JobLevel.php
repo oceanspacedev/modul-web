@@ -19,7 +19,7 @@ class JobLevel extends Model
 
     public function user()
     {
-        return $this->hasOne(User::class,'user_id','id');
+        return $this->hasOne(User::class, 'user_id', 'id');
     }
 
     public function dokumen()

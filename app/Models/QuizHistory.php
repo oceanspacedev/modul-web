@@ -15,12 +15,12 @@ class QuizHistory extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class,'user_id','id');
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
 
     public function quiz()
     {
-        return $this->belongsTo(Quiz::class,'quiz_id');
+        return $this->belongsTo(Quiz::class, 'quiz_id');
     }
 
     public function getCreatedAtAttribute($value)

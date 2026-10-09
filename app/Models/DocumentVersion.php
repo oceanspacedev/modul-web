@@ -26,6 +26,6 @@ class DocumentVersion extends Model
 
     public function getFileUrlAttribute()
     {
-        return asset('storage/dokumen/' . $this->path);
+        return asset('storage/dokumen/'.$this->path);
     }
 }

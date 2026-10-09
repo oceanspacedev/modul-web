@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\API\AbsentController;
 use App\Http\Controllers\AuthController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DivisiController;
 use App\Http\Controllers\DocumentController;
@@ -19,30 +18,22 @@ use App\Http\Controllers\TrainingPortalController;
 use App\Http\Controllers\TrainingQuestionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VideoController;
-use App\Models\QuizHistory;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
-|
-*/
-
-Route::get('/', function (\Illuminate\Http\Request $request) {
+Route::get('/', function (Request $request) {
     if ($request->filled('redirect')) {
         session(['url.intended' => $request->redirect]);
     }
+
     return view('login.index');
 })->name('login');
 
-Route::get('/login', function (\Illuminate\Http\Request $request) {
+Route::get('/login', function (Request $request) {
     if ($request->filled('redirect')) {
         session(['url.intended' => $request->redirect]);
     }
+
     return redirect()->route('login', $request->only('redirect'));
 });
 
@@ -51,31 +42,31 @@ Route::post('/login/otp/request', [AuthController::class, 'requestOtp'])->name('
 Route::post('/login/otp/verify', [AuthController::class, 'verifyOtp'])->name('login.otp.verify');
 Route::get('download/app', [UserController::class, 'download']);
 
-## PUBLIC VIDEO ROUTES
+// # PUBLIC VIDEO ROUTES
 Route::get('video', [VideoController::class, 'index'])->name('video.index');
 Route::get('video/watch/{id}', [VideoController::class, 'show'])->name('video.show');
 
-## AUTHENTICATED COMMON ROUTES
+// # AUTHENTICATED COMMON ROUTES
 Route::middleware('auth')->group(function () {
     Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout');
     Route::post('video/{id}/comments', [VideoController::class, 'storeComment'])->name('video.comments.store');
     Route::delete('video/comments/{id}', [VideoController::class, 'destroyComment'])->name('video.comments.destroy');
 });
 
-Route::middleware(['auth','isAdmin'])->group(
+Route::middleware(['auth', 'isAdmin'])->group(
     function () {
-        ##DASHBOARD
+        // #DASHBOARD
         Route::get('dashboard', [DashboardController::class, 'index']);
 
-        ##VIDEO MANAGEMENT
+        // #VIDEO MANAGEMENT
         Route::get('video-manage/create', [VideoController::class, 'create'])->name('video.create');
         Route::post('video-manage', [VideoController::class, 'store'])->name('video.store');
         Route::get('video-manage/{id}/edit', [VideoController::class, 'edit'])->name('video.edit');
         Route::post('video-manage/update/{id}', [VideoController::class, 'update'])->name('video.update');
         Route::post('video-manage/delete/{id}', [VideoController::class, 'destroy'])->name('video.destroy');
 
-        ##QUIZ_QUESTION
-        Route::get('question',[QuizQuestionController::class,'index']);
+        // #QUIZ_QUESTION
+        Route::get('question', [QuizQuestionController::class, 'index']);
         Route::get('question/template', [QuizQuestionController::class, 'template']);
         Route::post('question/import', [QuizQuestionController::class, 'import']);
         Route::get('question/delete/{quizQuestion}', [QuizQuestionController::class, 'destroy']);
@@ -84,10 +75,10 @@ Route::middleware(['auth','isAdmin'])->group(
         Route::get('question/{id}/deleteAll', [QuizQuestionController::class, 'deleteAll']);
         Route::get('question/{id}/activeAll', [QuizQuestionController::class, 'activeAll']);
 
-        ##QUIZ_OPTION
+        // #QUIZ_OPTION
         Route::get('option/get', [QuizOptionController::class, 'get']);
 
-        ##QUIZ
+        // #QUIZ
         Route::get('quiz', [QuizController::class, 'index']);
         Route::post('quiz', [QuizController::class, 'store']);
         Route::get('quiz/history', [QuizHistoryController::class, 'index']);
@@ -100,8 +91,7 @@ Route::middleware(['auth','isAdmin'])->group(
         Route::get('quiz/history/delete/{quizHistory}', [QuizHistoryController::class, 'destroy']);
         Route::get('quiz/history/exportall/{quiz}', [QuizController::class, 'exportAllHistory']);
 
-
-        ##DOCUMENT
+        // #DOCUMENT
         Route::get('document', [DocumentController::class, 'index']);
         Route::post('document', [DocumentController::class, 'store']);
         Route::get('document/create', [DocumentController::class, 'create']);
@@ -111,38 +101,38 @@ Route::middleware(['auth','isAdmin'])->group(
         Route::get('document/delete/{id}', [DocumentController::class, 'destroy']);
         Route::get('document/active/{id}', [DocumentController::class, 'restore']);
 
-        ##DIVISI
+        // #DIVISI
         Route::get('divisi', [DivisiController::class, 'index']);
         Route::post('divisi', [DivisiController::class, 'store']);
         Route::post('divisi/delete', [DivisiController::class, 'destroy']);
         Route::get('divisi/{id}', [DivisiController::class, 'edit']);
         Route::post('divisi/{id}', [DivisiController::class, 'update']);
 
-        #SUBDIVISI
+        // SUBDIVISI
         Route::get('subdivisi', [SubDivisiController::class, 'index']);
         Route::post('subdivisi', [SubDivisiController::class, 'store']);
         Route::post('subdivisi/delete', [SubDivisiController::class, 'destroy']);
         Route::get('subdivisi/{id}', [SubDivisiController::class, 'edit']);
         Route::post('subdivisi/{id}', [SubDivisiController::class, 'update']);
 
-        ##JOBLEVEL
+        // #JOBLEVEL
         Route::get('joblevel', [JobLevelController::class, 'index']);
         Route::post('joblevel', [JobLevelController::class, 'store']);
         Route::post('joblevel/delete', [JobLevelController::class, 'destroy']);
         Route::get('joblevel/{id}', [JobLevelController::class, 'edit']);
         Route::post('joblevel/{id}', [JobLevelController::class, 'update']);
 
-        ##DOKUMEN TYPE
+        // #DOKUMEN TYPE
         Route::get('dokumentype', [DokumenTypeController::class, 'index']);
         Route::post('dokumentype', [DokumenTypeController::class, 'store']);
         Route::post('dokumentype/delete', [DokumenTypeController::class, 'destroy']);
         Route::get('dokumentype/{id}', [DokumenTypeController::class, 'edit']);
         Route::post('dokumentype/{id}', [DokumenTypeController::class, 'update']);
 
-        ##USER
+        // #USER
         Route::get('user', [UserController::class, 'index']);
         Route::post('user', [UserController::class, 'store']);
-        Route::post('user/import',[UserController::class,'import']);
+        Route::post('user/import', [UserController::class, 'import']);
         Route::get('user/export', [UserController::class, 'export']);
         Route::get('user/template', [UserController::class, 'template']);
         Route::get('user/create', [UserController::class, 'create']);
@@ -151,18 +141,18 @@ Route::middleware(['auth','isAdmin'])->group(
         Route::get('user/{id}', [UserController::class, 'edit']);
         Route::post('user/{id}', [UserController::class, 'update']);
 
-        ##ROLES & PERMISSIONS
+        // #ROLES & PERMISSIONS
         Route::resource('roles', RoleController::class);
         Route::post('roles/assign', [RoleController::class, 'assignUserRole'])->name('roles.assign');
 
-        ##HELPERS
+        // #HELPERS
         Route::get('subdivisi/get/{id}', [SubDivisiController::class, 'show']);
 
-        ##ABSENT
+        // #ABSENT
         Route::get('absent', [AbsentController::class, 'index']);
         Route::post('absent/export', [AbsentController::class, 'exportAbsent']);
 
-        ##TRAINING MANAGEMENT
+        // #TRAINING MANAGEMENT
         Route::get('training', [TrainingController::class, 'index'])->name('training.index');
         Route::get('training/create', [TrainingController::class, 'create'])->name('training.create');
         Route::post('training', [TrainingController::class, 'store'])->name('training.store');
@@ -189,7 +179,7 @@ Route::middleware(['auth','isAdmin'])->group(
         Route::post('training/{id}/update-offcam-count/{participantId}', [TrainingController::class, 'updateOffCamCount'])->name('training.update-offcam-count');
         Route::get('training/delete/{id}', [TrainingController::class, 'destroy'])->name('training.destroy');
 
-        ##TRAINING QUIZ QUESTIONS
+        // #TRAINING QUIZ QUESTIONS
         Route::get('training/{trainingId}/questions', [TrainingQuestionController::class, 'index'])->name('training.questions.index');
         Route::get('training/{trainingId}/questions/template', [TrainingQuestionController::class, 'downloadTemplate'])->name('training.questions.template');
         Route::post('training/{trainingId}/questions/import-excel', [TrainingQuestionController::class, 'importExcel'])->name('training.questions.import-excel');
@@ -203,12 +193,12 @@ Route::middleware(['auth','isAdmin'])->group(
     }
 );
 
-## LOGGED-IN USER TRAINING PORTAL
+// # LOGGED-IN USER TRAINING PORTAL
 Route::middleware(['auth'])->group(function () {
     Route::get('my-trainings', [TrainingPortalController::class, 'myTrainings'])->name('training.my-trainings');
 });
 
-## PUBLIC PARTICIPANT PORTAL (ACCESSIBLE VIA WHATSAPP TOKEN LINK)
+// # PUBLIC PARTICIPANT PORTAL (ACCESSIBLE VIA WHATSAPP TOKEN LINK)
 Route::get('training/portal/{token}', [TrainingPortalController::class, 'showPortal'])->name('training.portal');
 Route::get('training/portal/{token}/status', [TrainingPortalController::class, 'getStatus'])->name('training.portal.status');
 Route::post('training/portal/{token}/attendance', [TrainingPortalController::class, 'submitAttendance'])->name('training.portal.attendance');
@@ -217,4 +207,3 @@ Route::post('training/portal/{token}/quiz', [TrainingPortalController::class, 's
 Route::get('training/portal/{token}/retake', [TrainingPortalController::class, 'retakeQuiz'])->name('training.portal.retake');
 Route::post('training/portal/{token}/retake', [TrainingPortalController::class, 'retakeQuiz'])->name('training.portal.retake.post');
 Route::get('training/portal/{token}/result', [TrainingPortalController::class, 'showResult'])->name('training.portal.result');
-

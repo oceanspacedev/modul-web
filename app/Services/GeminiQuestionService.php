@@ -11,12 +11,13 @@ use ZipArchive;
 class GeminiQuestionService
 {
     protected ?string $apiKey;
+
     protected string $model;
 
     public function __construct(?string $apiKey = null)
     {
-        $this->apiKey = $apiKey ?: config('services.gemini.api_key', env('GEMINI_API_KEY'));
-        $this->model = config('services.gemini.model', env('GEMINI_MODEL', 'gemini-3.5-flash-lite'));
+        $this->apiKey = $apiKey ?: config('services.gemini.api_key');
+        $this->model = config('services.gemini.model', 'gemini-3.5-flash-lite');
     }
 
     /**
@@ -24,18 +25,18 @@ class GeminiQuestionService
      */
     public function isConfigured(): bool
     {
-        return !empty($this->apiKey);
+        return ! empty($this->apiKey);
     }
 
     /**
      * Generate quiz questions from one or more documents
      *
-     * @param array $documents List of Document models
-     * @param int $count Number of questions to generate
-     * @param string $type Question type: 'multiple_choice' or 'essay'
-     * @param string $difficulty Difficulty level: 'mudah', 'sedang', 'sulit', 'campuran'
-     * @param string|null $customPrompt Additional custom instructions
-     * @return array
+     * @param  array  $documents  List of Document models
+     * @param  int  $count  Number of questions to generate
+     * @param  string  $type  Question type: 'multiple_choice' or 'essay'
+     * @param  string  $difficulty  Difficulty level: 'mudah', 'sedang', 'sulit', 'campuran'
+     * @param  string|null  $customPrompt  Additional custom instructions
+     *
      * @throws Exception
      */
     public function generateQuestions(
@@ -45,12 +46,12 @@ class GeminiQuestionService
         string $difficulty = 'campuran',
         ?string $customPrompt = null
     ): array {
-        if (!$this->isConfigured()) {
-            throw new Exception("GEMINI_API_KEY belum dikonfigurasi. Silakan masukkan API Key Gemini di pengaturan atau file .env!");
+        if (! $this->isConfigured()) {
+            throw new Exception('GEMINI_API_KEY belum dikonfigurasi. Silakan masukkan API Key Gemini di pengaturan atau file .env!');
         }
 
         if (empty($documents)) {
-            throw new Exception("Tidak ada dokumen yang dipilih sebagai acuan materi.");
+            throw new Exception('Tidak ada dokumen yang dipilih sebagai acuan materi.');
         }
 
         $parts = [];
@@ -58,7 +59,7 @@ class GeminiQuestionService
         // Attach documents to prompt parts
         foreach ($documents as $doc) {
             $filePath = $this->resolveDocumentPath($doc);
-            if (!$filePath || !file_exists($filePath)) {
+            if (! $filePath || ! file_exists($filePath)) {
                 continue;
             }
 
@@ -70,7 +71,7 @@ class GeminiQuestionService
         }
 
         if (empty($parts)) {
-            throw new Exception("File fisik dari dokumen yang dipilih tidak ditemukan pada storage server.");
+            throw new Exception('File fisik dari dokumen yang dipilih tidak ditemukan pada storage server.');
         }
 
         // Build prompt instruction
@@ -92,20 +93,20 @@ class GeminiQuestionService
     {
         // Try latest version first
         $latestVersion = $doc->versions()->first();
-        if ($latestVersion && !empty($latestVersion->path)) {
-            $path = storage_path('app/public/dokumen/' . $latestVersion->path);
+        if ($latestVersion && ! empty($latestVersion->path)) {
+            $path = storage_path('app/public/dokumen/'.$latestVersion->path);
             if (file_exists($path)) {
                 return $path;
             }
         }
 
         // Try document direct path
-        if (!empty($doc->path)) {
-            $path = storage_path('app/public/dokumen/' . $doc->path);
+        if (! empty($doc->path)) {
+            $path = storage_path('app/public/dokumen/'.$doc->path);
             if (file_exists($path)) {
                 return $path;
             }
-            $publicPath = public_path('storage/dokumen/' . $doc->path);
+            $publicPath = public_path('storage/dokumen/'.$doc->path);
             if (file_exists($publicPath)) {
                 return $publicPath;
             }
@@ -133,9 +134,9 @@ class GeminiQuestionService
             } else {
                 // Large PDF: extract text fallback
                 $text = $this->extractTextFromPdfFallback($filePath);
-                if (!empty($text)) {
+                if (! empty($text)) {
                     return [
-                        'text' => "--- KONTEN DOKUMEN: {$docTitle} ---\n\n" . substr($text, 0, 80000),
+                        'text' => "--- KONTEN DOKUMEN: {$docTitle} ---\n\n".substr($text, 0, 80000),
                     ];
                 }
             }
@@ -144,9 +145,9 @@ class GeminiQuestionService
         // For DOCX: extract text
         if ($ext === 'docx') {
             $text = $this->extractTextFromDocx($filePath);
-            if (!empty($text)) {
+            if (! empty($text)) {
                 return [
-                    'text' => "--- KONTEN DOKUMEN: {$docTitle} ---\n\n" . substr($text, 0, 80000),
+                    'text' => "--- KONTEN DOKUMEN: {$docTitle} ---\n\n".substr($text, 0, 80000),
                 ];
             }
         }
@@ -154,14 +155,16 @@ class GeminiQuestionService
         // For TXT, CSV, MD
         if (in_array($ext, ['txt', 'csv', 'md', 'html'])) {
             $content = file_get_contents($filePath);
+
             return [
-                'text' => "--- KONTEN DOKUMEN: {$docTitle} ---\n\n" . substr($content, 0, 80000),
+                'text' => "--- KONTEN DOKUMEN: {$docTitle} ---\n\n".substr($content, 0, 80000),
             ];
         }
 
         // Generic fallback for any other files under 15MB
         if ($fileSize <= 15 * 1024 * 1024) {
             $mime = mime_content_type($filePath) ?: 'application/octet-stream';
+
             return [
                 'inline_data' => [
                     'mime_type' => $mime,
@@ -178,7 +181,7 @@ class GeminiQuestionService
      */
     protected function extractTextFromDocx(string $filePath): string
     {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($filePath) === true) {
             if (($index = $zip->locateName('word/document.xml')) !== false) {
                 $xml = $zip->getFromIndex($index);
@@ -186,10 +189,12 @@ class GeminiQuestionService
                 // Replace paragraphs and breaks with newlines
                 $clean = preg_replace('/<w:p[^>]*>/', "\n", $xml);
                 $clean = preg_replace('/<w:br[^>]*>/', "\n", $clean);
+
                 return trim(strip_tags($clean));
             }
             $zip->close();
         }
+
         return '';
     }
 
@@ -199,14 +204,15 @@ class GeminiQuestionService
     protected function extractTextFromPdfFallback(string $filePath): string
     {
         $content = @file_get_contents($filePath);
-        if (!$content) {
+        if (! $content) {
             return '';
         }
         // Simple stream text extraction
         preg_match_all('/\((.*?)\)Tj/s', $content, $matches);
-        if (!empty($matches[1])) {
+        if (! empty($matches[1])) {
             return implode(' ', $matches[1]);
         }
+
         return '';
     }
 
@@ -215,9 +221,9 @@ class GeminiQuestionService
      */
     protected function buildPromptText(int $count, string $type, string $difficulty, ?string $customPrompt): string
     {
-        $typeDesc = ($type === 'essay') 
-            ? "soal Essay / Uraian yang mendalam dan relevan" 
-            : "soal Pilihan Ganda (Multiple Choice) dengan 5 opsi jawaban (A, B, C, D, E)";
+        $typeDesc = ($type === 'essay')
+            ? 'soal Essay / Uraian yang mendalam dan relevan'
+            : 'soal Pilihan Ganda (Multiple Choice) dengan 5 opsi jawaban (A, B, C, D, E)';
 
         $prompt = "Anda adalah seorang instruktur pelatihan profesional dan pembuat materi ujian berpengalaman.\n\n";
         $prompt .= "TUGAS:\n";
@@ -251,16 +257,16 @@ class GeminiQuestionService
 
         $prompt .= "\nFORMAT OUTPUT (WAJIB JSON MURNI DENGAN SKEMA BERIKUT):\n";
         $prompt .= "{\n";
-        $prompt .= '  "questions": [' . "\n";
+        $prompt .= '  "questions": ['."\n";
         $prompt .= "    {\n";
-        $prompt .= '      "question": "Kalimat pertanyaan lengkap?",' . "\n";
-        $prompt .= '      "option_a": "Teks opsi A",' . "\n";
-        $prompt .= '      "option_b": "Teks opsi B",' . "\n";
-        $prompt .= '      "option_c": "Teks opsi C",' . "\n";
-        $prompt .= '      "option_d": "Teks opsi D",' . "\n";
-        $prompt .= '      "option_e": "Teks opsi E",' . "\n";
-        $prompt .= '      "correct_answer": "a",' . "\n";
-        $prompt .= '      "explanation": "Penjelasan mengapa opsi tersebut benar..."' . "\n";
+        $prompt .= '      "question": "Kalimat pertanyaan lengkap?",'."\n";
+        $prompt .= '      "option_a": "Teks opsi A",'."\n";
+        $prompt .= '      "option_b": "Teks opsi B",'."\n";
+        $prompt .= '      "option_c": "Teks opsi C",'."\n";
+        $prompt .= '      "option_d": "Teks opsi D",'."\n";
+        $prompt .= '      "option_e": "Teks opsi E",'."\n";
+        $prompt .= '      "correct_answer": "a",'."\n";
+        $prompt .= '      "explanation": "Penjelasan mengapa opsi tersebut benar..."'."\n";
         $prompt .= "    }\n";
         $prompt .= "  ]\n";
         $prompt .= "}\n";
@@ -285,7 +291,7 @@ class GeminiQuestionService
         $lastError = null;
 
         foreach ($modelsToTry as $modelName) {
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key=" . urlencode($this->apiKey);
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key=".urlencode($this->apiKey);
 
             $payload = [
                 'contents' => [
@@ -311,12 +317,12 @@ class GeminiQuestionService
 
                 $errBody = $response->json();
                 $errMsg = $errBody['error']['message'] ?? $response->body();
-                $lastError = "Gemini API ({$modelName}) Error: " . $errMsg;
-                Log::warning("Gemini model {$modelName} failed: " . $errMsg);
+                $lastError = "Gemini API ({$modelName}) Error: ".$errMsg;
+                Log::warning("Gemini model {$modelName} failed: ".$errMsg);
 
                 // If error is invalid API key, stop trying other models
                 if (str_contains($errMsg, 'API_KEY_INVALID') || str_contains($errMsg, 'API key not valid')) {
-                    throw new Exception("API Key Gemini tidak valid. Silakan periksa kembali GEMINI_API_KEY Anda.");
+                    throw new Exception('API Key Gemini tidak valid. Silakan periksa kembali GEMINI_API_KEY Anda.');
                 }
             } catch (Exception $e) {
                 if (str_contains($e->getMessage(), 'API Key Gemini tidak valid')) {
@@ -326,7 +332,7 @@ class GeminiQuestionService
             }
         }
 
-        throw new Exception($lastError ?: "Gagal menghubungi layanan Google Gemini. Silakan coba beberapa saat lagi.");
+        throw new Exception($lastError ?: 'Gagal menghubungi layanan Google Gemini. Silakan coba beberapa saat lagi.');
     }
 
     /**
@@ -335,8 +341,8 @@ class GeminiQuestionService
     protected function parseResponse(array $response, string $type): array
     {
         $rawText = $response['candidates'][0]['content']['parts'][0]['text'] ?? null;
-        if (!$rawText) {
-            throw new Exception("Google Gemini tidak mengembalikan respons teks yang valid.");
+        if (! $rawText) {
+            throw new Exception('Google Gemini tidak mengembalikan respons teks yang valid.');
         }
 
         // Clean markdown backticks if any
@@ -352,13 +358,13 @@ class GeminiQuestionService
         $cleanJson = trim($cleanJson);
 
         $decoded = json_decode($cleanJson, true);
-        if (!$decoded || !isset($decoded['questions']) || !is_array($decoded['questions'])) {
+        if (! $decoded || ! isset($decoded['questions']) || ! is_array($decoded['questions'])) {
             // Check if returned directly as array
             if (is_array($decoded) && isset($decoded[0]['question'])) {
                 $questionsList = $decoded;
             } else {
-                Log::error("Failed to parse Gemini JSON: " . $cleanJson);
-                throw new Exception("Format keluaran AI tidak dapat diproses sebagai daftar soal. Silakan coba lagi.");
+                Log::error('Failed to parse Gemini JSON: '.$cleanJson);
+                throw new Exception('Format keluaran AI tidak dapat diproses sebagai daftar soal. Silakan coba lagi.');
             }
         } else {
             $questionsList = $decoded['questions'];
@@ -373,7 +379,7 @@ class GeminiQuestionService
 
             $correctAnswer = strtolower(trim($q['correct_answer'] ?? 'a'));
             if ($type === 'multiple_choice') {
-                if (!in_array($correctAnswer, ['a', 'b', 'c', 'd', 'e'])) {
+                if (! in_array($correctAnswer, ['a', 'b', 'c', 'd', 'e'])) {
                     $correctAnswer = 'a';
                 }
             }
@@ -393,7 +399,7 @@ class GeminiQuestionService
         }
 
         if (empty($sanitized)) {
-            throw new Exception("AI tidak menghasilkan butir soal yang valid dari dokumen tersebut.");
+            throw new Exception('AI tidak menghasilkan butir soal yang valid dari dokumen tersebut.');
         }
 
         return $sanitized;

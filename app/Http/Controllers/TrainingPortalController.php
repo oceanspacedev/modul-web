@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Training;
 use App\Models\TrainingParticipant;
 use App\Models\TrainingQuizResult;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -19,13 +18,13 @@ class TrainingPortalController extends Controller
     {
         $query = TrainingParticipant::where('token', $token);
 
-        if (!empty($with)) {
+        if (! empty($with)) {
             $query->with($with);
         }
 
         $participant = $query->first();
 
-        if (!$participant) {
+        if (! $participant) {
             abort(404);
         }
 
@@ -49,7 +48,7 @@ class TrainingPortalController extends Controller
         $training = $participant->training;
 
         return view('training.portal.index', [
-            'title' => 'Portal Pelatihan: ' . $training->title,
+            'title' => 'Portal Pelatihan: '.$training->title,
             'participant' => $participant,
             'training' => $training,
             'user' => $participant->user,
@@ -65,7 +64,7 @@ class TrainingPortalController extends Controller
         $training = $participant->training;
 
         // Check if attendance is activated by admin (or quiz is active)
-        if (!$training->is_attendance_active && !$training->is_quiz_active) {
+        if (! $training->is_attendance_active && ! $training->is_quiz_active) {
             return back()->with('warning', 'Presensi kehadiran saat ini belum dibuka oleh Pemateri / Admin. Harap menunggu instruksi dari pemateri.');
         }
 
@@ -83,8 +82,8 @@ class TrainingPortalController extends Controller
 
         $messages = [
             'attendance_proof.required' => 'Wajib mengunggah screenshot bukti Anda mengikuti pelatihan / Zoom untuk konfirmasi kehadiran.',
-            'attendance_proof.image'    => 'File bukti kehadiran harus berupa gambar (JPG, PNG, atau WEBP).',
-            'attendance_proof.max'      => 'Ukuran file screenshot bukti maksimal 5MB.',
+            'attendance_proof.image' => 'File bukti kehadiran harus berupa gambar (JPG, PNG, atau WEBP).',
+            'attendance_proof.max' => 'Ukuran file screenshot bukti maksimal 5MB.',
         ];
 
         $validated = $request->validate($rules, $messages);
@@ -94,16 +93,16 @@ class TrainingPortalController extends Controller
             if ($proofPath && Storage::disk('public')->exists($proofPath)) {
                 Storage::disk('public')->delete($proofPath);
             }
-            $file      = $request->file('attendance_proof');
-            $fileName  = Str::random(30) . '.' . $file->getClientOriginalExtension();
+            $file = $request->file('attendance_proof');
+            $fileName = Str::random(30).'.'.$file->getClientOriginalExtension();
             $proofPath = $file->storeAs('attendance_proofs', $fileName, 'public');
         }
 
         $participant->update([
             'attendance_status' => $validated['status'],
-            'attended_at'       => now(),
-            'attendance_notes'  => $validated['notes'] ?? null,
-            'attendance_proof'  => $proofPath,
+            'attended_at' => now(),
+            'attendance_notes' => $validated['notes'] ?? null,
+            'attendance_proof' => $proofPath,
         ]);
 
         $msg = $validated['status'] === 'hadir'
@@ -134,7 +133,7 @@ class TrainingPortalController extends Controller
         }
 
         // Check if quiz is activated by trainer
-        if (!$training->is_quiz_active) {
+        if (! $training->is_quiz_active) {
             return redirect("/training/portal/{$token}")->with(
                 'warning',
                 'Kuis evaluasi saat ini belum dibuka oleh Pemateri. Harap menunggu instruksi dari pemateri.'
@@ -163,10 +162,10 @@ class TrainingPortalController extends Controller
         }
 
         return view($viewName, [
-            'title'       => 'Kuis Evaluasi: ' . $training->title,
+            'title' => 'Kuis Evaluasi: '.$training->title,
             'participant' => $participant,
-            'training'    => $training,
-            'questions'   => $questions,
+            'training' => $training,
+            'questions' => $questions,
             'leaderboard' => $leaderboard,
         ]);
     }
@@ -190,14 +189,14 @@ class TrainingPortalController extends Controller
     public function submitQuiz(Request $request, $token)
     {
         $participant = $this->findParticipant($token, ['training.questions', 'quizResult']);
-        $training    = $participant->training;
+        $training = $participant->training;
 
         // Prevent resubmission if participant has already submitted quiz
         if ($participant->quizResult) {
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
-                    'success'      => false,
-                    'message'      => 'Anda sudah menyelesaikan kuis ini dan tidak dapat mengerjakan ulang.',
+                    'success' => false,
+                    'message' => 'Anda sudah menyelesaikan kuis ini dan tidak dapat mengerjakan ulang.',
                     'redirect_url' => "/training/portal/{$token}/result",
                 ], 403);
             }
@@ -208,13 +207,13 @@ class TrainingPortalController extends Controller
             );
         }
 
-        $questions        = $training->questions;
-        $totalQuestions   = $questions->count();
+        $questions = $training->questions;
+        $totalQuestions = $questions->count();
         $submittedAnswers = $request->input('answers', []);
 
-        $mcTotal      = 0;
+        $mcTotal = 0;
         $correctCount = 0;
-        $essayTotal   = 0;
+        $essayTotal = 0;
         $answersDetails = [];
 
         foreach ($questions as $q) {
@@ -223,50 +222,52 @@ class TrainingPortalController extends Controller
             if ($q->type === 'essay') {
                 $essayTotal++;
                 $answersDetails[$q->id] = [
-                    'type'           => 'essay',
-                    'user_answer'    => is_string($userAns) ? trim($userAns) : '',
+                    'type' => 'essay',
+                    'user_answer' => is_string($userAns) ? trim($userAns) : '',
                     'correct_answer' => $q->correct_answer,
-                    'is_correct'     => null,
+                    'is_correct' => null,
                 ];
             } else {
                 $mcTotal++;
-                $isCorrect = ($userAns && strtolower((string)$userAns) === strtolower((string)$q->correct_answer));
-                if ($isCorrect) $correctCount++;
+                $isCorrect = ($userAns && strtolower((string) $userAns) === strtolower((string) $q->correct_answer));
+                if ($isCorrect) {
+                    $correctCount++;
+                }
 
                 $answersDetails[$q->id] = [
-                    'type'           => 'multiple_choice',
-                    'user_answer'    => $userAns,
+                    'type' => 'multiple_choice',
+                    'user_answer' => $userAns,
                     'correct_answer' => $q->correct_answer,
-                    'is_correct'     => $isCorrect,
+                    'is_correct' => $isCorrect,
                 ];
             }
         }
 
-        $tabSwitchCount     = (int)$request->input('tab_switch_count', 0);
-        $isForceSubmitted   = (bool)$request->input('is_force_submitted', false);
+        $tabSwitchCount = (int) $request->input('tab_switch_count', 0);
+        $isForceSubmitted = (bool) $request->input('is_force_submitted', false);
         $violationLogsInput = $request->input('violation_logs');
-        $violationLogs      = is_string($violationLogsInput)
+        $violationLogs = is_string($violationLogsInput)
             ? json_decode($violationLogsInput, true)
             : (is_array($violationLogsInput) ? $violationLogsInput : []);
 
-        $mcScore     = $mcTotal > 0 ? round(($correctCount / $mcTotal) * 100, 2) : 100;
+        $mcScore = $mcTotal > 0 ? round(($correctCount / $mcTotal) * 100, 2) : 100;
         $essayStatus = ($essayTotal > 0) ? 'pending' : 'none';
 
         TrainingQuizResult::create([
-            'training_id'            => $training->id,
-            'user_id'                => $participant->user_id,
+            'training_id' => $training->id,
+            'user_id' => $participant->user_id,
             'training_participant_id' => $participant->id,
-            'total_questions'        => $totalQuestions,
-            'correct_answers'        => $correctCount,
-            'score'                  => $mcScore,
-            'mc_score'               => $mcScore,
-            'essay_score'            => null,
-            'essay_status'           => $essayStatus,
-            'tab_switch_count'       => $tabSwitchCount,
-            'is_force_submitted'     => $isForceSubmitted,
-            'violation_logs'         => $violationLogs,
-            'answers'                => $answersDetails,
-            'submitted_at'           => now(),
+            'total_questions' => $totalQuestions,
+            'correct_answers' => $correctCount,
+            'score' => $mcScore,
+            'mc_score' => $mcScore,
+            'essay_score' => null,
+            'essay_status' => $essayStatus,
+            'tab_switch_count' => $tabSwitchCount,
+            'is_force_submitted' => $isForceSubmitted,
+            'violation_logs' => $violationLogs,
+            'answers' => $answersDetails,
+            'submitted_at' => now(),
         ]);
 
         if ($request->ajax() || $request->wantsJson()) {
@@ -278,22 +279,22 @@ class TrainingPortalController extends Controller
                 ->get()
                 ->map(function ($r, $idx) {
                     return [
-                        'rank'    => $idx + 1,
+                        'rank' => $idx + 1,
                         'user_id' => $r->user_id,
-                        'name'    => $r->user ? $r->user->full_name : 'Peserta',
-                        'score'   => (float)$r->score,
+                        'name' => $r->user ? $r->user->full_name : 'Peserta',
+                        'score' => (float) $r->score,
                     ];
                 });
 
             return response()->json([
-                'success'      => true,
-                'score'        => $mcScore,
-                'leaderboard'  => $updatedLeaderboard,
+                'success' => true,
+                'score' => $mcScore,
+                'leaderboard' => $updatedLeaderboard,
                 'redirect_url' => "/training/portal/{$token}/result",
             ]);
         }
 
-        $flashMsg  = $isForceSubmitted
+        $flashMsg = $isForceSubmitted
             ? 'Kuis telah otomatis dikumpulkan karena Anda terdeteksi berpindah tab melebihi batas toleransi!'
             : 'Jawaban kuis Anda berhasil dikirim dan tersimpan di sistem!';
         $flashType = $isForceSubmitted ? 'warning' : 'success';
@@ -315,16 +316,16 @@ class TrainingPortalController extends Controller
 
         $quizResult = $participant->quizResult;
 
-        if (!$quizResult) {
+        if (! $quizResult) {
             return redirect("/training/portal/{$token}")->with('warning', 'Anda belum menyelesaikan kuis.');
         }
 
         return view('training.portal.result', [
-            'title'       => 'Hasil Kuis: ' . $participant->training->title,
+            'title' => 'Hasil Kuis: '.$participant->training->title,
             'participant' => $participant,
-            'training'    => $participant->training,
-            'quizResult'  => $quizResult,
-            'questions'   => $participant->training->questions,
+            'training' => $participant->training,
+            'quizResult' => $quizResult,
+            'questions' => $participant->training->questions,
         ]);
     }
 
@@ -334,14 +335,14 @@ class TrainingPortalController extends Controller
     public function getStatus($token)
     {
         $participant = $this->findParticipant($token, ['training', 'quizResult']);
-        $training    = $participant->training;
+        $training = $participant->training;
 
         return response()->json([
-            'is_attendance_active'     => (bool) $training->is_attendance_active,
-            'is_quiz_active'           => (bool) $training->is_quiz_active,
+            'is_attendance_active' => (bool) $training->is_attendance_active,
+            'is_quiz_active' => (bool) $training->is_quiz_active,
             'require_attendance_proof' => (bool) $training->require_attendance_proof,
-            'attendance_status'        => $participant->attendance_status,
-            'has_quiz_result'          => $participant->quizResult ? true : false,
+            'attendance_status' => $participant->attendance_status,
+            'has_quiz_result' => $participant->quizResult ? true : false,
         ]);
     }
 
@@ -359,8 +360,8 @@ class TrainingPortalController extends Controller
             ->paginate(10);
 
         return view('training.portal.my_trainings', [
-            'title'          => 'Pelatihan Saya',
-            'active'         => 'my-trainings',
+            'title' => 'Pelatihan Saya',
+            'active' => 'my-trainings',
             'participations' => $participations,
         ]);
     }

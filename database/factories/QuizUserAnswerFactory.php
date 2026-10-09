@@ -2,10 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\QuizUserAnswer;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\QuizUserAnswer>
+ * @extends Factory<QuizUserAnswer>
  */
 class QuizUserAnswerFactory extends Factory
 {
@@ -14,7 +15,7 @@ class QuizUserAnswerFactory extends Factory
      *
      * @return array<string, mixed>
      */
-    public function definition()
+    public function definition(): array
     {
         return [
             //

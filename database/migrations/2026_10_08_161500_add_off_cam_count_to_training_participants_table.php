@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -15,7 +15,7 @@ return new class extends Migration
     public function up()
     {
         Schema::table('training_participants', function (Blueprint $table) {
-            if (!Schema::hasColumn('training_participants', 'off_cam_count')) {
+            if (! Schema::hasColumn('training_participants', 'off_cam_count')) {
                 $table->unsignedSmallInteger('off_cam_count')->default(0)->after('is_off_cam');
             }
         });

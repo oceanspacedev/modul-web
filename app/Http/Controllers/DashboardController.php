@@ -2,20 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\User;
+use App\Models\Absent;
+use App\Models\Divisi;
 use App\Models\Document;
+use App\Models\DokumenType;
 use App\Models\Quiz;
 use App\Models\QuizHistory;
-use App\Models\Video;
+use App\Models\SubDivisi;
 use App\Models\Training;
 use App\Models\TrainingParticipant;
 use App\Models\TrainingQuizResult;
-use App\Models\Absent;
-use App\Models\Divisi;
-use App\Models\SubDivisi;
-use App\Models\DokumenType;
-use Illuminate\Support\Facades\DB;
+use App\Models\User;
+use App\Models\Video;
+use Illuminate\Http\Response;
 use Illuminate\Support\Str;
 
 class DashboardController extends Controller
@@ -23,7 +22,7 @@ class DashboardController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function index()
     {
@@ -75,7 +74,7 @@ class DashboardController extends Controller
 
         // Chart 2: Quiz Evaluation Score Distribution
         $quizScores = TrainingQuizResult::pluck('score')->map(function ($s) {
-            return (float)$s;
+            return (float) $s;
         });
         $scoreBuckets = [
             'sangat_baik' => 0, // >= 85
@@ -145,7 +144,7 @@ class DashboardController extends Controller
                 'quizMinScore' => $quizMinScore,
                 'chartContentLabels' => $chartContentLabels,
                 'chartContentValues' => $chartContentValues,
-            ]
+            ],
         ]);
     }
 }

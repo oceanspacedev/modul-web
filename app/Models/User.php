@@ -12,7 +12,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -34,24 +34,28 @@ class User extends Authenticatable
     ];
 
     /**
-     * The attributes that should be cast.
+     * Get the attributes that should be cast.
      *
-     * @var array<string, string>
+     * @return array<string, string>
      */
-    // protected $casts = [
-    //     'email_verified_at' => 'datetime',
-    // ];
+    protected function casts(): array
+    {
+        return [
+            'last_seen' => 'datetime',
+            'password' => 'hashed',
+        ];
+    }
 
     public function scopeFilter($query)
     {
         if (request('search')) {
             $search = request('search');
             $query->where(function ($q) use ($search) {
-                $q->where('full_name', 'like', '%' . $search . '%')
-                    ->orWhere('username', 'like', '%' . $search . '%')
-                    ->orWhere('id_karyawan', 'like', '%' . $search . '%')
-                    ->orWhere('email', 'like', '%' . $search . '%')
-                    ->orWhere('no_wa', 'like', '%' . $search . '%');
+                $q->where('full_name', 'like', '%'.$search.'%')
+                    ->orWhere('username', 'like', '%'.$search.'%')
+                    ->orWhere('id_karyawan', 'like', '%'.$search.'%')
+                    ->orWhere('email', 'like', '%'.$search.'%')
+                    ->orWhere('no_wa', 'like', '%'.$search.'%');
             });
         }
     }
@@ -63,12 +67,12 @@ class User extends Authenticatable
 
     public function subdivisi()
     {
-        return $this->belongsTo(SubDivisi::class,'sub_divisi_id');
+        return $this->belongsTo(SubDivisi::class, 'sub_divisi_id');
     }
 
     public function joblevel()
     {
-        return $this->belongsTo(JobLevel::class,'job_level_id');
+        return $this->belongsTo(JobLevel::class, 'job_level_id');
     }
 
     public function lastSeen()
@@ -80,5 +84,4 @@ class User extends Authenticatable
     {
         return $this->hasMany(Absent::class, 'user_id');
     }
-
 }

@@ -4,6 +4,7 @@ namespace App\Exports;
 
 use App\Models\QuizHistory;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -11,11 +12,14 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 class QuizResultExport implements FromCollection, WithHeadings, WithMapping
 {
     protected int $quizId;
+
     protected int $divisi_id;
+
     protected int $kkm;
+
     protected int $denda;
 
-    function __construct(int $quizId, int $divisi_id, int $kkm, int $denda)
+    public function __construct(int $quizId, int $divisi_id, int $kkm, int $denda)
     {
         $this->quizId = $quizId;
         $this->divisi_id = $divisi_id;
@@ -23,7 +27,7 @@ class QuizResultExport implements FromCollection, WithHeadings, WithMapping
         $this->denda = $denda;
     }
 
-    public function collection()
+    public function collection(): Collection
     {
         $result = [];
         $users = User::where('divisi_id', $this->divisi_id)->get();
@@ -31,13 +35,14 @@ class QuizResultExport implements FromCollection, WithHeadings, WithMapping
             $dataQuizUser = QuizHistory::with('quiz')->where('quiz_id', $this->quizId)->where('user_id', $user->id)->withTrashed()->first();
             array_push($result, [
                 'full_name' => $user->full_name ?? 'Nonactive user',
-                'correct_answer' => $dataQuizUser ==  null ? '-' : $dataQuizUser->correct_answer,
-                'wrong_answer' => $dataQuizUser ==  null ? '-' : $dataQuizUser->total_question - ($dataQuizUser->correct_answer ?? 0),
-                'total_question' => $dataQuizUser ==  null ? '-' : $dataQuizUser->total_question,
-                'value' => $dataQuizUser ==  null ? '-' : $dataQuizUser->value ?? 0,
-                'potongan' => $dataQuizUser == null ? $this->denda : ($dataQuizUser->value < $this->kkm ? $this->denda : 0)
+                'correct_answer' => $dataQuizUser == null ? '-' : $dataQuizUser->correct_answer,
+                'wrong_answer' => $dataQuizUser == null ? '-' : $dataQuizUser->total_question - ($dataQuizUser->correct_answer ?? 0),
+                'total_question' => $dataQuizUser == null ? '-' : $dataQuizUser->total_question,
+                'value' => $dataQuizUser == null ? '-' : $dataQuizUser->value ?? 0,
+                'potongan' => $dataQuizUser == null ? $this->denda : ($dataQuizUser->value < $this->kkm ? $this->denda : 0),
             ]);
         }
+
         return collect($result);
     }
 
@@ -53,7 +58,7 @@ class QuizResultExport implements FromCollection, WithHeadings, WithMapping
         ];
     }
 
-    public function map($row): array
+    public function map(mixed $row): array
     {
         return [
             $row['full_name'],

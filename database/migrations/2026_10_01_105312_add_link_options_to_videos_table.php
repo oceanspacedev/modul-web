@@ -16,9 +16,8 @@ return new class extends Migration
         Schema::table('videos', function (Blueprint $table) {
             $table->string('video_type', 20)->default('file')->after('description');
             $table->text('video_link')->nullable()->after('video_file');
+            $table->string('video_file')->nullable()->change();
         });
-
-        \Illuminate\Support\Facades\DB::statement("ALTER TABLE `videos` MODIFY `video_file` VARCHAR(255) NULL");
     }
 
     /**

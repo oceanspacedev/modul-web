@@ -21,7 +21,7 @@ return new class extends Migration
             $table->foreignId('job_level_id')->nullable();
             $table->foreignId('document_type');
             $table->string('path');
-            $table->unique(['name','divisi_id','job_level_id','path']);
+            $table->unique(['name', 'divisi_id', 'job_level_id', 'path']);
             $table->softDeletes();
             $table->timestamps();
         });

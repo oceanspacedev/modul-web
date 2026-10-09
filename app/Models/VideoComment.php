@@ -44,6 +44,7 @@ class VideoComment extends Model
         if ($this->video && $this->video->training && $this->video->training->trainer_id) {
             return $this->user_id === $this->video->training->trainer_id;
         }
+
         return false;
     }
 

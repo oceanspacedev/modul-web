@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\Document;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DocumentSeeder extends Seeder
@@ -22,7 +21,7 @@ class DocumentSeeder extends Seeder
                 'sub_divisi_id' => 21,
                 'job_level_id' => 8,
                 'document_type' => 1,
-                'path' => 'modul_complete_selular.pdf'
+                'path' => 'modul_complete_selular.pdf',
             ],
             [
                 'name' => 'PENGENALAN PROGRAM',
@@ -30,7 +29,7 @@ class DocumentSeeder extends Seeder
                 'sub_divisi_id' => 21,
                 'job_level_id' => 8,
                 'document_type' => 1,
-                'path' => 'modul-pengenalan-program.pdf'
+                'path' => 'modul-pengenalan-program.pdf',
             ],
             [
                 'name' => 'BUDAYA PERUSAHAAN',
@@ -38,7 +37,7 @@ class DocumentSeeder extends Seeder
                 'sub_divisi_id' => 21,
                 'job_level_id' => 8,
                 'document_type' => 1,
-                'path' => 'modul-budaya-perusahaan.pdf'
+                'path' => 'modul-budaya-perusahaan.pdf',
             ],
             [
                 'name' => 'STOCK OPNAME',
@@ -46,7 +45,7 @@ class DocumentSeeder extends Seeder
                 'sub_divisi_id' => 21,
                 'job_level_id' => 2,
                 'document_type' => 2,
-                'path' => 'stock_opname.pdf'
+                'path' => 'stock_opname.pdf',
             ],
         ]);
     }

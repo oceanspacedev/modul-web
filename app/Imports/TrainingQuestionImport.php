@@ -11,6 +11,7 @@ use Maatwebsite\Excel\Concerns\WithStartRow;
 class TrainingQuestionImport implements ToCollection, WithStartRow
 {
     protected int $trainingId;
+
     protected int $importedCount = 0;
 
     public function __construct(int $trainingId)
@@ -23,27 +24,27 @@ class TrainingQuestionImport implements ToCollection, WithStartRow
         return 2;
     }
 
-    public function collection(Collection $rows)
+    public function collection(Collection $rows): void
     {
         foreach ($rows as $index => $row) {
             $rowNumber = $index + 2; // offset for 1-based index and header row
 
-            $rawType = trim((string)($row[0] ?? ''));
-            $questionText = trim((string)($row[1] ?? ''));
+            $rawType = trim((string) ($row[0] ?? ''));
+            $questionText = trim((string) ($row[1] ?? ''));
 
             // Skip empty rows
             if ($questionText === '') {
                 continue;
             }
 
-            $rawKey = trim((string)($row[2] ?? ''));
-            $optA = trim((string)($row[3] ?? '')) ?: null;
-            $optB = trim((string)($row[4] ?? '')) ?: null;
-            $optC = trim((string)($row[5] ?? '')) ?: null;
-            $optD = trim((string)($row[6] ?? '')) ?: null;
-            $optE = trim((string)($row[7] ?? '')) ?: null;
-            $optF = trim((string)($row[8] ?? '')) ?: null;
-            $explanation = trim((string)($row[9] ?? '')) ?: null;
+            $rawKey = trim((string) ($row[2] ?? ''));
+            $optA = trim((string) ($row[3] ?? '')) ?: null;
+            $optB = trim((string) ($row[4] ?? '')) ?: null;
+            $optC = trim((string) ($row[5] ?? '')) ?: null;
+            $optD = trim((string) ($row[6] ?? '')) ?: null;
+            $optE = trim((string) ($row[7] ?? '')) ?: null;
+            $optF = trim((string) ($row[8] ?? '')) ?: null;
+            $explanation = trim((string) ($row[9] ?? '')) ?: null;
 
             $isEssay = in_array(strtolower($rawType), ['essay', 'esai', 'uraian', 'text']);
 
@@ -64,7 +65,7 @@ class TrainingQuestionImport implements ToCollection, WithStartRow
                 $this->importedCount++;
             } else {
                 // Multiple Choice Validation: At least Option A and Option B must be filled
-                if (!$optA || !$optB) {
+                if (! $optA || ! $optB) {
                     throw new Exception("Baris ke-{$rowNumber}: Soal Pilihan Ganda '{$questionText}' harus memiliki minimal Pilihan A dan Pilihan B.");
                 }
 
@@ -80,7 +81,7 @@ class TrainingQuestionImport implements ToCollection, WithStartRow
                 ];
 
                 // If user wrote the full answer text instead of letter, match it
-                if (!array_key_exists($keyLetter, $validOptions) || empty($validOptions[$keyLetter])) {
+                if (! array_key_exists($keyLetter, $validOptions) || empty($validOptions[$keyLetter])) {
                     $matchedKey = null;
                     foreach ($validOptions as $letter => $content) {
                         if ($content !== null && strcasecmp(trim($content), $rawKey) === 0) {

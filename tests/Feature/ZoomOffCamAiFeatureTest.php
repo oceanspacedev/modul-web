@@ -7,18 +7,20 @@ use App\Models\Training;
 use App\Models\TrainingParticipant;
 use App\Models\User;
 use App\Services\ZoomAttendanceAiService;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class ZoomOffCamAiFeatureTest extends TestCase
 {
-    use DatabaseTransactions;
-
     protected $admin;
+
     protected $participantUser1;
+
     protected $participantUser2;
+
     protected $training;
+
     protected $participant1;
+
     protected $participant2;
 
     protected function setUp(): void
@@ -33,20 +35,20 @@ class ZoomOffCamAiFeatureTest extends TestCase
         $divisi = Divisi::first() ?? Divisi::create(['name' => 'Divisi Test']);
 
         $this->participantUser1 = User::create([
-            'username' => 'rizky_' . uniqid(),
+            'username' => 'rizky_'.uniqid(),
             'full_name' => 'Muhammad Rizky Pratama',
             'id_karyawan' => 'EMP-001',
-            'email' => 'rizky_' . uniqid() . '@example.com',
+            'email' => 'rizky_'.uniqid().'@example.com',
             'password' => bcrypt('password'),
             'job_level_id' => 2,
             'divisi_id' => $divisi->id,
         ]);
 
         $this->participantUser2 = User::create([
-            'username' => 'budi_' . uniqid(),
+            'username' => 'budi_'.uniqid(),
             'full_name' => 'Budi Santoso',
             'id_karyawan' => 'EMP-002',
-            'email' => 'budi_' . uniqid() . '@example.com',
+            'email' => 'budi_'.uniqid().'@example.com',
             'password' => bcrypt('password'),
             'job_level_id' => 2,
             'divisi_id' => $divisi->id,
@@ -68,7 +70,7 @@ class ZoomOffCamAiFeatureTest extends TestCase
         $this->participant1 = TrainingParticipant::create([
             'training_id' => $this->training->id,
             'user_id' => $this->participantUser1->id,
-            'token' => 'token_rizky_' . uniqid(),
+            'token' => 'token_rizky_'.uniqid(),
             'attendance_status' => 'hadir',
             'attended_at' => now(),
         ]);
@@ -76,7 +78,7 @@ class ZoomOffCamAiFeatureTest extends TestCase
         $this->participant2 = TrainingParticipant::create([
             'training_id' => $this->training->id,
             'user_id' => $this->participantUser2->id,
-            'token' => 'token_budi_' . uniqid(),
+            'token' => 'token_budi_'.uniqid(),
             'attendance_status' => 'hadir',
             'attended_at' => now(),
         ]);
@@ -92,8 +94,8 @@ class ZoomOffCamAiFeatureTest extends TestCase
                 [
                     'participant_id' => $this->participant1->id,
                     'zoom_name' => 'M. Rizky',
-                    'reason' => 'Layar hitam polos'
-                ]
+                    'reason' => 'Layar hitam polos',
+                ],
             ],
             'mark_as_tidak_hadir' => false,
         ];
@@ -126,8 +128,8 @@ class ZoomOffCamAiFeatureTest extends TestCase
                 [
                     'participant_id' => $this->participant2->id,
                     'zoom_name' => '02_Budi Santoso',
-                    'reason' => 'Foto profil inisial'
-                ]
+                    'reason' => 'Foto profil inisial',
+                ],
             ],
             'mark_as_tidak_hadir' => true,
         ];
@@ -167,8 +169,8 @@ class ZoomOffCamAiFeatureTest extends TestCase
         $this->assertNull($this->participant1->zoom_display_name);
         $this->assertNull($this->participant1->zoom_off_cam_at);
         // Note Off Cam harus terhapus, catatan awal tetap ada
-        $this->assertStringNotContainsString('Off Cam Zoom', (string)$this->participant1->attendance_notes);
-        $this->assertStringContainsString('Catatan awal', (string)$this->participant1->attendance_notes);
+        $this->assertStringNotContainsString('Off Cam Zoom', (string) $this->participant1->attendance_notes);
+        $this->assertStringContainsString('Catatan awal', (string) $this->participant1->attendance_notes);
     }
 
     /**
@@ -188,7 +190,7 @@ class ZoomOffCamAiFeatureTest extends TestCase
                 'id' => 20,
                 'name' => 'Siti Nurhaliza',
                 'id_karyawan' => 'EMP-002',
-            ]
+            ],
         ];
 
         // Reflection to test protected localFuzzyMatch
@@ -220,7 +222,7 @@ class ZoomOffCamAiFeatureTest extends TestCase
         // 1. Increment first time (0 -> 1)
         $res1 = $this->actingAs($this->admin)
             ->postJson("/training/{$this->training->id}/update-offcam-count/{$this->participant1->id}", [
-                'action' => 'increment'
+                'action' => 'increment',
             ]);
         $res1->assertStatus(200);
         $res1->assertJson([
@@ -237,7 +239,7 @@ class ZoomOffCamAiFeatureTest extends TestCase
         // 2. Increment second time (1 -> 2)
         $res2 = $this->actingAs($this->admin)
             ->postJson("/training/{$this->training->id}/update-offcam-count/{$this->participant1->id}", [
-                'action' => 'increment'
+                'action' => 'increment',
             ]);
         $res2->assertStatus(200);
         $res2->assertJson([
@@ -253,7 +255,7 @@ class ZoomOffCamAiFeatureTest extends TestCase
         // 3. Decrement once (2 -> 1)
         $res3 = $this->actingAs($this->admin)
             ->postJson("/training/{$this->training->id}/update-offcam-count/{$this->participant1->id}", [
-                'action' => 'decrement'
+                'action' => 'decrement',
             ]);
         $res3->assertStatus(200);
         $res3->assertJson([
@@ -268,7 +270,7 @@ class ZoomOffCamAiFeatureTest extends TestCase
         // 4. Decrement to zero (1 -> 0)
         $res4 = $this->actingAs($this->admin)
             ->postJson("/training/{$this->training->id}/update-offcam-count/{$this->participant1->id}", [
-                'action' => 'decrement'
+                'action' => 'decrement',
             ]);
         $res4->assertStatus(200);
         $res4->assertJson([
@@ -280,7 +282,6 @@ class ZoomOffCamAiFeatureTest extends TestCase
         $this->participant1->refresh();
         $this->assertFalse($this->participant1->is_off_cam);
         $this->assertEquals(0, $this->participant1->off_cam_count);
-        $this->assertStringNotContainsString('Off Cam Zoom', (string)$this->participant1->attendance_notes);
+        $this->assertStringNotContainsString('Off Cam Zoom', (string) $this->participant1->attendance_notes);
     }
 }
-

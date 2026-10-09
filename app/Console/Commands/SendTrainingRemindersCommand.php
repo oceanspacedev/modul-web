@@ -39,7 +39,8 @@ class SendTrainingRemindersCommand extends Command
             ->get();
 
         if ($trainings->isEmpty()) {
-            $this->info("Tidak ada pelatihan yang dijadwalkan hari ini.");
+            $this->info('Tidak ada pelatihan yang dijadwalkan hari ini.');
+
             return Command::SUCCESS;
         }
 
@@ -57,7 +58,8 @@ class SendTrainingRemindersCommand extends Command
             }
         }
 
-        $this->info("Selesai memproses pengingat pelatihan.");
+        $this->info('Selesai memproses pengingat pelatihan.');
+
         return Command::SUCCESS;
     }
 }

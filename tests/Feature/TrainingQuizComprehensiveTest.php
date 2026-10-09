@@ -2,18 +2,18 @@
 
 namespace Tests\Feature;
 
+use App\Exports\TrainingQuestionTemplate;
 use App\Models\Training;
 use App\Models\TrainingParticipant;
 use App\Models\TrainingQuestion;
 use App\Models\TrainingQuizResult;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Http\UploadedFile;
+use Maatwebsite\Excel\Excel;
 use Tests\TestCase;
 
 class TrainingQuizComprehensiveTest extends TestCase
 {
-    use DatabaseTransactions;
-
     /**
      * Test Complete Admin and Participant Flows
      */
@@ -23,7 +23,7 @@ class TrainingQuizComprehensiveTest extends TestCase
         // 1. ADMIN AUTHENTICATION
         // ==========================================
         $admin = User::where('username', 'admin')->first();
-        if (!$admin) {
+        if (! $admin) {
             $admin = User::factory()->create([
                 'username' => 'admin',
                 'password' => bcrypt('complete123'),
@@ -68,7 +68,7 @@ class TrainingQuizComprehensiveTest extends TestCase
         $resTemplate->assertStatus(200);
 
         // Test Copy-Paste Text Import with Multiple Types (A-D, A-B, A-F, Essay)
-        $rawText = "1. Apa fungsi fitur modul verifikasi?
+        $rawText = '1. Apa fungsi fitur modul verifikasi?
 A. Mengesahkan dokumen
 B. Menghapus dokumen
 C. Mengarsipkan dokumen
@@ -92,7 +92,7 @@ KUNCI: E
 
 4. Jelaskan secara ringkas materi yang telah dipaparkan pada sesi zoom tadi!
 TIPE: ESSAY
-KUNCI: Pemaparan mengenai alur kerja sistem dan verifikasi kehadiran.";
+KUNCI: Pemaparan mengenai alur kerja sistem dan verifikasi kehadiran.';
 
         $importRes = $this->actingAs($admin)->post("/training/{$training->id}/questions/import-text", [
             'raw_text' => $rawText,
@@ -110,8 +110,8 @@ KUNCI: Pemaparan mengenai alur kerja sistem dan verifikasi kehadiran.";
         $this->assertEquals('Menghapus dokumen', $q1->option_b);
 
         // Check Q2: Multiple choice A-B (True/False)
-        $q2 = $questions->where('type', 'multiple_choice')->first(function($q) {
-            return empty($q->option_c) && !empty($q->option_b);
+        $q2 = $questions->where('type', 'multiple_choice')->first(function ($q) {
+            return empty($q->option_c) && ! empty($q->option_b);
         });
         $this->assertNotNull($q2);
         $this->assertEquals('Ya, wajib', $q2->option_a);
@@ -157,7 +157,7 @@ KUNCI: Pemaparan mengenai alur kerja sistem dan verifikasi kehadiran.";
             'job_level_id' => 2,
         ]);
 
-        $token = 'test_token_' . uniqid();
+        $token = 'test_token_'.uniqid();
         $participant = TrainingParticipant::create([
             'training_id' => $training->id,
             'user_id' => $participantUser->id,
@@ -231,7 +231,7 @@ KUNCI: Pemaparan mengenai alur kerja sistem dan verifikasi kehadiran.";
         // Proportional score check
         // Total questions = 5 (3 MC from text import, 1 Essay from text import, 1 Essay from manual store = 3 MC, 2 Essay)
         // MC Score: 100 * (3/5) = 60, Essay Score: 90 * (2/5) = 36 -> Total = 96
-        $this->assertEquals(96, (int)$result->score);
+        $this->assertEquals(96, (int) $result->score);
 
         // Test Reset Participant Quiz
         $resetRes = $this->actingAs($admin)->post("/training/{$training->id}/reset-quiz/{$participant->id}");
@@ -257,8 +257,8 @@ KUNCI: Pemaparan mengenai alur kerja sistem dan verifikasi kehadiran.";
         ]);
 
         // Generate binary excel content from template
-        $excelBinary = \Maatwebsite\Excel\Facades\Excel::raw(new \App\Exports\TrainingQuestionTemplate, \Maatwebsite\Excel\Excel::XLSX);
-        $file = \Illuminate\Http\UploadedFile::fake()->createWithContent('template.xlsx', $excelBinary);
+        $excelBinary = \Maatwebsite\Excel\Facades\Excel::raw(new TrainingQuestionTemplate, Excel::XLSX);
+        $file = UploadedFile::fake()->createWithContent('template.xlsx', $excelBinary);
 
         $res = $this->actingAs($admin)->post("/training/{$training->id}/questions/import-excel", [
             'file' => $file,

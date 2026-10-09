@@ -11,13 +11,21 @@ class TrainingParticipant extends Model
 
     protected $guarded = ['id'];
 
-    protected $casts = [
-        'attended_at' => 'datetime',
-        'wa_sent_at' => 'datetime',
-        'zoom_off_cam_at' => 'datetime',
-        'is_off_cam' => 'boolean',
-        'off_cam_count' => 'integer',
-    ];
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'attended_at' => 'datetime',
+            'wa_sent_at' => 'datetime',
+            'zoom_off_cam_at' => 'datetime',
+            'is_off_cam' => 'boolean',
+            'off_cam_count' => 'integer',
+        ];
+    }
 
     public function training()
     {
@@ -36,6 +44,6 @@ class TrainingParticipant extends Model
 
     public function getAttendanceProofUrlAttribute()
     {
-        return $this->attendance_proof ? asset('storage/' . $this->attendance_proof) : null;
+        return $this->attendance_proof ? asset('storage/'.$this->attendance_proof) : null;
     }
 }

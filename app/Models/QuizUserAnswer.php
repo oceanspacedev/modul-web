@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -20,7 +19,7 @@ class QuizUserAnswer extends Model
 
     public function quiz()
     {
-        return $this->belongsTo(Quiz::class,'quiz_id');
+        return $this->belongsTo(Quiz::class, 'quiz_id');
     }
 
     public function question()
@@ -32,5 +31,4 @@ class QuizUserAnswer extends Model
     {
         return $this->belongsTo(QuizOption::class, 'quiz_option_id');
     }
-
 }

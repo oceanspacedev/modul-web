@@ -11,6 +11,7 @@ use App\Models\QuizQuestion;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Maatwebsite\Excel\Facades\Excel;
 
 class QuizQuestionController extends Controller
@@ -18,7 +19,7 @@ class QuizQuestionController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function index()
     {
@@ -27,14 +28,14 @@ class QuizQuestionController extends Controller
             'active' => 'quiz',
             'documents' => Document::whereHas('question')->withTrashed()->filter()->get(),
             'questions' => QuizQuestion::with(['document.joblevel'])->withTrashed()->get(),
-            'alldocs' => Document::doesntHave('question')->where('document_type','!=',6)->where('document_type', '!=', 2)->get(),
+            'alldocs' => Document::doesntHave('question')->where('document_type', '!=', 6)->where('document_type', '!=', 2)->get(),
         ]);
     }
 
     /**
      * Show the form for creating a new resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function create()
     {
@@ -44,8 +45,7 @@ class QuizQuestionController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \App\Http\Requests\StoreQuizQuestionRequest  $request
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function store(StoreQuizQuestionRequest $request)
     {
@@ -55,8 +55,8 @@ class QuizQuestionController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param  \App\Models\QuizQuestion  $quizQuestion
-     * @return \Illuminate\Http\Response
+     * @param  QuizQuestion  $quizQuestion
+     * @return Response
      */
     public function show(Request $request, $id)
     {
@@ -65,26 +65,25 @@ class QuizQuestionController extends Controller
             'active' => 'quiz',
             'questions' => $request->nonactive ?
                 QuizQuestion::where('document_id', $id)
-                ->withTrashed()
-                ->whereNotNull('deleted_at')
-                ->filter()
-                ->orderBy('created_at', 'DESC')
-                ->get()
+                    ->withTrashed()
+                    ->whereNotNull('deleted_at')
+                    ->filter()
+                    ->orderBy('created_at', 'DESC')
+                    ->get()
                 :
                 QuizQuestion::where('document_id', $id)
-                ->filter()
-                ->orderBy('created_at', 'DESC')
-                ->get(),
+                    ->filter()
+                    ->orderBy('created_at', 'DESC')
+                    ->get(),
             'document' => Document::withTrashed()->find($id),
-            'nonactive' => $request->nonactive
+            'nonactive' => $request->nonactive,
         ]);
     }
 
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  \App\Models\QuizQuestion  $quizQuestion
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function edit(QuizQuestion $quizQuestion)
     {
@@ -94,9 +93,7 @@ class QuizQuestionController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param  \App\Http\Requests\UpdateQuizQuestionRequest  $request
-     * @param  \App\Models\QuizQuestion  $quizQuestion
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function update(UpdateQuizQuestionRequest $request, QuizQuestion $quizQuestion)
     {
@@ -106,13 +103,13 @@ class QuizQuestionController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param  \App\Models\QuizQuestion  $quizQuestion
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function destroy(QuizQuestion $quizQuestion)
     {
         try {
             $quizQuestion->delete();
+
             return back()->with(['success' => 'berhasil menonaktifkan question']);
         } catch (Exception $e) {
             return redirect('question')->with(['error' => $e->getMessage()]);
@@ -124,6 +121,7 @@ class QuizQuestionController extends Controller
         try {
             $question = QuizQuestion::withTrashed()->find($id);
             $question->restore();
+
             return back()->with(['success' => 'berhasil mengaktifkan question']);
         } catch (Exception $e) {
             return redirect('question')->with(['error' => $e->getMessage()]);
@@ -138,9 +136,9 @@ class QuizQuestionController extends Controller
     public function import(Request $request)
     {
         try {
-            ##KALAU IMPORT QUESTION MAU DIBEDAKAN FUNGSINYA
-            //validasi if tipe == update / newimport
-            //if tipe==update, query ke question yang document_id == $request->document_id abis itu loop & delete
+            // #KALAU IMPORT QUESTION MAU DIBEDAKAN FUNGSINYA
+            // validasi if tipe == update / newimport
+            // if tipe==update, query ke question yang document_id == $request->document_id abis itu loop & delete
             // if ($request->type == "updateImport") {
             //     $questions = QuizQuestion::where('document_id', $request->document_id)->get();
 
@@ -153,8 +151,9 @@ class QuizQuestionController extends Controller
             $namaFile = $file->getClientOriginalName();
             $file->move(public_path('import'), $namaFile);
 
-            Excel::import(new QuestionImport($request->document_id), public_path('/import/' . $namaFile));
-            unlink(public_path('/import/' . $namaFile));
+            Excel::import(new QuestionImport($request->document_id), public_path('/import/'.$namaFile));
+            unlink(public_path('/import/'.$namaFile));
+
             return redirect('question')->with(['success' => 'berhasil import questions']);
         } catch (Exception $e) {
             return redirect('question')->with(['error' => $e->getMessage()]);

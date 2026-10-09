@@ -14,16 +14,16 @@ return new class extends Migration
     public function up()
     {
         Schema::table('trainings', function (Blueprint $table) {
-            if (!Schema::hasColumn('trainings', 'is_attendance_active')) {
+            if (! Schema::hasColumn('trainings', 'is_attendance_active')) {
                 $table->boolean('is_attendance_active')->default(false)->after('is_quiz_active');
             }
-            if (!Schema::hasColumn('trainings', 'require_attendance_proof')) {
+            if (! Schema::hasColumn('trainings', 'require_attendance_proof')) {
                 $table->boolean('require_attendance_proof')->default(false)->after('is_attendance_active');
             }
         });
 
         Schema::table('training_participants', function (Blueprint $table) {
-            if (!Schema::hasColumn('training_participants', 'attendance_proof')) {
+            if (! Schema::hasColumn('training_participants', 'attendance_proof')) {
                 $table->string('attendance_proof')->nullable()->after('attendance_notes');
             }
         });

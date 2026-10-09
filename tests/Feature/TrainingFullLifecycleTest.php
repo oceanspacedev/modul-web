@@ -9,17 +9,16 @@ use App\Models\TrainingParticipant;
 use App\Models\TrainingQuestion;
 use App\Models\TrainingQuizResult;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
 use Maatwebsite\Excel\Facades\Excel;
 use Tests\TestCase;
 
 class TrainingFullLifecycleTest extends TestCase
 {
-    use DatabaseTransactions;
-
     protected $admin;
+
     protected $participantUser1;
+
     protected $participantUser2;
 
     protected function setUp(): void
@@ -27,7 +26,7 @@ class TrainingFullLifecycleTest extends TestCase
         parent::setUp();
 
         $this->admin = User::where('username', 'admin')->first();
-        if (!$this->admin) {
+        if (! $this->admin) {
             $this->admin = User::factory()->create([
                 'username' => 'admin',
                 'password' => bcrypt('complete123'),
@@ -38,18 +37,18 @@ class TrainingFullLifecycleTest extends TestCase
         $divisi = Divisi::first() ?? Divisi::create(['name' => 'Divisi Test']);
 
         $this->participantUser1 = User::create([
-            'username' => 'peserta_1_' . uniqid(),
+            'username' => 'peserta_1_'.uniqid(),
             'full_name' => 'Peserta Lifecycle Satu',
-            'email' => 'peserta1_' . uniqid() . '@example.com',
+            'email' => 'peserta1_'.uniqid().'@example.com',
             'password' => bcrypt('password'),
             'job_level_id' => 2,
             'divisi_id' => $divisi->id,
         ]);
 
         $this->participantUser2 = User::create([
-            'username' => 'peserta_2_' . uniqid(),
+            'username' => 'peserta_2_'.uniqid(),
             'full_name' => 'Peserta Lifecycle Dua',
-            'email' => 'peserta2_' . uniqid() . '@example.com',
+            'email' => 'peserta2_'.uniqid().'@example.com',
             'password' => bcrypt('password'),
             'job_level_id' => 2,
             'divisi_id' => $divisi->id,
@@ -127,10 +126,10 @@ class TrainingFullLifecycleTest extends TestCase
         $this->assertEquals('completed', $training->fresh()->status);
 
         // 1.8 Toggle Quiz Active
-        $this->assertFalse((bool)$training->fresh()->is_quiz_active);
+        $this->assertFalse((bool) $training->fresh()->is_quiz_active);
         $toggleRes = $this->actingAs($this->admin)->post("/training/{$training->id}/toggle-quiz");
         $toggleRes->assertSessionHas('success');
-        $this->assertTrue((bool)$training->fresh()->is_quiz_active);
+        $this->assertTrue((bool) $training->fresh()->is_quiz_active);
 
         // 1.9 Export Excel / CSV
         $exportRes = $this->actingAs($this->admin)->get("/training/{$training->id}/export");
@@ -232,7 +231,7 @@ class TrainingFullLifecycleTest extends TestCase
         $this->assertCount(0, $training->questions()->get());
 
         // 2.7 Import Questions via Text (Aiken Plaintext format)
-        $rawText = "1. Berapa lama masa penyimpanan arsip aktif?
+        $rawText = '1. Berapa lama masa penyimpanan arsip aktif?
 A. 1 Tahun
 B. 2 Tahun
 C. 5 Tahun
@@ -241,7 +240,7 @@ PENJELASAN: Sesuai retensi arsip.
 
 2. Sebutkan visi dan misi unit kerja Anda pada modul ini!
 TIPE: ESSAY
-KUNCI: Menjadi unit kerja yang transparan, akuntabel, dan adaptif.";
+KUNCI: Menjadi unit kerja yang transparan, akuntabel, dan adaptif.';
 
         $importTextRes = $this->actingAs($this->admin)->post("/training/{$training->id}/questions/import-text", [
             'raw_text' => $rawText,
@@ -311,7 +310,7 @@ KUNCI: Menjadi unit kerja yang transparan, akuntabel, dan adaptif.";
             'correct_answer' => 'Ringkasan mengenai keamanan data dan kepatuhan pelaporan.',
         ]);
 
-        $token = 'test_token_lifecycle_' . uniqid();
+        $token = 'test_token_lifecycle_'.uniqid();
         $participant = TrainingParticipant::create([
             'training_id' => $training->id,
             'user_id' => $this->participantUser1->id,
@@ -366,9 +365,9 @@ KUNCI: Menjadi unit kerja yang transparan, akuntabel, dan adaptif.";
         // Verify Database State
         $result = TrainingQuizResult::where('training_participant_id', $participant->id)->first();
         $this->assertNotNull($result);
-        $this->assertEquals(50, (int)$result->mc_score); // 1 out of 2 MC correct = 50%
+        $this->assertEquals(50, (int) $result->mc_score); // 1 out of 2 MC correct = 50%
         $this->assertEquals('pending', $result->essay_status);
-        $this->assertEquals(50, (int)$result->score); // While pending, score reflects MC score
+        $this->assertEquals(50, (int) $result->score); // While pending, score reflects MC score
 
         // Verify saved JSON answers
         $answers = $result->answers;
@@ -403,9 +402,9 @@ KUNCI: Menjadi unit kerja yang transparan, akuntabel, dan adaptif.";
 
         $result->refresh();
         $this->assertEquals('graded', $result->essay_status);
-        $this->assertEquals(80, (int)$result->essay_score);
+        $this->assertEquals(80, (int) $result->essay_score);
         $this->assertEquals('Analisa sudah bagus dan sesuai dengan standar SOP.', $result->essay_feedback);
-        $this->assertEquals(60.00, (float)$result->score);
+        $this->assertEquals(60.00, (float) $result->score);
 
         // 3.12 Participant views Result page again and sees updated final score and feedback
         $updatedResultView = $this->get("/training/portal/{$token}/result");
@@ -436,7 +435,7 @@ KUNCI: Menjadi unit kerja yang transparan, akuntabel, dan adaptif.";
 
         $newResult = TrainingQuizResult::where('training_participant_id', $participant->id)->first();
         $this->assertNotNull($newResult);
-        $this->assertEquals(100, (int)$newResult->mc_score);
+        $this->assertEquals(100, (int) $newResult->mc_score);
         $this->assertEquals('pending', $newResult->essay_status);
     }
 
@@ -458,7 +457,7 @@ KUNCI: Menjadi unit kerja yang transparan, akuntabel, dan adaptif.";
         TrainingParticipant::create([
             'training_id' => $training->id,
             'user_id' => $this->participantUser2->id,
-            'token' => 'token_dashboard_' . uniqid(),
+            'token' => 'token_dashboard_'.uniqid(),
             'attendance_status' => 'hadir',
         ]);
 
@@ -492,7 +491,7 @@ KUNCI: Menjadi unit kerja yang transparan, akuntabel, dan adaptif.";
             'correct_answer' => 'a',
         ]);
 
-        $token = 'token_anticheat_' . uniqid();
+        $token = 'token_anticheat_'.uniqid();
         $participant = TrainingParticipant::create([
             'training_id' => $training->id,
             'user_id' => $this->participantUser1->id,
@@ -531,7 +530,7 @@ KUNCI: Menjadi unit kerja yang transparan, akuntabel, dan adaptif.";
         $result = TrainingQuizResult::where('training_participant_id', $participant->id)->first();
         $this->assertNotNull($result);
         $this->assertEquals(3, $result->tab_switch_count);
-        $this->assertTrue((bool)$result->is_force_submitted);
+        $this->assertTrue((bool) $result->is_force_submitted);
         $this->assertCount(3, $result->violation_logs);
 
         // 5.4 Check Participant Result page shows auto-submit alert
@@ -548,4 +547,3 @@ KUNCI: Menjadi unit kerja yang transparan, akuntabel, dan adaptif.";
         $adminViewRes->assertSee('3 kali');
     }
 }
-

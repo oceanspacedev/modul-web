@@ -13,16 +13,15 @@ class QuestionImport implements ToCollection, WithStartRow
 {
     protected int $documentId;
 
-    function __construct(int $documentId)
+    public function __construct(int $documentId)
     {
         $this->documentId = $documentId;
     }
 
-
-    public function collection(Collection $rows)
+    public function collection(Collection $rows): void
     {
         foreach ($rows as $row) {
-            $containTrue = array();
+            $containTrue = [];
             $question = QuizQuestion::create([
                 'document_id' => $this->documentId,
                 'question' => $row[0],
@@ -38,7 +37,7 @@ class QuestionImport implements ToCollection, WithStartRow
             }
             $countTrue = count(array_filter($containTrue));
             if ($countTrue != 1) {
-                throw new Exception('Error pada pertanyaan ' . $question->question . ' Tidak ada salah satu jawaban yang benar');
+                throw new Exception('Error pada pertanyaan '.$question->question.' Tidak ada salah satu jawaban yang benar');
             }
         }
     }

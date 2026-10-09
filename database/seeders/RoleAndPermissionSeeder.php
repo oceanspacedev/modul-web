@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Training;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
@@ -80,17 +81,17 @@ class RoleAndPermissionSeeder extends Seeder
         $users = User::all();
         foreach ($users as $user) {
             if ($user->job_level_id == 1) {
-                if (!$user->hasRole('Admin')) {
+                if (! $user->hasRole('Admin')) {
                     $user->assignRole('Admin');
                 }
             } else {
-                $isTrainer = \App\Models\Training::where('trainer_id', $user->id)->exists();
+                $isTrainer = Training::where('trainer_id', $user->id)->exists();
                 if ($isTrainer) {
-                    if (!$user->hasRole('Trainer')) {
+                    if (! $user->hasRole('Trainer')) {
                         $user->assignRole('Trainer');
                     }
                 } else {
-                    if (!$user->hasRole('Staff') && $user->roles()->count() === 0) {
+                    if (! $user->hasRole('Staff') && $user->roles()->count() === 0) {
                         $user->assignRole('Staff');
                     }
                 }

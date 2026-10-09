@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -13,7 +14,7 @@ return new class extends Migration
      */
     public function up()
     {
-        if (!Schema::hasColumn('documents', 'version')) {
+        if (! Schema::hasColumn('documents', 'version')) {
             Schema::table('documents', function (Blueprint $table) {
                 $table->integer('version')->default(1)->after('path');
             });
@@ -32,9 +33,9 @@ return new class extends Migration
         });
 
         // Backfill existing documents as Version 1
-        $existingDocuments = \Illuminate\Support\Facades\DB::table('documents')->get();
+        $existingDocuments = DB::table('documents')->get();
         foreach ($existingDocuments as $doc) {
-            \Illuminate\Support\Facades\DB::table('document_versions')->insert([
+            DB::table('document_versions')->insert([
                 'document_id' => $doc->id,
                 'version_number' => 1,
                 'file_name' => $doc->name,

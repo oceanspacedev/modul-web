@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\QuizOption;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class QuizOptionSeeder extends Seeder
@@ -17,9 +16,9 @@ class QuizOptionSeeder extends Seeder
     {
         QuizOption::insert([
             [
-               'quiz_question_id' => 1,
-               'content' => 'satu hari sekali',
-               'is_true' => true,
+                'quiz_question_id' => 1,
+                'content' => 'satu hari sekali',
+                'is_true' => true,
             ],
             [
                 'quiz_question_id' => 1,

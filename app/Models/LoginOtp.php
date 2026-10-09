@@ -17,10 +17,18 @@ class LoginOtp extends Model
         'is_used',
     ];
 
-    protected $casts = [
-        'expires_at' => 'datetime',
-        'is_used' => 'boolean',
-    ];
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'expires_at' => 'datetime',
+            'is_used' => 'boolean',
+        ];
+    }
 
     public function user()
     {
@@ -29,6 +37,6 @@ class LoginOtp extends Model
 
     public function isValid(): bool
     {
-        return !$this->is_used && $this->expires_at->isFuture();
+        return ! $this->is_used && $this->expires_at->isFuture();
     }
 }

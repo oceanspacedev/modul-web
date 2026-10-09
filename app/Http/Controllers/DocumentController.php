@@ -10,6 +10,7 @@ use App\Models\JobLevel;
 use App\Models\SubDivisi;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -18,7 +19,7 @@ class DocumentController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function index(Request $request)
     {
@@ -36,7 +37,7 @@ class DocumentController extends Controller
         }
 
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $query->where('name', 'like', '%'.$request->search.'%');
         }
 
         $documents = $query->orderBy('name')->get();
@@ -53,7 +54,7 @@ class DocumentController extends Controller
     /**
      * Show the form for creating a new resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function create()
     {
@@ -69,8 +70,7 @@ class DocumentController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function store(Request $request)
     {
@@ -83,7 +83,7 @@ class DocumentController extends Controller
             $fileName = pathinfo($request->file('file')->getClientOriginalName(), PATHINFO_FILENAME);
             $slug = Str::slug($fileName);
             $extension = $request->file('file')->getClientOriginalExtension();
-            $path = $slug . '-v1-' . time() . '.' . $extension;
+            $path = $slug.'-v1-'.time().'.'.$extension;
             $fileSize = $this->formatBytes($request->file('file')->getSize());
             $changeNote = $request->input('change_note') ?: 'Versi Awal Dokumen';
             $userName = auth()->user()?->full_name ?? 'Admin';
@@ -102,7 +102,7 @@ class DocumentController extends Controller
                 DocumentVersion::create([
                     'document_id' => $doc->id,
                     'version_number' => 1,
-                    'file_name' => $fileName . '.' . $extension,
+                    'file_name' => $fileName.'.'.$extension,
                     'path' => $path,
                     'file_size' => $fileSize,
                     'change_note' => $changeNote,
@@ -141,7 +141,7 @@ class DocumentController extends Controller
                         'id' => $ver->id,
                         'version_number' => $ver->version_number,
                         'file_name' => $ver->file_name,
-                        'file_url' => asset('storage/dokumen/' . $ver->path),
+                        'file_url' => asset('storage/dokumen/'.$ver->path),
                         'file_size' => $ver->file_size ?: '-',
                         'change_note' => $ver->change_note ?: 'Tidak ada catatan revisi',
                         'created_by' => $ver->created_by ?: 'Admin',
@@ -152,7 +152,7 @@ class DocumentController extends Controller
         }
 
         return view('document.history', [
-            'title' => 'Riwayat Versi: ' . $document->name,
+            'title' => 'Riwayat Versi: '.$document->name,
             'active' => 'document',
             'document' => $document,
         ]);
@@ -161,8 +161,7 @@ class DocumentController extends Controller
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  Document  $document
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function edit(Document $document)
     {
@@ -182,9 +181,7 @@ class DocumentController extends Controller
     /**
      * Update the specified resource in storage with versioning.
      *
-     * @param  \App\Models\Document  $document
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function update(Document $document, Request $request)
     {
@@ -196,7 +193,7 @@ class DocumentController extends Controller
                 DocumentVersion::create([
                     'document_id' => $document->id,
                     'version_number' => 1,
-                    'file_name' => $document->name . '.pdf',
+                    'file_name' => $document->name.'.pdf',
                     'path' => $document->path,
                     'file_size' => null,
                     'change_note' => 'Versi Awal Dokumen',
@@ -218,9 +215,9 @@ class DocumentController extends Controller
                 $fileName = pathinfo($request->file('file')->getClientOriginalName(), PATHINFO_FILENAME);
                 $slug = Str::slug($fileName);
                 $extension = $request->file('file')->getClientOriginalExtension();
-                $newPath = $slug . '-v' . $nextVersion . '-' . time() . '.' . $extension;
+                $newPath = $slug.'-v'.$nextVersion.'-'.time().'.'.$extension;
                 $fileSize = $this->formatBytes($request->file('file')->getSize());
-                $changeNote = $request->input('change_note') ?: ('Pembaruan Dokumen ke Versi ' . $nextVersion);
+                $changeNote = $request->input('change_note') ?: ('Pembaruan Dokumen ke Versi '.$nextVersion);
 
                 // DO NOT delete the old file! Move new file to storage
                 $request->file('file')->move(storage_path('app/public/dokumen'), $newPath);
@@ -229,7 +226,7 @@ class DocumentController extends Controller
                 DocumentVersion::create([
                     'document_id' => $document->id,
                     'version_number' => $nextVersion,
-                    'file_name' => $fileName . '.' . $extension,
+                    'file_name' => $fileName.'.'.$extension,
                     'path' => $newPath,
                     'file_size' => $fileSize,
                     'change_note' => $changeNote,
@@ -247,7 +244,7 @@ class DocumentController extends Controller
                     'version' => $nextVersion,
                 ]);
 
-                return redirect('document')->with(['success' => 'Berhasil memperbarui dokumen ke Versi ' . $nextVersion . ' (file versi lama tersimpan di riwayat)']);
+                return redirect('document')->with(['success' => 'Berhasil memperbarui dokumen ke Versi '.$nextVersion.' (file versi lama tersimpan di riwayat)']);
             } else {
                 // Only updating metadata (category, division, etc.) without replacing file
                 $document->update([
@@ -268,13 +265,14 @@ class DocumentController extends Controller
      * Remove the specified resource from storage (soft delete).
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function destroy($id)
     {
         try {
             $document = Document::findOrFail($id);
             $document->delete();
+
             return redirect('document')->with(['success' => 'Berhasil menonaktifkan dokumen']);
         } catch (Exception $e) {
             return redirect('document')->with(['error' => $e->getMessage()]);
@@ -289,6 +287,7 @@ class DocumentController extends Controller
         try {
             $document = Document::withTrashed()->findOrFail($id);
             $document->restore();
+
             return redirect('document')->with(['success' => 'Berhasil mengaktifkan kembali dokumen']);
         } catch (Exception $e) {
             return redirect('document')->with(['error' => $e->getMessage()]);
@@ -306,6 +305,6 @@ class DocumentController extends Controller
         $pow = min($pow, count($units) - 1);
         $bytes /= pow(1024, $pow);
 
-        return round($bytes, $precision) . ' ' . $units[$pow];
+        return round($bytes, $precision).' '.$units[$pow];
     }
 }

@@ -7,9 +7,10 @@ use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class TrainingQuestionTemplate implements WithHeadings, FromArray, ShouldAutoSize, WithStyles
+class TrainingQuestionTemplate implements FromArray, ShouldAutoSize, WithHeadings, WithStyles
 {
     use Exportable;
 
@@ -42,7 +43,7 @@ class TrainingQuestionTemplate implements WithHeadings, FromArray, ShouldAutoSiz
                 'Mengarsipkan dokumen tanpa persetujuan',
                 '',
                 '',
-                'Verifikasi memastikan dokumen valid sebelum dipublikasikan.'
+                'Verifikasi memastikan dokumen valid sebelum dipublikasikan.',
             ],
             [
                 'PG',
@@ -54,7 +55,7 @@ class TrainingQuestionTemplate implements WithHeadings, FromArray, ShouldAutoSiz
                 '',
                 '',
                 '',
-                'Hanya peserta yang hadir yang berhak mengikuti evaluasi.'
+                'Hanya peserta yang hadir yang berhak mengikuti evaluasi.',
             ],
             [
                 'PG',
@@ -66,7 +67,7 @@ class TrainingQuestionTemplate implements WithHeadings, FromArray, ShouldAutoSiz
                 'Procurement',
                 'General Affair (GA)',
                 'Legal & Compliance',
-                'Pilihan A-F didukung secara fleksibel oleh sistem.'
+                'Pilihan A-F didukung secara fleksibel oleh sistem.',
             ],
             [
                 'ESSAY',
@@ -78,18 +79,18 @@ class TrainingQuestionTemplate implements WithHeadings, FromArray, ShouldAutoSiz
                 '',
                 '',
                 '',
-                'Kolom pilihan A-F dikosongkan untuk soal bertipe ESSAY.'
-            ]
+                'Kolom pilihan A-F dikosongkan untuk soal bertipe ESSAY.',
+            ],
         ];
     }
 
-    public function styles(Worksheet $sheet)
+    public function styles(Worksheet $sheet): array
     {
         return [
             1 => [
                 'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                 'fill' => [
-                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                    'fillType' => Fill::FILL_SOLID,
                     'startColor' => ['rgb' => '1E40AF'], // Navy Blue
                 ],
             ],

@@ -6,17 +6,18 @@ use App\Helpers\ResponseFormatter;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
-
     public function fetch()
     {
         try {
             $user = User::with('divisi', 'subdivisi', 'joblevel')->find(Auth::id());
+
             return ResponseFormatter::success($user, 'berhasil');
         } catch (Exception $e) {
             return ResponseFormatter::error(null, $e->getMessage());
@@ -26,9 +27,10 @@ class UserController extends Controller
     public function login(Request $request)
     {
         /**
-         * @param Request $request
-         * @return \Illuminate\Http\JsonResponse
-         * @throws \Exception
+         * @param  Request  $request
+         * @return JsonResponse
+         *
+         * @throws Exception
          */
         try {
             $request->validate([
@@ -37,25 +39,26 @@ class UserController extends Controller
             ]);
 
             $credentials = request(['username', 'password']);
-            if (!Auth::attempt($credentials)) {
+            if (! Auth::attempt($credentials)) {
                 return ResponseFormatter::error([
-                    'message' => 'Unauthorized'
+                    'message' => 'Unauthorized',
                 ], 'Gagal login, cek kembali username dan password anda', 500);
             }
 
             $user = User::where('username', $request->username)->first();
-            if (!Hash::check($request->password, $user->password, [])) {
+            if (! Hash::check($request->password, $user->password, [])) {
                 throw new Exception('Invalid Credentials');
             }
             // $user->id_notif = $request->id_notif;
             // $user->update();
 
             $tokenResult = $user->createToken('authToken')->plainTextToken;
+
             return ResponseFormatter::success([
                 'access_token' => $tokenResult,
                 'token_type' => 'Bearer',
-                'user' => $user
-            ], 'Selamat datang kembali ' . auth()->user()->full_name);
+                'user' => $user,
+            ], 'Selamat datang kembali '.auth()->user()->full_name);
         } catch (Exception $error) {
             return ResponseFormatter::error(null, $error->getMessage(), 500);
         }
@@ -66,7 +69,7 @@ class UserController extends Controller
         try {
             $request->user()->currentAccessToken()->delete();
 
-            return ResponseFormatter::success(null, 'Sampai jumpa kembali ' . auth()->user()->full_name);
+            return ResponseFormatter::success(null, 'Sampai jumpa kembali '.auth()->user()->full_name);
         } catch (Exception $e) {
             return ResponseFormatter::success(null, $e->getMessage());
 

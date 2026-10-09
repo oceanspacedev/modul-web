@@ -24,7 +24,7 @@ class SubDivisi extends Model
 
     public function divisi()
     {
-        return $this->belongsTo(Divisi::class,'divisi_id','id');
+        return $this->belongsTo(Divisi::class, 'divisi_id', 'id');
     }
 
     public function dokumen()
