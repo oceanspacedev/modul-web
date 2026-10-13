@@ -143,27 +143,7 @@
                 </div>
             </div>
 
-            {{-- 6. Total Kuis --}}
-            <div class="col-xl-3 col-md-6 col-12 mb-3">
-                <div class="card h-100 border-0 shadow-sm" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
-                    <a href="/quiz" class="text-decoration-none text-reset">
-                        <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                            <div>
-                                <small class="text-uppercase font-weight-bold" style="letter-spacing: 0.04em; font-size: 0.75rem; color: #64748b;">Kuis Modul</small>
-                                <h3 class="font-weight-bold mb-1 mt-1" style="font-size: 1.75rem; color: #0f172a;">{{ $data['totalQuiz'] }}</h3>
-                                <span class="badge border" style="background: #eef2ff; border-color: #e0e7ff !important; color: #4f46e5; font-size: 0.725rem;">
-                                    <i class="fas fa-question-circle mr-1"></i> Soal & Kuis
-                                </span>
-                            </div>
-                            <div class="d-flex align-items-center justify-content-center rounded-circle border" style="width: 50px; height: 50px; background: #eef2ff; border-color: #e0e7ff !important; color: #4f46e5;">
-                                <i class="fas fa-award" style="font-size: 1.25rem;"></i>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-            </div>
-
-            {{-- 7. Hasil Evaluasi Kuis --}}
+            {{-- 6. Hasil Evaluasi Kuis --}}
             <div class="col-xl-3 col-md-6 col-12 mb-3">
                 <div class="card h-100 border-0 shadow-sm" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
                     <a href="/training" class="text-decoration-none text-reset">
@@ -177,26 +157,6 @@
                             </div>
                             <div class="d-flex align-items-center justify-content-center rounded-circle border" style="width: 50px; height: 50px; background: #f5f3ff; border-color: #ede9fe !important; color: #7c3aed;">
                                 <i class="fas fa-clipboard-check" style="font-size: 1.25rem;"></i>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-            </div>
-
-            {{-- 8. Data Presensi --}}
-            <div class="col-xl-3 col-md-6 col-12 mb-3">
-                <div class="card h-100 border-0 shadow-sm" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
-                    <a href="/absent" class="text-decoration-none text-reset">
-                        <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                            <div>
-                                <small class="text-uppercase font-weight-bold" style="letter-spacing: 0.04em; font-size: 0.75rem; color: #64748b;">Presensi Karyawan</small>
-                                <h3 class="font-weight-bold mb-1 mt-1" style="font-size: 1.75rem; color: #0f172a;">{{ $data['totalAbsent'] }}</h3>
-                                <span class="badge border" style="background: #f0fdf4; border-color: #dcfce7 !important; color: #16a34a; font-size: 0.725rem;">
-                                    <i class="fas fa-calendar-day mr-1"></i> {{ $data['todayAbsent'] }} Hari Ini
-                                </span>
-                            </div>
-                            <div class="d-flex align-items-center justify-content-center rounded-circle border" style="width: 50px; height: 50px; background: #f0fdf4; border-color: #dcfce7 !important; color: #16a34a;">
-                                <i class="fas fa-calendar-check" style="font-size: 1.25rem;"></i>
                             </div>
                         </div>
                     </a>
@@ -552,9 +512,6 @@
                                     <span class="badge border px-2 py-1" style="background: #f0f9ff; border-color: #e0f2fe; color: #0369a1; font-size: 0.725rem;">
                                         <span class="d-inline-block rounded-circle mr-1" style="width: 8px; height: 8px; background: #0284c7;"></span> Pelatihan: {{ $data['totalTraining'] }}
                                     </span>
-                                    <span class="badge border px-2 py-1" style="background: #eef2ff; border-color: #e0e7ff; color: #4338ca; font-size: 0.725rem;">
-                                        <span class="d-inline-block rounded-circle mr-1" style="width: 8px; height: 8px; background: #4f46e5;"></span> Kuis: {{ $data['totalQuiz'] }}
-                                    </span>
                                     <span class="badge border px-2 py-1" style="background: #f8fafc; border-color: #e2e8f0; color: #334155; font-size: 0.725rem;">
                                         <span class="d-inline-block rounded-circle mr-1" style="width: 8px; height: 8px; background: #0f172a;"></span> Divisi: {{ $data['totalDivisi'] }}
                                     </span>
@@ -858,7 +815,6 @@ $(document).ready(function() {
                         '#e11d48', // video ruby
                         '#d97706', // document amber
                         '#0284c7', // training sky
-                        '#4f46e5', // quiz indigo
                         '#0f172a'  // divisi slate
                     ],
                     borderWidth: 2,

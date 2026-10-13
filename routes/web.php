@@ -1,16 +1,11 @@
 <?php
 
-use App\Http\Controllers\API\AbsentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DivisiController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DokumenTypeController;
 use App\Http\Controllers\JobLevelController;
-use App\Http\Controllers\QuizController;
-use App\Http\Controllers\QuizHistoryController;
-use App\Http\Controllers\QuizOptionController;
-use App\Http\Controllers\QuizQuestionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SubDivisiController;
 use App\Http\Controllers\TrainingController;
@@ -40,7 +35,6 @@ Route::get('/login', function (Request $request) {
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/login/otp/request', [AuthController::class, 'requestOtp'])->name('login.otp.request');
 Route::post('/login/otp/verify', [AuthController::class, 'verifyOtp'])->name('login.otp.verify');
-Route::get('download/app', [UserController::class, 'download']);
 
 // # PUBLIC VIDEO ROUTES
 Route::get('video', [VideoController::class, 'index'])->name('video.index');
@@ -49,6 +43,7 @@ Route::get('video/watch/{id}', [VideoController::class, 'show'])->name('video.sh
 // # AUTHENTICATED COMMON ROUTES
 Route::middleware('auth')->group(function () {
     Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::view('panduan', 'panduan.index', ['active' => 'panduan'])->name('panduan');
     Route::post('video/{id}/comments', [VideoController::class, 'storeComment'])->name('video.comments.store');
     Route::delete('video/comments/{id}', [VideoController::class, 'destroyComment'])->name('video.comments.destroy');
 });
@@ -64,32 +59,6 @@ Route::middleware(['auth', 'isAdmin'])->group(
         Route::get('video-manage/{id}/edit', [VideoController::class, 'edit'])->name('video.edit');
         Route::post('video-manage/update/{id}', [VideoController::class, 'update'])->name('video.update');
         Route::post('video-manage/delete/{id}', [VideoController::class, 'destroy'])->name('video.destroy');
-
-        // #QUIZ_QUESTION
-        Route::get('question', [QuizQuestionController::class, 'index']);
-        Route::get('question/template', [QuizQuestionController::class, 'template']);
-        Route::post('question/import', [QuizQuestionController::class, 'import']);
-        Route::get('question/delete/{quizQuestion}', [QuizQuestionController::class, 'destroy']);
-        Route::get('question/active/{id}', [QuizQuestionController::class, 'restore']);
-        Route::get('question/{id}', [QuizQuestionController::class, 'show']);
-        Route::get('question/{id}/deleteAll', [QuizQuestionController::class, 'deleteAll']);
-        Route::get('question/{id}/activeAll', [QuizQuestionController::class, 'activeAll']);
-
-        // #QUIZ_OPTION
-        Route::get('option/get', [QuizOptionController::class, 'get']);
-
-        // #QUIZ
-        Route::get('quiz', [QuizController::class, 'index']);
-        Route::post('quiz', [QuizController::class, 'store']);
-        Route::get('quiz/history', [QuizHistoryController::class, 'index']);
-        Route::get('quiz/{quiz}', [QuizController::class, 'edit']);
-        Route::post('quiz/{quiz}', [QuizController::class, 'update']);
-        Route::get('quiz/history/{quizHistory}', [QuizHistoryController::class, 'show']);
-        Route::get('quiz/delete/{quiz}', [QuizController::class, 'destroy']);
-        Route::post('quiz/result/export/{quiz?}', [QuizController::class, 'export']);
-        Route::get('quiz/history/export/{quizHistory}', [QuizController::class, 'exporthistory']);
-        Route::get('quiz/history/delete/{quizHistory}', [QuizHistoryController::class, 'destroy']);
-        Route::get('quiz/history/exportall/{quiz}', [QuizController::class, 'exportAllHistory']);
 
         // #DOCUMENT
         Route::get('document', [DocumentController::class, 'index']);
@@ -147,10 +116,6 @@ Route::middleware(['auth', 'isAdmin'])->group(
 
         // #HELPERS
         Route::get('subdivisi/get/{id}', [SubDivisiController::class, 'show']);
-
-        // #ABSENT
-        Route::get('absent', [AbsentController::class, 'index']);
-        Route::post('absent/export', [AbsentController::class, 'exportAbsent']);
 
         // #TRAINING MANAGEMENT
         Route::get('training', [TrainingController::class, 'index'])->name('training.index');

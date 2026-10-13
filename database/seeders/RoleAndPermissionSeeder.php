@@ -35,10 +35,6 @@ class RoleAndPermissionSeeder extends Seeder
             // Dokumen
             'manage-documents' => 'Mengelola & Mengunggah Dokumen Modul',
             'view-documents' => 'Melihat & Mengunduh Dokumen Modul',
-            // Kuis
-            'manage-quizzes' => 'Mengelola Kuis, Bank Soal, & Penilaian',
-            // Presensi
-            'manage-presence' => 'Mengakses Data Presensi Karyawan',
             // Pengaturan
             'manage-users' => 'Mengelola Akun Pengguna',
             'manage-roles' => 'Mengelola Hak Akses Role & Permission',
@@ -62,7 +58,6 @@ class RoleAndPermissionSeeder extends Seeder
             'comment-videos',
             'manage-trainings',
             'view-my-trainings',
-            'manage-quizzes',
             'manage-documents',
             'view-documents',
         ]);

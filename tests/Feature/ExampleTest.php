@@ -34,9 +34,9 @@ class ExampleTest extends TestCase
         $response->assertSee('Video Materi');
         $response->assertSee('Peserta Pelatihan');
         $response->assertSee('Dokumen Modul');
-        $response->assertSee('Kuis Modul');
         $response->assertSee('Hasil Evaluasi Kuis');
-        $response->assertSee('Presensi Karyawan');
+        $response->assertDontSee('Kuis Modul');
+        $response->assertDontSee('Presensi Karyawan');
         $response->assertSee('chartPelatihan');
         $response->assertSee('chartQuizScore');
         $response->assertSee('chartVideoViews');

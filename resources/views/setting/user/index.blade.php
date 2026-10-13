@@ -105,8 +105,8 @@
                                                 @endif
                                             </td>
                                             <td>
-                                                @if(count($user->lastSeen))
-                                                    <span class="text-sm font-weight-500">{{ $user->lastSeen[0]->last_used_at->format('d M Y H:i') }}</span>
+                                                @if($user->last_seen)
+                                                    <span class="text-sm font-weight-500">{{ $user->last_seen->format('d M Y H:i') }}</span>
                                                 @else
                                                     <span class="text-muted text-sm">Inactive</span>
                                                 @endif

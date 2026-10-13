@@ -48,20 +48,6 @@ class RoleController extends Controller
                     'view-documents' => 'Melihat & Mengunduh Dokumen Modul',
                 ],
             ],
-            'Kuis & Evaluasi' => [
-                'icon' => 'fas fa-award',
-                'color' => 'text-purple',
-                'permissions' => [
-                    'manage-quizzes' => 'Mengelola Kuis, Bank Soal, & Hasil Ujian',
-                ],
-            ],
-            'Presensi / Presence' => [
-                'icon' => 'fas fa-calendar-check',
-                'color' => 'text-success',
-                'permissions' => [
-                    'manage-presence' => 'Mengakses & Merekap Presensi Karyawan',
-                ],
-            ],
             'Pengaturan Sistem' => [
                 'icon' => 'fas fa-sliders-h',
                 'color' => 'text-secondary',

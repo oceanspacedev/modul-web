@@ -69,15 +69,6 @@
                 </li>
                 @endcanany
 
-                @can('manage-presence')
-                <li class="nav-item">
-                    <a href="/absent" class="nav-link {{ ($active ?? '') === 'absent' ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-calendar-check"></i>
-                        <p>Presence</p>
-                    </a>
-                </li>
-                @endcan
-
                 @canany(['manage-documents', 'view-documents'])
                 <li class="nav-item">
                     <a href="/document" class="nav-link {{ ($active ?? '') === 'document' ? 'active' : '' }}">
@@ -87,37 +78,6 @@
                 </li>
                 @endcanany
 
-                @can('manage-quizzes')
-                <li class="nav-item">
-                     <a href="#" class="nav-link {{ ($active ?? '') === 'quiz' ? 'active' : '' }}">
-                         <i class="nav-icon fas fa-award"></i>
-                         <p>
-                             Quiz
-                             <i class="right fas fa-angle-left"></i>
-                         </p>
-                     </a>
-                     <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                             <a href="/quiz" class="nav-link">
-                                 <i class="far fa-circle nav-icon text-xs"></i>
-                                 <p>Add Quiz</p>
-                             </a>
-                         </li>
-                         <li class="nav-item">
-                             <a href="/question" class="nav-link">
-                                 <i class="far fa-circle nav-icon text-xs"></i>
-                                 <p>Question</p>
-                             </a>
-                         </li>
-                         <li class="nav-item">
-                             <a href="/quiz/history" class="nav-link">
-                                 <i class="far fa-circle nav-icon text-xs"></i>
-                                 <p>History</p>
-                             </a>
-                         </li>
-                     </ul>
-                 </li>
-                @endcan
 
                 @canany(['manage-users', 'manage-roles', 'manage-master-data'])
                  <li class="nav-item">
@@ -176,6 +136,13 @@
                      </ul>
                  </li>
                 @endcanany
+
+                <li class="nav-item">
+                    <a href="/panduan" class="nav-link {{ ($active ?? '') === 'panduan' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-book-open"></i>
+                        <p>Panduan Penggunaan</p>
+                    </a>
+                </li>
              </ul>
          </nav>
          <!-- /.sidebar-menu -->

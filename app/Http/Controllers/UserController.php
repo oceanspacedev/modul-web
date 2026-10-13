@@ -12,7 +12,6 @@ use App\Models\User;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Laravel\Sanctum\PersonalAccessToken;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Permission\Models\Role;
 
@@ -28,9 +27,7 @@ class UserController extends Controller
         return view('setting.user.index', [
             'title' => 'User',
             'active' => 'setting',
-            'users' => User::with(['joblevel', 'divisi', 'subdivisi', 'roles', 'lastSeen' => function ($q) {
-                $q->orderBy('last_used_at', 'DESC');
-            }])->filter()->withTrashed()->orderBy('full_name')->get(),
+            'users' => User::with(['joblevel', 'divisi', 'subdivisi', 'roles'])->filter()->withTrashed()->orderBy('full_name')->get(),
         ]);
     }
 
@@ -153,10 +150,6 @@ class UserController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            $token = PersonalAccessToken::where('tokenable_id', $id)->get()->first;
-            if ($token) {
-                $token->delete();
-            }
             $user = User::find($id);
             $request->validate([
                 'username' => ['required', 'string', 'max:255', 'unique:users,username,'.$user->id],
@@ -220,13 +213,5 @@ class UserController extends Controller
         } catch (Exception $e) {
             return redirect('user')->with(['error' => $e->getMessage()]);
         }
-    }
-
-    public function download(Request $request)
-    {
-        return response()->download(public_path('/storage/apk/modul.apk'), 'modul.apk', [
-            'Content-Type' => 'application/vnd.android.package-archive',
-            'Content-Disposition' => 'attachment; filename="android.apk"',
-        ]);
     }
 }

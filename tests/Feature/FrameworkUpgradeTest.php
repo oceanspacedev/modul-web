@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\Str;
 use Illuminate\Support\ViewErrorBag;
-use Laravel\Sanctum\PersonalAccessToken;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
@@ -26,25 +25,12 @@ class FrameworkUpgradeTest extends TestCase
         $this->getJson('/up')->assertOk()->assertJsonPath('status', 'up');
     }
 
-    public function test_api_routes_are_rate_limited_and_render_json_for_guests(): void
-    {
-        // Guests get JSON (not a login redirect) even without an Accept header.
-        $this->get('/api/user')
-            ->assertUnauthorized()
-            ->assertHeader('Content-Type', 'application/json');
-
-        // The "api" group throttles public endpoints at 60 requests per minute.
-        $this->postJson('/api/login', [])
-            ->assertHeader('X-RateLimit-Limit', '60');
-    }
-
     public function test_web_group_tracks_user_activity_and_protects_against_forgery(): void
     {
         $groups = $this->app['router']->getMiddlewareGroups();
 
         $this->assertContains(LastUserActivity::class, $groups['web']);
         $this->assertContains(PreventRequestForgery::class, $groups['web']);
-        $this->assertContains('throttle:api', $groups['api']);
         $this->assertArrayHasKey('isAdmin', $this->app['router']->getMiddleware());
     }
 
@@ -55,56 +41,6 @@ class FrameworkUpgradeTest extends TestCase
 
         $this->assertTrue($admin->can('something-undefined'));
         $this->assertFalse($staff->can('something-undefined'));
-    }
-
-    public function test_api_login_issues_a_token_that_can_fetch_the_user(): void
-    {
-        $user = User::factory()->create(['password' => Hash::make('test-password')]);
-
-        $response = $this->postJson('/api/login', [
-            'username' => $user->username,
-            'password' => 'test-password',
-        ])->assertOk()->assertJsonPath('data.token_type', 'Bearer');
-
-        $token = $response->json('data.access_token');
-        $this->assertNotNull(PersonalAccessToken::findToken($token));
-
-        // A new API request must authenticate through Sanctum, not the session
-        // guard cached by the preceding login request inside this PHP process.
-        $this->app['auth']->forgetGuards();
-        $this->withToken($token)->getJson('/api/user')
-            ->assertOk()
-            ->assertJsonPath('data.id', $user->id)
-            ->assertJsonMissingPath('data.password');
-    }
-
-    public function test_api_logout_revokes_only_the_current_bearer_token(): void
-    {
-        $user = User::factory()->create();
-        $token = $user->createToken('current-device')->plainTextToken;
-        $otherToken = $user->createToken('other-device')->plainTextToken;
-
-        $this->withToken($token)->postJson('/api/logout')->assertOk();
-
-        $this->assertNull(PersonalAccessToken::findToken($token));
-        $this->assertNotNull(PersonalAccessToken::findToken($otherToken));
-
-        $this->app['auth']->forgetGuards();
-        $this->withToken($token)->getJson('/api/user')->assertUnauthorized();
-    }
-
-    public function test_missing_invalid_and_expired_api_tokens_are_rejected(): void
-    {
-        $this->getJson('/api/user')->assertUnauthorized();
-        $this->app['auth']->forgetGuards();
-        $this->withToken('invalid-token')->getJson('/api/user')->assertUnauthorized();
-
-        $token = User::factory()->create()->createToken(
-            'expired-device', ['*'], now()->subMinute()
-        )->plainTextToken;
-
-        $this->app['auth']->forgetGuards();
-        $this->withToken($token)->getJson('/api/user')->assertUnauthorized();
     }
 
     public function test_expired_and_used_whatsapp_otps_cannot_authenticate(): void

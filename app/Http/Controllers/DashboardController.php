@@ -2,12 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Absent;
 use App\Models\Divisi;
 use App\Models\Document;
 use App\Models\DokumenType;
-use App\Models\Quiz;
-use App\Models\QuizHistory;
 use App\Models\SubDivisi;
 use App\Models\Training;
 use App\Models\TrainingParticipant;
@@ -28,8 +25,6 @@ class DashboardController extends Controller
     {
         $totalUser = User::count();
         $totalDocument = Document::count();
-        $totalQuiz = Quiz::count();
-        $totalHistory = QuizHistory::count();
 
         // Entity counts for dashboard
         $totalVideo = Video::count();
@@ -37,8 +32,6 @@ class DashboardController extends Controller
         $ongoingTraining = Training::where('status', 'ongoing')->count();
         $totalParticipant = TrainingParticipant::count();
         $totalQuizResult = TrainingQuizResult::count();
-        $totalAbsent = Absent::count();
-        $todayAbsent = Absent::whereDate('created_at', today())->count();
         $totalDivisi = Divisi::count();
         $totalSubDivisi = SubDivisi::count();
         $totalDokumenType = DokumenType::count();
@@ -109,8 +102,8 @@ class DashboardController extends Controller
         })->values();
 
         // Chart 4: Module & Content Distribution
-        $chartContentLabels = ['Video Materi', 'Dokumen Modul', 'Pelatihan', 'Kuis Modul', 'Divisi'];
-        $chartContentValues = [$totalVideo, $totalDocument, $totalTraining, $totalQuiz, $totalDivisi];
+        $chartContentLabels = ['Video Materi', 'Dokumen Modul', 'Pelatihan', 'Divisi'];
+        $chartContentValues = [$totalVideo, $totalDocument, $totalTraining, $totalDivisi];
 
         return view('dashboard.index', [
             'title' => 'Dashboard',
@@ -118,15 +111,11 @@ class DashboardController extends Controller
             'data' => [
                 'totalUser' => $totalUser,
                 'totalDocument' => $totalDocument,
-                'totalQuiz' => $totalQuiz,
-                'totalHistory' => $totalHistory,
                 'totalVideo' => $totalVideo,
                 'totalTraining' => $totalTraining,
                 'ongoingTraining' => $ongoingTraining,
                 'totalParticipant' => $totalParticipant,
                 'totalQuizResult' => $totalQuizResult,
-                'totalAbsent' => $totalAbsent,
-                'todayAbsent' => $todayAbsent,
                 'totalDivisi' => $totalDivisi,
                 'totalSubDivisi' => $totalSubDivisi,
                 'totalDokumenType' => $totalDokumenType,

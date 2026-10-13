@@ -42,12 +42,6 @@ class IsAdmin
         if ($request->is('document*') && ($user->can('manage-documents') || $user->can('view-documents'))) {
             return $next($request);
         }
-        if (($request->is('quiz*') || $request->is('question*') || $request->is('option*')) && $user->can('manage-quizzes')) {
-            return $next($request);
-        }
-        if ($request->is('absent*') && $user->can('manage-presence')) {
-            return $next($request);
-        }
         if ($request->is('dashboard*') && $user->can('view-dashboard')) {
             return $next($request);
         }
