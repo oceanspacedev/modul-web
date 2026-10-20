@@ -146,7 +146,7 @@ class RolePermissionTest extends TestCase
         ]);
         $user->assignRole('Staff');
 
-        $response = $this->actingAs($admin)->post('/user/'.$user->id, [
+        $response = $this->actingAs($admin)->put('/user/'.$user->id, [
             'username' => $user->username,
             'full_name' => $user->full_name,
             'divisi_id' => $user->divisi_id,

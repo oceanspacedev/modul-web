@@ -5,12 +5,27 @@ namespace App\Http\Controllers;
 use App\Models\LoginOtp;
 use App\Models\User;
 use App\Services\WhatsAppService;
+use App\Support\SafeRedirect;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\View\View;
 
 class AuthController extends Controller
 {
+    /**
+     * Show the login page, remembering where to go afterwards when it is a page of this app.
+     */
+    public function showLogin(Request $request): View
+    {
+        if ($redirect = SafeRedirect::sanitize($request->input('redirect'))) {
+            $request->session()->put('url.intended', $redirect);
+        }
+
+        return view('login.index');
+    }
+
     /**
      * Resolve a user by username or WhatsApp number variations
      */
@@ -239,7 +254,7 @@ class AuthController extends Controller
         return substr($phone, 0, 4).'****'.substr($phone, -4);
     }
 
-    public function logout(Request $request)
+    public function logout(Request $request): RedirectResponse
     {
         Auth::logout();
 
@@ -247,6 +262,6 @@ class AuthController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return to_route('login');
     }
 }

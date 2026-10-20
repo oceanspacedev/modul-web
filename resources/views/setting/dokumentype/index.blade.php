@@ -27,6 +27,7 @@
                                 <strong>{{ $message }}</strong>
                             </div>
                         @endif
+                        @include('layout.partials.validation-errors')
                         <!-- /.card-header -->
                         <div class="card-body table-responsive p-0" style="height: 520px;">
                             <table class="table table-head-fixed text-nowrap">
@@ -44,12 +45,12 @@
                                             <td><strong>{{ $dokumentype->name }}</strong></td>
                                             <td>
                                                 <div class="d-flex align-items-center" style="gap: 4px;">
-                                                    <a href="dokumentype/{{ $dokumentype->id }}" class="btn btn-default btn-xs">
+                                                    <a href="{{ route('dokumentype.edit', $dokumentype) }}" class="btn btn-default btn-xs">
                                                         Edit
                                                     </a>
-                                                    <form action="/dokumentype/delete" method="POST" class="d-inline m-0" onsubmit="return confirm('Hapus type dokumen {{ $dokumentype->name }}?')">
+                                                    <form action="{{ route('dokumentype.destroy', $dokumentype) }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Hapus type dokumen '.$dokumentype->name.'?'))">
                                                         @csrf
-                                                        <input type="hidden" name="id" value="{{ $dokumentype->id }}">
+                                                        @method('DELETE')
                                                         <button type="submit" class="btn btn-default btn-xs text-danger">
                                                             Hapus
                                                         </button>
@@ -70,7 +71,7 @@
     </section>
 
     <!-- Modal -->
-    <form action="/dokumentype" method="POST" enctype="multipart/form-data">
+    <form action="{{ route('dokumentype.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="modal fade" id="adddokumentype" tabindex="-1" aria-labelledby="adddokumentypeLabel" aria-hidden="true">
             <div class="modal-dialog">

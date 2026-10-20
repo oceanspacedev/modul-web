@@ -189,13 +189,12 @@ class LoginWithWhatsAppTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_user_can_logout_via_get(): void
+    public function test_logout_via_get_is_rejected_so_links_cannot_sign_users_out(): void
     {
         $trainer = User::factory()->create(['job_level_id' => 2]);
         $trainer->syncRoles(['Trainer']);
 
-        $response = $this->actingAs($trainer)->get('/logout');
-        $response->assertRedirect('/');
-        $this->assertGuest();
+        $this->actingAs($trainer)->get('/logout')->assertMethodNotAllowed();
+        $this->assertAuthenticatedAs($trainer);
     }
 }

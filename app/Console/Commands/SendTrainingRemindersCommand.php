@@ -2,8 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\TrainingStatus;
+use App\Jobs\SendTrainingInvitation;
 use App\Models\Training;
-use App\Services\WhatsAppService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 
@@ -34,8 +35,7 @@ class SendTrainingRemindersCommand extends Command
         $this->info("Memeriksa pelatihan untuk tanggal: {$today}");
 
         $trainings = Training::where('training_date', $today)
-            ->whereIn('status', ['scheduled', 'ongoing'])
-            ->with(['participants.user', 'trainer'])
+            ->whereIn('status', [TrainingStatus::Scheduled, TrainingStatus::Ongoing])
             ->get();
 
         if ($trainings->isEmpty()) {
@@ -45,17 +45,8 @@ class SendTrainingRemindersCommand extends Command
         }
 
         foreach ($trainings as $training) {
-            $this->info("Memproses pelatihan: {$training->title}");
-            $unnotified = $training->participants()->whereNull('wa_sent_at')->get();
-
-            foreach ($unnotified as $participant) {
-                $res = WhatsAppService::sendToParticipant($participant);
-                if ($res['status']) {
-                    $this->info("  [✓] WA terkirim ke {$participant->user->full_name}");
-                } else {
-                    $this->warn("  [✗] Gagal kirim ke {$participant->user->full_name}: {$res['message']}");
-                }
-            }
+            $queued = SendTrainingInvitation::dispatchForTraining($training, onlyUnnotified: true);
+            $this->info("Memproses pelatihan: {$training->title} ({$queued} pengingat dimasukkan ke antrean)");
         }
 
         $this->info('Selesai memproses pengingat pelatihan.');

@@ -12,14 +12,16 @@
                                 <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.15rem;">Edit Tipe Dokumen &raquo; {{ $dokumentype->name }}</h3>
                             </div>
                             <div class="card-body">
-                                <form action="/dokumentype/{{ $dokumentype->id }}" method="POST">
+                                <form action="{{ route('dokumentype.update', $dokumentype) }}" method="POST">
                                     @csrf
+                                    @method('PUT')
+                                    @include('layout.partials.validation-errors', ['class' => 'mb-3'])
                                     <div class="mb-3 col-lg-4">
                                         <label for="name" class="form-label font-weight-bold">Nama Tipe Dokumen</label>
                                         <input type="text" class="form-control" id="name" name="name"
                                             value="{{ $dokumentype->name }}" required>
                                     </div>
-                                    <a href="/dokumentype" class="btn btn-secondary mt-3 mr-1">Kembali</a>
+                                    <a href="{{ route('dokumentype.index') }}" class="btn btn-secondary mt-3 mr-1">Kembali</a>
                                     <button type="submit" class="btn btn-primary mt-3">Simpan Perubahan</button>
                                 </form>
                             </div>

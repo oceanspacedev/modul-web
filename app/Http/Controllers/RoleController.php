@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\RoleRequest;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -63,7 +66,7 @@ class RoleController extends Controller
     /**
      * Display a listing of roles and user assignments.
      */
-    public function index()
+    public function index(): View
     {
         $roles = Role::with(['permissions', 'users'])->get();
         $permissions = Permission::all();
@@ -83,7 +86,7 @@ class RoleController extends Controller
     /**
      * Show the form for creating a new role.
      */
-    public function create()
+    public function create(): View
     {
         return view('setting.role.create', [
             'title' => 'Tambah Role Baru',
@@ -95,19 +98,10 @@ class RoleController extends Controller
     /**
      * Store a newly created role in storage.
      */
-    public function store(Request $request)
+    public function store(RoleRequest $request): RedirectResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:100|unique:roles,name',
-            'permissions' => 'nullable|array',
-            'permissions.*' => 'exists:permissions,name',
-        ], [
-            'name.required' => 'Nama Role wajib diisi.',
-            'name.unique' => 'Nama Role tersebut sudah ada.',
-        ]);
-
         $role = Role::create([
-            'name' => trim($request->name),
+            'name' => $request->validated('name'),
             'guard_name' => 'web',
         ]);
 
@@ -123,9 +117,9 @@ class RoleController extends Controller
     /**
      * Show the form for editing the specified role and its permissions.
      */
-    public function edit($id)
+    public function edit(Role $role): View
     {
-        $role = Role::with('permissions')->findOrFail($id);
+        $role->load('permissions');
         $rolePermissions = $role->permissions->pluck('name')->toArray();
 
         return view('setting.role.edit', [
@@ -140,22 +134,14 @@ class RoleController extends Controller
     /**
      * Update the specified role and sync permissions.
      */
-    public function update(Request $request, $id)
+    public function update(RoleRequest $request, Role $role): RedirectResponse
     {
-        $role = Role::findOrFail($id);
-
-        $request->validate([
-            'name' => 'required|string|max:100|unique:roles,name,'.$role->id,
-            'permissions' => 'nullable|array',
-            'permissions.*' => 'exists:permissions,name',
-        ]);
-
         // Don't rename Admin if it's the core system role
         if ($role->name === 'Admin' && $request->name !== 'Admin') {
             return back()->with('error', 'Nama role Admin sistem bawaan tidak dapat diubah.');
         }
 
-        $role->update(['name' => trim($request->name)]);
+        $role->update(['name' => $request->validated('name')]);
 
         if ($role->name === 'Admin') {
             // Admin always has all permissions
@@ -172,9 +158,8 @@ class RoleController extends Controller
     /**
      * Remove the specified role.
      */
-    public function destroy($id)
+    public function destroy(Role $role): RedirectResponse
     {
-        $role = Role::findOrFail($id);
 
         if (in_array($role->name, ['Admin', 'Staff', 'Trainer'])) {
             return back()->with('error', "Role bawaan sistem '{$role->name}' tidak boleh dihapus.");
@@ -195,12 +180,17 @@ class RoleController extends Controller
     /**
      * Assign or update a user's role.
      */
-    public function assignUserRole(Request $request)
+    public function assignUserRole(Request $request): RedirectResponse
     {
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'role' => 'required|exists:roles,name',
         ]);
+
+        // Only administrators may promote someone to Admin.
+        if ($request->role === 'Admin' && ! $request->user()->isAdministrator()) {
+            return back()->with('error', 'Hanya administrator yang dapat memberikan role Admin.');
+        }
 
         $user = User::findOrFail($request->user_id);
         $user->syncRoles([$request->role]);

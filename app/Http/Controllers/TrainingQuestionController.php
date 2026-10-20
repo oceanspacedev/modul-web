@@ -3,23 +3,31 @@
 namespace App\Http\Controllers;
 
 use App\Exports\TrainingQuestionTemplate;
+use App\Http\Requests\TrainingQuestionRequest;
 use App\Imports\TrainingQuestionImport;
 use App\Models\Document;
 use App\Models\Training;
 use App\Models\TrainingQuestion;
 use App\Services\GeminiQuestionService;
 use Exception;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Authorize;
+use Illuminate\Support\Str;
+use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
+#[Authorize('update', 'training')]
 class TrainingQuestionController extends Controller
 {
     /**
      * Show quiz questions management for a training
      */
-    public function index($trainingId)
+    public function index(Training $training): View
     {
-        $training = Training::with(['questions', 'documents.versions'])->findOrFail($trainingId);
+        $training->load(['questions', 'documents.versions']);
         $allDocuments = Document::with('dokumentype')->orderBy('name')->get();
         $isGeminiConfigured = ! empty(config('services.gemini.api_key'));
 
@@ -37,10 +45,9 @@ class TrainingQuestionController extends Controller
     /**
      * Download Excel question template
      */
-    public function downloadTemplate($trainingId)
+    public function downloadTemplate(Training $training): BinaryFileResponse
     {
-        $training = Training::findOrFail($trainingId);
-        $filename = 'template_soal_kuis_'.\Str::slug($training->title).'.xlsx';
+        $filename = 'template_soal_kuis_'.Str::slug($training->title).'.xlsx';
 
         return Excel::download(new TrainingQuestionTemplate, $filename);
     }
@@ -48,9 +55,8 @@ class TrainingQuestionController extends Controller
     /**
      * Import questions from Excel/CSV file
      */
-    public function importExcel(Request $request, $trainingId)
+    public function importExcel(Request $request, Training $training): RedirectResponse
     {
-        $training = Training::findOrFail($trainingId);
 
         $request->validate([
             'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
@@ -71,9 +77,8 @@ class TrainingQuestionController extends Controller
     /**
      * Import questions via Copy-Paste Plain Text
      */
-    public function importText(Request $request, $trainingId)
+    public function importText(Request $request, Training $training): RedirectResponse
     {
-        $training = Training::findOrFail($trainingId);
 
         $request->validate([
             'raw_text' => 'required|string|min:5',
@@ -233,42 +238,9 @@ class TrainingQuestionController extends Controller
     /**
      * Store a new question for the training
      */
-    public function store(Request $request, $trainingId)
+    public function store(TrainingQuestionRequest $request, Training $training): RedirectResponse
     {
-        $training = Training::findOrFail($trainingId);
-        $type = $request->input('type', 'multiple_choice');
-
-        if ($type === 'essay') {
-            $validated = $request->validate([
-                'type' => 'required|in:essay',
-                'question' => 'required|string',
-                'correct_answer' => 'nullable|string',
-                'explanation' => 'nullable|string',
-            ]);
-
-            $validated['option_a'] = null;
-            $validated['option_b'] = null;
-            $validated['option_c'] = null;
-            $validated['option_d'] = null;
-            $validated['option_e'] = null;
-            $validated['option_f'] = null;
-        } else {
-            $validated = $request->validate([
-                'type' => 'nullable|in:multiple_choice',
-                'question' => 'required|string',
-                'option_a' => 'required|string',
-                'option_b' => 'required|string',
-                'option_c' => 'nullable|string',
-                'option_d' => 'nullable|string',
-                'option_e' => 'nullable|string',
-                'option_f' => 'nullable|string',
-                'correct_answer' => 'required|in:a,b,c,d,e,f',
-                'explanation' => 'nullable|string',
-            ]);
-            $validated['type'] = 'multiple_choice';
-        }
-
-        $training->questions()->create($validated);
+        $training->questions()->create($request->questionData());
 
         return back()->with('success', 'Soal kuis baru berhasil ditambahkan!');
     }
@@ -276,42 +248,9 @@ class TrainingQuestionController extends Controller
     /**
      * Update an existing question
      */
-    public function update(Request $request, $trainingId, $questionId)
+    public function update(TrainingQuestionRequest $request, Training $training, TrainingQuestion $question): RedirectResponse
     {
-        $question = TrainingQuestion::where('training_id', $trainingId)->findOrFail($questionId);
-        $type = $request->input('type', 'multiple_choice');
-
-        if ($type === 'essay') {
-            $validated = $request->validate([
-                'type' => 'required|in:essay',
-                'question' => 'required|string',
-                'correct_answer' => 'nullable|string',
-                'explanation' => 'nullable|string',
-            ]);
-
-            $validated['option_a'] = null;
-            $validated['option_b'] = null;
-            $validated['option_c'] = null;
-            $validated['option_d'] = null;
-            $validated['option_e'] = null;
-            $validated['option_f'] = null;
-        } else {
-            $validated = $request->validate([
-                'type' => 'nullable|in:multiple_choice',
-                'question' => 'required|string',
-                'option_a' => 'required|string',
-                'option_b' => 'required|string',
-                'option_c' => 'nullable|string',
-                'option_d' => 'nullable|string',
-                'option_e' => 'nullable|string',
-                'option_f' => 'nullable|string',
-                'correct_answer' => 'required|in:a,b,c,d,e,f',
-                'explanation' => 'nullable|string',
-            ]);
-            $validated['type'] = 'multiple_choice';
-        }
-
-        $question->update($validated);
+        $question->update($request->questionData());
 
         return back()->with('success', 'Soal kuis berhasil diperbarui!');
     }
@@ -319,9 +258,8 @@ class TrainingQuestionController extends Controller
     /**
      * Delete a question
      */
-    public function destroy($trainingId, $questionId)
+    public function destroy(Training $training, TrainingQuestion $question): RedirectResponse
     {
-        $question = TrainingQuestion::where('training_id', $trainingId)->findOrFail($questionId);
         $question->delete();
 
         return back()->with('success', 'Soal kuis berhasil dihapus!');
@@ -330,9 +268,8 @@ class TrainingQuestionController extends Controller
     /**
      * Delete all questions for a training
      */
-    public function deleteAll($trainingId)
+    public function deleteAll(Training $training): RedirectResponse
     {
-        $training = Training::findOrFail($trainingId);
         $training->questions()->delete();
 
         return back()->with('success', 'Semua soal kuis berhasil dihapus!');
@@ -341,9 +278,8 @@ class TrainingQuestionController extends Controller
     /**
      * Generate questions using Google Gemini AI from selected training documents
      */
-    public function generateAiQuestions(Request $request, $trainingId)
+    public function generateAiQuestions(Request $request, Training $training): JsonResponse
     {
-        $training = Training::findOrFail($trainingId);
 
         $request->validate([
             'document_ids' => 'required|array|min:1',
@@ -383,6 +319,8 @@ class TrainingQuestionController extends Controller
                 'questions' => $questions,
             ]);
         } catch (Exception $e) {
+            report($e);
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -393,9 +331,8 @@ class TrainingQuestionController extends Controller
     /**
      * Save AI-generated questions in batch after trainer review
      */
-    public function saveAiBatch(Request $request, $trainingId)
+    public function saveAiBatch(Request $request, Training $training): JsonResponse|RedirectResponse
     {
-        $training = Training::findOrFail($trainingId);
 
         $request->validate([
             'questions' => 'required|array|min:1',
@@ -407,8 +344,7 @@ class TrainingQuestionController extends Controller
         $savedCount = 0;
         foreach ($request->questions as $q) {
             $type = $q['type'] ?? 'multiple_choice';
-            TrainingQuestion::create([
-                'training_id' => $training->id,
+            $training->questions()->create([
                 'type' => $type,
                 'question' => $q['question'],
                 'option_a' => ($type === 'multiple_choice') ? ($q['option_a'] ?? null) : null,

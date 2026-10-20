@@ -12,8 +12,9 @@
                                 <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.15rem;">Tambah Dokumen Baru</h3>
                             </div>
                             <div class="card-body">
-                                <form action="/document" method="POST" enctype="multipart/form-data">
+                                <form action="{{ route('document.store') }}" method="POST" enctype="multipart/form-data">
                                     @csrf
+                                    @include('layout.partials.validation-errors', ['class' => 'mb-3'])
                                     <div class="row">
                                         <div class="col-lg-5">
                                             <label for="file" class="form-label col-lg-12 font-weight-bold">File Dokumen (PDF)</label>
@@ -68,7 +69,7 @@
 
                                         </div>
                                     </div>
-                                    <a href="/document" class="btn btn-secondary mt-3 mr-1">Kembali</a>
+                                    <a href="{{ route('document.index') }}" class="btn btn-secondary mt-3 mr-1">Kembali</a>
                                     <button type="submit" class="btn btn-primary mt-3">Simpan</button>
                                 </form>
                             </div>

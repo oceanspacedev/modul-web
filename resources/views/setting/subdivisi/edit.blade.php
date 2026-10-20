@@ -12,8 +12,10 @@
                                 <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.15rem;">Edit Sub Divisi &raquo; {{ $subdivisi->name }}</h3>
                             </div>
                             <div class="card-body">
-                                <form action="/subdivisi/{{ $subdivisi->id }}" method="POST">
+                                <form action="{{ route('subdivisi.update', $subdivisi) }}" method="POST">
                                     @csrf
+                                    @method('PUT')
+                                    @include('layout.partials.validation-errors', ['class' => 'mb-3'])
                                     <div class="mb-3 col-lg-4">
                                         <label for="divisi_id" class="form-label font-weight-bold">Divisi</label>
                                         <select class="custom-select adduserdivisi" name="divisi_id"
@@ -30,7 +32,7 @@
                                         <input type="text" class="form-control" id="name" name="name"
                                             value="{{ $subdivisi->name }}" required>
                                     </div>
-                                    <a href="/subdivisi" class="btn btn-secondary mt-3 mr-1">Kembali</a>
+                                    <a href="{{ route('subdivisi.index') }}" class="btn btn-secondary mt-3 mr-1">Kembali</a>
                                     <button type="submit" class="btn btn-primary mt-3">Simpan Perubahan</button>
                                 </form>
                             </div>

@@ -13,8 +13,9 @@
                                 <h3 class="card-title">CREATE &raquo; USER</h3>
                             </div>
                             <div class="card-body">
-                                <form action="/user" method="POST">
+                                <form action="{{ route('user.store') }}" method="POST">
                                     @csrf
+                                    @include('layout.partials.validation-errors', ['class' => 'mb-3'])
                                     <div class="row">
                                         <div class="mb-3 col-lg-4">
                                             <label for="id_karyawan" class="form-label">ID Karyawan</label>

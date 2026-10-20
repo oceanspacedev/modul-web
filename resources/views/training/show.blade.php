@@ -14,15 +14,7 @@
                             <h1 class="m-0 text-dark font-weight-bold" style="font-size: 1.4rem;">
                                 {{ $training->title }}
                             </h1>
-                            @if($training->status === 'scheduled')
-                                <span class="badge badge-warning text-white px-2 py-1">Dijadwalkan</span>
-                            @elseif($training->status === 'ongoing')
-                                <span class="badge badge-success px-2 py-1">Berlangsung</span>
-                            @elseif($training->status === 'completed')
-                                <span class="badge badge-secondary px-2 py-1">Selesai</span>
-                            @else
-                                <span class="badge badge-danger px-2 py-1">Dibatalkan</span>
-                            @endif
+                            <x-training-status-badge :status="$training->status" />
                         </div>
                         <span class="text-muted small">
                             {{ \Carbon\Carbon::parse($training->training_date)->format('d F Y') }} &bull; {{ substr($training->start_time, 0, 5) }} - {{ substr($training->end_time, 0, 5) }} WIB
@@ -191,7 +183,7 @@
                                                     <a href="{{ $fileUrl }}" target="_blank" class="btn btn-xs btn-default">
                                                         Buka
                                                     </a>
-                                                    <form action="/training/{{ $training->id }}/detach-document/{{ $doc->id }}" method="POST" class="d-inline" onsubmit="return confirm('Lepas dokumen {{ $doc->name }} dari pelatihan ini?')">
+                                                    <form action="/training/{{ $training->id }}/detach-document/{{ $doc->id }}" method="POST" class="d-inline" onsubmit="return confirm(@js('Lepas dokumen '.$doc->name.' dari pelatihan ini?'))">
                                                         @csrf
                                                         <button type="submit" class="btn btn-xs btn-outline-danger">
                                                             Lepas
@@ -216,23 +208,14 @@
                         <div class="p-3 bg-light rounded border mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span class="small text-muted font-weight-bold">Status Pelatihan</span>
-                                @if($training->status === 'scheduled')
-                                    <span class="badge badge-warning text-white px-2 py-1">Dijadwalkan</span>
-                                @elseif($training->status === 'ongoing')
-                                    <span class="badge badge-success px-2 py-1">Berlangsung</span>
-                                @elseif($training->status === 'completed')
-                                    <span class="badge badge-secondary px-2 py-1">Selesai</span>
-                                @else
-                                    <span class="badge badge-danger px-2 py-1">Dibatalkan</span>
-                                @endif
+                                <x-training-status-badge :status="$training->status" />
                             </div>
-                            <form action="/training/{{ $training->id }}/status" method="POST" id="formStatusPelatihan">
+                            <form action="{{ route('training.status', $training) }}" method="POST" id="formStatusPelatihan">
                                 @csrf
                                 <select name="status" class="form-control form-control-sm" onchange="document.getElementById('formStatusPelatihan').submit();">
-                                    <option value="scheduled" {{ $training->status === 'scheduled' ? 'selected' : '' }}>Dijadwalkan</option>
-                                    <option value="ongoing" {{ $training->status === 'ongoing' ? 'selected' : '' }}>Berlangsung</option>
-                                    <option value="completed" {{ $training->status === 'completed' ? 'selected' : '' }}>Selesai</option>
-                                    <option value="cancelled" {{ $training->status === 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
+                                    @foreach (App\Enums\TrainingStatus::cases() as $status)
+                                        <option value="{{ $status->value }}" @selected($training->status === $status)>{{ $status->label() }}</option>
+                                    @endforeach
                                 </select>
                             </form>
                         </div>
@@ -317,7 +300,7 @@
                         </div>
 
                         <!-- TOMBOL BROADCAST WHATSAPP -->
-                        <form action="/training/{{ $training->id }}/broadcast-wa" method="POST" onsubmit="return confirm('Kirim notifikasi WhatsApp ke {{ $training->participants->count() }} peserta?')">
+                        <form action="/training/{{ $training->id }}/broadcast-wa" method="POST" onsubmit="return confirm(@js('Kirim notifikasi WhatsApp ke '.$training->participants->count().' peserta?'))">
                             @csrf
                             <button type="submit" class="btn btn-success btn-sm btn-block py-2 font-weight-bold shadow-none">
                                 <i class="fab fa-whatsapp mr-1"></i> Broadcast WA ke Peserta
@@ -554,7 +537,7 @@
                                         </a>
 
                                         @if($part->attendance_status !== 'pending')
-                                            <form action="/training/{{ $training->id }}/reset-attendance/{{ $part->id }}" method="POST" class="d-inline" onsubmit="return confirm('Kembalikan status presensi {{ $userName }} menjadi Belum Absen?')">
+                                            <form action="/training/{{ $training->id }}/reset-attendance/{{ $part->id }}" method="POST" class="d-inline" onsubmit="return confirm(@js('Kembalikan status presensi '.$userName.' menjadi Belum Absen?'))">
                                                 @csrf
                                                 <button type="submit" class="dropdown-item py-1 text-danger">
                                                     Reset Presensi (Belum Absen)
@@ -564,7 +547,7 @@
 
                                         @if($quiz)
                                             <div class="dropdown-divider my-1"></div>
-                                            <form action="/training/{{ $training->id }}/reset-quiz/{{ $part->id }}" method="POST" class="d-inline" onsubmit="return confirm('Reset hasil kuis untuk {{ $userName }}?')">
+                                            <form action="/training/{{ $training->id }}/reset-quiz/{{ $part->id }}" method="POST" class="d-inline" onsubmit="return confirm(@js('Reset hasil kuis untuk '.$userName.'?'))">
                                                 @csrf
                                                 <button type="submit" class="dropdown-item py-1 text-danger">
                                                     Reset Kuis Peserta

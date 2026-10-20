@@ -2,116 +2,49 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DokumenTypeRequest;
 use App\Models\DokumenType;
-use Exception;
-use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class DokumenTypeController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return Response
-     */
-    public function index()
+    public function index(): View
     {
         return view('setting.dokumentype.index', [
-            'title' => 'Job Level',
+            'title' => 'Tipe Dokumen',
             'active' => 'setting',
-            'dokumentypes' => DokumenType::all(),
+            'dokumentypes' => DokumenType::orderBy('name')->get(),
         ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return Response
-     */
-    public function create()
+    public function store(DokumenTypeRequest $request): RedirectResponse
     {
-        //
+        DokumenType::create($request->validated());
+
+        return to_route('dokumentype.index')->with('success', 'Berhasil menambahkan tipe dokumen');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @return Response
-     */
-    public function store(Request $request)
-    {
-        try {
-            DokumenType::insert([
-                'name' => strtoupper($request->name),
-            ]);
-
-            return redirect('dokumentype')->with(['success' => 'berhasil menambahkan dokumentype']);
-        } catch (Exception $e) {
-            return redirect('dokumentype')->with(['error' => $e->getMessage()]);
-        }
-    }
-
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function show($id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function edit($id)
+    public function edit(DokumenType $dokumentype): View
     {
         return view('setting.dokumentype.edit', [
-            'title' => 'Job Level',
+            'title' => 'Tipe Dokumen',
             'active' => 'setting',
-            'dokumentype' => DokumenType::find($id),
+            'dokumentype' => $dokumentype,
         ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function update(Request $request, $id)
+    public function update(DokumenTypeRequest $request, DokumenType $dokumentype): RedirectResponse
     {
-        try {
-            $dokumentype = DokumenType::find($id);
-            $dokumentype->update([
-                'name' => strtoupper($request->name),
-            ]);
+        $dokumentype->update($request->validated());
 
-            return redirect('dokumentype')->with(['success' => 'berhasil merubah dokumentype']);
-        } catch (Exception $e) {
-            return redirect('dokumentype')->with(['error' => $e->getMessage()]);
-        }
+        return to_route('dokumentype.index')->with('success', 'Berhasil mengubah tipe dokumen');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function destroy(Request $request)
+    public function destroy(DokumenType $dokumentype): RedirectResponse
     {
-        try {
-            $dokumentype = DokumenType::find($request->id);
-            $dokumentype->delete();
+        $dokumentype->delete();
 
-            return redirect('dokumentype')->with(['success' => 'berhasil menghapus dokumentype']);
-        } catch (Exception $e) {
-            return redirect('dokumentype')->with(['error' => $e->getMessage()]);
-        }
+        return to_route('dokumentype.index')->with('success', 'Berhasil menghapus tipe dokumen');
     }
 }

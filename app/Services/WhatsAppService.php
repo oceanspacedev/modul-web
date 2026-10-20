@@ -301,29 +301,4 @@ class WhatsAppService
             return ['status' => false, 'message' => $errorMsg];
         }
     }
-
-    /**
-     * Broadcast to all participants of a training
-     */
-    public static function broadcastTraining(Training $training): array
-    {
-        $participants = $training->participants()->with('user')->get();
-        $success = 0;
-        $failed = 0;
-
-        foreach ($participants as $participant) {
-            $result = self::sendToParticipant($participant);
-            if ($result['status']) {
-                $success++;
-            } else {
-                $failed++;
-            }
-        }
-
-        return [
-            'total' => $participants->count(),
-            'success' => $success,
-            'failed' => $failed,
-        ];
-    }
 }

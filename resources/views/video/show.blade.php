@@ -14,17 +14,18 @@
             </div>
             <div class="col-sm-6 text-sm-right mt-2 mt-sm-0">
                 @auth
-                    @if(auth()->user()->can('manage-videos') || auth()->user()->job_level_id == 1)
+                    @can('update', $video)
                     <a href="{{ route('video.edit', $video->id) }}" class="btn btn-default btn-sm mr-1">
                         <i class="fas fa-pencil-alt mr-1"></i> Edit Video
                     </a>
                     <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmDelete('{{ $video->id }}')">
                         <i class="fas fa-trash mr-1"></i> Hapus
                     </button>
-                    <form id="deleteForm" action="{{ route('video.destroy', $video->id) }}" method="POST" style="display: none;">
+                    <form id="deleteForm" action="{{ route('video.destroy', $video) }}" method="POST" style="display: none;">
                         @csrf
+                        @method('DELETE')
                     </form>
-                    @endif
+                    @endcan
                 @endauth
             </div>
         </div>
@@ -124,7 +125,7 @@
 
                         {{-- BOX TULIS KOMENTAR: AUTH vs GUEST --}}
                         @auth
-                            @if(auth()->user()->can('comment-videos') || auth()->user()->job_level_id == 1)
+                            @can('create', App\Models\VideoComment::class)
                             <form action="{{ route('video.comments.store', $video->id) }}" method="POST" class="mb-4 comment-submit-form">
                                 @csrf
                                 <div class="d-flex align-items-start">
@@ -159,7 +160,7 @@
                             <div class="alert alert-light border text-muted small p-3 mb-4">
                                 <i class="fas fa-info-circle text-info mr-1"></i> Role akun Anda (<strong>{{ auth()->user()->roles->pluck('name')->join(', ') ?: 'Peserta' }}</strong>) saat ini tidak memiliki izin untuk mengirim komentar atau pertanyaan pada video materi.
                             </div>
-                            @endif
+                            @endcan
                         @else
                             <div class="p-4 rounded border text-center mb-4" style="background: #fdfdfd; border-color: #e5e7eb !important;">
                                 <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-2" style="width: 50px; height: 50px;">
@@ -215,11 +216,11 @@
                                                     <button type="button" class="btn btn-link btn-xs text-muted p-0 font-weight-bold" onclick="toggleReplyBox('{{ $comment->id }}')">
                                                         <i class="fas fa-reply mr-1"></i> Balas
                                                     </button>
-                                                    @if($comment->user_id === auth()->id() || auth()->user()->job_level_id == 1)
+                                                    @can('delete', $comment)
                                                         <button type="button" class="btn btn-link btn-xs text-danger p-0 font-weight-bold" onclick="deleteComment('{{ $comment->id }}')">
                                                             <i class="fas fa-trash-alt mr-1"></i> Hapus
                                                         </button>
-                                                    @endif
+                                                    @endcan
                                                 @else
                                                     <a href="{{ route('login', ['redirect' => request()->fullUrl()]) }}" class="btn btn-link btn-xs text-muted p-0 font-weight-bold">
                                                         <i class="fas fa-reply mr-1"></i> Login untuk membalas
@@ -281,13 +282,13 @@
                                                                         {!! nl2br(e($reply->comment)) !!}
                                                                     </div>
                                                                     @auth
-                                                                        @if($reply->user_id === auth()->id() || auth()->user()->job_level_id == 1)
+                                                                        @can('delete', $reply)
                                                                             <div class="mt-1 text-right">
                                                                                 <button type="button" class="btn btn-link btn-xs text-danger p-0" onclick="deleteComment('{{ $reply->id }}')" title="Hapus balasan ini">
                                                                                     <i class="fas fa-trash-alt mr-1"></i> Hapus
                                                                                 </button>
                                                                             </div>
-                                                                        @endif
+                                                                        @endcan
                                                                     @endauth
                                                                 </div>
                                                             </div>

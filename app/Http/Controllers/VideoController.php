@@ -2,18 +2,31 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreVideoCommentRequest;
+use App\Http\Requests\StoreVideoRequest;
+use App\Http\Requests\UpdateVideoRequest;
 use App\Models\Video;
 use App\Models\VideoComment;
+use App\Support\SafeRedirect;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Routing\Attributes\Controllers\Authorize;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\View\View;
 
+#[Authorize('create', Video::class, only: ['create', 'store'])]
+#[Authorize('update', 'video', only: ['edit', 'update'])]
+#[Authorize('delete', 'video', only: ['destroy'])]
+#[Authorize('create', VideoComment::class, only: ['storeComment'])]
+#[Authorize('delete', 'comment', only: ['destroyComment'])]
 class VideoController extends Controller
 {
     /**
      * Display a listing of videos (public).
      */
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         $query = Video::query()->latest();
 
@@ -25,49 +38,35 @@ class VideoController extends Controller
             });
         }
 
-        $videos = $query->paginate(12)->withQueryString();
-
         return view('video.index', [
             'title' => 'Galeri Video',
             'active' => 'video',
-            'videos' => $videos,
+            'videos' => $query->paginate(12)->withQueryString(),
             'search' => $request->search,
         ]);
     }
 
     /**
-     * Show single video player page or details.
+     * Show single video player page (public).
      */
-    public function show($id)
+    public function show(Video $video): View
     {
-        $video = Video::with([
+        $video->load([
             'training',
-            'comments' => function ($q) {
-                $q->with([
-                    'user.divisi',
-                    'replies.user.divisi',
-                ]);
-            },
-        ])->findOrFail($id);
+            'comments' => fn ($q) => $q->with(['user.divisi', 'replies.user.divisi']),
+        ]);
 
-        // Increment view count
         $video->increment('views_count');
-
-        // Other recommended videos
-        $otherVideos = Video::where('id', '!=', $id)->latest()->take(6)->get();
 
         return view('video.show', [
             'title' => $video->title,
             'active' => 'video',
             'video' => $video,
-            'otherVideos' => $otherVideos,
+            'otherVideos' => Video::whereKeyNot($video->id)->latest()->take(6)->get(),
         ]);
     }
 
-    /**
-     * Show form to upload new video (admin).
-     */
-    public function create()
+    public function create(): View
     {
         return view('video.create', [
             'title' => 'Tambah Video Baru',
@@ -76,107 +75,65 @@ class VideoController extends Controller
     }
 
     /**
-     * Store uploaded video or link (admin).
+     * Store an uploaded video or link. Uploading from a training page replaces that training's video.
      */
-    public function store(Request $request)
+    public function store(StoreVideoRequest $request): RedirectResponse
     {
-        $videoType = $request->input('video_type', 'file');
-
-        $rules = [
-            'training_id' => 'nullable|exists:trainings,id',
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'video_type' => 'required|in:file,link',
-            'thumbnail' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
-        ];
-
-        if ($videoType === 'link') {
-            $rules['video_link'] = 'required|url|max:1000';
-        } else {
-            $rules['video_file'] = 'required|file|mimes:mp4,webm,ogg,mov,mkv|max:2097152'; // max 2GB
-        }
-
-        $request->validate($rules);
-
-        $videoPath = null;
-        $fileSize = null;
-
-        if ($videoType === 'file' && $request->hasFile('video_file')) {
-            $videoFile = $request->file('video_file');
-            $fileSize = $this->formatBytes($videoFile->getSize());
-            $videoFileName = Str::random(20).'.'.$videoFile->getClientOriginalExtension();
-            $videoPath = $videoFile->storeAs('videos', $videoFileName, 'public');
-        }
-
-        // Store thumbnail if uploaded
-        $thumbnailPath = null;
-        if ($request->hasFile('thumbnail')) {
-            $thumbFile = $request->file('thumbnail');
-            $thumbName = Str::random(20).'.'.$thumbFile->getClientOriginalExtension();
-            $thumbnailPath = $thumbFile->storeAs('videos/thumbnails', $thumbName, 'public');
-        }
+        $redirectTo = SafeRedirect::to($request->validated('redirect_to'), route('video.index'));
 
         // Debounce: prevent duplicate rapid submissions within 10 seconds
-        $userId = auth()->id() ?? 'guest';
-        $lockKey = 'video_upload_lock_'.$userId.'_'.md5($request->title.'_'.$request->training_id);
-        if (cache()->has($lockKey)) {
-            $redirectTo = $request->input('redirect_to', '/video');
-
+        $lockKey = 'video_upload_lock_'.$request->user()->id.'_'.md5($request->title.'_'.$request->training_id);
+        if (! cache()->add($lockKey, true, now()->addSeconds(10))) {
             return redirect($redirectTo)->with('info', 'Video Anda sedang diproses atau sudah berhasil disimpan.');
         }
-        cache()->put($lockKey, true, now()->addSeconds(10));
 
-        // If uploaded via training shortcut, check if a video already exists for this training
-        if ($request->filled('training_id')) {
-            $existingVideo = Video::where('training_id', $request->training_id)->first();
-            if ($existingVideo) {
-                // Delete old storage files if replaced
-                if ($videoPath && $existingVideo->video_file) {
-                    Storage::disk('public')->delete($existingVideo->video_file);
-                }
-                if ($thumbnailPath && $existingVideo->thumbnail) {
-                    Storage::disk('public')->delete($existingVideo->thumbnail);
-                }
+        $isLink = $request->validated('video_type') === 'link';
+        $videoFile = $request->file('video_file');
+        $videoPath = ! $isLink && $videoFile ? $this->storeUpload($videoFile, 'videos') : null;
+        $thumbnailPath = $request->hasFile('thumbnail') ? $this->storeUpload($request->file('thumbnail'), 'videos/thumbnails') : null;
 
-                $existingVideo->update([
-                    'title' => $request->title,
-                    'description' => $request->description,
-                    'video_type' => $videoType,
-                    'video_file' => $videoPath ?? ($videoType === 'file' ? $existingVideo->video_file : null),
-                    'video_link' => $videoType === 'link' ? trim($request->video_link) : null,
-                    'thumbnail' => $thumbnailPath ?? $existingVideo->thumbnail,
-                    'file_size' => $fileSize ?? ($videoType === 'file' ? $existingVideo->file_size : null),
-                ]);
+        $attributes = [
+            'title' => $request->validated('title'),
+            'description' => $request->validated('description'),
+            'video_type' => $request->validated('video_type'),
+            'video_link' => $isLink ? $request->validated('video_link') : null,
+        ];
 
-                $redirectTo = $request->input('redirect_to', '/video');
+        $existingVideo = $request->filled('training_id')
+            ? Video::where('training_id', $request->validated('training_id'))->first()
+            : null;
 
-                return redirect($redirectTo)->with('success', 'Video materi pelatihan berhasil diperbarui!');
+        if ($existingVideo) {
+            if ($videoPath && $existingVideo->video_file) {
+                Storage::disk('public')->delete($existingVideo->video_file);
             }
+            if ($thumbnailPath && $existingVideo->thumbnail) {
+                Storage::disk('public')->delete($existingVideo->thumbnail);
+            }
+
+            $existingVideo->update([
+                ...$attributes,
+                'video_file' => $videoPath ?? ($isLink ? null : $existingVideo->video_file),
+                'thumbnail' => $thumbnailPath ?? $existingVideo->thumbnail,
+                'file_size' => $videoFile ? $this->formatBytes($videoFile->getSize()) : ($isLink ? null : $existingVideo->file_size),
+            ]);
+
+            return redirect($redirectTo)->with('success', 'Video materi pelatihan berhasil diperbarui!');
         }
 
         Video::create([
-            'training_id' => $request->training_id,
-            'title' => $request->title,
-            'description' => $request->description,
-            'video_type' => $videoType,
+            ...$attributes,
+            'training_id' => $request->validated('training_id'),
             'video_file' => $videoPath,
-            'video_link' => $videoType === 'link' ? trim($request->video_link) : null,
             'thumbnail' => $thumbnailPath,
-            'file_size' => $fileSize,
+            'file_size' => $videoPath ? $this->formatBytes($videoFile->getSize()) : null,
         ]);
-
-        $redirectTo = $request->input('redirect_to', '/video');
 
         return redirect($redirectTo)->with('success', 'Video materi pelatihan berhasil diunggah!');
     }
 
-    /**
-     * Show edit form for video (admin).
-     */
-    public function edit($id)
+    public function edit(Video $video): View
     {
-        $video = Video::findOrFail($id);
-
         return view('video.edit', [
             'title' => 'Edit Video: '.$video->title,
             'active' => 'video',
@@ -184,96 +141,93 @@ class VideoController extends Controller
         ]);
     }
 
-    /**
-     * Update video info (admin).
-     */
-    public function update(Request $request, $id)
+    public function update(UpdateVideoRequest $request, Video $video): RedirectResponse
     {
-        $video = Video::findOrFail($id);
-        $videoType = $request->input('video_type', $video->video_type);
+        $video->fill($request->safe()->only(['title', 'description', 'video_type']));
 
-        $rules = [
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'video_type' => 'required|in:file,link',
-            'thumbnail' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
-        ];
-
-        if ($videoType === 'link') {
-            $rules['video_link'] = 'required|url|max:1000';
-        } else {
-            $rules['video_file'] = 'nullable|file|mimes:mp4,webm,ogg,mov,mkv|max:2097152';
-        }
-
-        $request->validate($rules);
-
-        $video->title = $request->title;
-        $video->description = $request->description;
-        $video->video_type = $videoType;
-
-        if ($videoType === 'link') {
-            // Remove previous local file if it was a file before
-            if ($video->video_file && Storage::disk('public')->exists($video->video_file)) {
-                Storage::disk('public')->delete($video->video_file);
-            }
+        if ($request->validated('video_type') === 'link') {
+            $this->deleteStoredFile($video->video_file);
             $video->video_file = null;
             $video->file_size = null;
-            $video->video_link = trim($request->video_link);
+            $video->video_link = $request->validated('video_link');
         } else {
             $video->video_link = null;
-            // If new video file uploaded
-            if ($request->hasFile('video_file')) {
-                if ($video->video_file && Storage::disk('public')->exists($video->video_file)) {
-                    Storage::disk('public')->delete($video->video_file);
-                }
 
-                $newVideo = $request->file('video_file');
-                $video->file_size = $this->formatBytes($newVideo->getSize());
-                $videoFileName = Str::random(20).'.'.$newVideo->getClientOriginalExtension();
-                $video->video_file = $newVideo->storeAs('videos', $videoFileName, 'public');
+            if ($request->hasFile('video_file')) {
+                $this->deleteStoredFile($video->video_file);
+                $video->file_size = $this->formatBytes($request->file('video_file')->getSize());
+                $video->video_file = $this->storeUpload($request->file('video_file'), 'videos');
             }
         }
 
-        // If new thumbnail uploaded
         if ($request->hasFile('thumbnail')) {
-            if ($video->thumbnail && Storage::disk('public')->exists($video->thumbnail)) {
-                Storage::disk('public')->delete($video->thumbnail);
-            }
-
-            $thumbFile = $request->file('thumbnail');
-            $thumbName = Str::random(20).'.'.$thumbFile->getClientOriginalExtension();
-            $video->thumbnail = $thumbFile->storeAs('videos/thumbnails', $thumbName, 'public');
+            $this->deleteStoredFile($video->thumbnail);
+            $video->thumbnail = $this->storeUpload($request->file('thumbnail'), 'videos/thumbnails');
         }
 
         $video->save();
 
-        return redirect('/video')->with('success', 'Video berhasil diperbarui!');
+        return to_route('video.index')->with('success', 'Video berhasil diperbarui!');
     }
 
-    /**
-     * Delete video (admin).
-     */
-    public function destroy($id)
+    public function destroy(Video $video): RedirectResponse
     {
-        $video = Video::findOrFail($id);
-
-        if ($video->video_file && Storage::disk('public')->exists($video->video_file)) {
-            Storage::disk('public')->delete($video->video_file);
-        }
-
-        if ($video->thumbnail && Storage::disk('public')->exists($video->thumbnail)) {
-            Storage::disk('public')->delete($video->thumbnail);
-        }
+        $this->deleteStoredFile($video->video_file);
+        $this->deleteStoredFile($video->thumbnail);
 
         $video->delete();
 
-        return redirect('/video')->with('success', 'Video berhasil dihapus!');
+        return to_route('video.index')->with('success', 'Video berhasil dihapus!');
     }
 
     /**
-     * Helper to format bytes to human readable string.
+     * Store a comment or a reply on a video. Replies are kept one level deep.
      */
-    private function formatBytes($bytes, $precision = 2)
+    public function storeComment(StoreVideoCommentRequest $request, Video $video): RedirectResponse
+    {
+        $parentId = null;
+        if ($request->filled('parent_id')) {
+            $parent = $video->allComments()->findOrFail($request->validated('parent_id'));
+            $parentId = $parent->parent_id ?: $parent->id;
+        }
+
+        $video->allComments()->create([
+            'user_id' => $request->user()->id,
+            'parent_id' => $parentId,
+            'comment' => $request->validated('comment'),
+        ]);
+
+        return redirect(route('video.show', $video).'#comments')
+            ->with('success', $parentId ? 'Balasan berhasil dikirim!' : 'Pertanyaan / komentar berhasil dikirim!');
+    }
+
+    /**
+     * Delete a comment (by its author or an administrator).
+     */
+    public function destroyComment(VideoComment $comment): RedirectResponse
+    {
+        $comment->delete();
+
+        return redirect(route('video.show', $comment->video_id).'#comments')
+            ->with('success', 'Komentar berhasil dihapus.');
+    }
+
+    /**
+     * Store with a random name and an extension derived from the file contents, not the client name.
+     */
+    private function storeUpload(UploadedFile $file, string $directory): string
+    {
+        return $file->storeAs($directory, Str::random(20).'.'.$file->extension(), 'public');
+    }
+
+    private function deleteStoredFile(?string $path): void
+    {
+        if ($path && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
+    }
+
+    private function formatBytes($bytes, $precision = 2): string
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
         $bytes = max($bytes, 0);
@@ -282,73 +236,5 @@ class VideoController extends Controller
         $bytes /= pow(1024, $pow);
 
         return round($bytes, $precision).' '.$units[$pow];
-    }
-
-    /**
-     * Store comment on video (participants must be logged in).
-     */
-    public function storeComment(Request $request, $id)
-    {
-        if (! auth()->check()) {
-            return redirect()->route('login', ['redirect' => route('video.show', $id)])
-                ->with('error', 'Silakan login terlebih dahulu untuk menyampaikan pertanyaan atau komentar.');
-        }
-
-        if (! auth()->user()->can('comment-videos') && auth()->user()->job_level_id != 1) {
-            return back()->with('error', 'Role akun Anda tidak memiliki izin untuk mengirim komentar.');
-        }
-
-        $request->validate([
-            'comment' => 'required|string|min:2|max:2000',
-            'parent_id' => 'nullable|exists:video_comments,id',
-        ], [
-            'comment.required' => 'Isi komentar / pertanyaan tidak boleh kosong.',
-            'comment.min' => 'Komentar minimal 2 karakter.',
-            'comment.max' => 'Komentar maksimal 2000 karakter.',
-        ]);
-
-        $video = Video::findOrFail($id);
-
-        $parentId = null;
-        if ($request->filled('parent_id')) {
-            $parent = VideoComment::where('id', $request->parent_id)
-                ->where('video_id', $video->id)
-                ->firstOrFail();
-            // Nested limit to 1 level: if parent itself has a parent, attach to top-level parent
-            $parentId = $parent->parent_id ?: $parent->id;
-        }
-
-        VideoComment::create([
-            'video_id' => $video->id,
-            'user_id' => auth()->id(),
-            'parent_id' => $parentId,
-            'comment' => trim($request->comment),
-        ]);
-
-        return redirect(route('video.show', $video->id).'#comments')
-            ->with('success', $parentId ? 'Balasan berhasil dikirim!' : 'Pertanyaan / komentar berhasil dikirim!');
-    }
-
-    /**
-     * Delete a comment (by author or admin).
-     */
-    public function destroyComment($id)
-    {
-        if (! auth()->check()) {
-            return back()->with('error', 'Akses ditolak.');
-        }
-
-        $comment = VideoComment::findOrFail($id);
-
-        // Allow author or admin (job_level_id == 1) to delete
-        if ($comment->user_id !== auth()->id() && auth()->user()->job_level_id != 1) {
-            return back()->with('error', 'Anda tidak memiliki izin untuk menghapus komentar ini.');
-        }
-
-        $videoId = $comment->video_id;
-        $comment->delete();
-
-        return redirect(route('video.show', $videoId).'#comments')
-            ->with('success', 'Komentar berhasil dihapus.');
     }
 }

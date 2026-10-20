@@ -27,6 +27,7 @@
                                 <strong>{{ $message }}</strong>
                             </div>
                         @endif
+                        @include('layout.partials.validation-errors')
                         <!-- /.card-header -->
                         <div class="card-body table-responsive p-0" style="height: 520px;">
                             <table class="table table-head-fixed text-nowrap">
@@ -44,12 +45,12 @@
                                             <td><strong>{{ $joblevel->name }}</strong></td>
                                             <td>
                                                 <div class="d-flex align-items-center" style="gap: 4px;">
-                                                    <a href="joblevel/{{ $joblevel->id }}" class="btn btn-default btn-xs">
+                                                    <a href="{{ route('joblevel.edit', $joblevel) }}" class="btn btn-default btn-xs">
                                                         Edit
                                                     </a>
-                                                    <form action="/joblevel/delete" method="POST" class="d-inline m-0" onsubmit="return confirm('Hapus job level {{ $joblevel->name }}?')">
+                                                    <form action="{{ route('joblevel.destroy', $joblevel) }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Hapus job level '.$joblevel->name.'?'))">
                                                         @csrf
-                                                        <input type="hidden" name="id" value="{{ $joblevel->id }}">
+                                                        @method('DELETE')
                                                         <button type="submit" class="btn btn-default btn-xs text-danger">
                                                             Hapus
                                                         </button>
@@ -70,7 +71,7 @@
     </section>
 
     <!-- Modal -->
-    <form action="/joblevel" method="POST" enctype="multipart/form-data">
+    <form action="{{ route('joblevel.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="modal fade" id="addjoblevel" tabindex="-1" aria-labelledby="addjoblevelLabel" aria-hidden="true">
             <div class="modal-dialog">

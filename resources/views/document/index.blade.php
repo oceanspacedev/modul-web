@@ -13,18 +13,17 @@
                                     Data Dokumen
                                 </h3>
                                 <div class="card-tools m-0 d-flex align-items-center" style="gap: 8px;">
-                                    <a href="/document/create" class="btn btn-sm btn-primary">
-                                        Tambah Dokumen
-                                    </a>
-                                    <a href="/document/export" class="btn btn-sm btn-default">
-                                        Export All
-                                    </a>
+                                    @can('create', App\Models\Document::class)
+                                        <a href="{{ route('document.create') }}" class="btn btn-sm btn-primary">
+                                            Tambah Dokumen
+                                        </a>
+                                    @endcan
                                 </div>
                             </div>
 
                             <!-- Dedicated Filter & Search Bar -->
                             <div class="filter-toolbar">
-                                <form action="/document" method="GET" class="d-flex flex-wrap align-items-center justify-content-end" style="gap: 12px;">
+                                <form action="{{ route('document.index') }}" method="GET" class="d-flex flex-wrap align-items-center justify-content-end" style="gap: 12px;">
                                     <div class="filter-group">
                                         <div class="filter-group-icon">
                                             <i class="fas fa-building text-muted"></i>
@@ -55,7 +54,7 @@
                                     </div>
                                     @if (request('divisi_id') || request('doctype_id') || request('search'))
                                         <div>
-                                            <a href="/document" class="btn btn-sm btn-outline-secondary" title="Reset Filter" style="height: 38px; display: inline-flex; align-items: center; border-radius: 10px;">
+                                            <a href="{{ route('document.index') }}" class="btn btn-sm btn-outline-secondary" title="Reset Filter" style="height: 38px; display: inline-flex; align-items: center; border-radius: 10px;">
                                                 <i class="fas fa-undo mr-1"></i> Reset
                                             </a>
                                         </div>
@@ -73,6 +72,7 @@
                                 <strong>{{ $message }}</strong>
                             </div>
                         @endif
+                        @include('layout.partials.validation-errors')
                         <!-- /.card-header -->
                         <div class="card-body table-responsive p-0" style="height: 500px;">
                             <table class="table table-head-fixed text-nowrap">
@@ -124,19 +124,25 @@
                                                             <a class="dropdown-item py-1" href="javascript:void(0)" onclick="openDocumentHistory('{{ $document->id }}')">
                                                                 Riwayat Versi
                                                             </a>
-                                                            <a class="dropdown-item py-1" href="/document/{{ $document->id }}">
-                                                                Edit Dokumen
-                                                            </a>
-                                                            <div class="dropdown-divider my-1"></div>
-                                                            @if ($document->deleted_at)
-                                                                <a class="dropdown-item py-1 text-success" href="/document/active/{{ $document->id }}" onclick="return confirm('Mengaktifkan kembali dokumen {{ $document->name }}?')">
-                                                                    Aktifkan Dokumen
+                                                            @can('update', $document)
+                                                                <a class="dropdown-item py-1" href="{{ route('document.edit', $document) }}">
+                                                                    Edit Dokumen
                                                                 </a>
-                                                            @else
-                                                                <a class="dropdown-item py-1 text-danger" href="/document/delete/{{ $document->id }}" onclick="return confirm('Apakah anda yakin menonaktifkan dokumen {{ $document->name }}?')">
-                                                                    Nonaktifkan Dokumen
-                                                                </a>
-                                                            @endif
+                                                                <div class="dropdown-divider my-1"></div>
+                                                                @if ($document->deleted_at)
+                                                                    <form action="{{ route('document.restore', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Mengaktifkan kembali dokumen '.$document->name.'?'))">
+                                                                        @csrf
+                                                                        @method('PATCH')
+                                                                        <button type="submit" class="dropdown-item py-1 text-success">Aktifkan Dokumen</button>
+                                                                    </form>
+                                                                @else
+                                                                    <form action="{{ route('document.destroy', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Apakah anda yakin menonaktifkan dokumen '.$document->name.'?'))">
+                                                                        @csrf
+                                                                        @method('DELETE')
+                                                                        <button type="submit" class="dropdown-item py-1 text-danger">Nonaktifkan Dokumen</button>
+                                                                    </form>
+                                                                @endif
+                                                            @endcan
                                                         </div>
                                                     </div>
                                                 </div>
@@ -199,38 +205,17 @@
                     </div>
                 </div>
                 <div class="modal-footer py-2 justify-content-between">
+                    @can('create', App\Models\Document::class)
                     <a href="#" id="histEditLink" class="btn btn-warning btn-sm">
                         <i class="fas fa-edit mr-1"></i> Edit Dokumen
                     </a>
+                    @endcan
                     <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Tutup</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Import -->
-    <form action="/document/import" method="POST" enctype="multipart/form-data">
-        @csrf
-        <div class="modal fade" id="impordocument" tabindex="-1" aria-labelledby="impordocumentLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="impordocumentLabel">Import document</h5>
-                    </div>
-                    <div class="modal-body">
-                        <div class="col-12 mt-3">
-                            <label for="formFile" class="form-label">Pilih File</label>
-                            <input class="form-control" type="file" id="formFile" name="file">
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Import</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </form>
 
     <script>
     function openDocumentHistory(id) {
@@ -238,7 +223,7 @@
         $('#historyLoading').show();
         $('#historyContent').hide();
 
-        fetch('/document/history/' + id, {
+        fetch('/document/' + id + '/history', {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(response => response.json())
@@ -246,7 +231,8 @@
             document.getElementById('histDocName').innerText = data.document.name;
             document.getElementById('histDocDivisi').innerText = data.document.divisi;
             document.getElementById('histDocVersion').innerText = 'v' + data.document.version;
-            document.getElementById('histEditLink').href = '/document/' + data.document.id;
+            const histEditLink = document.getElementById('histEditLink');
+            if (histEditLink) histEditLink.href = '/document/' + data.document.id + '/edit';
 
             var tbody = document.getElementById('historyTableBody');
             tbody.innerHTML = '';

@@ -19,8 +19,10 @@
                                 </div>
                             </div>
                             <div class="card-body">
-                                <form action="/document/{{ $document->id }}" method="POST" enctype="multipart/form-data">
+                                <form action="{{ route('document.update', $document) }}" method="POST" enctype="multipart/form-data">
                                     @csrf
+                                    @method('PUT')
+                                    @include('layout.partials.validation-errors', ['class' => 'mb-3'])
 
                                     <div class="row">
                                         <div class="col-lg-6 mb-3">
@@ -86,7 +88,7 @@
                                     </div>
 
                                     <div class="d-flex justify-content-between mt-2 pt-3 border-top">
-                                        <a href="/document" class="btn btn-secondary btn-sm">
+                                        <a href="{{ route('document.index') }}" class="btn btn-secondary btn-sm">
                                             <i class="fas fa-arrow-left mr-1"></i> Kembali
                                         </a>
                                         <button type="submit" class="btn btn-primary btn-sm px-4">

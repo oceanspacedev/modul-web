@@ -2,116 +2,49 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\JobLevelRequest;
 use App\Models\JobLevel;
-use Exception;
-use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class JobLevelController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return Response
-     */
-    public function index()
+    public function index(): View
     {
         return view('setting.joblevel.index', [
             'title' => 'Job Level',
             'active' => 'setting',
-            'joblevels' => JobLevel::all(),
+            'joblevels' => JobLevel::orderBy('id')->get(),
         ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return Response
-     */
-    public function create()
+    public function store(JobLevelRequest $request): RedirectResponse
     {
-        //
+        JobLevel::create($request->validated());
+
+        return to_route('joblevel.index')->with('success', 'Berhasil menambahkan job level');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @return Response
-     */
-    public function store(Request $request)
-    {
-        try {
-            JobLevel::insert([
-                'name' => strtoupper($request->name),
-            ]);
-
-            return redirect('joblevel')->with(['success' => 'berhasil menambahkan job level']);
-        } catch (Exception $e) {
-            return redirect('joblevel')->with(['error' => $e->getMessage()]);
-        }
-    }
-
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function show($id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function edit($id)
+    public function edit(JobLevel $joblevel): View
     {
         return view('setting.joblevel.edit', [
             'title' => 'Job Level',
             'active' => 'setting',
-            'joblevel' => JobLevel::find($id),
+            'joblevel' => $joblevel,
         ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function update(Request $request, $id)
+    public function update(JobLevelRequest $request, JobLevel $joblevel): RedirectResponse
     {
-        try {
-            $joblevel = JobLevel::find($id);
-            $joblevel->update([
-                'name' => strtoupper($request->name),
-            ]);
+        $joblevel->update($request->validated());
 
-            return redirect('joblevel')->with(['success' => 'berhasil merubah job level']);
-        } catch (Exception $e) {
-            return redirect('joblevel')->with(['error' => $e->getMessage()]);
-        }
+        return to_route('joblevel.index')->with('success', 'Berhasil mengubah job level');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function destroy(Request $request)
+    public function destroy(JobLevel $joblevel): RedirectResponse
     {
-        try {
-            $joblevel = JobLevel::find($request->id);
-            $joblevel->delete();
+        $joblevel->delete();
 
-            return redirect('joblevel')->with(['success' => 'berhasil menghapus job level']);
-        } catch (Exception $e) {
-            return redirect('joblevel')->with(['error' => $e->getMessage()]);
-        }
+        return to_route('joblevel.index')->with('success', 'Berhasil menghapus job level');
     }
 }

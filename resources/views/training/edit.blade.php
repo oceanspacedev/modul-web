@@ -34,8 +34,9 @@
             </div>
         @endif
 
-        <form action="/training/{{ $training->id }}/update" method="POST" id="trainingEditForm">
+        <form action="{{ route('training.update', $training) }}" method="POST" id="trainingEditForm">
             @csrf
+            @method('PUT')
             <div class="row">
                 <!-- FORM DETAIL -->
                 <div class="col-lg-6 mb-4">
@@ -55,10 +56,9 @@
                                 <div class="col-md-6 mb-3 mb-md-0">
                                     <label for="status" class="font-weight-600 mb-2">Status Pelatihan <span class="text-danger">*</span></label>
                                     <select id="status" name="status" class="form-control" required>
-                                        <option value="scheduled" {{ old('status', $training->status) === 'scheduled' ? 'selected' : '' }}>Dijadwalkan</option>
-                                        <option value="ongoing" {{ old('status', $training->status) === 'ongoing' ? 'selected' : '' }}>Berlangsung</option>
-                                        <option value="completed" {{ old('status', $training->status) === 'completed' ? 'selected' : '' }}>Selesai</option>
-                                        <option value="cancelled" {{ old('status', $training->status) === 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
+                                        @foreach (App\Enums\TrainingStatus::cases() as $status)
+                                            <option value="{{ $status->value }}" @selected(old('status', $training->status->value) === $status->value)>{{ $status->label() }}</option>
+                                        @endforeach
                                     </select>
                                 </div>
                                 <div class="col-md-6">

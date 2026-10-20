@@ -109,9 +109,13 @@
                             <button type="button" class="btn btn-default btn-xs mr-1" data-toggle="modal" data-target="#editModal_{{ $q->id }}">
                                 Edit
                             </button>
-                            <a href="/training/{{ $training->id }}/questions/{{ $q->id }}/delete" onclick="return confirm('Hapus soal ini?')" class="btn btn-default btn-xs text-danger">
+                            <form action="{{ route('training.questions.destroy', [$training, $q]) }}" method="POST" class="d-inline m-0" onsubmit="return confirm('Hapus soal ini?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-default btn-xs text-danger">
                                 Hapus
-                            </a>
+                            </button>
+                            </form>
                         </div>
                     </div>
                     <div class="card-body p-3">
@@ -152,7 +156,8 @@
                 <div class="modal fade" id="editModal_{{ $q->id }}" tabindex="-1" role="dialog" aria-hidden="true">
                     <div class="modal-dialog modal-lg" role="document">
                         <div class="modal-content">
-                            <form action="/training/{{ $training->id }}/questions/{{ $q->id }}/update" method="POST">
+                            <form action="{{ route('training.questions.update', [$training, $q]) }}" method="POST">
+                                @method('PUT')
                                 @csrf
                                 <div class="modal-header py-3">
                                     <h5 class="modal-title font-weight-bold">Edit Soal #{{ $index + 1 }}</h5>

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\TrainingStatus;
 use App\Exports\TrainingQuestionTemplate;
 use App\Models\Divisi;
 use App\Models\Training;
@@ -100,7 +101,7 @@ class TrainingFullLifecycleTest extends TestCase
         $editPageRes->assertSee('Edit Pelatihan');
 
         // 1.6 Update Training
-        $updateRes = $this->actingAs($this->admin)->post("/training/{$training->id}/update", [
+        $updateRes = $this->actingAs($this->admin)->put("/training/{$training->id}", [
             'title' => 'Pelatihan CRUD Test System (Updated)',
             'trainer_id' => $this->admin->id,
             'description' => 'Deskripsi yang telah diperbarui.',
@@ -115,7 +116,7 @@ class TrainingFullLifecycleTest extends TestCase
 
         $training->refresh();
         $this->assertEquals('Pelatihan CRUD Test System (Updated)', $training->title);
-        $this->assertEquals('ongoing', $training->status);
+        $this->assertSame(TrainingStatus::Ongoing, $training->status);
         $this->assertCount(1, $training->participants);
 
         // 1.7 Update Status
@@ -123,7 +124,7 @@ class TrainingFullLifecycleTest extends TestCase
             'status' => 'completed',
         ]);
         $statusRes->assertSessionHas('success');
-        $this->assertEquals('completed', $training->fresh()->status);
+        $this->assertSame(TrainingStatus::Completed, $training->fresh()->status);
 
         // 1.8 Toggle Quiz Active
         $this->assertFalse((bool) $training->fresh()->is_quiz_active);
@@ -141,7 +142,7 @@ class TrainingFullLifecycleTest extends TestCase
         );
 
         // 1.10 Delete Training
-        $deleteRes = $this->actingAs($this->admin)->get("/training/delete/{$training->id}");
+        $deleteRes = $this->actingAs($this->admin)->delete("/training/{$training->id}");
         $deleteRes->assertRedirect('/training');
         $this->assertNull(Training::find($training->id));
     }
@@ -195,7 +196,7 @@ class TrainingFullLifecycleTest extends TestCase
         $this->assertNull($essayQuestion->option_a);
 
         // 2.3 Update MC Question
-        $updateMCRes = $this->actingAs($this->admin)->post("/training/{$training->id}/questions/{$mcQuestion->id}/update", [
+        $updateMCRes = $this->actingAs($this->admin)->put("/training/{$training->id}/questions/{$mcQuestion->id}", [
             'type' => 'multiple_choice',
             'question' => 'Siapa yang berhak menyetujui dokumen ini? (Diperbarui)',
             'option_a' => 'Staff Biasa',
@@ -209,7 +210,7 @@ class TrainingFullLifecycleTest extends TestCase
         $this->assertEquals('d', $mcQuestion->correct_answer);
 
         // 2.4 Update Essay Question
-        $updateEssayRes = $this->actingAs($this->admin)->post("/training/{$training->id}/questions/{$essayQuestion->id}/update", [
+        $updateEssayRes = $this->actingAs($this->admin)->put("/training/{$training->id}/questions/{$essayQuestion->id}", [
             'type' => 'essay',
             'question' => 'Jelaskan tahapan eskalasi komplain pelanggan? (Diperbarui)',
             'correct_answer' => 'Kunci revisi lengkap.',
@@ -220,7 +221,7 @@ class TrainingFullLifecycleTest extends TestCase
         $this->assertEquals('Kunci revisi lengkap.', $essayQuestion->correct_answer);
 
         // 2.5 Delete Single Question
-        $deleteSingleRes = $this->actingAs($this->admin)->get("/training/{$training->id}/questions/{$mcQuestion->id}/delete");
+        $deleteSingleRes = $this->actingAs($this->admin)->delete("/training/{$training->id}/questions/{$mcQuestion->id}");
         $deleteSingleRes->assertSessionHas('success');
         $this->assertNull(TrainingQuestion::find($mcQuestion->id));
         $this->assertCount(1, $training->questions()->get());

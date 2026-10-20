@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TrainingStatus;
 use App\Models\Divisi;
 use App\Models\Document;
 use App\Models\DokumenType;
@@ -29,7 +30,7 @@ class DashboardController extends Controller
         // Entity counts for dashboard
         $totalVideo = Video::count();
         $totalTraining = Training::count();
-        $ongoingTraining = Training::where('status', 'ongoing')->count();
+        $ongoingTraining = Training::where('status', TrainingStatus::Ongoing)->count();
         $totalParticipant = TrainingParticipant::count();
         $totalQuizResult = TrainingQuizResult::count();
         $totalDivisi = Divisi::count();
