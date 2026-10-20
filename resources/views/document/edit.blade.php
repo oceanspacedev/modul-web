@@ -55,7 +55,7 @@
 
                                         <div class="col-lg-3 mb-3">
                                             <label for="divisi_id" class="form-label font-weight-bold">Divisi</label>
-                                            <select class="custom-select adduserdivisi" name="divisi_id" id="divisi_id" required>
+                                            <select class="custom-select" name="divisi_id" id="divisi_id" required>
                                                 <option value="">--Pilih Divisi--</option>
                                                 @foreach ($divisis as $divisi)
                                                     <option value="{{ $divisi->id }}"
@@ -66,21 +66,12 @@
                                         </div>
 
                                         <div class="col-lg-3 mb-3">
-                                            <label for="sub_divisi_id" class="form-label font-weight-bold">Sub Divisi</label>
-                                            <select class="custom-select addusersubdivisi" id="sub_divisi_id" name="sub_divisi_id">
-                                                <option value="{{ $subdivisis->where('id', $document->sub_divisi_id)->first()->id ?? '' }}">
-                                                    {{ $document->subdivisi->name ?? '--Pilih Sub Divisi--' }}
-                                                </option>
-                                            </select>
-                                        </div>
-
-                                        <div class="col-lg-3 mb-3">
-                                            <label for="job_level_id" class="form-label font-weight-bold">Job Level</label>
-                                            <select class="custom-select" name="job_level_id" id="job_level_id" required>
-                                                @foreach ($joblevels as $joblevel)
-                                                    <option value="{{ $joblevel->id }}"
-                                                        {{ $joblevel->id == $document->job_level_id ? 'selected' : '' }}>
-                                                        {{ $joblevel->name }}
+                                            <label for="role_id" class="form-label font-weight-bold">Jabatan</label>
+                                            <select class="custom-select" name="role_id" id="role_id" required>
+                                                <option value="0">SEMUA JABATAN</option>
+                                                @foreach ($roles as $role)
+                                                    <option value="{{ $role->id }}" @selected($role->id == $document->role_id)>
+                                                        {{ $role->name }}
                                                     </option>
                                                 @endforeach
                                             </select>

@@ -27,6 +27,8 @@ class DivisiRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255', Rule::unique('divisis', 'name')->ignore($this->route('divisi'))->withoutTrashed()],
+            'area_id' => ['nullable', 'integer', Rule::exists('areas', 'id')],
+            'manager_id' => ['nullable', 'integer', Rule::exists('users', 'id')->withoutTrashed()],
         ];
     }
 
@@ -35,6 +37,10 @@ class DivisiRequest extends FormRequest
      */
     public function attributes(): array
     {
-        return ['name' => 'nama divisi'];
+        return [
+            'name' => 'nama divisi',
+            'area_id' => 'area',
+            'manager_id' => 'kepala divisi',
+        ];
     }
 }

@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Divisi;
+use App\Models\Role;
 use App\Models\Training;
 use App\Models\TrainingParticipant;
 use App\Models\TrainingQuestion;
@@ -41,29 +42,30 @@ class TrainingDummySeeder extends Seeder
             $idKaryawan = 'KRY-DUM-'.str_pad($i + 1, 3, '0', STR_PAD_LEFT);
 
             // Skip kalau sudah ada
-            $existing = User::where('id_karyawan', $idKaryawan)->first();
+            $existing = User::where('employee_id', $idKaryawan)->first();
             if ($existing) {
                 $users[] = $existing;
 
                 continue;
             }
 
-            $users[] = User::create([
-                'full_name' => $nama,
+            $user = User::create([
+                'nama_lengkap' => $nama,
                 'username' => 'dummy_'.Str::slug($nama, '_'),
-                'id_karyawan' => $idKaryawan,
+                'employee_id' => $idKaryawan,
                 'email' => 'dummy_'.Str::slug($nama, '_').'@test.com',
-                'no_wa' => '08'.rand(1000000000, 9999999999),
+                'no_hp' => '08'.rand(10000000, 99999999),
                 'password' => Hash::make('password123'),
                 'divisi_id' => $divisiIds[array_rand($divisiIds)],
-                'job_level_id' => 1,
             ]);
+            $user->assignJabatan(Role::findByName(User::ROLE_STAFF, 'web'));
+            $users[] = $user;
         }
 
         $this->command->info('30 user berhasil dibuat/ditemukan.');
 
         // ── 3. Buat training dummy ────────────────────────────────────────
-        $admin = User::whereHas('roles', fn ($q) => $q->where('name', 'admin'))
+        $admin = User::whereHas('roles', fn ($q) => $q->where('name', User::ROLE_ADMIN))
             ->first() ?? User::first();
 
         $this->command->info('Membuat training dummy...');

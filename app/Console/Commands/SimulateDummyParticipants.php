@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Role;
 use App\Models\Training;
 use App\Models\TrainingParticipant;
 use App\Models\TrainingQuestion;
@@ -110,11 +111,11 @@ class SimulateDummyParticipants extends Command
         // 2. DATA 5 DUMMY PESERTA
         $dummyUsers = [
             [
-                'full_name' => 'Budi Santoso',
+                'nama_lengkap' => 'Budi Santoso',
                 'username' => 'budi.santoso',
                 'email' => 'budi.santoso@example.com',
-                'id_karyawan' => 'KRY-101',
-                'no_wa' => '08123456701',
+                'employee_id' => 'KRY-101',
+                'no_hp' => '08123456701',
                 'answers' => [
                     $q1->id => 'a', // Benar
                     $q2->id => 'a', // Benar
@@ -124,11 +125,11 @@ class SimulateDummyParticipants extends Command
                 'note' => 'Hadir tepat waktu jam 09:00',
             ],
             [
-                'full_name' => 'Siti Rahmawati',
+                'nama_lengkap' => 'Siti Rahmawati',
                 'username' => 'siti.rahmawati',
                 'email' => 'siti.rahmawati@example.com',
-                'id_karyawan' => 'KRY-102',
-                'no_wa' => '08123456702',
+                'employee_id' => 'KRY-102',
+                'no_hp' => '08123456702',
                 'answers' => [
                     $q1->id => 'a', // Benar
                     $q2->id => 'b', // Salah
@@ -138,11 +139,11 @@ class SimulateDummyParticipants extends Command
                 'note' => 'Hadir melalui Zoom mobile',
             ],
             [
-                'full_name' => 'Ahmad Fauzi',
+                'nama_lengkap' => 'Ahmad Fauzi',
                 'username' => 'ahmad.fauzi',
                 'email' => 'ahmad.fauzi@example.com',
-                'id_karyawan' => 'KRY-103',
-                'no_wa' => '08123456703',
+                'employee_id' => 'KRY-103',
+                'no_hp' => '08123456703',
                 'answers' => [
                     $q1->id => 'a', // Benar
                     $q2->id => 'a', // Benar
@@ -152,11 +153,11 @@ class SimulateDummyParticipants extends Command
                 'note' => 'Hadir dan aktif bertanya di Zoom',
             ],
             [
-                'full_name' => 'Dewi Lestari',
+                'nama_lengkap' => 'Dewi Lestari',
                 'username' => 'dewi.lestari',
                 'email' => 'dewi.lestari@example.com',
-                'id_karyawan' => 'KRY-104',
-                'no_wa' => '08123456704',
+                'employee_id' => 'KRY-104',
+                'no_hp' => '08123456704',
                 'answers' => [
                     $q1->id => 'b', // Salah
                     $q2->id => 'a', // Benar
@@ -166,11 +167,11 @@ class SimulateDummyParticipants extends Command
                 'note' => 'Hadir',
             ],
             [
-                'full_name' => 'Rian Pratama',
+                'nama_lengkap' => 'Rian Pratama',
                 'username' => 'rian.pratama',
                 'email' => 'rian.pratama@example.com',
-                'id_karyawan' => 'KRY-105',
-                'no_wa' => '08123456705',
+                'employee_id' => 'KRY-105',
+                'no_hp' => '08123456705',
                 'answers' => [
                     $q1->id => 'a', // Benar
                     $q2->id => 'a', // Benar
@@ -189,15 +190,18 @@ class SimulateDummyParticipants extends Command
             $user = User::firstOrCreate(
                 ['username' => $data['username']],
                 [
-                    'full_name' => $data['full_name'],
+                    'nama_lengkap' => $data['nama_lengkap'],
                     'email' => $data['email'],
-                    'id_karyawan' => $data['id_karyawan'],
-                    'no_wa' => $data['no_wa'],
+                    'employee_id' => $data['employee_id'],
+                    'no_hp' => $data['no_hp'],
                     'password' => 'password123',
                     'divisi_id' => 1,
-                    'job_level_id' => 2,
                 ]
             );
+
+            if (! $user->jabatan) {
+                $user->assignJabatan(Role::findByName(User::ROLE_STAFF, 'web'));
+            }
 
             // Create or get participant token
             $token = Str::random(40).'_'.time().$index;
@@ -286,7 +290,7 @@ class SimulateDummyParticipants extends Command
 
             $resultsTable[] = [
                 'No' => $index + 1,
-                'Nama' => $user->full_name,
+                'Nama' => $user->nama_lengkap,
                 'Kehadiran' => 'HADIR',
                 'Nilai PG' => "{$mcScore} ({$correctCount}/{$mcTotal})",
                 'Nilai Essay' => $isGraded ? "{$essayScore} (Dinilai)" : 'Pending Review',

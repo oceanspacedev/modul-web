@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -14,15 +15,14 @@ class UserSeeder extends Seeder
      */
     public function run()
     {
-        User::insert([
-            [
-                'full_name' => 'admin',
-                'username' => 'admin',
-                'password' => bcrypt('complete123'),
-                'divisi_id' => 12,
-                'sub_divisi_id' => null,
-                'job_level_id' => 1,
-            ],
+        $admin = User::create([
+            'nama_lengkap' => 'ADMIN',
+            'username' => 'admin',
+            'password' => 'complete123',
+            'divisi_id' => 12,
+            'data_access' => User::DATA_ACCESS_ALL,
         ]);
+
+        $admin->assignJabatan(Role::findByName(User::ROLE_ADMIN, 'web'), dataAccessChosen: true);
     }
 }

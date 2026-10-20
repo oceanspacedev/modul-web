@@ -2,15 +2,25 @@
 
 namespace Database\Seeders;
 
-use App\Models\Training;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class RoleAndPermissionSeeder extends Seeder
 {
+    /**
+     * Permission jabatan non-admin bawaan (setara role "Staff" sebelumnya).
+     */
+    private const STAFF_PERMISSIONS = [
+        'view-dashboard',
+        'view-videos',
+        'comment-videos',
+        'view-my-trainings',
+        'view-documents',
+    ];
+
     /**
      * Run the database seeds.
      *
@@ -25,72 +35,45 @@ class RoleAndPermissionSeeder extends Seeder
         $permissions = [
             // Dashboard
             'view-dashboard' => 'Mengakses Halaman Dashboard & Statistik',
+
             // Video Materi
             'view-videos' => 'Menonton Video Materi',
             'manage-videos' => 'Mengunggah, Mengedit, & Menghapus Video',
             'comment-videos' => 'Mengirim Komentar & Pertanyaan di Video',
+
             // Pelatihan
             'manage-trainings' => 'Mengelola Jadwal Pelatihan & Peserta',
             'view-my-trainings' => 'Mengakses Menu Pelatihan Saya',
+
             // Dokumen
             'manage-documents' => 'Mengelola & Mengunggah Dokumen Modul',
             'view-documents' => 'Melihat & Mengunduh Dokumen Modul',
+
             // Pengaturan
             'manage-users' => 'Mengelola Akun Pengguna',
-            'manage-roles' => 'Mengelola Hak Akses Role & Permission',
-            'manage-master-data' => 'Mengelola Divisi, Sub Divisi, & Job Level',
+            'manage-roles' => 'Mengelola Jabatan & Hak Akses',
+            'manage-master-data' => 'Mengelola Area, Divisi, Posisi, & Tipe Dokumen',
         ];
 
         foreach ($permissions as $name => $description) {
             Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
         }
 
-        // 1. Role Admin: has all permissions
-        $adminRole = Role::firstOrCreate(['name' => 'Admin', 'guard_name' => 'web']);
-        $adminRole->syncPermissions(Permission::all());
+        // Jabatan DnD. ADMIN selalu memiliki semua permission; jabatan lain yang belum punya permission
+        // mendapat permission STAFF, selanjutnya diatur dari menu Jabatan & Hak Akses.
+        foreach (Role::JABATAN as $name => $level) {
+            $role = Role::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
+            $role->update(['level' => $role->level ?? $level]);
 
-        // 2. Role Trainer: manages training, videos, quizzes, comments
-        $trainerRole = Role::firstOrCreate(['name' => 'Trainer', 'guard_name' => 'web']);
-        $trainerRole->syncPermissions([
-            'view-dashboard',
-            'view-videos',
-            'manage-videos',
-            'comment-videos',
-            'manage-trainings',
-            'view-my-trainings',
-            'manage-documents',
-            'view-documents',
-        ]);
-
-        // 3. Role Staff / Peserta: basic viewing and participation
-        $staffRole = Role::firstOrCreate(['name' => 'Staff', 'guard_name' => 'web']);
-        $staffRole->syncPermissions([
-            'view-dashboard',
-            'view-videos',
-            'comment-videos',
-            'view-my-trainings',
-            'view-documents',
-        ]);
-
-        // Assign roles to existing users based on job_level_id or trainer status
-        $users = User::all();
-        foreach ($users as $user) {
-            if ($user->job_level_id == 1) {
-                if (! $user->hasRole('Admin')) {
-                    $user->assignRole('Admin');
-                }
-            } else {
-                $isTrainer = Training::where('trainer_id', $user->id)->exists();
-                if ($isTrainer) {
-                    if (! $user->hasRole('Trainer')) {
-                        $user->assignRole('Trainer');
-                    }
-                } else {
-                    if (! $user->hasRole('Staff') && $user->roles()->count() === 0) {
-                        $user->assignRole('Staff');
-                    }
-                }
+            if ($name === User::ROLE_ADMIN) {
+                $role->syncPermissions(Permission::all());
+            } elseif ($role->permissions()->doesntExist()) {
+                $role->syncPermissions(self::STAFF_PERMISSIONS);
             }
         }
+
+        // Setiap user memiliki satu jabatan; user tanpa jabatan menjadi STAFF.
+        $staff = Role::findByName(User::ROLE_STAFF, 'web');
+        User::doesntHave('roles')->each(fn (User $user) => $user->assignJabatan($staff));
     }
 }

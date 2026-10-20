@@ -32,14 +32,12 @@ class Document extends Model
         return $this->belongsTo(Divisi::class, 'divisi_id', 'id');
     }
 
-    public function subdivisi()
+    /**
+     * Jabatan sasaran dokumen; null berarti untuk semua jabatan.
+     */
+    public function role()
     {
-        return $this->belongsTo(SubDivisi::class, 'sub_divisi_id', 'id');
-    }
-
-    public function joblevel()
-    {
-        return $this->belongsTo(JobLevel::class, 'job_level_id', 'id');
+        return $this->belongsTo(Role::class, 'role_id', 'id');
     }
 
     public function versions()

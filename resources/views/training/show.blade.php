@@ -83,7 +83,7 @@
                         <div class="row mb-3 pb-3 border-bottom text-sm">
                             <div class="col-sm-4 mb-2 mb-sm-0">
                                 <span class="text-muted small d-block">Pemateri</span>
-                                <strong class="text-dark">{{ $training->trainer->full_name ?? '-' }}</strong>
+                                <strong class="text-dark">{{ $training->trainer->nama_lengkap ?? '-' }}</strong>
                                 <span class="text-muted d-block text-xs">{{ optional($training->trainer)->divisi->name ?? 'Divisi Umum' }}</span>
                             </div>
                             <div class="col-sm-4 mb-2 mb-sm-0">
@@ -407,11 +407,11 @@
                         @forelse($training->participants as $index => $part)
                         @php
                             $user = $part->user;
-                            $userName = $user->full_name ?? ($part->name ?? 'Peserta');
+                            $userName = $user->nama_lengkap ?? ($part->name ?? 'Peserta');
                             $userDivisi = optional(optional($user)->divisi)->name ?? '-';
                             $userEmail = optional($user)->email ?? '-';
-                            $userIdKaryawan = optional($user)->id_karyawan ?? '-';
-                            $userNoWa = optional($user)->no_wa ?? '-';
+                            $userIdKaryawan = optional($user)->employee_id ?? '-';
+                            $userNoWa = optional($user)->no_hp ?? '-';
                             $quiz = $part->quizResult;
                         @endphp
                         <tr>
@@ -1336,8 +1336,8 @@ if (typeof $ !== 'undefined') {
     $participantsForJs = $training->participants->map(function($p) {
         return [
             'id' => $p->id,
-            'name' => $p->user->full_name ?? ($p->name ?? 'Peserta'),
-            'id_karyawan' => $p->user->id_karyawan ?? '-',
+            'name' => $p->user->nama_lengkap ?? ($p->name ?? 'Peserta'),
+            'id_karyawan' => $p->user->employee_id ?? '-',
             'divisi' => optional(optional($p->user)->divisi)->name ?? '-',
             'is_off_cam' => (bool)$p->is_off_cam,
         ];

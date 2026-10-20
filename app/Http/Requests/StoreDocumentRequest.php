@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Role;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -25,9 +26,8 @@ class StoreDocumentRequest extends FormRequest
             'change_note' => ['nullable', 'string', 'max:500'],
             'document_type' => ['required', 'integer', Rule::exists('dokumen_types', 'id')->withoutTrashed()],
             'divisi_id' => ['required', 'integer', Rule::exists('divisis', 'id')->withoutTrashed()],
-            'sub_divisi_id' => ['nullable', 'integer', Rule::exists('sub_divisis', 'id')->where('divisi_id', $this->input('divisi_id'))->withoutTrashed()],
-            'job_level_id' => ['required', 'array', 'min:1'],
-            'job_level_id.*' => ['integer', Rule::exists('job_levels', 'id')->withoutTrashed()],
+            'role_id' => ['required', 'array', 'min:1'],
+            'role_id.*' => ['integer', $this->validTargetRole()],
         ];
     }
 
@@ -41,8 +41,20 @@ class StoreDocumentRequest extends FormRequest
             'change_note' => 'catatan perubahan',
             'document_type' => 'tipe dokumen',
             'divisi_id' => 'divisi',
-            'sub_divisi_id' => 'sub divisi',
-            'job_level_id' => 'job level',
+            'role_id' => 'jabatan',
+            'role_id.*' => 'jabatan',
         ];
+    }
+
+    /**
+     * 0 berarti untuk semua jabatan.
+     */
+    protected function validTargetRole(): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) {
+            if ((int) $value !== 0 && ! Role::whereKey($value)->exists()) {
+                $fail('Jabatan yang dipilih tidak valid.');
+            }
+        };
     }
 }

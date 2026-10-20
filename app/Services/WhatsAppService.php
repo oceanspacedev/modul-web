@@ -165,14 +165,14 @@ class WhatsAppService
     public static function buildInvitationMessage(Training $training, TrainingParticipant $participant): string
     {
         $user = $participant->user;
-        $trainerName = $training->trainer ? $training->trainer->full_name : 'Pemateri';
+        $trainerName = $training->trainer ? $training->trainer->nama_lengkap : 'Pemateri';
         $dateFormatted = Carbon::parse($training->training_date)->isoFormat('dddd, D MMMM Y');
         $timeFormatted = substr($training->start_time, 0, 5).' - '.substr($training->end_time, 0, 5).' WIB';
 
         $portalUrl = url("/training/portal/{$participant->token}");
 
         $msg = "*PEMBERITAHUAN JADWAL PELATIHAN*\n\n";
-        $msg .= "Yth. Rekan *{$user->full_name}*,\n\n";
+        $msg .= "Yth. Rekan *{$user->nama_lengkap}*,\n\n";
         $msg .= "Anda dijadwalkan untuk mengikuti sesi pelatihan internal dengan rincian berikut:\n\n";
         $msg .= "Topik: {$training->title}\n";
         $msg .= "Pemateri: {$trainerName}\n";
@@ -192,7 +192,7 @@ class WhatsAppService
     public static function sendToParticipant(TrainingParticipant $participant): array
     {
         $user = $participant->user;
-        $phone = self::formatPhoneNumber($user->no_wa ?? '');
+        $phone = self::formatPhoneNumber($user->no_hp ?? '');
 
         if (! $phone) {
             $participant->update([
@@ -226,7 +226,7 @@ class WhatsAppService
 
         // If no token configured, simulate and log
         if (empty($token)) {
-            Log::info("WAGHub Simulated to [{$phone}] ({$user->full_name}):\n".$message);
+            Log::info("WAGHub Simulated to [{$phone}] ({$user->nama_lengkap}):\n".$message);
             $participant->update([
                 'wa_sent_at' => now(),
                 'wa_status' => 'Terkirim (Simulasi / Log)',

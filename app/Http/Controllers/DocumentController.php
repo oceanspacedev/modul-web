@@ -8,8 +8,8 @@ use App\Models\Divisi;
 use App\Models\Document;
 use App\Models\DocumentVersion;
 use App\Models\DokumenType;
-use App\Models\JobLevel;
-use App\Models\SubDivisi;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,7 +31,7 @@ class DocumentController extends Controller
         $divisis = Divisi::all();
         $doctypes = DokumenType::all();
 
-        $query = Document::with(['divisi', 'subdivisi', 'joblevel', 'dokumentype', 'versions'])->withTrashed();
+        $query = Document::with(['divisi', 'role', 'dokumentype', 'versions'])->withTrashed();
 
         if ($request->filled('divisi_id')) {
             $query->where('divisi_id', $request->divisi_id);
@@ -63,7 +63,7 @@ class DocumentController extends Controller
             'active' => 'document',
             'divisis' => Divisi::all(),
             'documentypes' => DokumenType::all(),
-            'joblevels' => JobLevel::all()->except(1),
+            'roles' => $this->targetRoles(),
         ]);
     }
 
@@ -75,15 +75,15 @@ class DocumentController extends Controller
         $path = Str::slug($fileName).'-v1-'.time().'.'.$file->extension();
         $fileSize = $this->formatBytes($file->getSize());
         $changeNote = $request->validated('change_note') ?: 'Versi Awal Dokumen';
-        $userName = $request->user()->full_name;
+        $userName = $request->user()->nama_lengkap;
 
         $file->storeAs('dokumen', $path, 'public');
 
         DB::transaction(function () use ($request, $file, $fileName, $path, $fileSize, $changeNote, $userName) {
-            foreach ($request->validated('job_level_id') as $jobLevelId) {
+            foreach ($request->validated('role_id') as $roleId) {
                 $document = Document::create([
-                    ...$request->safe()->only(['document_type', 'divisi_id', 'sub_divisi_id']),
-                    'job_level_id' => $jobLevelId,
+                    ...$request->safe()->only(['document_type', 'divisi_id']),
+                    'role_id' => $roleId ?: null,
                     'name' => strtoupper($fileName),
                     'path' => $path,
                     'version' => 1,
@@ -108,7 +108,7 @@ class DocumentController extends Controller
      */
     public function history(Document $document): JsonResponse
     {
-        $document->load(['versions', 'divisi', 'joblevel']);
+        $document->load(['versions', 'divisi', 'role']);
 
         return response()->json([
             'document' => [
@@ -116,7 +116,7 @@ class DocumentController extends Controller
                 'name' => $document->name,
                 'version' => $document->version ?? 1,
                 'divisi' => $document->divisi->name ?? '-',
-                'joblevel' => $document->joblevel->name ?? '-',
+                'jabatan' => $document->role->name ?? 'SEMUA JABATAN',
                 'path' => $document->path,
             ],
             'versions' => $document->versions->map(fn (DocumentVersion $version) => [
@@ -134,15 +134,14 @@ class DocumentController extends Controller
 
     public function edit(Document $document): View
     {
-        $document->load(['versions', 'divisi', 'subdivisi', 'joblevel', 'dokumentype']);
+        $document->load(['versions', 'divisi', 'role', 'dokumentype']);
 
         return view('document.edit', [
             'title' => 'Documents',
             'active' => 'document',
             'divisis' => Divisi::all(),
-            'subdivisis' => SubDivisi::all(),
             'documentypes' => DokumenType::all(),
-            'joblevels' => JobLevel::all()->except(1),
+            'roles' => $this->targetRoles(),
             'document' => $document,
         ]);
     }
@@ -152,9 +151,9 @@ class DocumentController extends Controller
      */
     public function update(UpdateDocumentRequest $request, Document $document): RedirectResponse
     {
-        $userName = $request->user()->full_name;
-        $metadata = $request->safe()->only(['divisi_id', 'sub_divisi_id', 'job_level_id', 'document_type']);
-        $metadata['sub_divisi_id'] ??= null;
+        $userName = $request->user()->nama_lengkap;
+        $metadata = $request->safe()->only(['divisi_id', 'document_type']);
+        $metadata['role_id'] = (int) $request->validated('role_id') ?: null;
 
         // Ensure baseline version 1 exists in history
         if (! $document->versions()->exists()) {
@@ -235,5 +234,13 @@ class DocumentController extends Controller
         $bytes /= pow(1024, $pow);
 
         return round($bytes, $precision).' '.$units[$pow];
+    }
+
+    /**
+     * Jabatan sasaran dokumen (tanpa ADMIN yang sudah bisa melihat semua dokumen).
+     */
+    private function targetRoles()
+    {
+        return Role::where('name', '!=', User::ROLE_ADMIN)->orderByDesc('level')->orderBy('name')->get();
     }
 }

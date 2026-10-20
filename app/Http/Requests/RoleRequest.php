@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class RoleRequest extends FormRequest
@@ -17,7 +18,10 @@ class RoleRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge(['name' => trim((string) $this->input('name'))]);
+        $this->merge([
+            'name' => Str::upper(Str::squish((string) $this->input('name'))),
+            'requires_approval' => $this->boolean('requires_approval'),
+        ]);
     }
 
     /**
@@ -27,6 +31,8 @@ class RoleRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:100', Rule::unique('roles', 'name')->ignore($this->route('role'))],
+            'level' => ['nullable', 'integer', 'min:0', 'max:1000'],
+            'requires_approval' => ['boolean'],
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['exists:permissions,name'],
         ];
@@ -38,8 +44,9 @@ class RoleRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'Nama Role wajib diisi.',
-            'name.unique' => 'Nama Role tersebut sudah ada.',
+            'name.required' => 'Nama jabatan wajib diisi.',
+            'name.unique' => 'Nama jabatan tersebut sudah ada.',
+            'level.min' => 'Level grade tidak boleh kurang dari 0.',
         ];
     }
 }

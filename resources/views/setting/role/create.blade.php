@@ -5,13 +5,15 @@
     <div class="container-fluid">
         <div class="row mb-2 align-items-center">
             <div class="col-sm-6">
-                <a href="{{ route('roles.index') }}" class="btn btn-outline-secondary btn-sm mb-2">
-                    <i class="fas fa-arrow-left mr-1"></i> Kembali ke Daftar Role
-                </a>
                 <h1 class="m-0 font-weight-bold">
-                    <i class="fas fa-plus-circle text-primary mr-2"></i>Tambah Role Baru
+                    <i class="fas fa-plus-circle text-primary mr-2"></i>Tambah Jabatan Baru
                 </h1>
-                <small class="text-muted">Buat peran baru dan pilih hak akses fitur yang dapat dibuka oleh role ini.</small>
+                <small class="text-muted">Buat jabatan baru dan pilih hak akses fitur yang dapat dibuka oleh jabatan ini.</small>
+            </div>
+            <div class="col-sm-6 text-sm-right mt-2 mt-sm-0">
+                <a href="{{ route('roles.index') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-arrow-left mr-1"></i> Kembali ke Daftar Jabatan
+                </a>
             </div>
         </div>
     </div>
@@ -36,16 +38,25 @@
             @csrf
             <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px;">
                 <div class="card-header bg-white py-3 border-bottom">
-                    <h5 class="card-title font-weight-bold text-dark mb-0">Informasi Role</h5>
+                    <h5 class="card-title font-weight-bold text-dark mb-0">Informasi Jabatan</h5>
                 </div>
                 <div class="card-body p-4">
-                    <div class="form-group mb-0" style="max-width: 500px;">
+                    <div class="form-group" style="max-width: 500px;">
                         <label for="name" class="font-weight-bold text-dark">
-                            Nama Role <span class="text-danger">*</span>
+                            Nama Jabatan <span class="text-danger">*</span>
                         </label>
-                        <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror" 
-                               value="{{ old('name') }}" placeholder="Contoh: Supervisor, Koordinator, Auditor..." required autofocus>
-                        <small class="text-muted">Nama role yang mewakili peran pengguna dalam sistem.</small>
+                        <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror"
+                               value="{{ old('name') }}" placeholder="Contoh: SUPERVISOR, AUDITOR..." required autofocus>
+                        <small class="text-muted">Gunakan nama yang sama dengan jabatan di DnD agar sinkronisasi cocok.</small>
+                    </div>
+                    <div class="form-group" style="max-width: 500px;">
+                        <label for="level" class="font-weight-bold text-dark">Level Grade</label>
+                        <input type="number" min="0" name="level" id="level" class="form-control @error('level') is-invalid @enderror" value="{{ old('level') }}">
+                        <small class="text-muted">Label grade seperti DnD (Staff=10, Team Leader=20, Coordinator=30, Manager=40, Chief=50, BOD=60, Admin=100).</small>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" id="requires_approval" name="requires_approval" value="1" @checked(old('requires_approval'))>
+                        <label class="custom-control-label" for="requires_approval">Wajib memiliki approval line (atasan)</label>
                     </div>
                 </div>
             </div>
@@ -103,7 +114,7 @@
                 <div class="card-footer bg-light py-3 border-top d-flex justify-content-between">
                     <a href="{{ route('roles.index') }}" class="btn btn-secondary px-4">Batal</a>
                     <button type="submit" class="btn btn-primary font-weight-bold px-4 shadow-sm">
-                        <i class="fas fa-save mr-1"></i> Simpan Role Baru
+                        <i class="fas fa-save mr-1"></i> Simpan Jabatan Baru
                     </button>
                 </div>
             </div>

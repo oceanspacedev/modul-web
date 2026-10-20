@@ -2,8 +2,6 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Validation\Rule;
-
 class UpdateDocumentRequest extends StoreDocumentRequest
 {
     /**
@@ -16,8 +14,8 @@ class UpdateDocumentRequest extends StoreDocumentRequest
         return [
             ...parent::rules(),
             'file' => ['nullable', 'file', 'mimes:pdf', 'max:51200'],
-            'job_level_id' => ['required', 'integer', Rule::exists('job_levels', 'id')->withoutTrashed()],
-            'job_level_id.*' => [],
+            'role_id' => ['required', 'integer', $this->validTargetRole()],
+            'role_id.*' => [],
         ];
     }
 }

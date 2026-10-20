@@ -3,12 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\RoleRequest;
+use App\Models\Role;
 use App\Models\User;
+use App\Services\DataAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class RoleController extends Controller
@@ -56,8 +57,8 @@ class RoleController extends Controller
                 'color' => 'text-secondary',
                 'permissions' => [
                     'manage-users' => 'Mengelola Akun Pengguna',
-                    'manage-roles' => 'Mengelola Hak Akses Role & Permission',
-                    'manage-master-data' => 'Mengelola Divisi, Sub Divisi, & Job Level',
+                    'manage-roles' => 'Mengelola Jabatan & Hak Akses',
+                    'manage-master-data' => 'Mengelola Area, Divisi, Posisi, & Tipe Dokumen',
                 ],
             ],
         ];
@@ -68,13 +69,13 @@ class RoleController extends Controller
      */
     public function index(): View
     {
-        $roles = Role::with(['permissions', 'users'])->get();
+        $roles = Role::with('permissions')->withCount('users')->orderByDesc('level')->orderBy('name')->get();
         $permissions = Permission::all();
-        $users = User::with(['roles', 'divisi', 'joblevel'])->orderBy('full_name')->get();
+        $users = User::with(['roles', 'permissions', 'divisi', 'position'])->orderBy('nama_lengkap')->get();
         $permissionGroups = self::getPermissionGroups();
 
         return view('setting.role.index', [
-            'title' => 'Manajemen Role & Hak Akses',
+            'title' => 'Manajemen Jabatan & Hak Akses',
             'active' => 'setting',
             'roles' => $roles,
             'permissions' => $permissions,
@@ -89,7 +90,7 @@ class RoleController extends Controller
     public function create(): View
     {
         return view('setting.role.create', [
-            'title' => 'Tambah Role Baru',
+            'title' => 'Tambah Jabatan Baru',
             'active' => 'setting',
             'permissionGroups' => self::getPermissionGroups(),
         ]);
@@ -103,6 +104,8 @@ class RoleController extends Controller
         $role = Role::create([
             'name' => $request->validated('name'),
             'guard_name' => 'web',
+            'level' => $request->validated('level'),
+            'requires_approval' => $request->validated('requires_approval'),
         ]);
 
         if ($request->has('permissions')) {
@@ -111,7 +114,7 @@ class RoleController extends Controller
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        return redirect()->route('roles.index')->with('success', "Role '{$role->name}' berhasil dibuat dengan hak akses yang dipilih!");
+        return redirect()->route('roles.index')->with('success', "Jabatan '{$role->name}' berhasil dibuat dengan hak akses yang dipilih!");
     }
 
     /**
@@ -136,14 +139,18 @@ class RoleController extends Controller
      */
     public function update(RoleRequest $request, Role $role): RedirectResponse
     {
-        // Don't rename Admin if it's the core system role
-        if ($role->name === 'Admin' && $request->name !== 'Admin') {
-            return back()->with('error', 'Nama role Admin sistem bawaan tidak dapat diubah.');
+        // Nama jabatan bawaan DnD dipakai untuk pencocokan sinkronisasi dan aturan akses, jadi tidak boleh diganti.
+        if ($role->isBuiltIn() && $request->validated('name') !== $role->name) {
+            return back()->with('error', "Nama jabatan bawaan '{$role->name}' tidak dapat diubah.");
         }
 
-        $role->update(['name' => $request->validated('name')]);
+        $role->update([
+            'name' => $request->validated('name'),
+            'level' => $request->validated('level'),
+            'requires_approval' => $request->validated('requires_approval'),
+        ]);
 
-        if ($role->name === 'Admin') {
+        if ($role->name === User::ROLE_ADMIN) {
             // Admin always has all permissions
             $role->syncPermissions(Permission::all());
         } else {
@@ -152,7 +159,7 @@ class RoleController extends Controller
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        return redirect()->route('roles.index')->with('success', "Hak akses role '{$role->name}' berhasil diperbarui!");
+        return redirect()->route('roles.index')->with('success', "Hak akses jabatan '{$role->name}' berhasil diperbarui!");
     }
 
     /**
@@ -160,13 +167,12 @@ class RoleController extends Controller
      */
     public function destroy(Role $role): RedirectResponse
     {
-
-        if (in_array($role->name, ['Admin', 'Staff', 'Trainer'])) {
-            return back()->with('error', "Role bawaan sistem '{$role->name}' tidak boleh dihapus.");
+        if ($role->isBuiltIn()) {
+            return back()->with('error', "Jabatan bawaan '{$role->name}' tidak boleh dihapus.");
         }
 
         if ($role->users()->count() > 0) {
-            return back()->with('error', "Role '{$role->name}' tidak bisa dihapus karena masih digunakan oleh {$role->users()->count()} pengguna.");
+            return back()->with('error', "Jabatan '{$role->name}' tidak bisa dihapus karena masih digunakan oleh {$role->users()->count()} pengguna.");
         }
 
         $name = $role->name;
@@ -174,29 +180,40 @@ class RoleController extends Controller
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        return redirect()->route('roles.index')->with('success', "Role '{$name}' berhasil dihapus.");
+        return redirect()->route('roles.index')->with('success', "Jabatan '{$name}' berhasil dihapus.");
     }
 
     /**
-     * Assign or update a user's role.
+     * Ganti jabatan seorang user dan hak akses tambahan trainer-nya.
      */
     public function assignUserRole(Request $request): RedirectResponse
     {
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'role' => 'required|exists:roles,name',
+            'trainer' => 'sometimes|boolean',
         ]);
 
-        // Only administrators may promote someone to Admin.
-        if ($request->role === 'Admin' && ! $request->user()->isAdministrator()) {
-            return back()->with('error', 'Hanya administrator yang dapat memberikan role Admin.');
+        $user = User::findOrFail($request->user_id);
+        $role = Role::findByName($request->role, 'web');
+
+        // Jabatan ADMIN (dan akun ADMIN) hanya diatur super admin.
+        if (($role->name === User::ROLE_ADMIN || $user->isAdmin()) && ! $request->user()->can('manageDataAccess', User::class)) {
+            return back()->with('error', 'Hanya super admin yang dapat memberikan atau mengubah jabatan ADMIN.');
         }
 
-        $user = User::findOrFail($request->user_id);
-        $user->syncRoles([$request->role]);
+        if ($role->name !== User::ROLE_ADMIN && DataAccessService::hasGlobalAccess($user) && ! DataAccessService::anotherGlobalAdminExists($user)) {
+            return back()->with('error', 'Minimal harus ada satu super admin. Jadikan karyawan lain super admin terlebih dahulu.');
+        }
+
+        $user->assignJabatan($role);
+
+        if ($request->has('trainer')) {
+            $user->setTrainer($request->boolean('trainer'));
+        }
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        return back()->with('success', "Role pengguna {$user->full_name} berhasil diubah menjadi '{$request->role}'.");
+        return back()->with('success', "Jabatan {$user->nama_lengkap} berhasil diubah menjadi '{$role->name}'.");
     }
 }

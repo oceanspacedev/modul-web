@@ -81,8 +81,7 @@
                                         <th>No</th>
                                         <th>Document Name</th>
                                         <th>Divisi</th>
-                                        <th>Sub Divisi</th>
-                                        <th>Job Level</th>
+                                        <th>Jabatan</th>
                                         <th>Document Type</th>
                                         <th>Versi</th>
                                         <th>Status</th>
@@ -95,8 +94,7 @@
                                             <td>{{ $loop->iteration }}</td>
                                             <td><strong>{{ $document->name }}</strong></td>
                                             <td>{{ $document->divisi->name }}</td>
-                                            <td>{{ $document->subdivisi->name ?? '-' }}</td>
-                                            <td>{{ $document->joblevel->name }}</td>
+                                            <td>{{ $document->role->name ?? 'SEMUA JABATAN' }}</td>
                                             <td>{{ $document->dokumentype->name }}</td>
                                             <td>
                                                 <button type="button" class="btn btn-xs btn-default font-weight-bold"

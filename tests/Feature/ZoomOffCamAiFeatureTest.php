@@ -27,30 +27,27 @@ class ZoomOffCamAiFeatureTest extends TestCase
     {
         parent::setUp();
 
-        $this->admin = User::where('username', 'admin')->first() ?? User::factory()->create([
+        $this->admin = User::where('username', 'admin')->first() ?? User::factory()->admin()->create([
             'username' => 'admin',
-            'job_level_id' => 1,
         ]);
 
         $divisi = Divisi::first() ?? Divisi::create(['name' => 'Divisi Test']);
 
         $this->participantUser1 = User::create([
             'username' => 'rizky_'.uniqid(),
-            'full_name' => 'Muhammad Rizky Pratama',
-            'id_karyawan' => 'EMP-001',
+            'nama_lengkap' => 'Muhammad Rizky Pratama',
+            'employee_id' => 'EMP-001',
             'email' => 'rizky_'.uniqid().'@example.com',
             'password' => bcrypt('password'),
-            'job_level_id' => 2,
             'divisi_id' => $divisi->id,
         ]);
 
         $this->participantUser2 = User::create([
             'username' => 'budi_'.uniqid(),
-            'full_name' => 'Budi Santoso',
-            'id_karyawan' => 'EMP-002',
+            'nama_lengkap' => 'Budi Santoso',
+            'employee_id' => 'EMP-002',
             'email' => 'budi_'.uniqid().'@example.com',
             'password' => bcrypt('password'),
-            'job_level_id' => 2,
             'divisi_id' => $divisi->id,
         ]);
 

@@ -53,7 +53,7 @@
                     <span class="text-muted ml-2">| Portal Pelatihan</span>
                 </div>
                 <div class="text-muted small">
-                    {{ $user->full_name }}
+                    {{ $user->nama_lengkap }}
                 </div>
             </div>
         </div>
@@ -112,7 +112,7 @@
             <div class="row mb-3 text-muted" style="font-size: 0.95rem;">
                 <div class="col-sm-6 mb-2">
                     <span class="text-secondary small d-block">Pemateri:</span>
-                    <strong class="text-dark">{{ $training->trainer->full_name ?? '-' }}</strong>
+                    <strong class="text-dark">{{ $training->trainer->nama_lengkap ?? '-' }}</strong>
                 </div>
                 <div class="col-sm-6 mb-2">
                     <span class="text-secondary small d-block">Jadwal:</span>

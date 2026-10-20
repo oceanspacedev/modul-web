@@ -24,10 +24,9 @@ class TrainingQuizComprehensiveTest extends TestCase
         // ==========================================
         $admin = User::where('username', 'admin')->first();
         if (! $admin) {
-            $admin = User::factory()->create([
+            $admin = User::factory()->admin()->create([
                 'username' => 'admin',
                 'password' => bcrypt('complete123'),
-                'job_level_id' => 1,
             ]);
         } else {
             $admin->update(['password' => bcrypt('complete123')]);
@@ -153,8 +152,7 @@ KUNCI: Pemaparan mengenai alur kerja sistem dan verifikasi kehadiran.';
         // ==========================================
         $participantUser = User::where('id', '!=', $admin->id)->first() ?? User::factory()->create([
             'username' => 'peserta_test',
-            'full_name' => 'Peserta Test',
-            'job_level_id' => 2,
+            'nama_lengkap' => 'Peserta Test',
         ]);
 
         $token = 'test_token_'.uniqid();

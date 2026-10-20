@@ -44,7 +44,7 @@
                 <a href="#dashboard">3. Dashboard</a>
                 <a href="#masterdata">4. Data master</a>
                 <a href="#user">5. Pengguna</a>
-                <a href="#role">6. Role &amp; hak akses</a>
+                <a href="#role">6. Jabatan &amp; hak akses</a>
                 <a href="#pelatihan">7. Pelatihan</a>
                 <a href="#soal">8. Soal kuis pelatihan</a>
                 <a href="#zoomai">9. Scan Off Cam Zoom (AI)</a>
@@ -66,7 +66,7 @@
                     <p>Modul App adalah aplikasi untuk mengelola <b>pelatihan internal</b>: menjadwalkan sesi, mengundang peserta lewat WhatsApp, mencatat kehadiran, memberi kuis evaluasi, serta menyimpan dokumen dan video materi.</p>
                     <h3>Siapa yang memakai</h3>
                     <ul>
-                        <li><b>Admin / Pemateri</b>: masuk lewat web dan mengelola semua modul sesuai role-nya.</li>
+                        <li><b>Admin / Pemateri</b>: masuk lewat web dan mengelola modul sesuai hak akses jabatannya.</li>
                         <li><b>Peserta pelatihan</b>: tidak perlu login. Cukup membuka <b>link pribadi</b> yang dikirim lewat WhatsApp untuk absen, mengerjakan kuis, dan melihat nilai. Peserta yang punya akun juga bisa membuka menu <b>Pelatihan Saya</b>.</li>
                     </ul>
                     <h3>Gambaran alur kerja</h3>
@@ -83,8 +83,10 @@
                         <tr><td>Pelatihan</td><td>Satu sesi training berjadwal, lengkap dengan peserta, presensi, dan kuis.</td></tr>
                         <tr><td>Pemateri</td><td>Pengguna yang menjadi trainer sebuah pelatihan.</td></tr>
                         <tr><td>Link pribadi</td><td>Alamat unik per peserta (<code>/training/portal/…</code>). Jangan dibagikan ke orang lain.</td></tr>
-                        <tr><td>Divisi / Sub Divisi / Job Level</td><td>Pengelompokan karyawan dan target dokumen.</td></tr>
-                        <tr><td>Role</td><td>Kumpulan hak akses yang menentukan menu apa yang terlihat.</td></tr>
+                        <tr><td>Area / Divisi / Posisi</td><td>Pengelompokan karyawan. Area adalah badan usaha tempat karyawan bernaung.</td></tr>
+                        <tr><td>Jabatan</td><td>Tingkatan karyawan (ADMIN, STAFF, MANAGER, dst.) sekaligus kumpulan hak akses yang menentukan menu apa yang terlihat. Juga dipakai sebagai target dokumen.</td></tr>
+                        <tr><td>Approval Line</td><td>Atasan langsung seorang karyawan. Menentukan tim (bawahan) yang bisa dikelola seorang atasan.</td></tr>
+                        <tr><td>Trainer</td><td>Hak akses tambahan (bukan jabatan) untuk mengelola pelatihan, video, dan dokumen.</td></tr>
                     </table>
                 </div>
 
@@ -139,14 +141,14 @@
                 {{-- 4 --}}
                 <div class="pg-card" id="masterdata">
                     <h2>4. Data master</h2>
-                    <p>Menu <b>Settings</b> berisi data dasar yang dipakai di banyak tempat: <b>Divisi</b>, <b>Sub Divisi</b>, <b>Job Level</b>, dan <b>Document Type</b>. Isi bagian ini lebih dulu sebelum membuat pengguna atau dokumen.</p>
+                    <p>Menu <b>Settings</b> berisi data dasar yang dipakai di banyak tempat: <b>Area</b> (badan usaha), <b>Divisi</b>, <b>Posisi</b>, dan <b>Document Type</b>. Isi bagian ini lebih dulu sebelum membuat pengguna atau dokumen. Data master juga bisa terisi otomatis dari impor user atau <a href="#sync-dnd">Sinkronisasi DnD</a>.</p>
                     <figure class="pg-shot"><img src="/assets/panduan/divisi.png" alt="Data Divisi" loading="lazy"><figcaption>Halaman Data Divisi.</figcaption></figure>
                     <figure class="pg-shot"><img src="/assets/panduan/divisi-tambah.gif" alt="Animasi: menambah divisi" loading="lazy"><figcaption>Animasi: klik Tambah Divisi, isi nama, lalu simpan (pada contoh ini dibatalkan).</figcaption></figure>
                     <h3>Menambah data</h3>
                     <ol>
                         <li>Buka <b>Settings</b>, lalu pilih halaman yang dituju.</li>
-                        <li>Klik tombol tambah (<b>Tambah Divisi</b>, <b>Tambah Sub Divisi</b>, <b>Tambah Job Level</b>, dst.).</li>
-                        <li>Isi nama. Untuk Sub Divisi, pilih juga <b>Main Divisi</b>-nya.</li>
+                        <li>Klik tombol tambah (<b>Tambah Area</b>, <b>Tambah Divisi</b>, <b>Tambah Posisi</b>, dst.).</li>
+                        <li>Isi nama. Untuk Divisi, Anda juga bisa memilih <b>Area</b> dan <b>Kepala Divisi</b> (opsional). Kepala Divisi otomatis disarankan sebagai approval line (atasan) bagi karyawan di divisi tersebut.</li>
                         <li>Klik <b>Add</b>.</li>
                     </ol>
                     <h3>Mengubah dan menghapus</h3>
@@ -155,7 +157,7 @@
                         <li><b>Hapus</b> menghapus data setelah konfirmasi.</li>
                     </ul>
                     <div class="pg-warn pg-note">
-                        <b>Perhatikan:</b> nama otomatis disimpan dengan <b>HURUF BESAR</b>. Data yang masih dipakai (misalnya divisi yang dimiliki pengguna) sebaiknya tidak dihapus karena bisa menimbulkan error. <b>Job Level</b> dengan ID 1 bersifat khusus: pemiliknya mendapat akses penuh seperti Admin.
+                        <b>Perhatikan:</b> nama otomatis disimpan dengan <b>HURUF BESAR</b>. <b>Area</b> tidak dapat dihapus selama masih dipakai karyawan. Data lain yang masih dipakai (misalnya divisi yang dimiliki pengguna) sebaiknya juga tidak dihapus.
                     </div>
                 </div>
 
@@ -167,64 +169,110 @@
                     <h3>Menambah user</h3>
                     <ol>
                         <li>Klik <b>Tambah User</b>.</li>
-                        <li>Isi data, lalu klik <b>Simpan</b>.</li>
+                        <li>Isi data, lalu klik <b>Simpan</b> (saat edit: <b>Simpan Perubahan</b>).</li>
                     </ol>
                     <table class="table table-sm table-bordered">
                         <tr><th style="width:170px">Kolom</th><th style="width:90px">Wajib</th><th>Keterangan</th></tr>
-                        <tr><td>ID Karyawan</td><td>Tidak</td><td>Contoh: KRY-001.</td></tr>
+                        <tr><td colspan="3"><b>Identitas Pengguna</b></td></tr>
+                        <tr><td>ID Karyawan</td><td>Tidak</td><td>Harus unik bila diisi. Contoh: 25.02.001.</td></tr>
                         <tr><td>Nama Lengkap</td><td>Ya</td><td>Disimpan dengan huruf besar.</td></tr>
-                        <tr><td>User Name</td><td>Ya</td><td>Harus unik.</td></tr>
+                        <tr><td>No. HP</td><td>Tidak*</td><td>Nomor WhatsApp Indonesia yang valid, contoh <code>081234567890</code>. Harus unik. Dipakai untuk login OTP dan undangan pelatihan. *Wajib bila pengguna ingin login OTP. Hanya ADMIN yang dapat mengubahnya.</td></tr>
                         <tr><td>Email</td><td>Tidak</td><td></td></tr>
-                        <tr><td>No WhatsApp</td><td>Tidak*</td><td>Contoh <code>08xxxxxxxxxx</code>. *Wajib diisi bila pengguna ingin login OTP atau menerima undangan pelatihan.</td></tr>
+                        <tr><td>Area</td><td>Ya</td><td>Badan usaha karyawan.</td></tr>
+                        <tr><td>Divisi</td><td>Ya</td><td>Tidak harus sesuai dengan Area.</td></tr>
+                        <tr><td>Jabatan</td><td>Ya</td><td>Lihat <a href="#role">Jabatan &amp; hak akses</a>.</td></tr>
+                        <tr><td>Posisi</td><td>Tidak</td><td></td></tr>
+                        <tr><td>Approval Line</td><td>Ya*</td><td>Atasan karyawan. *Wajib bila jabatannya mewajibkan approval line. Pilihan dikelompokkan: <i>Satu Divisi</i>, <i>Atasan Manajemen &amp; Lintas Divisi</i>, <i>Karyawan Lainnya</i>. Setelah Divisi dipilih, Kepala Divisi otomatis disarankan. Tidak boleh diri sendiri atau membentuk lingkaran atasan.</td></tr>
+                        <tr><td colspan="3"><b>Akses Data</b> (hanya untuk jabatan ADMIN, dan hanya terlihat oleh super admin)</td></tr>
+                        <tr><td>Cakupan Badan Usaha</td><td>Ya</td><td><b>Semua Badan Usaha</b> menjadikan karyawan ini super admin (wajib mencentang kotak konfirmasi). <b>Badan Usaha Tertentu</b>: pilih area yang boleh dikelola.</td></tr>
+                        <tr><td colspan="3"><b>Login</b></td></tr>
+                        <tr><td>Username</td><td>Ya</td><td>Tanpa spasi, harus unik.</td></tr>
                         <tr><td>Password</td><td>Ya</td><td>Saat edit, kosongkan jika tidak ingin mengubah.</td></tr>
-                        <tr><td>Role</td><td>Ya</td><td>Pilihan standar: Admin, Trainer, Staff.</td></tr>
-                        <tr><td>Job Level, Divisi</td><td>Ya</td><td></td></tr>
-                        <tr><td>Sub Divisi</td><td>Tidak</td><td>Daftar muncul setelah Divisi dipilih.</td></tr>
+                        <tr><td colspan="3"><b>Hak Akses Tambahan</b></td></tr>
+                        <tr><td>Trainer</td><td>Tidak</td><td>Memberi akses kelola pelatihan, video, dan dokumen di atas hak akses jabatannya. Hanya pengguna dengan izin <code>manage-roles</code> yang dapat mengubahnya.</td></tr>
                     </table>
-                    <h3>Mencari, mengedit, menonaktifkan</h3>
+                    <h3>Mencari, mengedit, mengarsipkan</h3>
                     <ul>
-                        <li>Kolom <b>Cari user / ID…</b> mencari berdasarkan nama, username, ID karyawan, email, dan nomor WA.</li>
-                        <li><b>Edit</b> mengubah data. User yang nonaktif harus diaktifkan dulu.</li>
-                        <li><b>Nonaktifkan</b> membuat user tidak bisa login, tanpa menghapus datanya. <b>Aktifkan</b> mengembalikannya.</li>
+                        <li>Filter <b>Area</b>, <b>Divisi</b>, <b>Jabatan</b>, <b>Posisi</b>, dan <b>Atasan</b>, serta kolom pencarian (nama, username, ID karyawan, email, No. HP). Daftar menampilkan 25 user per halaman.</li>
+                        <li>Tab <b>Semua</b> berisi user aktif, tab <b>Arsip</b> berisi user yang diarsipkan.</li>
+                        <li><b>Arsipkan</b> membuat user tidak bisa login, tanpa menghapus datanya. <b>Aktifkan</b> di tab Arsip mengembalikannya.</li>
+                        <li>Centang beberapa user untuk aksi massal <b>Ubah Posisi Massal</b> atau <b>Ubah Approval Line Massal</b>. User yang akan membentuk lingkaran atasan dilewati.</li>
                     </ul>
-                    <h3>Impor dan ekspor Excel</h3>
+                    <h3>Cakupan data</h3>
+                    <ul>
+                        <li><b>Super admin</b> (jabatan ADMIN dengan <i>Semua Badan Usaha</i>) melihat dan mengelola semua karyawan.</li>
+                        <li><b>ADMIN dengan Badan Usaha Tertentu</b> melihat karyawan di area pilihannya dan timnya sendiri, tetapi tidak melihat akun ADMIN lain dan tidak dapat memberikan jabatan ADMIN.</li>
+                        <li><b>Jabatan lain dengan izin <code>manage-users</code></b> hanya melihat dan mengelola timnya sendiri (bawahan langsung dan satu tingkat di bawahnya menurut approval line). User baru yang ditambahkannya otomatis memakai dia sebagai approval line.</li>
+                    </ul>
+                    <div class="pg-note">Minimal harus selalu ada satu super admin. Sistem menolak perubahan yang menghapus super admin terakhir.</div>
+                    <h3>Impor dan ekspor</h3>
+                    <p>Menu <b>Import/Export</b> (hanya super admin) berisi <b>Export User</b>, <b>Download Template</b>, <b>Import User (Excel)</b>, dan <b>Import JSON (Talenta)</b>.</p>
                     <ol>
-                        <li>Klik <b>Download Template</b> dan isi file <code>user_template.xlsx</code> dengan kolom: <code>id_karyawan, full_name, username, email, no_wa, password, divisi, sub_divisi, job_level</code>.</li>
-                        <li>Klik <b>Import</b>, pilih file, lalu <b>Import</b>.</li>
-                        <li><b>Export All</b> mengunduh daftar user ke Excel.</li>
+                        <li>Klik <b>Download Template</b> dan isi kolom: <code>nama_lengkap, username, id_karyawan, no_hp, email, role, area, divisi, position, approval, password</code>.</li>
+                        <li>Klik <b>Import User (Excel)</b>, pilih file, lalu <b>Import</b>.</li>
+                        <li><b>Export User</b> mengunduh daftar user ke Excel.</li>
                     </ol>
                     <div class="pg-warn pg-note">
                         <ul class="mb-0">
-                            <li>Nama <b>divisi</b> dan <b>job_level</b> di file harus sama persis dengan data master, jika tidak impor berhenti.</li>
-                            <li>Username duplikat menghentikan impor. Baris sebelumnya tetap tersimpan.</li>
-                            <li>Password kosong diganti password bawaan sistem. Minta pengguna menggantinya, atau isi password sendiri.</li>
-                            <li><b>User hasil impor belum punya role.</b> Atur role di <a href="#role">Role &amp; Hak Akses</a> agar menu muncul.</li>
+                            <li>Kolom <code>role</code> berisi nama jabatan dan jabatan itu harus sudah ada. Kolom <code>approval</code> berisi nama lengkap atau ID karyawan atasan.</li>
+                            <li>User dicocokkan berdasarkan <code>id_karyawan</code>, lalu <code>username</code>. User arsip yang cocok diaktifkan kembali.</li>
+                            <li>Area, divisi, dan posisi yang belum ada dibuat otomatis.</li>
+                            <li>Password kosong pada user baru diganti password bawaan sistem. Minta pengguna menggantinya, atau isi password sendiri.</li>
                         </ul>
                     </div>
+                    <h3>Import JSON (Talenta)</h3>
+                    <ul>
+                        <li>User yang sudah ada (dicocokkan lewat employee ID / username) hanya diperbarui email dan No. HP-nya.</li>
+                        <li>User baru menyalin profil (jabatan, area, divisi, posisi, approval line) dari karyawan aktif dengan posisi/area/divisi yang sama. Bila belum ada, <b>organization</b> Talenta menjadi Divisi, <b>title</b> menjadi Posisi (dibuat otomatis bila belum ada), dan jabatannya STAFF.</li>
+                        <li>User baru mendapat password acak dan masuk lewat <b>OTP WhatsApp</b>, atau admin mengatur password dari form edit user. Bila file berisi field <code>initial_password</code> / <code>password</code> (unik, min. 12 karakter), password itu yang dipakai.</li>
+                        <li>No. HP yang tidak valid dilewati tanpa menggagalkan baris; catatannya muncul setelah import.</li>
+                    </ul>
+
+                    <h3 id="sync-dnd">Sinkronisasi DnD</h3>
+                    <p>Tombol <b>Sinkronisasi DnD</b> (super admin) mengambil data karyawan, Area, Divisi, Posisi, dan Jabatan dari sistem DnD.</p>
+                    <ol>
+                        <li>Klik <b>Sinkronisasi DnD</b>. Halaman <b>Preview Sinkronisasi DnD</b> tampil berisi ringkasan (Data di DnD, User baru, Diperbarui, Tidak berubah), master data baru, daftar perubahan, dan baris yang dilewati.</li>
+                        <li>Periksa, lalu klik <b>Proses Sinkronisasi</b>. Tidak ada yang berubah sebelum tombol ini diklik.</li>
+                    </ol>
+                    <ul>
+                        <li>User dicocokkan berdasarkan ID karyawan, lalu username.</li>
+                        <li>User baru mendapat password acak dan login memakai OTP WhatsApp.</li>
+                        <li>User yang hanya ada di aplikasi ini dan user arsip tidak diubah.</li>
+                        <li>Jabatan ADMIN dari DnD dibatasi ke badan usaha user itu sendiri.</li>
+                        <li>Sinkronisasi juga berjalan otomatis setiap hari (bawaan pukul 01:00) lewat scheduler.</li>
+                    </ul>
+                    <div class="pg-note">Pengaturan di <code>.env</code> server: <code>DND_API_URL</code>, lalu <code>DND_API_TOKEN</code> (token Sanctum milik super admin DnD) atau <code>DND_API_LOGIN</code> + <code>DND_API_PASSWORD</code>. <code>DND_SYNC_TIME</code> opsional untuk mengubah jam sinkronisasi otomatis.</div>
                 </div>
 
                 {{-- 6 --}}
                 <div class="pg-card" id="role">
-                    <h2>6. Role &amp; hak akses</h2>
-                    <p>Menu <b>Settings → Role &amp; Hak Akses</b> menentukan fitur apa yang boleh dibuka tiap pengguna. Menu di sisi kiri hanya muncul bila pengguna punya izinnya.</p>
-                    <h3>Role bawaan</h3>
-                    <ul>
-                        <li><b>Admin</b>: semua fitur. Nama dan izinnya tidak dapat diubah atau dihapus.</li>
-                        <li><b>Trainer</b>: dashboard, video, pelatihan (termasuk soal dan kuis pelatihan), dan dokumen.</li>
-                        <li><b>Staff</b>: dashboard, menonton dan berkomentar di video, Pelatihan Saya, dan melihat dokumen.</li>
-                    </ul>
-                    <h3>Membuat role baru</h3>
-                    <figure class="pg-shot"><img src="/assets/panduan/roles-create.gif" alt="Animasi: membuat role baru" loading="lazy"><figcaption>Animasi: mengisi nama role, memakai Pilih Semua / Hapus Semua, lalu mencentang izin satu per satu.</figcaption></figure>
+                    <h2>6. Jabatan &amp; hak akses</h2>
+                    <p>Menu <b>Settings → Jabatan &amp; Hak Akses</b> menentukan fitur apa yang boleh dibuka tiap pengguna. Setiap pengguna memiliki tepat satu jabatan. Menu di sisi kiri hanya muncul bila jabatannya punya izin.</p>
+                    <h3>Jabatan bawaan</h3>
+                    <table class="table table-sm table-bordered">
+                        <tr><th style="width:170px">Jabatan</th><th style="width:110px">Level Grade</th><th>Hak akses bawaan</th></tr>
+                        <tr><td>ADMIN</td><td>100</td><td>Semua fitur.</td></tr>
+                        <tr><td>STAFF</td><td>10</td><td rowspan="6">Dashboard, menonton dan berkomentar di video, Pelatihan Saya, dan melihat dokumen. Bisa disesuaikan.</td></tr>
+                        <tr><td>TEAM LEADER</td><td>20</td></tr>
+                        <tr><td>COORDINATOR</td><td>30</td></tr>
+                        <tr><td>MANAGER</td><td>40</td></tr>
+                        <tr><td>CHIEF</td><td>50</td></tr>
+                        <tr><td>BOD</td><td>60</td></tr>
+                    </table>
+                    <p>Jabatan bawaan tidak dapat diganti nama atau dihapus. Setiap jabatan memiliki <b>Level Grade</b> dan pilihan <b>Wajib memiliki approval line (atasan)</b>.</p>
+                    <h3>Membuat jabatan baru</h3>
+                    <figure class="pg-shot"><img src="/assets/panduan/roles-create.gif" alt="Animasi: membuat jabatan baru" loading="lazy"><figcaption>Animasi: mengisi nama jabatan, memakai Pilih Semua / Hapus Semua, lalu mencentang izin satu per satu.</figcaption></figure>
                     <ol>
-                        <li>Klik <b>Tambah Role Baru</b>.</li>
-                        <li>Isi <b>Nama Role</b> (harus unik).</li>
-                        <li>Centang izin per kelompok. Tombol <b>Pilih Semua</b>, <b>Batal Semua</b>, dan <b>Pilih Bagian Ini</b> mempercepat pemilihan.</li>
-                        <li>Klik <b>Simpan Role Baru</b>.</li>
+                        <li>Klik <b>Tambah Jabatan Baru</b>.</li>
+                        <li>Isi <b>Nama Jabatan</b> (harus unik) dan <b>Level Grade</b>. Centang <b>Wajib memiliki approval line (atasan)</b> bila perlu.</li>
+                        <li>Centang izin per kelompok. Tombol <b>Pilih Semua</b>, <b>Hapus Semua</b>, dan <b>Pilih Bagian Ini</b> mempercepat pemilihan.</li>
+                        <li>Klik <b>Simpan Jabatan Baru</b>.</li>
                     </ol>
-                    <h3>Mengubah izin role</h3>
-                    <p>Di tab <b>Daftar Role &amp; Hak Akses Fitur</b>, klik <b>Atur Hak Akses</b> pada kartu role, ubah centang, lalu <b>Simpan Perubahan Hak Akses</b>. Role yang masih dipakai pengguna tidak dapat dihapus.</p>
-                    <h3>Memberi role ke pengguna</h3>
-                    <p>Di tab <b>Penetapan Role Pengguna</b>, cari nama, pilih role di kolom <b>Ubah Role</b>, lalu klik <b>Simpan</b>. Setiap pengguna memiliki satu role.</p>
+                    <h3>Mengubah izin jabatan</h3>
+                    <p>Di tab <b>Daftar Jabatan &amp; Hak Akses Fitur</b>, klik <b>Atur Hak Akses</b> pada kartu jabatan, ubah centang, lalu <b>Simpan Perubahan Hak Akses</b>. Jabatan yang masih dipakai pengguna tidak dapat dihapus.</p>
+                    <h3>Menetapkan jabatan dan Trainer</h3>
+                    <p>Di tab <b>Penetapan Jabatan Pengguna</b>, cari nama, pilih jabatan di kolom <b>Ubah Jabatan</b>, centang <b>Trainer</b> bila perlu, lalu klik <b>Simpan</b>.</p>
+                    <div class="pg-note"><b>Trainer</b> bukan jabatan, melainkan hak akses tambahan. Pengguna yang dicentang Trainer mendapat izin <code>manage-trainings</code>, <code>manage-videos</code>, dan <code>manage-documents</code> di atas izin jabatannya. Centang ini juga ada di form user (bagian <b>Hak Akses Tambahan</b>) dan hanya dapat diubah oleh pengguna dengan izin <code>manage-roles</code>.</div>
                     <p>Daftar lengkap izin ada di bagian <a href="#akses">Hak akses per fitur</a>.</p>
                 </div>
 
@@ -348,7 +396,7 @@
                     <ol>
                         <li>Klik <b>Tambah Dokumen</b>.</li>
                         <li>Pilih <b>File Dokumen (PDF)</b> (hanya PDF, maks. 50 MB).</li>
-                        <li>Pilih <b>Document Type</b>, <b>Job Level</b> (boleh lebih dari satu), <b>Divisi</b>, dan <b>Sub Divisi</b> (opsional). Isi <b>Catatan</b> bila perlu.</li>
+                        <li>Pilih <b>Document Type</b>, <b>Jabatan</b> (boleh lebih dari satu, termasuk <b>SEMUA JABATAN</b>), dan <b>Divisi</b>. Isi <b>Catatan</b> bila perlu.</li>
                         <li>Klik <b>Simpan</b>. Nama dokumen diambil dari nama file.</li>
                     </ol>
                     <h3>Memperbarui dan mengelola</h3>
@@ -434,14 +482,15 @@
                     <h2>14. FAQ &amp; masalah umum</h2>
                     <table class="table table-sm table-bordered">
                         <tr><th style="width:38%">Masalah</th><th>Penyebab / solusi</th></tr>
-                        <tr><td>"Username / Nomor WhatsApp atau Password salah."</td><td>Periksa username/nomor dan password. Akun nonaktif tidak dapat login, hubungi admin.</td></tr>
+                        <tr><td>"Username / Nomor WhatsApp atau Password salah."</td><td>Periksa username/nomor dan password. Akun yang diarsipkan tidak dapat login, hubungi admin.</td></tr>
                         <tr><td>OTP tidak masuk</td><td>Pastikan nomor WhatsApp di akun benar. Tunggu hitung mundur 60 detik lalu kirim ulang. Jika muncul "Gateway WhatsApp belum dikonfigurasi", hubungi administrator.</td></tr>
                         <tr><td>Kode OTP salah/kedaluwarsa</td><td>Kode berlaku 5 menit dan hanya satu kali pakai. Minta kode baru.</td></tr>
-                        <tr><td>"Role akun Anda tidak memiliki hak akses…"</td><td>Role Anda belum diberi izin fitur itu. Minta admin menyesuaikan di Role &amp; Hak Akses.</td></tr>
-                        <tr><td>Menu tidak muncul setelah impor user</td><td>User hasil impor belum punya role. Tetapkan role di tab Penetapan Role Pengguna.</td></tr>
+                        <tr><td>"Role akun Anda tidak memiliki hak akses…"</td><td>Jabatan Anda belum diberi izin fitur itu. Minta admin menyesuaikan di Jabatan &amp; Hak Akses.</td></tr>
+                        <tr><td>Menu tidak muncul</td><td>Jabatan pengguna tidak memiliki izin menu tersebut. Sesuaikan izin jabatannya di Jabatan &amp; Hak Akses, atau centang <b>Trainer</b> bila pengguna perlu mengelola pelatihan, video, dan dokumen.</td></tr>
+                        <tr><td>Tidak bisa memilih atasan tertentu di Approval Line</td><td>Atasan tidak boleh diri sendiri atau karyawan yang menjadi bawahannya (membentuk lingkaran atasan).</td></tr>
                         <tr><td>Peserta tidak bisa absen</td><td>Presensi belum dibuka. Pemateri klik <b>Buka Presensi</b>. Jika wajib bukti, pastikan foto berformat JPG/PNG/WEBP di bawah 5 MB.</td></tr>
                         <tr><td>Peserta tidak bisa membuka kuis</td><td>Kuis masih terkunci (<b>Buka Kuis</b>), belum ada soal, atau peserta sudah mengerjakan. Untuk mengulang, gunakan <b>Reset Kuis Peserta</b>.</td></tr>
-                        <tr><td>WhatsApp gagal terkirim ke peserta</td><td>Nomor WA kosong atau tidak valid. Perbaiki di data user, lalu kirim ulang lewat <b>Kirim Notifikasi WA</b>.</td></tr>
+                        <tr><td>WhatsApp gagal terkirim ke peserta</td><td>No. HP kosong atau tidak valid. Perbaiki di data user, lalu kirim ulang lewat <b>Kirim Notifikasi WA</b>.</td></tr>
                         <tr><td>Impor Excel gagal di baris tertentu</td><td>Baca pesan <i>Baris ke-N</i>, perbaiki barisnya. Baris sebelumnya mungkin sudah tersimpan, jadi jangan impor ulang seluruh file tanpa memeriksa duplikat.</td></tr>
                         <tr><td>Video Google Drive tidak bisa diputar</td><td>Ubah akses berbagi menjadi "Siapa saja yang memiliki link".</td></tr>
                         <tr><td>Unggah video gagal / terputus</td><td>Periksa ukuran file (maks. 2 GB) dan koneksi. Batas unggah server bisa lebih kecil, hubungi administrator.</td></tr>
@@ -453,20 +502,20 @@
                 <div class="pg-card" id="akses">
                     <h2>15. Hak akses per fitur</h2>
                     <table class="table table-sm table-bordered">
-                        <tr><th>Izin</th><th>Membuka</th><th class="text-center">Admin</th><th class="text-center">Trainer</th><th class="text-center">Staff</th></tr>
-                        <tr><td><code>view-dashboard</code></td><td>Dashboard</td><td class="text-center">✔</td><td class="text-center">✔</td><td class="text-center">✔</td></tr>
-                        <tr><td><code>view-videos</code></td><td>Menu Video Materi</td><td class="text-center">✔</td><td class="text-center">✔</td><td class="text-center">✔</td></tr>
-                        <tr><td><code>manage-videos</code></td><td>Tambah, ubah, hapus video</td><td class="text-center">✔</td><td class="text-center">✔</td><td class="text-center">–</td></tr>
-                        <tr><td><code>comment-videos</code></td><td>Berkomentar di video</td><td class="text-center">✔</td><td class="text-center">✔</td><td class="text-center">✔</td></tr>
-                        <tr><td><code>manage-trainings</code></td><td>Jadwal &amp; kelola pelatihan</td><td class="text-center">✔</td><td class="text-center">✔</td><td class="text-center">–</td></tr>
-                        <tr><td><code>view-my-trainings</code></td><td>Pelatihan Saya</td><td class="text-center">✔</td><td class="text-center">✔</td><td class="text-center">✔</td></tr>
-                        <tr><td><code>manage-documents</code></td><td>Kelola dokumen</td><td class="text-center">✔</td><td class="text-center">✔</td><td class="text-center">–</td></tr>
-                        <tr><td><code>view-documents</code></td><td>Melihat dokumen</td><td class="text-center">✔</td><td class="text-center">✔</td><td class="text-center">✔</td></tr>
+                        <tr><th>Izin</th><th>Membuka</th><th class="text-center">ADMIN</th><th class="text-center">Jabatan lain (default)</th><th class="text-center">+ Trainer</th></tr>
+                        <tr><td><code>view-dashboard</code></td><td>Dashboard</td><td class="text-center">✔</td><td class="text-center">✔</td><td class="text-center">–</td></tr>
+                        <tr><td><code>view-videos</code></td><td>Menu Video Materi</td><td class="text-center">✔</td><td class="text-center">✔</td><td class="text-center">–</td></tr>
+                        <tr><td><code>manage-videos</code></td><td>Tambah, ubah, hapus video</td><td class="text-center">✔</td><td class="text-center">–</td><td class="text-center">✔</td></tr>
+                        <tr><td><code>comment-videos</code></td><td>Berkomentar di video</td><td class="text-center">✔</td><td class="text-center">✔</td><td class="text-center">–</td></tr>
+                        <tr><td><code>manage-trainings</code></td><td>Jadwal &amp; kelola pelatihan</td><td class="text-center">✔</td><td class="text-center">–</td><td class="text-center">✔</td></tr>
+                        <tr><td><code>view-my-trainings</code></td><td>Pelatihan Saya</td><td class="text-center">✔</td><td class="text-center">✔</td><td class="text-center">–</td></tr>
+                        <tr><td><code>manage-documents</code></td><td>Kelola dokumen</td><td class="text-center">✔</td><td class="text-center">–</td><td class="text-center">✔</td></tr>
+                        <tr><td><code>view-documents</code></td><td>Melihat dokumen</td><td class="text-center">✔</td><td class="text-center">✔</td><td class="text-center">–</td></tr>
                         <tr><td><code>manage-users</code></td><td>User</td><td class="text-center">✔</td><td class="text-center">–</td><td class="text-center">–</td></tr>
-                        <tr><td><code>manage-roles</code></td><td>Role &amp; Hak Akses</td><td class="text-center">✔</td><td class="text-center">–</td><td class="text-center">–</td></tr>
-                        <tr><td><code>manage-master-data</code></td><td>Divisi, Sub Divisi, Job Level, Document Type</td><td class="text-center">✔</td><td class="text-center">–</td><td class="text-center">–</td></tr>
+                        <tr><td><code>manage-roles</code></td><td>Jabatan &amp; Hak Akses</td><td class="text-center">✔</td><td class="text-center">–</td><td class="text-center">–</td></tr>
+                        <tr><td><code>manage-master-data</code></td><td>Area, Divisi, Posisi, Document Type</td><td class="text-center">✔</td><td class="text-center">–</td><td class="text-center">–</td></tr>
                     </table>
-                    <p class="small text-muted mb-0">Tabel menunjukkan pengaturan bawaan. Admin dapat mengubah izin role di menu Role &amp; Hak Akses.</p>
+                    <p class="small text-muted mb-0">Tabel menunjukkan pengaturan bawaan. Kolom <b>+ Trainer</b> adalah izin yang ditambahkan oleh centang Trainer di atas izin jabatan. Izin jabatan selain ADMIN dapat diubah di menu Jabatan &amp; Hak Akses.</p>
                 </div>
 
             </div>

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -26,13 +27,41 @@ class UserFactory extends Factory
     {
         return [
             'username' => $this->faker->unique()->userName(),
-            'full_name' => $this->faker->name(),
+            'nama_lengkap' => strtoupper($this->faker->name()),
             'email' => $this->faker->unique()->safeEmail(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
-            'job_level_id' => 2,
             'divisi_id' => 1,
         ];
+    }
+
+    /**
+     * Pasang satu jabatan (role) setelah user dibuat.
+     */
+    public function jabatan(string $name): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->assignJabatan(Role::findByName($name, 'web'), dataAccessChosen: true));
+    }
+
+    /**
+     * Super admin: jabatan ADMIN dengan akses seluruh badan usaha.
+     */
+    public function admin(): static
+    {
+        return $this->state(['data_access' => User::DATA_ACCESS_ALL])->jabatan(User::ROLE_ADMIN);
+    }
+
+    public function staff(): static
+    {
+        return $this->jabatan(User::ROLE_STAFF);
+    }
+
+    /**
+     * Hak akses tambahan trainer di luar jabatan.
+     */
+    public function trainer(): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->setTrainer(true));
     }
 
     /**

@@ -37,21 +37,21 @@
         <!-- MAIN CARD -->
         <div class="card mb-4">
             <div class="card-header py-3">
-                <div class="row align-items-center">
-                    <div class="col-md-7 mb-2 mb-md-0">
-                        <div class="btn-group btn-group-sm">
+                <div class="d-flex flex-wrap align-items-center justify-content-between w-100" style="gap: 12px;">
+                    <div>
+                        <div class="btn-group btn-group-sm filter-tabs">
                             <a href="/training" class="btn {{ !request('status') ? 'btn-secondary active' : 'btn-default' }}">Semua ({{ $stats['total'] }})</a>
                             <a href="/training?status=scheduled" class="btn {{ request('status') === 'scheduled' ? 'btn-secondary active' : 'btn-default' }}">Dijadwalkan ({{ $stats['scheduled'] }})</a>
                             <a href="/training?status=ongoing" class="btn {{ request('status') === 'ongoing' ? 'btn-secondary active' : 'btn-default' }}">Berlangsung ({{ $stats['ongoing'] }})</a>
                             <a href="/training?status=completed" class="btn {{ request('status') === 'completed' ? 'btn-secondary active' : 'btn-default' }}">Selesai ({{ $stats['completed'] }})</a>
                         </div>
                     </div>
-                    <div class="col-md-5">
-                        <form action="/training" method="GET" class="d-flex justify-content-md-end">
+                    <div class="ml-auto">
+                        <form action="/training" method="GET" class="d-flex justify-content-end">
                             @if(request('status'))
                                 <input type="hidden" name="status" value="{{ request('status') }}">
                             @endif
-                            <div class="input-group input-group-sm" style="max-width: 280px;">
+                            <div class="input-group" style="width: 300px; max-width: 100%;">
                                 <input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Cari topik atau pemateri...">
                                 <div class="input-group-append">
                                     <button type="submit" class="btn btn-default">
@@ -95,7 +95,7 @@
                                 @endif
                             </td>
                             <td class="align-middle" style="padding: 16px;">
-                                <span class="font-weight-600 text-dark d-block">{{ $t->trainer->full_name ?? '-' }}</span>
+                                <span class="font-weight-600 text-dark d-block">{{ $t->trainer->nama_lengkap ?? '-' }}</span>
                                 <span class="text-muted small">{{ $t->trainer->divisi->name ?? 'Divisi Umum' }}</span>
                             </td>
                             <td class="align-middle" style="padding: 16px;">

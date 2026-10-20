@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\TrainingStatus;
 use App\Jobs\SendTrainingInvitation;
 use App\Models\Document;
+use App\Models\Role;
 use App\Models\Training;
 use App\Models\TrainingParticipant;
 use App\Models\User;
@@ -17,12 +18,21 @@ use Tests\TestCase;
 
 class SecurityHardeningTest extends TestCase
 {
-    private function userWithRole(string $role, array $attributes = []): User
-    {
-        $user = User::factory()->create(['job_level_id' => 2, ...$attributes]);
-        $user->syncRoles([$role]);
+    private int $phoneSeq = 0;
 
-        return $user;
+    private function staff(array $attributes = []): User
+    {
+        return User::factory()->staff()->create($attributes);
+    }
+
+    private function trainer(array $attributes = []): User
+    {
+        return User::factory()->staff()->trainer()->create($attributes);
+    }
+
+    private function jabatanId(string $name): int
+    {
+        return Role::findByName($name, 'web')->id;
     }
 
     private function makeDocument(): Document
@@ -30,7 +40,7 @@ class SecurityHardeningTest extends TestCase
         return Document::create([
             'name' => 'SOP PENJUALAN',
             'divisi_id' => 1,
-            'job_level_id' => 2,
+            'role_id' => $this->jabatanId('STAFF'),
             'document_type' => 1,
             'path' => 'sop-penjualan-v1.pdf',
             'version' => 1,
@@ -53,7 +63,7 @@ class SecurityHardeningTest extends TestCase
     private function addParticipant(Training $training): TrainingParticipant
     {
         return $training->participants()->create([
-            'user_id' => User::factory()->create(['job_level_id' => 2, 'no_wa' => '081234567890'])->id,
+            'user_id' => User::factory()->staff()->create(['no_hp' => '0812345678'.str_pad((string) ++$this->phoneSeq, 2, '0', STR_PAD_LEFT)])->id,
             'token' => Str::random(40),
             'attendance_status' => 'pending',
         ]);
@@ -61,7 +71,7 @@ class SecurityHardeningTest extends TestCase
 
     public function test_staff_with_view_permission_can_list_documents_but_not_deactivate_them(): void
     {
-        $staff = $this->userWithRole('Staff');
+        $staff = $this->staff();
         $document = $this->makeDocument();
 
         $this->actingAs($staff)->get('/document')->assertOk()->assertDontSee('Nonaktifkan Dokumen');
@@ -75,7 +85,7 @@ class SecurityHardeningTest extends TestCase
 
     public function test_document_manager_can_deactivate_and_restore_documents(): void
     {
-        $trainer = $this->userWithRole('Trainer');
+        $trainer = $this->trainer();
         $document = $this->makeDocument();
 
         $this->actingAs($trainer)->delete("/document/{$document->id}")->assertRedirect('/document');
@@ -88,7 +98,7 @@ class SecurityHardeningTest extends TestCase
     public function test_destructive_actions_are_no_longer_reachable_with_get_requests(): void
     {
         $admin = User::where('username', 'admin')->first();
-        $victim = User::factory()->create(['job_level_id' => 2]);
+        $victim = User::factory()->staff()->create();
         $training = $this->makeTraining();
         $document = $this->makeDocument();
 
@@ -103,7 +113,7 @@ class SecurityHardeningTest extends TestCase
 
     public function test_login_redirect_parameter_cannot_send_users_to_another_site(): void
     {
-        $user = User::factory()->create(['username' => 'redirect_user', 'job_level_id' => 1]);
+        $user = User::factory()->admin()->create(['username' => 'redirect_user']);
 
         $this->get('/?redirect='.urlencode('https://evil.test/phish'))->assertOk();
 
@@ -114,7 +124,7 @@ class SecurityHardeningTest extends TestCase
 
     public function test_login_redirect_parameter_still_returns_to_internal_pages(): void
     {
-        User::factory()->create(['username' => 'internal_user', 'job_level_id' => 1]);
+        User::factory()->admin()->create(['username' => 'internal_user']);
 
         $this->get('/?redirect='.urlencode(url('/video')))->assertOk();
 
@@ -138,7 +148,7 @@ class SecurityHardeningTest extends TestCase
 
     public function test_otp_verification_is_throttled_per_account(): void
     {
-        User::factory()->create(['username' => 'otp_user', 'no_wa' => '081200000001']);
+        User::factory()->create(['username' => 'otp_user', 'no_hp' => '081200000001']);
 
         for ($i = 0; $i < 5; $i++) {
             $this->postJson('/login/otp/verify', ['username' => 'otp_user', 'otp' => '000000'])->assertUnprocessable();
@@ -149,26 +159,29 @@ class SecurityHardeningTest extends TestCase
 
     public function test_user_managers_cannot_grant_administrator_access(): void
     {
-        $manager = $this->userWithRole('Staff');
+        $manager = $this->staff();
         $manager->givePermissionTo('manage-users');
 
         $payload = [
             'username' => 'calon_admin',
-            'full_name' => 'Calon Admin',
+            'nama_lengkap' => 'Calon Admin',
             'password' => 'rahasia123',
+            'area_id' => 1,
             'divisi_id' => 1,
-            'job_level_id' => 1,
-            'role' => 'Admin',
+            'role_id' => $this->jabatanId('ADMIN'),
+            'approval_id' => $manager->id,
         ];
 
         $this->actingAs($manager)->from('/user/create')->post('/user', $payload)
             ->assertRedirect('/user/create')
-            ->assertSessionHasErrors(['job_level_id', 'role']);
+            ->assertSessionHasErrors(['role_id']);
         $this->assertDatabaseMissing('users', ['username' => 'calon_admin']);
 
-        $this->actingAs($manager)->post('/user', [...$payload, 'job_level_id' => 2, 'role' => 'Staff'])
+        $this->actingAs($manager)->post('/user', [...$payload, 'role_id' => $this->jabatanId('STAFF')])
             ->assertRedirect('/user');
-        $this->assertTrue(User::where('username', 'calon_admin')->first()->hasRole('Staff'));
+        $created = User::where('username', 'calon_admin')->first();
+        $this->assertTrue($created->hasRole('STAFF'));
+        $this->assertFalse($created->hasRole('ADMIN'));
     }
 
     public function test_user_validation_errors_are_returned_to_the_form(): void
@@ -177,18 +190,18 @@ class SecurityHardeningTest extends TestCase
 
         $this->actingAs($admin)->from('/user/create')->post('/user', ['username' => 'admin'])
             ->assertRedirect('/user/create')
-            ->assertSessionHasErrors(['username', 'full_name', 'password', 'divisi_id', 'job_level_id', 'role']);
+            ->assertSessionHasErrors(['username', 'nama_lengkap', 'password', 'area_id', 'divisi_id', 'role_id']);
     }
 
     public function test_user_can_be_deactivated_and_restored(): void
     {
         $admin = User::where('username', 'admin')->first();
-        $user = User::factory()->create(['job_level_id' => 2]);
+        $user = User::factory()->staff()->create();
 
         $this->actingAs($admin)->delete("/user/{$user->id}")->assertRedirect('/user');
         $this->assertSoftDeleted($user);
 
-        $this->actingAs($admin)->patch("/user/{$user->id}/restore")->assertRedirect('/user');
+        $this->actingAs($admin)->patch("/user/{$user->id}/restore")->assertRedirect(route('user.index', ['tab' => 'arsip']));
         $this->assertNotSoftDeleted($user);
     }
 
@@ -201,7 +214,7 @@ class SecurityHardeningTest extends TestCase
             'file' => UploadedFile::fake()->create('laporan.html', 10, 'application/pdf'),
             'document_type' => 1,
             'divisi_id' => 1,
-            'job_level_id' => [2],
+            'role_id' => [$this->jabatanId('STAFF')],
         ])->assertRedirect('/document');
 
         $document = Document::where('name', 'LAPORAN')->firstOrFail();
@@ -237,7 +250,7 @@ class SecurityHardeningTest extends TestCase
 
     public function test_staff_cannot_manage_trainings(): void
     {
-        $staff = $this->userWithRole('Staff');
+        $staff = $this->staff();
         $training = $this->makeTraining();
 
         $this->actingAs($staff)->from('/my-trainings')->delete("/training/{$training->id}")
@@ -249,8 +262,8 @@ class SecurityHardeningTest extends TestCase
 
     public function test_comment_can_only_be_deleted_by_its_author_or_an_administrator(): void
     {
-        $author = $this->userWithRole('Staff');
-        $stranger = $this->userWithRole('Staff');
+        $author = $this->staff();
+        $stranger = $this->staff();
         $video = Video::create(['title' => 'Video Uji', 'video_type' => 'link', 'video_link' => 'https://youtu.be/abc']);
         $comment = $video->allComments()->create(['user_id' => $author->id, 'comment' => 'Pertanyaan penting']);
 

@@ -61,14 +61,14 @@ class AuthController extends Controller
             $query->where('username', $loginInput);
 
             if (! empty($phoneCandidates)) {
-                $query->orWhereIn('no_wa', array_unique($phoneCandidates));
+                $query->orWhereIn('no_hp', array_unique($phoneCandidates));
 
                 if (strlen($digitsOnly) >= 7) {
-                    $query->orWhereRaw("REPLACE(REPLACE(REPLACE(no_wa, '-', ''), ' ', ''), '+', '') = ?", [$digitsOnly]);
+                    $query->orWhereRaw("REPLACE(REPLACE(REPLACE(no_hp, '-', ''), ' ', ''), '+', '') = ?", [$digitsOnly]);
                     if (str_starts_with($digitsOnly, '62')) {
-                        $query->orWhereRaw("REPLACE(REPLACE(REPLACE(no_wa, '-', ''), ' ', ''), '+', '') = ?", ['0'.substr($digitsOnly, 2)]);
+                        $query->orWhereRaw("REPLACE(REPLACE(REPLACE(no_hp, '-', ''), ' ', ''), '+', '') = ?", ['0'.substr($digitsOnly, 2)]);
                     } elseif (str_starts_with($digitsOnly, '0')) {
-                        $query->orWhereRaw("REPLACE(REPLACE(REPLACE(no_wa, '-', ''), ' ', ''), '+', '') = ?", ['62'.substr($digitsOnly, 1)]);
+                        $query->orWhereRaw("REPLACE(REPLACE(REPLACE(no_hp, '-', ''), ' ', ''), '+', '') = ?", ['62'.substr($digitsOnly, 1)]);
                     }
                 }
             }
@@ -121,14 +121,14 @@ class AuthController extends Controller
             ], 404);
         }
 
-        if (empty($user->no_wa)) {
+        if (empty($user->no_hp)) {
             return response()->json([
                 'status' => false,
                 'message' => 'Akun ini belum memiliki nomor WhatsApp terdaftar. Silakan masuk menggunakan password.',
             ], 422);
         }
 
-        $formattedPhone = WhatsAppService::formatPhoneNumber($user->no_wa);
+        $formattedPhone = WhatsAppService::formatPhoneNumber($user->no_hp);
         if (! $formattedPhone) {
             return response()->json([
                 'status' => false,
@@ -173,7 +173,7 @@ class AuthController extends Controller
         $sendResult = WhatsAppService::sendOtp(
             $formattedPhone,
             $otp,
-            $user->full_name ?: $user->username
+            $user->nama_lengkap ?: $user->username
         );
 
         if (! $sendResult['status']) {

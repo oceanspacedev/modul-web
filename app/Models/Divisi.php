@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Divisi extends Model
@@ -27,9 +28,20 @@ class Divisi extends Model
         return $this->hasMany(User::class, 'divisi_id');
     }
 
-    public function subdivisi()
+    /** @return BelongsTo<Area, $this> */
+    public function area(): BelongsTo
     {
-        return $this->hasMany(SubDivisi::class);
+        return $this->belongsTo(Area::class);
+    }
+
+    /**
+     * Kepala divisi: approval line default untuk karyawan divisi ini.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function manager(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'manager_id');
     }
 
     public function dokumen()

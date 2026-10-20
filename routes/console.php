@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('training:send-reminders')->everyFifteenMinutes();
+Schedule::command('dnd:sync-users')->dailyAt(config('services.dnd.sync_time'))->withoutOverlapping();

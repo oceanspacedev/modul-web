@@ -66,7 +66,7 @@
                                     <select id="trainer_id" name="trainer_id" class="form-control" required>
                                         @foreach($users as $u)
                                             <option value="{{ $u->id }}" {{ (old('trainer_id', $training->trainer_id) == $u->id) ? 'selected' : '' }}>
-                                                {{ $u->full_name }} ({{ $u->divisi->name ?? 'Divisi Umum' }})
+                                                {{ $u->nama_lengkap }} ({{ $u->divisi->name ?? 'Divisi Umum' }})
                                             </option>
                                         @endforeach
                                     </select>
@@ -195,23 +195,23 @@
                             <div class="border rounded p-2" style="height: 380px; overflow-y: auto; background-color: #fafbfc;">
                                 @foreach($users as $user)
                                 <div class="participant-item d-flex align-items-center justify-content-between p-3 mb-2 bg-white border rounded"
-                                     data-name="{{ strtolower($user->full_name) }}"
-                                     data-idk="{{ strtolower($user->id_karyawan ?? '') }}"
+                                     data-name="{{ strtolower($user->nama_lengkap) }}"
+                                     data-idk="{{ strtolower($user->employee_id ?? '') }}"
                                      data-divisi="{{ $user->divisi_id }}">
                                     <div class="custom-control custom-checkbox">
                                         <input type="checkbox" name="participants[]" value="{{ $user->id }}"
                                                class="custom-control-input participant-checkbox" id="user_{{ $user->id }}"
                                                {{ in_array($user->id, old('participants', $selectedParticipants)) ? 'checked' : '' }}>
                                         <label class="custom-control-label font-weight-normal text-dark ml-2" for="user_{{ $user->id }}" style="cursor: pointer;">
-                                            <strong class="d-block">{{ $user->full_name }}</strong>
+                                            <strong class="d-block">{{ $user->nama_lengkap }}</strong>
                                             <span class="text-muted small">
-                                                {{ $user->id_karyawan ?? '-' }} &bull; {{ $user->divisi->name ?? 'Divisi Umum' }}
+                                                {{ $user->employee_id ?? '-' }} &bull; {{ $user->divisi->name ?? 'Divisi Umum' }}
                                             </span>
                                         </label>
                                     </div>
                                     <div class="text-right">
-                                        @if($user->no_wa)
-                                            <span class="text-muted small">{{ $user->no_wa }}</span>
+                                        @if($user->no_hp)
+                                            <span class="text-muted small">{{ $user->no_hp }}</span>
                                         @else
                                             <span class="text-muted small font-italic">No WA -</span>
                                         @endif
