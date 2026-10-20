@@ -7,27 +7,32 @@
 
 :root {
     --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    --sidebar-bg: #0f172a;
-    --sidebar-hover: rgba(255, 255, 255, 0.06);
-    --sidebar-text: #94a3b8;
-    --sidebar-active-text: #ffffff;
-    --card-border: #e2e8f0;
-    --card-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
-    --table-header-bg: #f8fafc;
-    --table-border: #f1f5f9;
-    --table-row-hover: #f8fafc;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --primary-soft: #eff6ff;
+    --page-bg: #f3f4f6;
+    --sidebar-bg: #ffffff;
+    --sidebar-hover: #f3f4f6;
+    --sidebar-text: #4b5563;
+    --sidebar-active-text: #1d4ed8;
+    --card-border: #e5e7eb;
+    --card-radius: 12px;
+    --card-shadow: 0 1px 3px rgba(17, 24, 39, 0.05), 0 1px 2px rgba(17, 24, 39, 0.03);
+    --table-header-bg: #f9fafb;
+    --table-border: #f1f2f4;
+    --table-row-hover: #f9fafb;
 }
 
 body, html {
     font-family: var(--font-sans) !important;
-    background-color: #f8fafc !important;
-    color: #1e293b;
+    background-color: var(--page-bg) !important;
+    color: #1f2937;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
 
 .content-wrapper {
-    background-color: #f8fafc !important;
+    background-color: var(--page-bg) !important;
 }
 
 /* Public top-nav layout (no sidebar) */
@@ -59,29 +64,29 @@ body.layout-top-nav .main-footer {
 }
 
 /* =========================================================
-   SIDEBAR & BRAND
+   SIDEBAR & BRAND (light)
    ========================================================= */
 .main-sidebar {
     background-color: var(--sidebar-bg) !important;
-    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1) !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: none !important;
+    border-right: 1px solid var(--card-border);
 }
 
 .main-sidebar .brand-link {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-bottom: 1px solid var(--card-border) !important;
     padding: 1.15rem 1.25rem !important;
     display: flex;
     align-items: center;
     gap: 10px;
-    background: rgba(255, 255, 255, 0.02);
+    background: #ffffff;
 }
 
 .main-sidebar .brand-link .brand-text {
     font-weight: 800 !important;
     font-size: 1.15rem !important;
     letter-spacing: -0.02em;
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff !important;
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
     display: inline-flex;
     align-items: center;
 }
@@ -91,9 +96,9 @@ body.layout-top-nav .main-footer {
     font-size: 0.65rem !important;
     font-weight: 700 !important;
     letter-spacing: 0.06em;
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff !important;
-    background: #2563eb !important;
+    color: var(--primary-dark) !important;
+    -webkit-text-fill-color: var(--primary-dark) !important;
+    background: var(--primary-soft) !important;
     padding: 3px 8px !important;
     border-radius: 6px !important;
     margin-left: 6px;
@@ -106,9 +111,9 @@ body.layout-top-nav .main-footer {
     border-bottom: none !important;
     margin: 1rem 0.75rem 0.5rem 0.75rem !important;
     padding: 0.85rem 1rem !important;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
+    background: #f9fafb;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
 }
 
 .sidebar .user-panel .info {
@@ -117,7 +122,7 @@ body.layout-top-nav .main-footer {
 }
 
 .sidebar .user-panel .info a {
-    color: #f1f5f9 !important;
+    color: #111827 !important;
     font-weight: 600;
     font-size: 0.875rem;
     display: flex;
@@ -130,8 +135,8 @@ body.layout-top-nav .main-footer {
     font-size: 0.7rem;
     font-weight: 600;
     text-transform: uppercase;
-    color: #38bdf8;
-    background: rgba(56, 189, 248, 0.12);
+    color: var(--primary-dark);
+    background: var(--primary-soft);
     padding: 2px 8px;
     border-radius: 9999px;
     margin-top: 4px;
@@ -143,7 +148,7 @@ body.layout-top-nav .main-footer {
 }
 
 .sidebar .nav-sidebar .nav-link {
-    border-radius: 10px !important;
+    border-radius: 8px !important;
     padding: 9px 14px !important;
     font-size: 0.875rem;
     font-weight: 500;
@@ -158,34 +163,35 @@ body.layout-top-nav .main-footer {
     width: 22px;
     margin-right: 10px;
     text-align: center;
+    color: #9ca3af;
     transition: color 0.15s ease;
 }
 
 .sidebar .nav-sidebar .nav-link:hover {
     background-color: var(--sidebar-hover) !important;
-    color: #f8fafc !important;
+    color: #111827 !important;
 }
 
 .sidebar .nav-sidebar .nav-link:hover .nav-icon {
-    color: #f8fafc !important;
+    color: #4b5563 !important;
 }
 
 .sidebar .nav-sidebar .nav-link.active {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
-    color: #ffffff !important;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35) !important;
+    background: var(--primary-soft) !important;
+    color: var(--sidebar-active-text) !important;
+    box-shadow: none !important;
     font-weight: 600 !important;
 }
 
 .sidebar .nav-sidebar .nav-link.active .nav-icon {
-    color: #ffffff !important;
+    color: var(--primary) !important;
 }
 
 /* Treeview submenu */
 .sidebar .nav-treeview {
     padding-left: 0.5rem !important;
     margin-left: 1rem !important;
-    border-left: 2px solid rgba(255, 255, 255, 0.08);
+    border-left: 2px solid #e5e7eb;
 }
 
 .sidebar .nav-treeview .nav-link {
@@ -195,7 +201,7 @@ body.layout-top-nav .main-footer {
 
 .sidebar-custom {
     background-color: transparent !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-top: 1px solid var(--card-border) !important;
     padding: 0.75rem 1rem !important;
 }
 
@@ -204,7 +210,7 @@ body.layout-top-nav .main-footer {
    ========================================================= */
 .card {
     border: 1px solid var(--card-border) !important;
-    border-radius: 16px !important;
+    border-radius: var(--card-radius) !important;
     box-shadow: var(--card-shadow) !important;
     background: #ffffff !important;
     margin-bottom: 1.5rem;
@@ -212,7 +218,17 @@ body.layout-top-nav .main-footer {
 }
 
 .card:hover {
-    box-shadow: 0 8px 25px -4px rgba(15, 23, 42, 0.07), 0 3px 8px -2px rgba(15, 23, 42, 0.03) !important;
+    box-shadow: 0 4px 12px -2px rgba(17, 24, 39, 0.07) !important;
+}
+
+.card > .card-header:first-child {
+    border-radius: var(--card-radius) var(--card-radius) 0 0 !important;
+}
+
+.small-box,
+.info-box,
+.modal-content {
+    border-radius: var(--card-radius) !important;
 }
 
 /* Redefine card header (previously harsh bg-dark) */
@@ -221,7 +237,7 @@ body.layout-top-nav .main-footer {
 .card-header.card-dark {
     background: #ffffff !important;
     color: #0f172a !important;
-    border-bottom: 1px solid #f1f5f9 !important;
+    border-bottom: 1px solid var(--card-border) !important;
     padding: 1.15rem 1.5rem !important;
     display: flex;
     align-items: center;
@@ -271,9 +287,9 @@ body.layout-top-nav .main-footer {
 /* Action button styles */
 .card-header .badge.bg-success,
 .card-header .btn-success {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    background: #059669 !important;
     color: #ffffff !important;
-    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+    box-shadow: none;
 }
 
 .card-header .badge.bg-success:hover,
@@ -284,9 +300,9 @@ body.layout-top-nav .main-footer {
 
 .card-header .badge.bg-primary,
 .card-header .btn-primary {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+    background: var(--primary) !important;
     color: #ffffff !important;
-    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+    box-shadow: none;
 }
 
 .card-header .badge.bg-primary:hover,
@@ -340,7 +356,7 @@ select.form-control-sm {
    FILTER TOOLBAR & PILLS (Seamless, modern, zero clipping)
    ========================================================= */
 .filter-toolbar {
-    background-color: #f8fafc !important;
+    background-color: #f9fafb !important;
     border-bottom: 1px solid #e2e8f0 !important;
     padding: 10px 18px !important;
 }
@@ -475,7 +491,7 @@ select.form-control-sm {
    Modern, Clean, Spaced, Subtle
    ========================================================= */
 .table-responsive {
-    border-radius: 0 0 16px 16px;
+    border-radius: 0 0 var(--card-radius) var(--card-radius);
 }
 
 .table {
@@ -489,9 +505,9 @@ select.form-control-sm {
 .table thead th,
 .table-head-fixed thead tr:nth-child(1) th {
     background: var(--table-header-bg) !important;
-    color: #475569 !important;
+    color: #6b7280 !important;
     font-size: 0.725rem !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.05em !important;
     padding: 13px 18px !important;
@@ -499,6 +515,16 @@ select.form-control-sm {
     border-bottom: 1px solid var(--card-border) !important;
     box-shadow: none !important;
     vertical-align: middle;
+}
+
+.table,
+.table tbody tr,
+.table tbody td {
+    background-color: #ffffff;
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none !important;
 }
 
 .table tbody tr {
@@ -513,7 +539,7 @@ select.form-control-sm {
 .table tbody td {
     padding: 13px 18px !important;
     vertical-align: middle !important;
-    color: #1e293b !important;
+    color: #374151 !important;
     font-size: 0.875rem !important;
     border-top: none !important;
     border-bottom: 1px solid var(--table-border) !important;
@@ -720,4 +746,336 @@ select.form-control-sm {
     .card-body.table-responsive:not([style*="height:"]) {
         overflow: visible;
     }
+}
+
+/* =========================================================
+   INPUT GROUPS (search boxes) - one joined box, moderate radius
+   ========================================================= */
+.input-group {
+    --field-radius: 8px;
+}
+
+.input-group > .form-control,
+.input-group > .custom-select,
+.input-group-text {
+    height: 40px !important;
+    border-color: #d1d5db !important;
+    background-color: #ffffff;
+}
+
+.input-group > .form-control:not(:first-child) {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+}
+
+.input-group > .form-control:not(:last-child) {
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+
+.input-group > .input-group-prepend > .input-group-text,
+.input-group > .input-group-prepend > .btn {
+    border-radius: var(--field-radius) 0 0 var(--field-radius) !important;
+    padding: 0 14px;
+}
+
+.input-group > .input-group-append > .btn,
+.input-group > .input-group-append > .input-group-text {
+    border-radius: 0 var(--field-radius) var(--field-radius) 0 !important;
+}
+
+.input-group > .form-control:first-child {
+    border-radius: var(--field-radius) 0 0 var(--field-radius) !important;
+}
+
+.input-group > .form-control:last-child {
+    border-radius: 0 var(--field-radius) var(--field-radius) 0 !important;
+}
+
+.input-group > .form-control:only-child {
+    border-radius: var(--field-radius) !important;
+}
+
+.form-control,
+.custom-select {
+    border-radius: 8px !important;
+}
+
+.btn {
+    border-radius: 8px;
+}
+
+/* =========================================================
+   TABLE REFINEMENT - flat, airy, minimal lines
+   ========================================================= */
+.table-bordered,
+.table-bordered th,
+.table-bordered td {
+    border-left: none !important;
+    border-right: none !important;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: transparent !important;
+}
+
+.table thead th,
+.table-head-fixed thead tr:nth-child(1) th {
+    background: #ffffff !important;
+    color: #9ca3af !important;
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.06em !important;
+    padding: 12px 16px !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    white-space: nowrap;
+}
+
+.table tbody td {
+    padding: 14px 16px !important;
+    color: #374151 !important;
+    border-bottom: 1px solid #f3f4f6 !important;
+}
+
+.table tbody tr:hover,
+.table tbody tr:hover td {
+    background-color: #f9fafb !important;
+}
+
+.table tbody td strong,
+.table tbody td .font-weight-bold {
+    font-weight: 600;
+    color: #111827;
+}
+
+/* Soft status / role pills */
+.table .badge:not(.bg-primary):not(.bg-warning):not(.bg-danger):not(.bg-success):not(.bg-purple):not(.bg-info) {
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.7rem;
+    padding: 4px 10px;
+    letter-spacing: 0.02em;
+}
+
+.table .badge-success { background: #ecfdf5 !important; color: #047857 !important; border: 1px solid #d1fae5 !important; }
+.table .badge-danger  { background: #fef2f2 !important; color: #b91c1c !important; border: 1px solid #fee2e2 !important; }
+.table .badge-info    { background: #eff6ff !important; color: #1d4ed8 !important; border: 1px solid #dbeafe !important; }
+.table .badge-warning { background: #fffbeb !important; color: #b45309 !important; border: 1px solid #fef3c7 !important; }
+.table .badge-primary { background: #eff6ff !important; color: #1d4ed8 !important; border: 1px solid #dbeafe !important; }
+.table .badge-secondary,
+.table .badge-light {
+    background: #f3f4f6 !important;
+    color: #4b5563 !important;
+    border: 1px solid #e5e7eb !important;
+}
+
+/* Action buttons: quiet icon buttons, color appears on hover */
+.table td a.badge.bg-primary,
+.table td a.badge.bg-warning,
+.table td a.badge.bg-danger,
+.table td a.badge.bg-success,
+.table td .badge.bg-purple,
+.table td button.badge {
+    background-color: #ffffff !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 8px !important;
+    padding: 6px 9px !important;
+    font-size: 0.8rem !important;
+    margin-right: 4px;
+}
+
+.table td a.badge.bg-primary:hover { background-color: #eff6ff !important; border-color: #bfdbfe !important; }
+.table td a.badge.bg-warning:hover { background-color: #fffbeb !important; border-color: #fde68a !important; }
+.table td a.badge.bg-danger:hover  { background-color: #fef2f2 !important; border-color: #fecaca !important; }
+.table td a.badge.bg-success:hover { background-color: #ecfdf5 !important; border-color: #a7f3d0 !important; }
+.table td .badge.bg-purple:hover   { background-color: #f5f3ff !important; border-color: #ddd6fe !important; }
+
+.table td a.badge:hover,
+.table td button.badge:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* Pagination */
+.pagination {
+    gap: 4px;
+    margin-bottom: 0;
+}
+
+.pagination .page-link {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px !important;
+    color: #4b5563;
+    font-size: 0.825rem;
+    padding: 6px 12px;
+}
+
+.pagination .page-item.active .page-link {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #ffffff;
+}
+
+.pagination .page-link:hover {
+    background: #f3f4f6;
+}
+
+.card-footer {
+    background: #ffffff !important;
+    border-top: 1px solid #f3f4f6 !important;
+    border-radius: 0 0 var(--card-radius) var(--card-radius) !important;
+}
+
+/* Scrollbar inside scrolling tables */
+.table-responsive::-webkit-scrollbar { height: 8px; width: 8px; }
+.table-responsive::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 8px; }
+.table-responsive::-webkit-scrollbar-track { background: transparent; }
+
+/* =========================================================
+   SIDEBAR - minimal workspace style (neutral, gray active pill)
+   ========================================================= */
+.main-sidebar {
+    background-color: #ffffff !important;
+    border-right: 1px solid #ececec;
+}
+
+.main-sidebar .brand-link {
+    border-bottom: none !important;
+    padding: 1.1rem 1.25rem 0.85rem !important;
+}
+
+.main-sidebar .brand-link .brand-badge,
+.main-sidebar .brand-link .badge {
+    background: #f3f4f6 !important;
+    color: #6b7280 !important;
+    -webkit-text-fill-color: #6b7280 !important;
+}
+
+.sidebar .nav-sidebar .nav-item {
+    margin: 2px 0.75rem;
+}
+
+.sidebar .nav-sidebar .nav-link {
+    border-radius: 8px !important;
+    padding: 9px 12px !important;
+    font-size: 0.925rem;
+    font-weight: 500;
+    color: #374151 !important;
+}
+
+.sidebar .nav-sidebar .nav-link .nav-icon {
+    color: #4b5563 !important;
+    font-size: 0.95rem;
+    margin-right: 12px;
+}
+
+.sidebar .nav-sidebar .nav-link:hover {
+    background-color: #f3f4f6 !important;
+    color: #111827 !important;
+}
+
+.sidebar .nav-sidebar .nav-link:hover .nav-icon {
+    color: #111827 !important;
+}
+
+.sidebar .nav-sidebar .nav-link.active {
+    background: #eeeff1 !important;
+    color: #111827 !important;
+    font-weight: 600 !important;
+    box-shadow: none !important;
+}
+
+.sidebar .nav-sidebar .nav-link.active .nav-icon {
+    color: #111827 !important;
+}
+
+.sidebar .nav-sidebar .nav-link .right {
+    color: #9ca3af;
+    font-size: 0.8rem;
+}
+
+/* Submenu: thin guide line, indented, no bullet noise */
+.sidebar .nav-treeview {
+    margin: 2px 0 2px 1.35rem !important;
+    padding-left: 0.4rem !important;
+    border-left: 1px solid #e5e7eb;
+}
+
+.sidebar .nav-treeview .nav-item {
+    margin: 2px 0 !important;
+}
+
+.sidebar .nav-treeview .nav-link {
+    font-size: 0.875rem !important;
+    padding: 8px 12px !important;
+    color: #4b5563 !important;
+}
+
+.sidebar .nav-treeview .nav-link .nav-icon {
+    font-size: 0.85rem !important;
+    width: 20px;
+    margin-right: 10px;
+    color: #6b7280 !important;
+}
+
+.sidebar .nav-treeview .nav-link.active {
+    background: #eeeff1 !important;
+}
+
+.sidebar-custom {
+    border-top: 1px solid #ececec !important;
+}
+
+.sidebar-custom .btn-outline-danger {
+    border-color: #e5e7eb;
+    color: #4b5563;
+    background: #ffffff;
+    font-weight: 500;
+}
+
+.sidebar-custom .btn-outline-danger:hover {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #b91c1c;
+}
+
+/* =========================================================
+   FILTER TABS (btn-group) - one-line segmented control
+   ========================================================= */
+.card-header > .row,
+.card-header > .d-flex.w-100 {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.btn-group.filter-tabs {
+    background: #f3f4f6;
+    padding: 3px;
+    border-radius: 10px;
+    gap: 2px;
+}
+
+.btn-group.filter-tabs > .btn {
+    border: none !important;
+    background: transparent !important;
+    color: #4b5563 !important;
+    border-radius: 8px !important;
+    padding: 6px 14px !important;
+    font-size: 0.825rem !important;
+    font-weight: 500 !important;
+    white-space: nowrap;
+    box-shadow: none !important;
+}
+
+.btn-group.filter-tabs > .btn:hover {
+    color: #111827 !important;
+    background: #e9eaec !important;
+}
+
+.btn-group.filter-tabs > .btn.active {
+    background: #ffffff !important;
+    color: #111827 !important;
+    font-weight: 600 !important;
+    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.1) !important;
 }

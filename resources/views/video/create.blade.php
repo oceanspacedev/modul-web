@@ -3,14 +3,16 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <div class="row mb-2">
+        <div class="row mb-2 align-items-center">
             <div class="col-sm-6">
-                <a href="{{ route('video.index') }}" class="btn btn-outline-secondary btn-sm mb-2">
-                    <i class="fas fa-arrow-left mr-1"></i> Kembali ke Galeri
-                </a>
                 <h1 class="m-0 font-weight-bold">
                     <i class="fas fa-cloud-upload-alt text-danger mr-2"></i>Tambah Video Baru
                 </h1>
+            </div>
+            <div class="col-sm-6 text-sm-right mt-2 mt-sm-0">
+                <a href="{{ route('video.index') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-arrow-left mr-1"></i> Kembali ke Galeri
+                </a>
             </div>
         </div>
     </div>

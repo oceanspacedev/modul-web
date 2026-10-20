@@ -3,18 +3,18 @@
 @section('content')
 <section class="content-header">
     <div class="@auth container-fluid @else container @endauth">
-        <div class="mb-3">
-            <h1 class="m-0 font-weight-bold" style="font-size: 1.5rem;">
-                Galeri Video Materi
-            </h1>
-            <p class="text-muted small mt-1 mb-2">Tonton dan pelajari video materi pembelajaran kapan saja.</p>
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3" style="gap: 12px;">
+            <div>
+                <h1 class="m-0 font-weight-bold" style="font-size: 1.5rem;">
+                    Galeri Video Materi
+                </h1>
+                <p class="text-muted small mt-1 mb-0">Tonton dan pelajari video materi pembelajaran kapan saja.</p>
+            </div>
             @auth
                 @can('create', App\Models\Video::class)
-                <div>
-                    <a href="{{ route('video.create') }}" class="btn btn-sm btn-primary">
-                        <i class="fas fa-plus mr-1"></i> Tambah Video Baru
-                    </a>
-                </div>
+                <a href="{{ route('video.create') }}" class="btn btn-sm btn-primary ml-auto">
+                    <i class="fas fa-plus mr-1"></i> Tambah Video Baru
+                </a>
                 @endcan
             @endauth
         </div>
@@ -74,7 +74,7 @@
                         @endif
                     </p>
                     @auth
-                        <a href="{{ route('video.create') }}" class="btn btn-danger mt-2">
+                        <a href="{{ route('video.create') }}" class="btn btn-primary mt-2">
                             <i class="fas fa-plus mr-1"></i> Tambah Video Pertama
                         </a>
                     @endauth
@@ -98,14 +98,14 @@
                                 @endif
                                 
                                 {{-- Play Button Overlay --}}
-                                <div class="position-absolute d-flex justify-content-center align-items-center w-100 h-100" style="top: 0; left: 0; background: rgba(0,0,0,0.3);">
-                                    <div class="rounded-circle d-flex justify-content-center align-items-center bg-danger text-white shadow-lg play-btn-badge" style="width: 54px; height: 54px; transition: transform 0.2s;">
+                                <div class="position-absolute d-flex justify-content-center align-items-center w-100 h-100" style="top: 0; left: 0; background: rgba(17,24,39,0.25);">
+                                    <div class="rounded-circle d-flex justify-content-center align-items-center text-white play-btn-badge" style="background: rgba(255,255,255,0.22); border: 1.5px solid rgba(255,255,255,0.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); width: 54px; height: 54px; transition: transform 0.2s;">
                                         <i class="fas fa-play ml-1" style="font-size: 20px;"></i>
                                     </div>
                                 </div>
 
                                 {{-- Type / size badge --}}
-                                <span class="badge position-absolute" style="bottom: 8px; right: 8px; font-size: 11px; {{ $v->isLink() ? 'background: #17a2b8; color: #fff;' : 'background: rgba(0,0,0,0.75); color: #fff;' }}">
+                                <span class="badge position-absolute" style="bottom: 8px; right: 8px; font-size: 11px; background: rgba(17,24,39,0.75); color: #fff;">
                                     @if($v->isLink())
                                         @if(str_contains(strtolower($v->video_link), 'youtube') || str_contains(strtolower($v->video_link), 'youtu.be'))
                                             <i class="fab fa-youtube mr-1"></i> YouTube
@@ -221,7 +221,7 @@
 }
 .video-thumbnail-wrapper:hover .play-btn-badge {
     transform: scale(1.15);
-    background-color: #e02424 !important;
+    background-color: rgba(255,255,255,0.35) !important;
 }
 </style>
 

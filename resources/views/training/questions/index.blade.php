@@ -3,8 +3,8 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <div class="mb-3">
-            <div class="d-flex align-items-center mb-2">
+        <div class="mb-3 d-flex flex-wrap justify-content-between align-items-center" style="gap: 12px;">
+            <div class="d-flex align-items-center">
                 <a href="/training/{{ $training->id }}" class="btn btn-default btn-sm mr-3">
                     <i class="fas fa-arrow-left"></i>
                 </a>
@@ -17,7 +17,7 @@
             </div>
 
             <!-- ACTION BUTTONS -->
-            <div class="d-flex align-items-center flex-wrap mt-3" style="gap: 8px;">
+            <div class="d-flex align-items-center flex-wrap justify-content-lg-end ml-lg-auto" style="gap: 8px;">
                 <button type="button" class="btn btn-primary btn-sm font-weight-bold" data-toggle="modal" data-target="#aiGenerateModal">
                     Buat Soal via AI
                 </button>
