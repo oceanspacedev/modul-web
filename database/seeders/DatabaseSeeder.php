@@ -19,9 +19,7 @@ class DatabaseSeeder extends Seeder
             SubDivisiSeeder::class,
             JobLevelSeeder::class,
             DokumenTypeSeeder::class,
-            // DocumentSeeder::class,
-            // QuizOptionSeeder::class,
-            // QuizQuestionSeeder::class,
+            RoleAndPermissionSeeder::class,
         ]);
     }
 }
