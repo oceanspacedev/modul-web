@@ -2,26 +2,31 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreDocumentRequest;
+use App\Http\Requests\UpdateDocumentRequest;
 use App\Models\Divisi;
 use App\Models\Document;
 use App\Models\DocumentVersion;
 use App\Models\DokumenType;
 use App\Models\JobLevel;
 use App\Models\SubDivisi;
-use Exception;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Routing\Attributes\Controllers\Authorize;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\View\View;
 
+#[Authorize('viewAny', Document::class, only: ['index'])]
+#[Authorize('view', 'document', only: ['history'])]
+#[Authorize('create', Document::class, only: ['create', 'store'])]
+#[Authorize('update', 'document', only: ['edit', 'update'])]
+#[Authorize('delete', 'document', only: ['destroy'])]
+#[Authorize('restore', 'document', only: ['restore'])]
 class DocumentController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return Response
-     */
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         $divisis = Divisi::all();
         $doctypes = DokumenType::all();
@@ -51,12 +56,7 @@ class DocumentController extends Controller
         ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return Response
-     */
-    public function create()
+    public function create(): View
     {
         return view('document.create', [
             'title' => 'Documents',
@@ -67,103 +67,72 @@ class DocumentController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @return Response
-     */
-    public function store(Request $request)
+    public function store(StoreDocumentRequest $request): RedirectResponse
     {
-        try {
-            $request->validate([
-                'file' => ['required', 'mimes:pdf', 'max:51200'], // max 50MB
-                'change_note' => ['nullable', 'string', 'max:500'],
-            ]);
+        $file = $request->file('file');
+        $fileName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        // The extension comes from the detected MIME type, never from the client-supplied name.
+        $path = Str::slug($fileName).'-v1-'.time().'.'.$file->extension();
+        $fileSize = $this->formatBytes($file->getSize());
+        $changeNote = $request->validated('change_note') ?: 'Versi Awal Dokumen';
+        $userName = $request->user()->full_name;
 
-            $fileName = pathinfo($request->file('file')->getClientOriginalName(), PATHINFO_FILENAME);
-            $slug = Str::slug($fileName);
-            $extension = $request->file('file')->getClientOriginalExtension();
-            $path = $slug.'-v1-'.time().'.'.$extension;
-            $fileSize = $this->formatBytes($request->file('file')->getSize());
-            $changeNote = $request->input('change_note') ?: 'Versi Awal Dokumen';
-            $userName = auth()->user()?->full_name ?? 'Admin';
+        $file->storeAs('dokumen', $path, 'public');
 
-            $data = $request->all();
-            unset($data['_token'], $data['file'], $data['change_note']);
-            $data['path'] = $path;
-            $data['name'] = strtoupper($fileName);
-            $data['version'] = 1;
+        DB::transaction(function () use ($request, $file, $fileName, $path, $fileSize, $changeNote, $userName) {
+            foreach ($request->validated('job_level_id') as $jobLevelId) {
+                $document = Document::create([
+                    ...$request->safe()->only(['document_type', 'divisi_id', 'sub_divisi_id']),
+                    'job_level_id' => $jobLevelId,
+                    'name' => strtoupper($fileName),
+                    'path' => $path,
+                    'version' => 1,
+                ]);
 
-            foreach ($request->get('job_level_id') as $job_level) {
-                $data['job_level_id'] = $job_level;
-                $doc = Document::create($data);
-
-                // Create version 1 record
-                DocumentVersion::create([
-                    'document_id' => $doc->id,
+                $document->versions()->create([
                     'version_number' => 1,
-                    'file_name' => $fileName.'.'.$extension,
+                    'file_name' => $fileName.'.'.$file->extension(),
                     'path' => $path,
                     'file_size' => $fileSize,
                     'change_note' => $changeNote,
                     'created_by' => $userName,
                 ]);
             }
+        });
 
-            // Move file to storage
-            $request->file('file')->move(storage_path('app/public/dokumen'), $path);
-
-            return redirect('document')->with(['success' => 'Berhasil menambahkan dokumen baru (Versi 1)']);
-        } catch (Exception $e) {
-            return redirect('document')->with(['error' => $e->getMessage()]);
-        }
+        return to_route('document.index')->with('success', 'Berhasil menambahkan dokumen baru (Versi 1)');
     }
 
     /**
-     * Display the specified resource history.
+     * Version history of a document, loaded by the history modal on the index page.
      */
-    public function history($id)
+    public function history(Document $document): JsonResponse
     {
-        $document = Document::with(['versions', 'divisi', 'subdivisi', 'joblevel', 'dokumentype'])->withTrashed()->findOrFail($id);
+        $document->load(['versions', 'divisi', 'joblevel']);
 
-        if (request()->ajax() || request()->wantsJson()) {
-            return response()->json([
-                'document' => [
-                    'id' => $document->id,
-                    'name' => $document->name,
-                    'version' => $document->version ?? 1,
-                    'divisi' => $document->divisi->name ?? '-',
-                    'joblevel' => $document->joblevel->name ?? '-',
-                    'path' => $document->path,
-                ],
-                'versions' => $document->versions->map(function ($ver) {
-                    return [
-                        'id' => $ver->id,
-                        'version_number' => $ver->version_number,
-                        'file_name' => $ver->file_name,
-                        'file_url' => asset('storage/dokumen/'.$ver->path),
-                        'file_size' => $ver->file_size ?: '-',
-                        'change_note' => $ver->change_note ?: 'Tidak ada catatan revisi',
-                        'created_by' => $ver->created_by ?: 'Admin',
-                        'created_at' => $ver->created_at ? $ver->created_at->format('d M Y, H:i') : '-',
-                    ];
-                }),
-            ]);
-        }
-
-        return view('document.history', [
-            'title' => 'Riwayat Versi: '.$document->name,
-            'active' => 'document',
-            'document' => $document,
+        return response()->json([
+            'document' => [
+                'id' => $document->id,
+                'name' => $document->name,
+                'version' => $document->version ?? 1,
+                'divisi' => $document->divisi->name ?? '-',
+                'joblevel' => $document->joblevel->name ?? '-',
+                'path' => $document->path,
+            ],
+            'versions' => $document->versions->map(fn (DocumentVersion $version) => [
+                'id' => $version->id,
+                'version_number' => $version->version_number,
+                'file_name' => $version->file_name,
+                'file_url' => asset('storage/dokumen/'.$version->path),
+                'file_size' => $version->file_size ?: '-',
+                'change_note' => $version->change_note ?: 'Tidak ada catatan revisi',
+                'created_by' => $version->created_by ?: 'Admin',
+                'created_at' => $version->created_at ? $version->created_at->format('d M Y, H:i') : '-',
+            ]),
         ]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @return Response
-     */
-    public function edit(Document $document)
+    public function edit(Document $document): View
     {
         $document->load(['versions', 'divisi', 'subdivisi', 'joblevel', 'dokumentype']);
 
@@ -179,119 +148,79 @@ class DocumentController extends Controller
     }
 
     /**
-     * Update the specified resource in storage with versioning.
-     *
-     * @return Response
+     * Update metadata, and when a new PDF is uploaded store it as the next version (old files are kept).
      */
-    public function update(Document $document, Request $request)
+    public function update(UpdateDocumentRequest $request, Document $document): RedirectResponse
     {
-        try {
-            $userName = auth()->user()?->full_name ?? 'Admin';
+        $userName = $request->user()->full_name;
+        $metadata = $request->safe()->only(['divisi_id', 'sub_divisi_id', 'job_level_id', 'document_type']);
+        $metadata['sub_divisi_id'] ??= null;
 
-            // Ensure baseline version 1 exists in history
-            if ($document->versions()->count() === 0) {
-                DocumentVersion::create([
-                    'document_id' => $document->id,
-                    'version_number' => 1,
-                    'file_name' => $document->name.'.pdf',
-                    'path' => $document->path,
-                    'file_size' => null,
-                    'change_note' => 'Versi Awal Dokumen',
-                    'created_by' => $userName,
-                    'created_at' => $document->created_at ?? now(),
-                ]);
-            }
-
-            if ($request->hasFile('file')) {
-                $request->validate([
-                    'file' => ['required', 'mimes:pdf', 'max:51200'],
-                    'change_note' => ['nullable', 'string', 'max:500'],
-                ]);
-
-                // Calculate next version
-                $currentMax = $document->versions()->max('version_number') ?: ($document->version ?: 1);
-                $nextVersion = $currentMax + 1;
-
-                $fileName = pathinfo($request->file('file')->getClientOriginalName(), PATHINFO_FILENAME);
-                $slug = Str::slug($fileName);
-                $extension = $request->file('file')->getClientOriginalExtension();
-                $newPath = $slug.'-v'.$nextVersion.'-'.time().'.'.$extension;
-                $fileSize = $this->formatBytes($request->file('file')->getSize());
-                $changeNote = $request->input('change_note') ?: ('Pembaruan Dokumen ke Versi '.$nextVersion);
-
-                // DO NOT delete the old file! Move new file to storage
-                $request->file('file')->move(storage_path('app/public/dokumen'), $newPath);
-
-                // Create new version in historical table
-                DocumentVersion::create([
-                    'document_id' => $document->id,
-                    'version_number' => $nextVersion,
-                    'file_name' => $fileName.'.'.$extension,
-                    'path' => $newPath,
-                    'file_size' => $fileSize,
-                    'change_note' => $changeNote,
-                    'created_by' => $userName,
-                ]);
-
-                // Update document to point to this new version
-                $document->update([
-                    'name' => strtoupper($fileName),
-                    'divisi_id' => $request->divisi_id,
-                    'sub_divisi_id' => $request->sub_divisi_id,
-                    'job_level_id' => $request->job_level_id,
-                    'document_type' => $request->document_type,
-                    'path' => $newPath,
-                    'version' => $nextVersion,
-                ]);
-
-                return redirect('document')->with(['success' => 'Berhasil memperbarui dokumen ke Versi '.$nextVersion.' (file versi lama tersimpan di riwayat)']);
-            } else {
-                // Only updating metadata (category, division, etc.) without replacing file
-                $document->update([
-                    'divisi_id' => $request->divisi_id,
-                    'sub_divisi_id' => $request->sub_divisi_id,
-                    'job_level_id' => $request->job_level_id,
-                    'document_type' => $request->document_type,
-                ]);
-
-                return redirect('document')->with(['success' => 'Berhasil memperbarui informasi dokumen']);
-            }
-        } catch (Exception $e) {
-            return redirect('document')->with(['error' => $e->getMessage()]);
+        // Ensure baseline version 1 exists in history
+        if (! $document->versions()->exists()) {
+            $document->versions()->create([
+                'version_number' => 1,
+                'file_name' => $document->name.'.pdf',
+                'path' => $document->path,
+                'file_size' => null,
+                'change_note' => 'Versi Awal Dokumen',
+                'created_by' => $userName,
+                'created_at' => $document->created_at ?? now(),
+            ]);
         }
+
+        if (! $request->hasFile('file')) {
+            $document->update($metadata);
+
+            return to_route('document.index')->with('success', 'Berhasil memperbarui informasi dokumen');
+        }
+
+        $file = $request->file('file');
+        $nextVersion = ($document->versions()->max('version_number') ?: ($document->version ?: 1)) + 1;
+        $fileName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $newPath = Str::slug($fileName).'-v'.$nextVersion.'-'.time().'.'.$file->extension();
+
+        $file->storeAs('dokumen', $newPath, 'public');
+
+        DB::transaction(function () use ($request, $document, $file, $fileName, $newPath, $nextVersion, $metadata, $userName) {
+            $document->versions()->create([
+                'version_number' => $nextVersion,
+                'file_name' => $fileName.'.'.$file->extension(),
+                'path' => $newPath,
+                'file_size' => $this->formatBytes($file->getSize()),
+                'change_note' => $request->validated('change_note') ?: ('Pembaruan Dokumen ke Versi '.$nextVersion),
+                'created_by' => $userName,
+            ]);
+
+            $document->update([
+                ...$metadata,
+                'name' => strtoupper($fileName),
+                'path' => $newPath,
+                'version' => $nextVersion,
+            ]);
+        });
+
+        return to_route('document.index')->with('success', 'Berhasil memperbarui dokumen ke Versi '.$nextVersion.' (file versi lama tersimpan di riwayat)');
     }
 
     /**
-     * Remove the specified resource from storage (soft delete).
-     *
-     * @param  int  $id
-     * @return Response
+     * Deactivate (soft delete) a document.
      */
-    public function destroy($id)
+    public function destroy(Document $document): RedirectResponse
     {
-        try {
-            $document = Document::findOrFail($id);
-            $document->delete();
+        $document->delete();
 
-            return redirect('document')->with(['success' => 'Berhasil menonaktifkan dokumen']);
-        } catch (Exception $e) {
-            return redirect('document')->with(['error' => $e->getMessage()]);
-        }
+        return to_route('document.index')->with('success', 'Berhasil menonaktifkan dokumen');
     }
 
     /**
-     * Restore soft-deleted document.
+     * Reactivate a soft-deleted document.
      */
-    public function restore($id)
+    public function restore(Document $document): RedirectResponse
     {
-        try {
-            $document = Document::withTrashed()->findOrFail($id);
-            $document->restore();
+        $document->restore();
 
-            return redirect('document')->with(['success' => 'Berhasil mengaktifkan kembali dokumen']);
-        } catch (Exception $e) {
-            return redirect('document')->with(['error' => $e->getMessage()]);
-        }
+        return to_route('document.index')->with('success', 'Berhasil mengaktifkan kembali dokumen');
     }
 
     /**

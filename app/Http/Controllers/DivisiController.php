@@ -2,116 +2,49 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DivisiRequest;
 use App\Models\Divisi;
-use Exception;
-use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class DivisiController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return Response
-     */
-    public function index()
+    public function index(): View
     {
         return view('setting.divisi.index', [
             'title' => 'Divisi',
             'active' => 'setting',
-            'divisis' => Divisi::all(),
+            'divisis' => Divisi::orderBy('name')->get(),
         ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return Response
-     */
-    public function create()
+    public function store(DivisiRequest $request): RedirectResponse
     {
-        //
+        Divisi::create($request->validated());
+
+        return to_route('divisi.index')->with('success', 'Berhasil menambahkan divisi');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @return Response
-     */
-    public function store(Request $request)
-    {
-        try {
-            Divisi::insert([
-                'name' => strtoupper($request->name),
-            ]);
-
-            return redirect('divisi')->with(['success' => 'berhasil menambahkan divisi']);
-        } catch (Exception $e) {
-            return redirect('divisi')->with(['error' => $e->getMessage()]);
-        }
-    }
-
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function show($id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function edit($id)
+    public function edit(Divisi $divisi): View
     {
         return view('setting.divisi.edit', [
-            'title' => 'Job Level',
+            'title' => 'Divisi',
             'active' => 'setting',
-            'divisi' => Divisi::find($id),
+            'divisi' => $divisi,
         ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function update(Request $request, $id)
+    public function update(DivisiRequest $request, Divisi $divisi): RedirectResponse
     {
-        try {
-            $divisi = Divisi::find($id);
-            $divisi->update([
-                'name' => strtoupper($request->name),
-            ]);
+        $divisi->update($request->validated());
 
-            return redirect('divisi')->with(['success' => 'berhasil merubah divisi']);
-        } catch (Exception $e) {
-            return redirect('divisi')->with(['error' => $e->getMessage()]);
-        }
+        return to_route('divisi.index')->with('success', 'Berhasil mengubah divisi');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function destroy(Request $request)
+    public function destroy(Divisi $divisi): RedirectResponse
     {
-        try {
-            $divisi = Divisi::find($request->id);
-            $divisi->delete();
+        $divisi->delete();
 
-            return redirect('divisi')->with(['success' => 'berhasil menghapus divisi']);
-        } catch (Exception $e) {
-            return redirect('divisi')->with(['error' => $e->getMessage()]);
-        }
+        return to_route('divisi.index')->with('success', 'Berhasil menghapus divisi');
     }
 }

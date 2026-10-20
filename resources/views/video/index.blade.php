@@ -9,13 +9,13 @@
             </h1>
             <p class="text-muted small mt-1 mb-2">Tonton dan pelajari video materi pembelajaran kapan saja.</p>
             @auth
-                @if(auth()->user()->can('manage-videos') || auth()->user()->job_level_id == 1)
+                @can('create', App\Models\Video::class)
                 <div>
                     <a href="{{ route('video.create') }}" class="btn btn-sm btn-primary">
                         <i class="fas fa-plus mr-1"></i> Tambah Video Baru
                     </a>
                 </div>
-                @endif
+                @endcan
             @endauth
         </div>
     </div>
@@ -210,6 +210,7 @@
 @auth
 <form id="deleteVideoForm" action="" method="POST" style="display: none;">
     @csrf
+    @method('DELETE')
 </form>
 @endauth
 
@@ -273,7 +274,7 @@ $('#videoPlayerModal').on('hidden.bs.modal', function () {
 function confirmDelete(id, title) {
     if (confirm('Apakah Anda yakin ingin menghapus video "' + title + '"? Data dan file akan dihapus permanen.')) {
         var form = document.getElementById('deleteVideoForm');
-        form.action = '/video-manage/delete/' + id;
+        form.action = '/video-manage/' + id;
         form.submit();
     }
 }

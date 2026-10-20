@@ -4,25 +4,30 @@ namespace App\Http\Controllers;
 
 use App\Exports\UserExport;
 use App\Exports\UserTemplate;
+use App\Http\Requests\ImportUserRequest;
+use App\Http\Requests\StoreUserRequest;
+use App\Http\Requests\UpdateUserRequest;
 use App\Imports\UserImport;
 use App\Models\Divisi;
 use App\Models\JobLevel;
 use App\Models\SubDivisi;
 use App\Models\User;
-use Exception;
-use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Routing\Attributes\Controllers\Authorize;
+use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Permission\Models\Role;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Throwable;
 
+#[Authorize('viewAny', User::class, only: ['index', 'export', 'template'])]
+#[Authorize('create', User::class, only: ['create', 'store', 'import'])]
+#[Authorize('update', 'user', only: ['edit', 'update'])]
+#[Authorize('delete', 'user', only: ['destroy'])]
+#[Authorize('restore', 'user', only: ['restore'])]
 class UserController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return Response
-     */
-    public function index()
+    public function index(): View
     {
         return view('setting.user.index', [
             'title' => 'User',
@@ -31,40 +36,30 @@ class UserController extends Controller
         ]);
     }
 
-    public function import(Request $request)
+    public function import(ImportUserRequest $request): RedirectResponse
     {
         try {
-            $file = $request->file('file');
-            $namaFile = $file->getClientOriginalName();
-            $file->move(public_path('import'), $namaFile);
+            Excel::import(new UserImport, $request->file('file'));
+        } catch (Throwable $e) {
+            report($e);
 
-            Excel::import(new UserImport, public_path('/import/'.$namaFile));
-            unlink(
-                public_path('import/'.$namaFile)
-            );
-
-            return redirect('user')->with(['success' => 'berhasil import user']);
-        } catch (Exception $e) {
-            return redirect('user')->with(['error' => $e->getMessage()]);
+            return to_route('user.index')->with('error', 'Gagal import user: '.$e->getMessage());
         }
+
+        return to_route('user.index')->with('success', 'Berhasil import user');
     }
 
-    public function template()
+    public function template(): BinaryFileResponse
     {
         return Excel::download(new UserTemplate, 'user_template.xlsx');
     }
 
-    public function export()
+    public function export(): BinaryFileResponse
     {
         return Excel::download(new UserExport, 'user_export.xlsx');
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return Response
-     */
-    public function create()
+    public function create(): View
     {
         return view('setting.user.create', [
             'title' => 'User',
@@ -75,60 +70,21 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @return Response
-     */
-    public function store(Request $request)
+    public function store(StoreUserRequest $request): RedirectResponse
     {
-        try {
-            $request->validate([
-                'username' => ['required', 'string', 'max:255', 'unique:users,username'],
-                'full_name' => ['required', 'string', 'max:255'],
-                'id_karyawan' => ['nullable', 'string', 'max:50'],
-                'email' => ['nullable', 'string', 'max:100'],
-                'no_wa' => ['nullable', 'string', 'max:25'],
-                'role' => ['required', 'string', 'exists:roles,name'],
-            ]);
-            $data = $request->all();
-            unset($data['_token']);
-            $roleName = $request->input('role', 'Staff');
-            unset($data['role']);
-            $data['full_name'] = strtoupper($data['full_name']);
-            $newUser = User::create($data);
-            $newUser->assignRole($roleName);
+        $user = User::create($request->safe()->except('role'));
+        $user->assignRole($request->validated('role'));
 
-            return redirect('user')->with(['success' => 'Berhasil menambahkan user']);
-        } catch (Exception $e) {
-            return redirect('user')->with(['error' => $e->getMessage()]);
-        }
+        return to_route('user.index')->with('success', 'Berhasil menambahkan user');
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function show($id)
+    public function edit(User $user): View|RedirectResponse
     {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function edit($id)
-    {
-        $user = User::with(['joblevel', 'divisi', 'subdivisi.divisi', 'roles'])->find($id);
-
-        if (! $user) {
-            return redirect('user')->with(['error' => 'Tidak bisa mengedit user yang nonaktif, aktifkan terlebih dahulu']);
+        if ($user->trashed()) {
+            return to_route('user.index')->with('error', 'Tidak bisa mengedit user yang nonaktif, aktifkan terlebih dahulu');
         }
+
+        $user->load(['joblevel', 'divisi', 'subdivisi.divisi', 'roles']);
 
         return view('setting.user.edit', [
             'title' => 'User',
@@ -141,77 +97,35 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function update(Request $request, $id)
+    public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
-        try {
-            $user = User::find($id);
-            $request->validate([
-                'username' => ['required', 'string', 'max:255', 'unique:users,username,'.$user->id],
-                'full_name' => ['required', 'string', 'max:255'],
-                'id_karyawan' => ['nullable', 'string', 'max:50'],
-                'email' => ['nullable', 'string', 'max:100'],
-                'no_wa' => ['nullable', 'string', 'max:25'],
-                'role' => ['nullable', 'string', 'exists:roles,name'],
-            ]);
-            $data = $request->all();
-            unset($data['_token']);
+        $data = $request->safe()->except(['role', 'password']);
+        $data['sub_divisi_id'] ??= null;
 
-            if ($request->filled('role')) {
-                $user->syncRoles([$request->role]);
-            }
-            unset($data['role']);
-
-            $data['full_name'] = strtoupper($data['full_name']);
-            $subdivisi = SubDivisi::where('divisi_id', $request->divisi_id)->get();
-            if (count($subdivisi) === 0) {
-                $data['sub_divisi_id'] = null;
-            }
-            if ($request->filled('password')) {
-                $data['password'] = $request->password;
-            } else {
-                unset($data['password']);
-            }
-            $user->update($data);
-
-            return redirect('user')->with(['success' => 'Berhasil merubah user']);
-        } catch (Exception $e) {
-            return redirect('user')->with(['error' => $e->getMessage()]);
+        if ($request->filled('password')) {
+            $data['password'] = $request->validated('password');
         }
+
+        $user->update($data);
+
+        if ($request->filled('role')) {
+            $user->syncRoles([$request->validated('role')]);
+        }
+
+        return to_route('user.index')->with('success', 'Berhasil mengubah user');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function destroy(User $user)
+    public function destroy(User $user): RedirectResponse
     {
-        try {
-            $user->delete();
+        $user->delete();
 
-            return redirect('user')->with(['success' => 'Berhasil menonaktifkan user']);
-        } catch (Exception $e) {
-            return redirect('user')->with(['error' => $e->getMessage()]);
-        }
+        return to_route('user.index')->with('success', 'Berhasil menonaktifkan user');
     }
 
-    public function active($id)
+    public function restore(User $user): RedirectResponse
     {
-        try {
-            $user = User::withTrashed()->find($id);
-            $user['deleted_at'] = null;
-            $user->save();
+        $user->restore();
 
-            return redirect('user')->with(['success' => 'Berhasil mengaktifkan user']);
-        } catch (Exception $e) {
-            return redirect('user')->with(['error' => $e->getMessage()]);
-        }
+        return to_route('user.index')->with('success', 'Berhasil mengaktifkan user');
     }
 }

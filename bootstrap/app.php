@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Middleware\IsAdmin;
 use App\Http\Middleware\LastUserActivity;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -9,6 +8,7 @@ use Illuminate\Http\Request;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -29,7 +29,6 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'isAdmin' => IsAdmin::class,
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
@@ -44,4 +43,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->expectsJson(),
         );
+
+        // Policy / "can" failures in the browser: go back with a readable message instead of a bare 403 page.
+        $exceptions->render(function (AccessDeniedHttpException $e, Request $request) {
+            if ($request->expectsJson()) {
+                return null;
+            }
+
+            return back(fallback: route('training.my-trainings'))
+                ->with('error', 'Role akun Anda tidak memiliki hak akses (permission) untuk membuka fitur ini.');
+        });
     })->create();

@@ -136,7 +136,7 @@
                                                 Atur Hak Akses
                                             </a>
                                             @if(!in_array($role->name, ['Admin', 'Staff', 'Trainer']))
-                                                <form action="{{ route('roles.destroy', $role->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus role {{ $role->name }}?')">
+                                                <form action="{{ route('roles.destroy', $role->id) }}" method="POST" class="d-inline" onsubmit="return confirm(@js('Hapus role '.$role->name.'?'))">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="btn btn-outline-danger btn-sm" title="Hapus Role">

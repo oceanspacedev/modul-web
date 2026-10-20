@@ -24,8 +24,9 @@
                         <h3 class="card-title font-weight-bold m-0" style="font-size: 1.15rem;">Ubah Informasi Video</h3>
                     </div>
 
-                    <form id="editVideoForm" action="{{ route('video.update', $video->id) }}" method="POST" enctype="multipart/form-data">
+                    <form id="editVideoForm" action="{{ route('video.update', $video) }}" method="POST" enctype="multipart/form-data">
                         @csrf
+                        @method('PUT')
                         <div class="card-body">
                             {{-- Errors summary --}}
                             @if ($errors->any())

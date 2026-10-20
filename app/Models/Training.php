@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TrainingStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -21,6 +22,7 @@ class Training extends Model
     {
         return [
             'training_date' => 'date',
+            'status' => TrainingStatus::class,
             'is_quiz_active' => 'boolean',
             'is_attendance_active' => 'boolean',
             'require_attendance_proof' => 'boolean',

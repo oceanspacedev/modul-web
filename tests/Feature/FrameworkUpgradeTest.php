@@ -31,7 +31,7 @@ class FrameworkUpgradeTest extends TestCase
 
         $this->assertContains(LastUserActivity::class, $groups['web']);
         $this->assertContains(PreventRequestForgery::class, $groups['web']);
-        $this->assertArrayHasKey('isAdmin', $this->app['router']->getMiddleware());
+        $this->assertArrayNotHasKey('isAdmin', $this->app['router']->getMiddleware());
     }
 
     public function test_admins_implicitly_pass_every_gate_check(): void

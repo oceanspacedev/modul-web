@@ -27,6 +27,7 @@
                                 <strong>{{ $message }}</strong>
                             </div>
                         @endif
+                        @include('layout.partials.validation-errors')
                         <!-- /.card-header -->
                         <div class="card-body table-responsive p-0" style="height: 520px;">
                             <table class="table table-head-fixed text-nowrap">
@@ -46,12 +47,12 @@
                                             <td><strong>{{ $subdivisi->name }}</strong></td>
                                             <td>
                                                 <div class="d-flex align-items-center" style="gap: 4px;">
-                                                    <a href="subdivisi/{{ $subdivisi->id }}" class="btn btn-default btn-xs">
+                                                    <a href="{{ route('subdivisi.edit', $subdivisi) }}" class="btn btn-default btn-xs">
                                                         Edit
                                                     </a>
-                                                    <form action="/subdivisi/delete" method="POST" class="d-inline m-0" onsubmit="return confirm('Hapus subdivisi {{ $subdivisi->name }}?')">
+                                                    <form action="{{ route('subdivisi.destroy', $subdivisi) }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Hapus subdivisi '.$subdivisi->name.'?'))">
                                                         @csrf
-                                                        <input type="hidden" name="id" value="{{ $subdivisi->id }}">
+                                                        @method('DELETE')
                                                         <button type="submit" class="btn btn-default btn-xs text-danger">
                                                             Hapus
                                                         </button>
@@ -72,7 +73,7 @@
     </section>
 
     <!-- Modal -->
-    <form action="/subdivisi" method="POST" enctype="multipart/form-data">
+    <form action="{{ route('subdivisi.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="modal fade" id="addsubdivisi" tabindex="-1" aria-labelledby="addsubdivisiLabel" aria-hidden="true">
             <div class="modal-dialog">

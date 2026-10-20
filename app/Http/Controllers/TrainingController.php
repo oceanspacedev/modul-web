@@ -2,7 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TrainingStatus;
 use App\Exports\TrainingRekapExport;
+use App\Http\Requests\StoreTrainingRequest;
+use App\Http\Requests\UpdateTrainingRequest;
+use App\Jobs\SendTrainingInvitation;
 use App\Models\Divisi;
 use App\Models\Document;
 use App\Models\Training;
@@ -11,17 +15,29 @@ use App\Models\TrainingQuizResult;
 use App\Models\User;
 use App\Services\WhatsAppService;
 use App\Services\ZoomAttendanceAiService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Authorize;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
+#[Authorize('viewAny', Training::class, only: ['index'])]
+#[Authorize('create', Training::class, only: ['create', 'store'])]
+#[Authorize('view', 'training', only: ['show', 'export'])]
+#[Authorize('delete', 'training', only: ['destroy'])]
+#[Authorize('update', 'training', except: ['index', 'create', 'store', 'show', 'export', 'destroy'])]
 class TrainingController extends Controller
 {
     /**
      * Display a listing of trainings
      */
-    public function index()
+    public function index(): View
     {
         $trainings = Training::with(['trainer', 'participants.user', 'quizResults', 'documents'])
             ->filter()
@@ -30,9 +46,9 @@ class TrainingController extends Controller
 
         $stats = [
             'total' => Training::count(),
-            'scheduled' => Training::where('status', 'scheduled')->count(),
-            'ongoing' => Training::where('status', 'ongoing')->count(),
-            'completed' => Training::where('status', 'completed')->count(),
+            'scheduled' => Training::where('status', TrainingStatus::Scheduled)->count(),
+            'ongoing' => Training::where('status', TrainingStatus::Ongoing)->count(),
+            'completed' => Training::where('status', TrainingStatus::Completed)->count(),
         ];
 
         return view('training.index', [
@@ -46,9 +62,9 @@ class TrainingController extends Controller
     /**
      * Show form for creating a new training
      */
-    public function create()
+    public function create(): View
     {
-        $users = User::orderBy('full_name')->get();
+        $users = User::with('divisi')->orderBy('full_name')->get();
         $divisis = Divisi::with('users')->orderBy('name')->get();
         $documents = Document::with('dokumentype')->orderBy('name')->get();
 
@@ -64,76 +80,44 @@ class TrainingController extends Controller
     /**
      * Store a newly created training
      */
-    public function store(Request $request)
+    public function store(StoreTrainingRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'trainer_id' => 'required|exists:users,id',
-            'description' => 'nullable|string',
-            'training_date' => 'required|date',
-            'start_time' => 'required',
-            'end_time' => 'required',
-            'zoom_link' => 'required|string',
-            'participants' => 'required|array|min:1',
-            'participants.*' => 'exists:users,id',
-            'documents' => 'nullable|array',
-            'documents.*' => 'exists:documents,id',
-            'send_wa_now' => 'nullable|boolean',
-            'quiz_mode' => 'nullable|in:formal,game',
-            'is_attendance_active' => 'nullable|boolean',
-            'require_attendance_proof' => 'nullable|boolean',
-        ]);
+        $participantIds = $request->participantIds();
 
-        $training = Training::create([
-            'title' => $validated['title'],
-            'trainer_id' => $validated['trainer_id'],
-            'description' => $validated['description'] ?? null,
-            'training_date' => $validated['training_date'],
-            'start_time' => $validated['start_time'],
-            'end_time' => $validated['end_time'],
-            'zoom_link' => $validated['zoom_link'],
-            'status' => 'scheduled',
-            'is_quiz_active' => false,
-            'is_attendance_active' => $request->boolean('is_attendance_active', false),
-            'require_attendance_proof' => $request->boolean('require_attendance_proof', false),
-            'quiz_mode' => $request->input('quiz_mode', 'formal'),
-        ]);
-
-        // Attach documents if selected
-        if (! empty($validated['documents'])) {
-            $training->documents()->sync($validated['documents']);
-        }
-
-        // Add participants
-        $participantsData = [];
-        $uniqueParticipants = array_unique($validated['participants']);
-
-        foreach ($uniqueParticipants as $userId) {
-            $participant = TrainingParticipant::create([
-                'training_id' => $training->id,
-                'user_id' => $userId,
-                'token' => Str::random(40).'_'.time(),
-                'attendance_status' => 'pending',
+        $training = DB::transaction(function () use ($request, $participantIds) {
+            $training = Training::create([
+                ...$request->trainingData(),
+                'status' => TrainingStatus::Scheduled,
+                'is_quiz_active' => false,
+                'is_attendance_active' => $request->boolean('is_attendance_active'),
+                'require_attendance_proof' => $request->boolean('require_attendance_proof'),
+                'quiz_mode' => $request->validated('quiz_mode') ?? 'formal',
             ]);
-            $participantsData[] = $participant;
+
+            $training->documents()->sync($request->validated('documents') ?? []);
+
+            foreach ($participantIds as $userId) {
+                $this->addParticipant($training, $userId);
+            }
+
+            return $training;
+        });
+
+        if ($request->boolean('send_wa_now')) {
+            SendTrainingInvitation::dispatchForTraining($training);
         }
 
-        // Send WA immediately if selected
-        if (! empty($request->send_wa_now)) {
-            WhatsAppService::broadcastTraining($training);
-        }
-
-        return redirect('/training/'.$training->id)->with([
-            'success' => 'Jadwal pelatihan berhasil dibuat dengan '.count($participantsData).' peserta terdaftar!',
+        return to_route('training.show', $training)->with([
+            'success' => 'Jadwal pelatihan berhasil dibuat dengan '.count($participantIds).' peserta terdaftar!',
         ]);
     }
 
     /**
      * Show training detail, participants attendance, and quiz scores
      */
-    public function show($id)
+    public function show(Training $training): View
     {
-        $training = Training::with([
+        $training->load([
             'trainer',
             'participants.user.divisi',
             'participants.quizResult',
@@ -141,7 +125,7 @@ class TrainingController extends Controller
             'quizResults.user',
             'documents.versions',
             'documents.dokumentype',
-        ])->findOrFail($id);
+        ]);
 
         $allDocuments = Document::with('dokumentype')->orderBy('name')->get();
 
@@ -170,10 +154,10 @@ class TrainingController extends Controller
     /**
      * Show form for editing training
      */
-    public function edit($id)
+    public function edit(Training $training): View
     {
-        $training = Training::with(['participants', 'documents'])->findOrFail($id);
-        $users = User::orderBy('full_name')->get();
+        $training->load(['participants', 'documents']);
+        $users = User::with('divisi')->orderBy('full_name')->get();
         $divisis = Divisi::with('users')->orderBy('name')->get();
         $documents = Document::with('dokumentype')->orderBy('name')->get();
         $selectedParticipants = $training->participants->pluck('user_id')->toArray();
@@ -194,75 +178,38 @@ class TrainingController extends Controller
     /**
      * Update training details and participants
      */
-    public function update(Request $request, $id)
+    public function update(UpdateTrainingRequest $request, Training $training): RedirectResponse
     {
-        $training = Training::findOrFail($id);
-
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'trainer_id' => 'required|exists:users,id',
-            'description' => 'nullable|string',
-            'training_date' => 'required|date',
-            'start_time' => 'required',
-            'end_time' => 'required',
-            'zoom_link' => 'required|string',
-            'status' => 'required|in:scheduled,ongoing,completed,cancelled',
-            'participants' => 'required|array|min:1',
-            'participants.*' => 'exists:users,id',
-            'documents' => 'nullable|array',
-            'documents.*' => 'exists:documents,id',
-            'quiz_mode' => 'nullable|in:formal,game',
-            'is_attendance_active' => 'nullable|boolean',
-            'require_attendance_proof' => 'nullable|boolean',
-        ]);
-
-        $updateData = [
-            'title' => $validated['title'],
-            'trainer_id' => $validated['trainer_id'],
-            'description' => $validated['description'] ?? null,
-            'training_date' => $validated['training_date'],
-            'start_time' => $validated['start_time'],
-            'end_time' => $validated['end_time'],
-            'zoom_link' => $validated['zoom_link'],
-            'status' => $validated['status'],
-            'quiz_mode' => $request->input('quiz_mode', $training->quiz_mode ?? 'formal'),
+        $data = [
+            ...$request->trainingData(),
+            'quiz_mode' => $request->validated('quiz_mode') ?? $training->quiz_mode ?? 'formal',
         ];
 
         if ($request->has('is_attendance_active')) {
-            $updateData['is_attendance_active'] = $request->boolean('is_attendance_active');
+            $data['is_attendance_active'] = $request->boolean('is_attendance_active');
         }
         if ($request->has('require_attendance_proof')) {
-            $updateData['require_attendance_proof'] = $request->boolean('require_attendance_proof');
+            $data['require_attendance_proof'] = $request->boolean('require_attendance_proof');
         }
 
-        $training->update($updateData);
+        DB::transaction(function () use ($request, $training, $data) {
+            $training->update($data);
+            $training->documents()->sync($request->validated('documents') ?? []);
 
-        // Sync documents
-        $training->documents()->sync($request->input('documents', []));
+            $newParticipantIds = $request->participantIds();
+            $existingParticipantIds = $training->participants()->pluck('user_id')->all();
 
-        // Sync participants
-        $newParticipantIds = array_unique($validated['participants']);
-        $existingParticipants = $training->participants()->pluck('user_id')->toArray();
-
-        // Add newly added participants
-        foreach ($newParticipantIds as $userId) {
-            if (! in_array($userId, $existingParticipants)) {
-                TrainingParticipant::create([
-                    'training_id' => $training->id,
-                    'user_id' => $userId,
-                    'token' => Str::random(40).'_'.time(),
-                    'attendance_status' => 'pending',
-                ]);
+            foreach (array_diff($newParticipantIds, $existingParticipantIds) as $userId) {
+                $this->addParticipant($training, $userId);
             }
-        }
 
-        // Delete removed participants
-        $toRemove = array_diff($existingParticipants, $newParticipantIds);
-        if (! empty($toRemove)) {
-            $training->participants()->whereIn('user_id', $toRemove)->delete();
-        }
+            $removedParticipantIds = array_diff($existingParticipantIds, $newParticipantIds);
+            if ($removedParticipantIds !== []) {
+                $training->participants()->whereIn('user_id', $removedParticipantIds)->delete();
+            }
+        });
 
-        return redirect('/training/'.$training->id)->with([
+        return to_route('training.show', $training)->with([
             'success' => 'Pelatihan berhasil diperbarui!',
         ]);
     }
@@ -270,9 +217,8 @@ class TrainingController extends Controller
     /**
      * Attach documents to training from detail page
      */
-    public function attachDocument(Request $request, $id)
+    public function attachDocument(Request $request, Training $training): RedirectResponse
     {
-        $training = Training::findOrFail($id);
         $request->validate([
             'document_ids' => 'required|array|min:1',
             'document_ids.*' => 'exists:documents,id',
@@ -286,10 +232,9 @@ class TrainingController extends Controller
     /**
      * Detach document from training
      */
-    public function detachDocument($id, $docId)
+    public function detachDocument(Training $training, Document $document): RedirectResponse
     {
-        $training = Training::findOrFail($id);
-        $training->documents()->detach($docId);
+        $training->documents()->detach($document);
 
         return back()->with('success', 'Dokumen materi berhasil dilepas dari pelatihan.');
     }
@@ -297,22 +242,21 @@ class TrainingController extends Controller
     /**
      * Update training status
      */
-    public function updateStatus(Request $request, $id)
+    public function updateStatus(Request $request, Training $training): RedirectResponse
     {
-        $training = Training::findOrFail($id);
-        $status = $request->validate(['status' => 'required|in:scheduled,ongoing,completed,cancelled'])['status'];
+        $request->validate(['status' => ['required', Rule::enum(TrainingStatus::class)]]);
+        $status = $request->enum('status', TrainingStatus::class);
 
         $training->update(['status' => $status]);
 
-        return back()->with('success', "Status pelatihan berhasil diubah menjadi: {$status}");
+        return back()->with('success', "Status pelatihan berhasil diubah menjadi: {$status->label()}");
     }
 
     /**
      * Toggle quiz active status
      */
-    public function toggleQuiz($id)
+    public function toggleQuiz(Training $training): RedirectResponse
     {
-        $training = Training::findOrFail($id);
         $newStatus = ! $training->is_quiz_active;
         $training->update(['is_quiz_active' => $newStatus]);
 
@@ -326,9 +270,8 @@ class TrainingController extends Controller
     /**
      * Toggle attendance active status (Open/Close Absen)
      */
-    public function toggleAttendance($id)
+    public function toggleAttendance(Training $training): RedirectResponse
     {
-        $training = Training::findOrFail($id);
         $newStatus = ! $training->is_attendance_active;
         $training->update(['is_attendance_active' => $newStatus]);
 
@@ -342,9 +285,8 @@ class TrainingController extends Controller
     /**
      * Toggle whether screenshot proof is required for attendance
      */
-    public function toggleAttendanceProof($id)
+    public function toggleAttendanceProof(Training $training): RedirectResponse
     {
-        $training = Training::findOrFail($id);
         $newStatus = ! $training->require_attendance_proof;
         $training->update(['require_attendance_proof' => $newStatus]);
 
@@ -358,9 +300,8 @@ class TrainingController extends Controller
     /**
      * Quick toggle quiz mode (formal <-> game)
      */
-    public function toggleQuizMode($id)
+    public function toggleQuizMode(Training $training): RedirectResponse
     {
-        $training = Training::findOrFail($id);
         $newMode = ($training->quiz_mode === 'game') ? 'formal' : 'game';
         $training->update(['quiz_mode' => $newMode]);
 
@@ -372,22 +313,20 @@ class TrainingController extends Controller
     /**
      * Broadcast WhatsApp notification to all participants
      */
-    public function broadcastWa($id)
+    public function broadcastWa(Training $training): RedirectResponse
     {
-        $training = Training::findOrFail($id);
-        $result = WhatsAppService::broadcastTraining($training);
+        $queued = SendTrainingInvitation::dispatchForTraining($training);
 
         return back()->with([
-            'success' => "Broadcast WhatsApp selesai: {$result['success']} berhasil, {$result['failed']} gagal dari total {$result['total']} peserta.",
+            'success' => "{$queued} pesan WhatsApp dimasukkan ke antrean dan dikirim di latar belakang. Status tiap peserta akan diperbarui otomatis.",
         ]);
     }
 
     /**
      * Send WA notification to a single participant
      */
-    public function sendSingleWa($id, $participantId)
+    public function sendSingleWa(Training $training, TrainingParticipant $participant): RedirectResponse
     {
-        $participant = TrainingParticipant::where('training_id', $id)->findOrFail($participantId);
         $result = WhatsAppService::sendToParticipant($participant);
 
         if ($result['status']) {
@@ -400,11 +339,10 @@ class TrainingController extends Controller
     /**
      * Reset participant quiz results so they can retake
      */
-    public function resetParticipantQuiz($id, $participantId)
+    public function resetParticipantQuiz(Training $training, TrainingParticipant $participant): RedirectResponse
     {
-        $participant = TrainingParticipant::where('training_id', $id)->findOrFail($participantId);
         TrainingQuizResult::where('training_participant_id', $participant->id)->delete();
-        TrainingQuizResult::where('training_id', $id)->where('user_id', $participant->user_id)->delete();
+        $training->quizResults()->where('user_id', $participant->user_id)->delete();
 
         return back()->with('success', "Status kuis untuk {$participant->user->full_name} berhasil di-reset. Peserta dapat mengerjakan kuis kembali.");
     }
@@ -412,9 +350,8 @@ class TrainingController extends Controller
     /**
      * Reset participant attendance status back to 'pending' (Belum Absen)
      */
-    public function resetParticipantAttendance($id, $participantId)
+    public function resetParticipantAttendance(Training $training, TrainingParticipant $participant): RedirectResponse
     {
-        $participant = TrainingParticipant::where('training_id', $id)->findOrFail($participantId);
 
         // Delete proof image file from disk if exists
         if ($participant->attendance_proof && Storage::disk('public')->exists($participant->attendance_proof)) {
@@ -434,9 +371,8 @@ class TrainingController extends Controller
     /**
      * Update participant attendance status & notes manually by admin
      */
-    public function updateParticipantAttendance(Request $request, $id, $participantId)
+    public function updateParticipantAttendance(Request $request, Training $training, TrainingParticipant $participant): RedirectResponse
     {
-        $participant = TrainingParticipant::where('training_id', $id)->findOrFail($participantId);
 
         $validated = $request->validate([
             'attendance_status' => 'required|in:pending,hadir,tidak_hadir',
@@ -468,10 +404,9 @@ class TrainingController extends Controller
     /**
      * Grade essay answers by trainer
      */
-    public function gradeEssay(Request $request, $id, $quizResultId)
+    public function gradeEssay(Request $request, Training $training, TrainingQuizResult $quizResult): RedirectResponse
     {
-        $training = Training::findOrFail($id);
-        $result = TrainingQuizResult::where('training_id', $training->id)->findOrFail($quizResultId);
+        $result = $quizResult;
 
         $validated = $request->validate([
             'essay_score' => 'required|numeric|min:0|max:100',
@@ -508,55 +443,25 @@ class TrainingController extends Controller
     }
 
     /**
-     * Return live attendance & quiz stats as JSON for admin polling
-     */
-    public function liveStats($id)
-    {
-        $training = Training::with(['participants.quizResult'])->findOrFail($id);
-
-        $participants = $training->participants;
-        $total = $participants->count();
-        $attended = $participants->where('attendance_status', 'hadir')->count();
-        $absent = $participants->where('attendance_status', 'tidak_hadir')->count();
-        $pending = $total - $attended - $absent;
-        $quizDone = $participants->filter(fn ($p) => $p->quizResult !== null)->count();
-        $avgScore = $quizDone > 0
-            ? round($participants->filter(fn ($p) => $p->quizResult)->avg(fn ($p) => $p->quizResult->score), 1)
-            : 0;
-
-        return response()->json([
-            'total' => $total,
-            'attended' => $attended,
-            'absent' => $absent,
-            'pending' => $pending,
-            'quizSubmitted' => $quizDone,
-            'avgScore' => $avgScore,
-            'is_attendance_active' => (bool) $training->is_attendance_active,
-            'is_quiz_active' => (bool) $training->is_quiz_active,
-        ]);
-    }
-
-    /**
      * Delete a training
      */
-    public function destroy($id)
+    public function destroy(Training $training): RedirectResponse
     {
-        $training = Training::findOrFail($id);
         $training->delete();
 
-        return redirect('/training')->with('success', 'Pelatihan berhasil dihapus!');
+        return to_route('training.index')->with('success', 'Pelatihan berhasil dihapus!');
     }
 
     /**
      * Export attendance and quiz results to Excel (.xlsx)
      */
-    public function export($id)
+    public function export(Training $training): BinaryFileResponse
     {
-        $training = Training::with([
+        $training->load([
             'trainer',
             'participants.user.divisi',
             'participants.quizResult',
-        ])->findOrFail($id);
+        ]);
 
         $filename = 'rekap_pelatihan_'.Str::slug($training->title).'_'.date('Ymd_His').'.xlsx';
 
@@ -569,9 +474,9 @@ class TrainingController extends Controller
     /**
      * Scan Zoom screenshots using Gemini AI to detect off-cam participants
      */
-    public function scanZoomAi(Request $request, $id)
+    public function scanZoomAi(Request $request, Training $training): JsonResponse
     {
-        $training = Training::with(['participants.user'])->findOrFail($id);
+        $training->load('participants.user');
 
         $request->validate([
             'images' => 'required|array|min:1|max:10',
@@ -600,7 +505,9 @@ class TrainingController extends Controller
                 'data' => $result,
                 'registered_participants' => $participantsList,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            report($e);
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -611,9 +518,8 @@ class TrainingController extends Controller
     /**
      * Save supervisor-verified off-cam participants
      */
-    public function saveZoomOffCam(Request $request, $id)
+    public function saveZoomOffCam(Request $request, Training $training): JsonResponse
     {
-        $training = Training::findOrFail($id);
 
         $request->validate([
             'off_cam_items' => 'required|array',
@@ -627,9 +533,7 @@ class TrainingController extends Controller
         $updatedCount = 0;
 
         foreach ($request->off_cam_items as $item) {
-            $participant = TrainingParticipant::where('training_id', $id)
-                ->where('id', $item['participant_id'])
-                ->first();
+            $participant = $training->participants()->find($item['participant_id']);
 
             if (! $participant) {
                 continue;
@@ -673,9 +577,8 @@ class TrainingController extends Controller
     /**
      * Reset/unmark off-cam status for a participant
      */
-    public function resetZoomOffCam(Request $request, $id, $participantId)
+    public function resetZoomOffCam(Request $request, Training $training, TrainingParticipant $participant): JsonResponse|RedirectResponse
     {
-        $participant = TrainingParticipant::where('training_id', $id)->findOrFail($participantId);
 
         // Remove off-cam note if present
         $cleanNote = preg_replace('/;?\s*Off Cam Zoom [^;]+/', '', $participant->attendance_notes ?? '');
@@ -706,9 +609,8 @@ class TrainingController extends Controller
     /**
      * Update participant's off-cam frequency count (increment / decrement / set)
      */
-    public function updateOffCamCount(Request $request, $id, $participantId)
+    public function updateOffCamCount(Request $request, Training $training, TrainingParticipant $participant): JsonResponse
     {
-        $participant = TrainingParticipant::where('training_id', $id)->findOrFail($participantId);
 
         $action = $request->input('action', 'increment');
         $currentCount = (int) ($participant->off_cam_count ?? ($participant->is_off_cam ? 1 : 0));
@@ -756,6 +658,15 @@ class TrainingController extends Controller
             'message' => $newCount > 0
                 ? "{$participantName} tercatat Off Cam {$newCount}x"
                 : "Status Off Cam {$participantName} dibatalkan",
+        ]);
+    }
+
+    private function addParticipant(Training $training, int $userId): TrainingParticipant
+    {
+        return $training->participants()->create([
+            'user_id' => $userId,
+            'token' => Str::random(40).'_'.time(),
+            'attendance_status' => 'pending',
         ]);
     }
 }

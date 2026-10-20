@@ -117,15 +117,7 @@
                                 </span>
                             </td>
                             <td class="text-center align-middle" style="padding: 16px;">
-                                @if($t->status === 'scheduled')
-                                    <span class="badge badge-warning text-white px-2 py-1">Dijadwalkan</span>
-                                @elseif($t->status === 'ongoing')
-                                    <span class="badge badge-success px-2 py-1">Berlangsung</span>
-                                @elseif($t->status === 'completed')
-                                    <span class="badge badge-secondary px-2 py-1">Selesai</span>
-                                @else
-                                    <span class="badge badge-danger px-2 py-1">Dibatalkan</span>
-                                @endif
+                                <x-training-status-badge :status="$t->status" />
                             </td>
                             <td class="text-center align-middle" style="padding: 14px;">
                                 <div class="d-inline-flex align-items-center" style="gap: 4px;">
@@ -147,9 +139,11 @@
                                                 Edit Pelatihan
                                             </a>
                                             <div class="dropdown-divider my-1"></div>
-                                            <a class="dropdown-item py-1 text-danger" href="/training/delete/{{ $t->id }}" onclick="return confirm('Hapus jadwal pelatihan ini?')">
-                                                Hapus Pelatihan
-                                            </a>
+                                            <form action="{{ route('training.destroy', $t) }}" method="POST" class="m-0" onsubmit="return confirm('Hapus jadwal pelatihan ini?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="dropdown-item py-1 text-danger">Hapus Pelatihan</button>
+                                            </form>
                                         </div>
                                     </div>
                                 </div>

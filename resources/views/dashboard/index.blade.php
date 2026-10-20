@@ -255,9 +255,9 @@
                                                             {{ $t->training_date ? $t->training_date->format('d M Y') : '-' }}
                                                         </td>
                                                         <td class="px-2 py-2 text-center">
-                                                            @if($t->status === 'ongoing')
+                                                            @if($t->status === App\Enums\TrainingStatus::Ongoing)
                                                                 <span class="badge border" style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0; padding: 4px 8px;">Berlangsung</span>
-                                                            @elseif($t->status === 'completed')
+                                                            @elseif($t->status === App\Enums\TrainingStatus::Completed)
                                                                 <span class="badge border" style="background: #f1f5f9; color: #475569; border-color: #cbd5e1; padding: 4px 8px;">Selesai</span>
                                                             @else
                                                                 <span class="badge border" style="background: #eff6ff; color: #1e40af; border-color: #bfdbfe; padding: 4px 8px;">Terjadwal</span>

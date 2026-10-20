@@ -14,7 +14,7 @@
                                         Data User
                                     </h3>
                                     <div class="card-tools m-0">
-                                        <form action="/user" method="GET" class="d-inline-flex m-0">
+                                        <form action="{{ route('user.index') }}" method="GET" class="d-inline-flex m-0">
                                             <div class="input-group input-group-sm" style="width: 240px;">
                                                 <input type="text" name="search" value="{{ request('search') }}" class="form-control"
                                                     placeholder="Cari user / ID...">
@@ -28,13 +28,13 @@
                                     </div>
                                 </div>
                                 <div class="d-flex align-items-center flex-wrap mt-3" style="gap: 8px;">
-                                    <a href="/user/create" class="btn btn-sm btn-primary">
+                                    <a href="{{ route('user.create') }}" class="btn btn-sm btn-primary">
                                         Tambah User
                                     </a>
-                                    <a href="/user/export" class="btn btn-sm btn-default">
+                                    <a href="{{ route('user.export') }}" class="btn btn-sm btn-default">
                                         Export All
                                     </a>
-                                    <a href="/user/template" class="btn btn-sm btn-default">
+                                    <a href="{{ route('user.template') }}" class="btn btn-sm btn-default">
                                         Download Template
                                     </a>
                                     <button type="button" class="btn btn-sm btn-default" data-toggle="modal" data-target="#imporUser">
@@ -52,6 +52,7 @@
                                 <strong>{{ $message }}</strong>
                             </div>
                         @endif
+                        @include('layout.partials.validation-errors')
                         <!-- /.card-header -->
                         <div class="card-body table-responsive p-0" style="height: 520px;">
                             <table class="table table-head-fixed text-nowrap">
@@ -113,19 +114,23 @@
                                             </td>
                                             <td>
                                                 <div class="d-flex align-items-center" style="gap: 4px;">
-                                                    <a href="/user/{{ $user->id }}" class="btn btn-default btn-xs">
+                                                    <a href="{{ route('user.edit', $user) }}" class="btn btn-default btn-xs">
                                                         Edit
                                                     </a>
                                                     @if ($user->deleted_at)
-                                                        <a href="/user/active/{{ $user->id }}" class="btn btn-default btn-xs text-success"
-                                                            onclick="return confirm('Mengaktifkan kembali user {{ $user->full_name }}?')">
-                                                            Aktifkan
-                                                        </a>
+                                                        <form action="{{ route('user.restore', $user) }}" method="POST" class="d-inline m-0"
+                                                            onsubmit="return confirm(@js('Mengaktifkan kembali user '.$user->full_name.'?'))">
+                                                            @csrf
+                                                            @method('PATCH')
+                                                            <button type="submit" class="btn btn-default btn-xs text-success">Aktifkan</button>
+                                                        </form>
                                                     @else
-                                                        <a href="/user/delete/{{ $user->id }}" class="btn btn-default btn-xs text-danger"
-                                                            onclick="return confirm('Apakah anda yakin menonaktifkan user {{ $user->full_name }}?')">
-                                                            Nonaktifkan
-                                                        </a>
+                                                        <form action="{{ route('user.destroy', $user) }}" method="POST" class="d-inline m-0"
+                                                            onsubmit="return confirm(@js('Apakah anda yakin menonaktifkan user '.$user->full_name.'?'))">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="btn btn-default btn-xs text-danger">Nonaktifkan</button>
+                                                        </form>
                                                     @endif
                                                 </div>
                                             </td>
@@ -146,7 +151,7 @@
     </section>
 
     <!-- Modal -->
-    <form action="/user/import" method="POST" enctype="multipart/form-data">
+    <form action="{{ route('user.import') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="modal fade" id="imporUser" tabindex="-1" aria-labelledby="imporUserLabel" aria-hidden="true">
             <div class="modal-dialog">

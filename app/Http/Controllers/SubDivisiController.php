@@ -2,120 +2,61 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\SubDivisiRequest;
 use App\Models\Divisi;
 use App\Models\SubDivisi;
-use Exception;
-use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class SubDivisiController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return Response
-     */
-    public function index()
+    public function index(): View
     {
         return view('setting.subdivisi.index', [
-            'title' => 'Divisi',
+            'title' => 'Sub Divisi',
             'active' => 'setting',
-            'divisis' => Divisi::all(),
-            'subdivisis' => SubDivisi::with('divisi')->get(),
+            'divisis' => Divisi::orderBy('name')->get(),
+            'subdivisis' => SubDivisi::with('divisi')->orderBy('name')->get(),
         ]);
     }
 
     /**
-     * Show the form for creating a new resource.
-     *
-     * @return Response
+     * Sub divisions of one division, for the dependent dropdowns on the user and document forms.
      */
-    public function create() {}
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @return Response
-     */
-    public function store(Request $request)
+    public function byDivisi(Divisi $divisi): JsonResponse
     {
-        try {
-            SubDivisi::insert([
-                'divisi_id' => $request->divisi_id,
-                'name' => strtoupper($request->name),
-            ]);
-
-            return redirect('subdivisi')->with(['success' => 'berhasil menambahkan subdivisi']);
-        } catch (Exception $e) {
-            return redirect('subdivisi')->with(['error' => $e->getMessage()]);
-        }
+        return response()->json($divisi->subdivisi()->orderBy('name')->get());
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function show($id)
+    public function store(SubDivisiRequest $request): RedirectResponse
     {
-        $subdivisi = SubDivisi::where('divisi_id', $id)->orderBy('name')->get();
+        SubDivisi::create($request->validated());
 
-        return response()->json($subdivisi);
+        return to_route('subdivisi.index')->with('success', 'Berhasil menambahkan sub divisi');
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function edit($id)
+    public function edit(SubDivisi $subdivisi): View
     {
         return view('setting.subdivisi.edit', [
-            'title' => 'Divisi',
+            'title' => 'Sub Divisi',
             'active' => 'setting',
-            'divisis' => Divisi::all(),
-            'subdivisi' => SubDivisi::find($id),
+            'divisis' => Divisi::orderBy('name')->get(),
+            'subdivisi' => $subdivisi,
         ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function update(Request $request, $id)
+    public function update(SubDivisiRequest $request, SubDivisi $subdivisi): RedirectResponse
     {
-        try {
-            $subdivisi = SubDivisi::find($id);
-            $subdivisi->update([
-                'divisi_id' => $request->divisi_id,
-                'name' => strtoupper($request->name),
-            ]);
+        $subdivisi->update($request->validated());
 
-            return redirect('subdivisi')->with(['success' => 'berhasil merubah subdivisi']);
-        } catch (Exception $e) {
-            return redirect('subdivisi')->with(['error' => $e->getMessage()]);
-        }
+        return to_route('subdivisi.index')->with('success', 'Berhasil mengubah sub divisi');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function destroy(Request $request)
+    public function destroy(SubDivisi $subdivisi): RedirectResponse
     {
-        try {
-            $subdivisi = SubDivisi::find($request->id);
-            $subdivisi->delete();
+        $subdivisi->delete();
 
-            return redirect('subdivisi')->with(['success' => 'berhasil menghapus subdivisi']);
-        } catch (Exception $e) {
-            return redirect('subdivisi')->with(['error' => $e->getMessage()]);
-        }
+        return to_route('subdivisi.index')->with('success', 'Berhasil menghapus sub divisi');
     }
 }

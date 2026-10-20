@@ -96,9 +96,9 @@
         <div class="content-card">
             <div class="content-card-header">
                 <span>Informasi Sesi</span>
-                @if($training->status === 'ongoing')
+                @if($training->status === App\Enums\TrainingStatus::Ongoing)
                     <span class="badge badge-success px-2 py-1">Berlangsung</span>
-                @elseif($training->status === 'completed')
+                @elseif($training->status === App\Enums\TrainingStatus::Completed)
                     <span class="badge badge-secondary px-2 py-1">Selesai</span>
                 @else
                     <span class="badge badge-warning text-white px-2 py-1">Terjadwal</span>
