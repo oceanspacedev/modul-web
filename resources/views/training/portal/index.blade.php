@@ -96,13 +96,7 @@
         <div class="content-card">
             <div class="content-card-header">
                 <span>Informasi Sesi</span>
-                @if($training->status === App\Enums\TrainingStatus::Ongoing)
-                    <span class="badge badge-success px-2 py-1">Berlangsung</span>
-                @elseif($training->status === App\Enums\TrainingStatus::Completed)
-                    <span class="badge badge-secondary px-2 py-1">Selesai</span>
-                @else
-                    <span class="badge badge-warning text-white px-2 py-1">Terjadwal</span>
-                @endif
+                <x-training-status-badge :status="$training->status" />
             </div>
 
             <h3 class="font-weight-bold mb-3" style="font-size: 1.4rem;">
@@ -128,11 +122,17 @@
                 </div>
             @endif
 
-            <div>
-                <a href="{{ $training->zoom_link }}" target="_blank" class="btn btn-primary btn-block py-2 font-weight-bold">
-                    <i class="fas fa-video mr-1"></i> Buka Tautan Zoom
-                </a>
-            </div>
+            @if($training->status === App\Enums\TrainingStatus::Cancelled)
+                <div class="alert alert-danger mb-0">
+                    <i class="fas fa-ban mr-1"></i> Pelatihan ini dibatalkan. Tautan Zoom tidak lagi tersedia.
+                </div>
+            @else
+                <div>
+                    <a href="{{ $training->zoom_link }}" target="_blank" rel="noopener" class="btn btn-primary btn-block py-2 font-weight-bold">
+                        <i class="fas fa-video mr-1"></i> Buka Tautan Zoom
+                    </a>
+                </div>
+            @endif
 
             @if($training->documents->isNotEmpty())
                 <div class="mt-3 pt-3 border-top">

@@ -217,4 +217,20 @@ class TrainingAttendanceFeatureTest extends TestCase
         $res2->assertSessionHas('success');
         $this->assertEquals('pending', $this->participant->fresh()->attendance_status);
     }
+
+    public function test_portal_hides_zoom_link_when_training_is_cancelled()
+    {
+        $this->get("/training/portal/{$this->participant->token}")
+            ->assertOk()
+            ->assertSee('Dijadwalkan')
+            ->assertSee('https://zoom.us/test-zoom');
+
+        $this->training->update(['status' => 'cancelled']);
+
+        $this->get("/training/portal/{$this->participant->token}")
+            ->assertOk()
+            ->assertSee('Dibatalkan')
+            ->assertSee('Pelatihan ini dibatalkan')
+            ->assertDontSee('https://zoom.us/test-zoom');
+    }
 }

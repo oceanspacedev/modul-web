@@ -73,11 +73,11 @@
                             Saat ini belum ada video materi yang diunggah.
                         @endif
                     </p>
-                    @auth
+                    @can('create', App\Models\Video::class)
                         <a href="{{ route('video.create') }}" class="btn btn-primary mt-2">
                             <i class="fas fa-plus mr-1"></i> Tambah Video Pertama
                         </a>
-                    @endauth
+                    @endcan
                 </div>
             </div>
         @else
@@ -143,7 +143,7 @@
                             </div>
 
                             {{-- Card Footer --}}
-                            @auth
+                            @can('update', $v)
                             <div class="card-footer bg-white px-3 py-2 d-flex justify-content-end align-items-center border-top">
                                 <a href="{{ route('video.edit', $v->id) }}" class="btn btn-default btn-xs mr-1" title="Edit Video">
                                     Edit
@@ -152,7 +152,7 @@
                                     Hapus
                                 </button>
                             </div>
-                            @endauth
+                            @endcan
                         </div>
                     </div>
                 @endforeach

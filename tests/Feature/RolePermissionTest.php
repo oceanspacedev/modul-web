@@ -252,4 +252,25 @@ class RolePermissionTest extends TestCase
         $this->assertStringNotContainsString('/subdivisi', $sidebarAdmin);
         $this->assertStringNotContainsString('/joblevel', $sidebarAdmin);
     }
+
+    public function test_video_manage_buttons_only_shown_to_users_who_can_manage_videos()
+    {
+        $video = \App\Models\Video::create([
+            'title' => 'Video Uji Tombol',
+            'video_type' => 'link',
+            'video_link' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        ]);
+        $editUrl = route('video.edit', $video->id);
+
+        $this->actingAs(User::factory()->staff()->create())
+            ->get('/video')
+            ->assertOk()
+            ->assertSee('Video Uji Tombol')
+            ->assertDontSee($editUrl);
+
+        $this->actingAs($this->admin())
+            ->get('/video')
+            ->assertOk()
+            ->assertSee($editUrl);
+    }
 }
