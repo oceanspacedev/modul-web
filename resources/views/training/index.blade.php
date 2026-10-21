@@ -7,7 +7,7 @@
             <h1 class="m-0 text-dark font-weight-bold" style="font-size: 1.5rem;">
                 Jadwal Pelatihan
             </h1>
-            <a href="/training/create" class="btn btn-sm btn-success shadow-sm">
+            <a href="/training/create" class="btn btn-sm btn-primary">
                 <i class="fas fa-plus mr-1"></i> Tambah Pelatihan
             </a>
         </div>
