@@ -1079,3 +1079,282 @@ select.form-control-sm {
     font-weight: 600 !important;
     box-shadow: 0 1px 2px rgba(17, 24, 39, 0.1) !important;
 }
+
+/* =========================================================
+   FORMS - simple, consistent, airy (all create/edit pages)
+   ========================================================= */
+.form-control,
+.custom-select,
+.input-group > .form-control,
+.input-group > .custom-select {
+    height: 40px !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    padding: 8px 14px !important;
+    font-size: 0.875rem !important;
+    color: #1f2937 !important;
+    background-color: #ffffff;
+    box-shadow: none;
+}
+
+textarea.form-control {
+    height: auto !important;
+    min-height: 90px;
+    line-height: 1.5;
+}
+
+input[type="file"].form-control {
+    padding: 7px 12px !important;
+    line-height: 1.6;
+}
+
+.form-control::placeholder {
+    color: #9ca3af;
+}
+
+.form-control:disabled,
+.form-control[readonly] {
+    background-color: #f9fafb !important;
+    color: #6b7280 !important;
+}
+
+/* Native selects get the same chevron as select2 so every dropdown matches */
+select.form-control,
+select.custom-select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 36px !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%239ca3af' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 12px 8px;
+}
+
+select.form-control[multiple] {
+    height: auto !important;
+    background-image: none;
+}
+
+.form-group {
+    margin-bottom: 1.15rem;
+}
+
+.form-group > label,
+.form-label {
+    font-size: 0.825rem !important;
+    font-weight: 600 !important;
+    color: #374151 !important;
+    margin-bottom: 0.4rem;
+}
+
+.form-group small.text-muted,
+.form-text {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.775rem;
+    color: #9ca3af !important;
+}
+
+/* Form cards: light header, roomy body */
+.card.border.shadow-sm,
+.card.shadow-sm {
+    box-shadow: var(--card-shadow) !important;
+}
+
+.card > .card-header .card-title {
+    font-size: 1rem !important;
+}
+
+.card > .card-header + .card-body,
+.card > form > .card-body {
+    padding: 1.4rem 1.5rem 1.2rem;
+}
+
+.card > .card-footer {
+    padding: 0.9rem 1.5rem;
+}
+
+/* Checkbox / radio */
+.custom-control-input:checked ~ .custom-control-label::before {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.custom-control-label {
+    font-weight: 500;
+    color: #374151;
+}
+
+/* Buttons: one primary blue, quiet secondary */
+.btn-success,
+.btn-success:not(:disabled):not(.disabled):active {
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
+    color: #ffffff !important;
+}
+
+.btn-success:hover {
+    background-color: var(--primary-dark) !important;
+    border-color: var(--primary-dark) !important;
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-default,
+.btn-secondary {
+    background-color: #ffffff;
+    border: 1px solid #d1d5db;
+    color: #374151;
+}
+
+.btn-default:hover,
+.btn-secondary:hover {
+    background-color: #f3f4f6;
+    border-color: #d1d5db;
+    color: #111827;
+}
+
+.btn {
+    font-weight: 500;
+}
+
+/* ---------- Select2 (single + multiple) ---------- */
+.select2-container--default .select2-selection--single,
+.select2-container--default .select2-selection--multiple {
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    background-color: #ffffff;
+}
+
+.select2-container--default .select2-selection--single {
+    height: 40px !important;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 38px !important;
+    padding-left: 14px !important;
+    padding-right: 34px !important;
+    font-size: 0.875rem;
+    color: #1f2937;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__placeholder {
+    color: #9ca3af;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 38px !important;
+    right: 8px !important;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow b {
+    border-color: #9ca3af transparent transparent transparent;
+}
+
+.select2-container--default .select2-selection--multiple {
+    min-height: 40px;
+    padding: 2px 6px;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background: #eff6ff;
+    border: 1px solid #dbeafe;
+    color: #1d4ed8;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+    color: #60a5fa;
+    border-right: none;
+}
+
+.select2-container--default.select2-container--focus .select2-selection--single,
+.select2-container--default.select2-container--focus .select2-selection--multiple,
+.select2-container--default.select2-container--open .select2-selection--single {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.select2-dropdown {
+    border: 1px solid #e5e7eb !important;
+    border-radius: 8px !important;
+    box-shadow: 0 8px 24px rgba(17, 24, 39, 0.1);
+    overflow: hidden;
+}
+
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 6px 10px;
+}
+
+.select2-container--default .select2-results__option {
+    padding: 8px 14px;
+    font-size: 0.875rem;
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected],
+.select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
+    background-color: #eff6ff !important;
+    color: #1d4ed8 !important;
+}
+
+.select2-container--default .select2-results__option[aria-selected=true],
+.select2-container--default .select2-results__option--selected {
+    background-color: #f3f4f6;
+    color: #111827;
+}
+
+/* Compact controls keep their smaller size */
+.form-control-sm,
+.input-group-sm > .form-control,
+.input-group-sm > .custom-select,
+select.form-control-sm {
+    height: 34px !important;
+    padding: 5px 12px !important;
+    font-size: 0.825rem !important;
+}
+
+/* AdminLTE pads the select2 box itself; remove it so text sits in the vertical middle */
+.select2-container--default .select2-selection--single {
+    padding: 0 !important;
+    display: flex;
+    align-items: center;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    margin: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    height: auto !important;
+    line-height: 1.4 !important;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    top: 0 !important;
+    display: flex;
+    align-items: center;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow b {
+    position: static !important;
+    margin: 0 !important;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__rendered {
+    padding: 0 4px;
+}
