@@ -113,7 +113,7 @@
                                             </td>
                                             <td>
                                                 <div class="d-inline-flex align-items-center" style="gap: 4px;">
-                                                    <a href="{{ asset('storage/dokumen/'.$document->path) }}" target='_blank' class="btn btn-default btn-xs" title="Buka File Dokumen">
+                                                    <a href="{{ $document->file_url }}" target='_blank' class="btn btn-default btn-xs" title="Buka File Dokumen">
                                                         Buka
                                                     </a>
                                                     <div class="dropdown">

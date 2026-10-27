@@ -87,7 +87,7 @@ class TrainingRekapExport implements FromArray, WithEvents, WithTitle
                     ? Carbon::parse($participant->attended_at)->format('d-m-Y H:i')
                     : '-',
                 $participant->attendance_proof
-                    ? asset('storage/'.$participant->attendance_proof)
+                    ? $participant->attendance_proof_url
                     : '-',
                 $quiz ? 'Sudah Mengerjakan' : 'Belum Mengerjakan',
                 $quiz ? (float) ($quiz->mc_score ?? $quiz->score) : 0,

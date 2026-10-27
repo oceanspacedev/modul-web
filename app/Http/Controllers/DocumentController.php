@@ -77,7 +77,7 @@ class DocumentController extends Controller
         $changeNote = $request->validated('change_note') ?: 'Versi Awal Dokumen';
         $userName = $request->user()->full_name;
 
-        $file->storeAs('dokumen', $path, 'public');
+        $file->storeAs('dokumen', $path);
 
         DB::transaction(function () use ($request, $file, $fileName, $path, $fileSize, $changeNote, $userName) {
             foreach ($request->validated('job_level_id') as $jobLevelId) {
@@ -123,7 +123,7 @@ class DocumentController extends Controller
                 'id' => $version->id,
                 'version_number' => $version->version_number,
                 'file_name' => $version->file_name,
-                'file_url' => asset('storage/dokumen/'.$version->path),
+                'file_url' => $version->file_url,
                 'file_size' => $version->file_size ?: '-',
                 'change_note' => $version->change_note ?: 'Tidak ada catatan revisi',
                 'created_by' => $version->created_by ?: 'Admin',
@@ -180,7 +180,7 @@ class DocumentController extends Controller
         $fileName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $newPath = Str::slug($fileName).'-v'.$nextVersion.'-'.time().'.'.$file->extension();
 
-        $file->storeAs('dokumen', $newPath, 'public');
+        $file->storeAs('dokumen', $newPath);
 
         DB::transaction(function () use ($request, $document, $file, $fileName, $newPath, $nextVersion, $metadata, $userName) {
             $document->versions()->create([

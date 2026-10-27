@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class TrainingParticipant extends Model
 {
@@ -44,6 +45,6 @@ class TrainingParticipant extends Model
 
     public function getAttendanceProofUrlAttribute()
     {
-        return $this->attendance_proof ? asset('storage/'.$this->attendance_proof) : null;
+        return $this->attendance_proof ? Storage::url($this->attendance_proof) : null;
     }
 }

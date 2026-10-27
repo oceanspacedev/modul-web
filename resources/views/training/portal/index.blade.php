@@ -141,7 +141,7 @@
                         @foreach($training->documents as $pdoc)
                             @php
                                 $pver = $pdoc->versions->first();
-                                $purl = $pver ? asset('storage/dokumen/' . $pver->path) : asset('storage/dokumen/' . $pdoc->path);
+                                $purl = $pver ? $pver->file_url : $pdoc->file_url;
                             @endphp
                             <a href="{{ $purl }}" target="_blank" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-2">
                                 <div class="text-truncate mr-2">
@@ -191,8 +191,8 @@
                                 <i class="fas fa-camera mr-1 text-primary"></i> Bukti Screenshot Pelatihan / Zoom:
                             </span>
                             <div class="text-center">
-                                <a href="{{ asset('storage/' . $participant->attendance_proof) }}" target="_blank" title="Klik untuk perbesar">
-                                    <img src="{{ asset('storage/' . $participant->attendance_proof) }}" alt="Bukti Kehadiran" class="img-fluid rounded border shadow-sm" style="max-height: 220px; object-fit: contain;">
+                                <a href="{{ $participant->attendance_proof_url }}" target="_blank" title="Klik untuk perbesar">
+                                    <img src="{{ $participant->attendance_proof_url }}" alt="Bukti Kehadiran" class="img-fluid rounded border shadow-sm" style="max-height: 220px; object-fit: contain;">
                                 </a>
                                 <small class="text-muted d-block mt-1 font-italic">
                                     <i class="fas fa-external-link-alt mr-1"></i> Klik gambar untuk melihat ukuran penuh
