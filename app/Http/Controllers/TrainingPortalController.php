@@ -90,12 +90,12 @@ class TrainingPortalController extends Controller
 
         $proofPath = $participant->attendance_proof;
         if ($request->hasFile('attendance_proof')) {
-            if ($proofPath && Storage::disk('public')->exists($proofPath)) {
-                Storage::disk('public')->delete($proofPath);
+            if ($proofPath && Storage::exists($proofPath)) {
+                Storage::delete($proofPath);
             }
             $file = $request->file('attendance_proof');
             $fileName = Str::random(30).'.'.$file->getClientOriginalExtension();
-            $proofPath = $file->storeAs('attendance_proofs', $fileName, 'public');
+            $proofPath = $file->storeAs('attendance_proofs', $fileName);
         }
 
         $participant->update([

@@ -13,7 +13,9 @@ return [
     |
     */
 
-    'default' => env('FILESYSTEM_DISK', 'local'),
+    // User uploads (videos, documents, attendance proofs) are stored on and served
+    // from this disk, so it must be web-readable: "public" or "s3", never "local".
+    'default' => env('FILESYSTEM_DISK', 'public'),
 
     /*
     |--------------------------------------------------------------------------

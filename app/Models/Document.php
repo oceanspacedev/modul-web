@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Document extends Model
 {
@@ -50,5 +51,10 @@ class Document extends Model
     public function trainings()
     {
         return $this->belongsToMany(Training::class, 'training_documents', 'document_id', 'training_id')->withTimestamps();
+    }
+
+    public function getFileUrlAttribute()
+    {
+        return Storage::url('dokumen/'.$this->path);
     }
 }

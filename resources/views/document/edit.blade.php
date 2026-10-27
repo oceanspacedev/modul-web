@@ -13,7 +13,7 @@
                                 </h3>
                                 <div>
                                     <span class="badge badge-light border px-2 py-1">v{{ $document->version ?? 1 }}</span>
-                                    <a href="{{ asset('storage/dokumen/' . $document->path) }}" target="_blank" class="btn btn-xs btn-default ml-2">
+                                    <a href="{{ $document->file_url }}" target="_blank" class="btn btn-xs btn-default ml-2">
                                         <i class="fas fa-external-link-alt mr-1"></i> Buka File
                                     </a>
                                 </div>

@@ -89,5 +89,8 @@ class AppServiceProvider extends ServiceProvider
     {
         // Implicitly grant the "Admin" role (and job level 1) every ability.
         Gate::before(fn (User $user) => $user->isAdministrator() ? true : null);
+
+        // Log Viewer (/log-viewer) exposes stack traces and request data, so administrators only.
+        Gate::define('viewLogViewer', fn (User $user) => $user->isAdministrator());
     }
 }
