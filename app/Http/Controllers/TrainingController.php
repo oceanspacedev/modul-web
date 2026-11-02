@@ -354,8 +354,8 @@ class TrainingController extends Controller
     {
 
         // Delete proof image file from disk if exists
-        if ($participant->attendance_proof && Storage::disk('public')->exists($participant->attendance_proof)) {
-            Storage::disk('public')->delete($participant->attendance_proof);
+        if ($participant->attendance_proof && Storage::exists($participant->attendance_proof)) {
+            Storage::delete($participant->attendance_proof);
         }
 
         $participant->update([
@@ -385,8 +385,8 @@ class TrainingController extends Controller
         ];
 
         if ($validated['attendance_status'] === 'pending') {
-            if ($participant->attendance_proof && Storage::disk('public')->exists($participant->attendance_proof)) {
-                Storage::disk('public')->delete($participant->attendance_proof);
+            if ($participant->attendance_proof && Storage::exists($participant->attendance_proof)) {
+                Storage::delete($participant->attendance_proof);
             }
             $data['attended_at'] = null;
             $data['attendance_proof'] = null;

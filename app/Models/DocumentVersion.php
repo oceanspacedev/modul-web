@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class DocumentVersion extends Model
 {
@@ -26,6 +27,6 @@ class DocumentVersion extends Model
 
     public function getFileUrlAttribute()
     {
-        return asset('storage/dokumen/'.$this->path);
+        return Storage::url('dokumen/'.$this->path);
     }
 }

@@ -168,7 +168,7 @@
                                         @foreach($training->documents as $doc)
                                             @php
                                                 $latestVer = $doc->versions->first();
-                                                $fileUrl = $latestVer ? asset('storage/dokumen/' . $latestVer->path) : asset('storage/dokumen/' . $doc->path);
+                                                $fileUrl = $latestVer ? $latestVer->file_url : $doc->file_url;
                                             @endphp
                                             <div class="list-group-item px-0 py-2 d-flex align-items-center justify-content-between border-bottom">
                                                 <div class="mr-2 text-truncate">
@@ -756,8 +756,8 @@
                                                     Waktu Presensi: <strong>{{ \Carbon\Carbon::parse($part->attended_at)->format('d F Y, H:i') }} WIB</strong>
                                                 </div>
                                                 <div class="bg-light p-2 rounded border">
-                                                    <a href="{{ asset('storage/' . $part->attendance_proof) }}" target="_blank" title="Buka gambar ukuran asli">
-                                                        <img src="{{ asset('storage/' . $part->attendance_proof) }}" alt="Screenshot Bukti" class="img-fluid rounded border" style="max-height: 380px; object-fit: contain;">
+                                                    <a href="{{ $part->attendance_proof_url }}" target="_blank" title="Buka gambar ukuran asli">
+                                                        <img src="{{ $part->attendance_proof_url }}" alt="Screenshot Bukti" class="img-fluid rounded border" style="max-height: 380px; object-fit: contain;">
                                                     </a>
                                                 </div>
                                                 <small class="text-muted mt-2 d-block">
@@ -765,7 +765,7 @@
                                                 </small>
                                             </div>
                                             <div class="modal-footer py-2 bg-light">
-                                                <a href="{{ asset('storage/' . $part->attendance_proof) }}" target="_blank" download class="btn btn-sm btn-default">
+                                                <a href="{{ $part->attendance_proof_url }}" target="_blank" download class="btn btn-sm btn-default">
                                                     Unduh Foto
                                                 </a>
                                                 <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Tutup</button>

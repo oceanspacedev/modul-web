@@ -105,10 +105,10 @@ class VideoController extends Controller
 
         if ($existingVideo) {
             if ($videoPath && $existingVideo->video_file) {
-                Storage::disk('public')->delete($existingVideo->video_file);
+                Storage::delete($existingVideo->video_file);
             }
             if ($thumbnailPath && $existingVideo->thumbnail) {
-                Storage::disk('public')->delete($existingVideo->thumbnail);
+                Storage::delete($existingVideo->thumbnail);
             }
 
             $existingVideo->update([
@@ -217,13 +217,13 @@ class VideoController extends Controller
      */
     private function storeUpload(UploadedFile $file, string $directory): string
     {
-        return $file->storeAs($directory, Str::random(20).'.'.$file->extension(), 'public');
+        return $file->storeAs($directory, Str::random(20).'.'.$file->extension());
     }
 
     private function deleteStoredFile(?string $path): void
     {
-        if ($path && Storage::disk('public')->exists($path)) {
-            Storage::disk('public')->delete($path);
+        if ($path && Storage::exists($path)) {
+            Storage::delete($path);
         }
     }
 
