@@ -5,13 +5,13 @@
     <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
-                <h1 class="m-0 font-weight-bold" style="font-size: 1.5rem; color: #0f172a; letter-spacing: -0.02em;">
+                <h1 class="m-0 font-weight-bold" style="font-size: 1.5rem; color: #111827; letter-spacing: -0.02em;">
                     Dashboard
                 </h1>
                 <p class="text-muted small mt-1 mb-0">Ringkasan seluruh modul, pelatihan, video, dan grafik analitik sistem.</p>
             </div>
             <div class="d-flex align-items-center">
-                <span class="badge border text-muted px-3 py-2 font-weight-normal shadow-sm" style="background: #ffffff; border-color: #e2e8f0 !important; font-size: 0.825rem; border-radius: 8px;">
+                <span class="badge border text-muted px-3 py-2 font-weight-normal" style="background: #ffffff; border-color: #e2e8f0 !important; font-size: 0.825rem; border-radius: 8px;">
                     <i class="far fa-calendar-alt mr-1 text-primary"></i> {{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}
                 </span>
             </div>
@@ -45,17 +45,17 @@
         <div class="row">
             {{-- 1. Total User --}}
             <div class="col-xl-3 col-md-6 col-12 mb-3">
-                <div class="card h-100 border-0 shadow-sm" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
+                <div class="card h-100 border-0" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
                     <a href="/user" class="text-decoration-none text-reset">
                         <div class="card-body p-3 d-flex align-items-center justify-content-between">
                             <div>
                                 <small class="text-uppercase font-weight-bold" style="letter-spacing: 0.04em; font-size: 0.75rem; color: #64748b;">Total Pengguna</small>
                                 <h3 class="font-weight-bold mb-1 mt-1" style="font-size: 1.75rem; color: #0f172a;">{{ $data['totalUser'] }}</h3>
-                                <span class="badge border" style="background: #f8fafc; border-color: #e2e8f0 !important; color: #2563eb; font-size: 0.725rem;">
+                                <span class="badge border" style="background: #f3f4f6; border-color: #e5e7eb !important; color: #4b5563; font-size: 0.725rem; border-radius: 6px;">
                                     <i class="fas fa-arrow-right mr-1"></i> Kelola User
                                 </span>
                             </div>
-                            <div class="d-flex align-items-center justify-content-center rounded-circle border" style="width: 50px; height: 50px; background: #eff6ff; border-color: #dbeafe !important; color: #2563eb;">
+                            <div class="d-flex align-items-center justify-content-center border" style="width: 46px; height: 46px; border-radius: 12px; background: #eff6ff; border-color: #dbeafe !important; color: #2563eb;">
                                 <i class="fas fa-users" style="font-size: 1.25rem;"></i>
                             </div>
                         </div>
@@ -65,17 +65,17 @@
 
             {{-- 2. Total Pelatihan --}}
             <div class="col-xl-3 col-md-6 col-12 mb-3">
-                <div class="card h-100 border-0 shadow-sm" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
+                <div class="card h-100 border-0" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
                     <a href="/training" class="text-decoration-none text-reset">
                         <div class="card-body p-3 d-flex align-items-center justify-content-between">
                             <div>
                                 <small class="text-uppercase font-weight-bold" style="letter-spacing: 0.04em; font-size: 0.75rem; color: #64748b;">Jadwal Pelatihan</small>
                                 <h3 class="font-weight-bold mb-1 mt-1" style="font-size: 1.75rem; color: #0f172a;">{{ $data['totalTraining'] }}</h3>
-                                <span class="badge border" style="background: #f0f9ff; border-color: #e0f2fe !important; color: #0284c7; font-size: 0.725rem;">
+                                <span class="badge border" style="background: #f3f4f6; border-color: #e5e7eb !important; color: #4b5563; font-size: 0.725rem; border-radius: 6px;">
                                     <i class="fas fa-clock mr-1"></i> {{ $data['ongoingTraining'] }} Berlangsung
                                 </span>
                             </div>
-                            <div class="d-flex align-items-center justify-content-center rounded-circle border" style="width: 50px; height: 50px; background: #f0f9ff; border-color: #e0f2fe !important; color: #0284c7;">
+                            <div class="d-flex align-items-center justify-content-center border" style="width: 46px; height: 46px; border-radius: 12px; background: #eff6ff; border-color: #dbeafe !important; color: #2563eb;">
                                 <i class="fas fa-chalkboard-teacher" style="font-size: 1.25rem;"></i>
                             </div>
                         </div>
@@ -85,17 +85,17 @@
 
             {{-- 3. Total Video Materi --}}
             <div class="col-xl-3 col-md-6 col-12 mb-3">
-                <div class="card h-100 border-0 shadow-sm" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
+                <div class="card h-100 border-0" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
                     <a href="/video" class="text-decoration-none text-reset">
                         <div class="card-body p-3 d-flex align-items-center justify-content-between">
                             <div>
                                 <small class="text-uppercase font-weight-bold" style="letter-spacing: 0.04em; font-size: 0.75rem; color: #64748b;">Video Materi</small>
                                 <h3 class="font-weight-bold mb-1 mt-1" style="font-size: 1.75rem; color: #0f172a;">{{ $data['totalVideo'] }}</h3>
-                                <span class="badge border" style="background: #fff1f2; border-color: #ffe4e6 !important; color: #e11d48; font-size: 0.725rem;">
+                                <span class="badge border" style="background: #f3f4f6; border-color: #e5e7eb !important; color: #4b5563; font-size: 0.725rem; border-radius: 6px;">
                                     <i class="fas fa-play mr-1"></i> Buka Galeri
                                 </span>
                             </div>
-                            <div class="d-flex align-items-center justify-content-center rounded-circle border" style="width: 50px; height: 50px; background: #fff1f2; border-color: #ffe4e6 !important; color: #e11d48;">
+                            <div class="d-flex align-items-center justify-content-center border" style="width: 46px; height: 46px; border-radius: 12px; background: #eff6ff; border-color: #dbeafe !important; color: #2563eb;">
                                 <i class="fas fa-play-circle" style="font-size: 1.25rem;"></i>
                             </div>
                         </div>
@@ -105,17 +105,17 @@
 
             {{-- 4. Total Peserta Pelatihan --}}
             <div class="col-xl-3 col-md-6 col-12 mb-3">
-                <div class="card h-100 border-0 shadow-sm" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
+                <div class="card h-100 border-0" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
                     <a href="/training" class="text-decoration-none text-reset">
                         <div class="card-body p-3 d-flex align-items-center justify-content-between">
                             <div>
                                 <small class="text-uppercase font-weight-bold" style="letter-spacing: 0.04em; font-size: 0.75rem; color: #64748b;">Peserta Pelatihan</small>
                                 <h3 class="font-weight-bold mb-1 mt-1" style="font-size: 1.75rem; color: #0f172a;">{{ $data['totalParticipant'] }}</h3>
-                                <span class="badge border" style="background: #ecfdf5; border-color: #d1fae5 !important; color: #059669; font-size: 0.725rem;">
+                                <span class="badge border" style="background: #f3f4f6; border-color: #e5e7eb !important; color: #4b5563; font-size: 0.725rem; border-radius: 6px;">
                                     <i class="fas fa-check-circle mr-1"></i> Terdaftar
                                 </span>
                             </div>
-                            <div class="d-flex align-items-center justify-content-center rounded-circle border" style="width: 50px; height: 50px; background: #ecfdf5; border-color: #d1fae5 !important; color: #059669;">
+                            <div class="d-flex align-items-center justify-content-center border" style="width: 46px; height: 46px; border-radius: 12px; background: #eff6ff; border-color: #dbeafe !important; color: #2563eb;">
                                 <i class="fas fa-user-graduate" style="font-size: 1.25rem;"></i>
                             </div>
                         </div>
@@ -125,17 +125,17 @@
 
             {{-- 5. Total Dokumen Modul --}}
             <div class="col-xl-3 col-md-6 col-12 mb-3">
-                <div class="card h-100 border-0 shadow-sm" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
+                <div class="card h-100 border-0" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
                     <a href="/document" class="text-decoration-none text-reset">
                         <div class="card-body p-3 d-flex align-items-center justify-content-between">
                             <div>
                                 <small class="text-uppercase font-weight-bold" style="letter-spacing: 0.04em; font-size: 0.75rem; color: #64748b;">Dokumen Modul</small>
                                 <h3 class="font-weight-bold mb-1 mt-1" style="font-size: 1.75rem; color: #0f172a;">{{ $data['totalDocument'] }}</h3>
-                                <span class="badge border" style="background: #fffbeb; border-color: #fef3c7 !important; color: #d97706; font-size: 0.725rem;">
+                                <span class="badge border" style="background: #f3f4f6; border-color: #e5e7eb !important; color: #4b5563; font-size: 0.725rem; border-radius: 6px;">
                                     <i class="fas fa-folder-open mr-1"></i> Lihat Dokumen
                                 </span>
                             </div>
-                            <div class="d-flex align-items-center justify-content-center rounded-circle border" style="width: 50px; height: 50px; background: #fffbeb; border-color: #fef3c7 !important; color: #d97706;">
+                            <div class="d-flex align-items-center justify-content-center border" style="width: 46px; height: 46px; border-radius: 12px; background: #eff6ff; border-color: #dbeafe !important; color: #2563eb;">
                                 <i class="fas fa-file-alt" style="font-size: 1.25rem;"></i>
                             </div>
                         </div>
@@ -145,17 +145,17 @@
 
             {{-- 6. Hasil Evaluasi Kuis --}}
             <div class="col-xl-3 col-md-6 col-12 mb-3">
-                <div class="card h-100 border-0 shadow-sm" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
+                <div class="card h-100 border-0" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
                     <a href="/training" class="text-decoration-none text-reset">
                         <div class="card-body p-3 d-flex align-items-center justify-content-between">
                             <div>
                                 <small class="text-uppercase font-weight-bold" style="letter-spacing: 0.04em; font-size: 0.75rem; color: #64748b;">Hasil Evaluasi Kuis</small>
                                 <h3 class="font-weight-bold mb-1 mt-1" style="font-size: 1.75rem; color: #0f172a;">{{ $data['totalQuizResult'] }}</h3>
-                                <span class="badge border" style="background: #f5f3ff; border-color: #ede9fe !important; color: #7c3aed; font-size: 0.725rem;">
+                                <span class="badge border" style="background: #f3f4f6; border-color: #e5e7eb !important; color: #4b5563; font-size: 0.725rem; border-radius: 6px;">
                                     <i class="fas fa-chart-line mr-1"></i> Rata-rata: {{ $data['quizAvgScore'] }}
                                 </span>
                             </div>
-                            <div class="d-flex align-items-center justify-content-center rounded-circle border" style="width: 50px; height: 50px; background: #f5f3ff; border-color: #ede9fe !important; color: #7c3aed;">
+                            <div class="d-flex align-items-center justify-content-center border" style="width: 46px; height: 46px; border-radius: 12px; background: #eff6ff; border-color: #dbeafe !important; color: #2563eb;">
                                 <i class="fas fa-clipboard-check" style="font-size: 1.25rem;"></i>
                             </div>
                         </div>
@@ -171,7 +171,7 @@
             {{-- Kolom Kiri: Grafik Pelatihan & Grafik Evaluasi Kuis --}}
             <div class="col-lg-7 mb-4">
                 {{-- 1. Grafik Peserta Pelatihan --}}
-                <div class="card shadow-sm border-0 mb-4" style="border: 1px solid #e2e8f0 !important; border-radius: 14px; background: #ffffff;">
+                <div class="card border-0 mb-4" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
                     <div class="card-header bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center" style="border-color: #f1f5f9 !important;">
                         <div class="d-flex align-items-center mr-2">
                             <h6 class="m-0 font-weight-bold" style="color: #0f172a;">
@@ -249,7 +249,7 @@
                                                             </div>
                                                         </td>
                                                         <td class="px-2 py-2" style="color: #64748b;">
-                                                            {{ $t->trainer ? $t->trainer->full_name : '-' }}
+                                                            {{ $t->trainer ? $t->trainer->nama_lengkap : '-' }}
                                                         </td>
                                                         <td class="px-2 py-2" style="color: #64748b;">
                                                             {{ $t->training_date ? $t->training_date->format('d M Y') : '-' }}
@@ -275,11 +275,11 @@
                 </div>
 
                 {{-- 2. Grafik Distribusi Nilai & Evaluasi Kuis --}}
-                <div class="card shadow-sm border-0" style="border: 1px solid #e2e8f0 !important; border-radius: 14px; background: #ffffff;">
+                <div class="card border-0" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
                     <div class="card-header bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center" style="border-color: #f1f5f9 !important;">
                         <div class="d-flex align-items-center mr-2">
                             <h6 class="m-0 font-weight-bold" style="color: #0f172a;">
-                                <i class="fas fa-poll mr-2" style="color: #7c3aed;"></i> Grafik Distribusi Nilai Evaluasi Kuis
+                                <i class="fas fa-poll mr-2" style="color: #2563eb;"></i> Grafik Distribusi Nilai Evaluasi Kuis
                             </h6>
                             <span class="badge border ml-2" style="background: #f8fafc; border-color: #e2e8f0 !important; color: #64748b; font-size: 0.75rem;">
                                 {{ $data['totalQuizResult'] }} Peserta
@@ -357,7 +357,7 @@
                                                     <tr>
                                                         <td class="px-2 py-2">
                                                             <span class="font-weight-bold" style="color: #0f172a;">
-                                                                {{ $res->participant && $res->participant->user ? $res->participant->user->full_name : 'Peserta' }}
+                                                                {{ $res->participant && $res->participant->user ? $res->participant->user->nama_lengkap : 'Peserta' }}
                                                             </span>
                                                         </td>
                                                         <td class="px-2 py-2" style="color: #64748b;">
@@ -387,7 +387,7 @@
             {{-- Kolom Kanan: Grafik Video Penonton & Grafik Komposisi Master Data --}}
             <div class="col-lg-5 mb-4">
                 {{-- 3. Grafik Popularitas Video Materi --}}
-                <div class="card shadow-sm border-0 mb-4" style="border: 1px solid #e2e8f0 !important; border-radius: 14px; background: #ffffff;">
+                <div class="card border-0 mb-4" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
                     <div class="card-header bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center" style="border-color: #f1f5f9 !important;">
                         <div class="d-flex align-items-center mr-2">
                             <h6 class="m-0 font-weight-bold" style="color: #0f172a;">
@@ -473,7 +473,7 @@
                 </div>
 
                 {{-- 4. Grafik Komposisi Modul & Master Data --}}
-                <div class="card shadow-sm border-0" style="border: 1px solid #e2e8f0 !important; border-radius: 14px; background: #ffffff;">
+                <div class="card border-0" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
                     <div class="card-header bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center" style="border-color: #f1f5f9 !important;">
                         <div class="d-flex align-items-center mr-2">
                             <h6 class="m-0 font-weight-bold" style="color: #0f172a;">
@@ -522,7 +522,7 @@
                             <div class="tab-pane fade" id="tab-komposisi-detail" role="tabpanel">
                                 <div class="d-flex justify-content-between align-items-center py-2 border-bottom" style="border-color: #f1f5f9 !important;">
                                     <div class="d-flex align-items-center">
-                                        <span class="d-inline-flex align-items-center justify-content-center rounded mr-3 border" style="width: 36px; height: 36px; background: #eff6ff; border-color: #dbeafe; color: #2563eb;">
+                                        <span class="d-inline-flex align-items-center justify-content-center mr-3 border" style="width: 36px; height: 36px; border-radius: 10px; background: #eff6ff; border-color: #dbeafe; color: #2563eb;">
                                             <i class="fas fa-city"></i>
                                         </span>
                                         <div>
@@ -539,24 +539,24 @@
 
                                 <div class="d-flex justify-content-between align-items-center py-2 border-bottom" style="border-color: #f1f5f9 !important;">
                                     <div class="d-flex align-items-center">
-                                        <span class="d-inline-flex align-items-center justify-content-center rounded mr-3 border" style="width: 36px; height: 36px; background: #f0f9ff; border-color: #e0f2fe; color: #0284c7;">
+                                        <span class="d-inline-flex align-items-center justify-content-center mr-3 border" style="width: 36px; height: 36px; border-radius: 10px; background: #eff6ff; border-color: #dbeafe; color: #2563eb;">
                                             <i class="fas fa-building"></i>
                                         </span>
                                         <div>
-                                            <h6 class="mb-0 font-weight-bold" style="font-size: 0.885rem; color: #0f172a;">Sub Divisi</h6>
-                                            <small style="color: #64748b;">Unit & departemen tim</small>
+                                            <h6 class="mb-0 font-weight-bold" style="font-size: 0.885rem; color: #0f172a;">Posisi</h6>
+                                            <small style="color: #64748b;">Posisi kerja karyawan</small>
                                         </div>
                                     </div>
                                     <div class="text-right">
-                                        <a href="/subdivisi" class="badge border px-3 py-2 font-weight-bold" style="font-size: 0.85rem; border-radius: 8px; background: #f0f9ff; color: #0369a1; border-color: #bae6fd;">
-                                            {{ $data['totalSubDivisi'] }} Sub Divisi
+                                        <a href="/position" class="badge border px-3 py-2 font-weight-bold" style="font-size: 0.85rem; border-radius: 8px; background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe;">
+                                            {{ $data['totalPosition'] }} Posisi
                                         </a>
                                     </div>
                                 </div>
 
                                 <div class="d-flex justify-content-between align-items-center py-2" style="border-color: #f1f5f9 !important;">
                                     <div class="d-flex align-items-center">
-                                        <span class="d-inline-flex align-items-center justify-content-center rounded mr-3 border" style="width: 36px; height: 36px; background: #fffbeb; border-color: #fef3c7; color: #d97706;">
+                                        <span class="d-inline-flex align-items-center justify-content-center mr-3 border" style="width: 36px; height: 36px; border-radius: 10px; background: #eff6ff; border-color: #dbeafe; color: #2563eb;">
                                             <i class="fas fa-bookmark"></i>
                                         </span>
                                         <div>
@@ -565,7 +565,7 @@
                                         </div>
                                     </div>
                                     <div class="text-right">
-                                        <a href="/dokumentype" class="badge border px-3 py-2 font-weight-bold" style="font-size: 0.85rem; border-radius: 8px; background: #fffbeb; color: #b45309; border-color: #fde68a;">
+                                        <a href="/dokumentype" class="badge border px-3 py-2 font-weight-bold" style="font-size: 0.85rem; border-radius: 8px; background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe;">
                                             {{ $data['totalDokumenType'] }} Tipe
                                         </a>
                                     </div>
@@ -592,9 +592,9 @@
     color: #0f172a;
 }
 .custom-theme-pills .nav-link.active {
-    background: #1e293b !important;
+    background: #2563eb !important;
     color: #ffffff !important;
-    border-color: #1e293b !important;
+    border-color: #2563eb !important;
 }
 </style>
 @endsection
@@ -754,10 +754,10 @@ $(document).ready(function() {
                 datasets: [{
                     label: 'Total Views',
                     data: dataVideo,
-                    backgroundColor: 'rgba(225, 29, 72, 0.85)',
-                    borderColor: '#e11d48',
+                    backgroundColor: 'rgba(96, 165, 250, 0.85)',
+                    borderColor: '#60a5fa',
                     borderWidth: 1.5,
-                    hoverBackgroundColor: '#be123c',
+                    hoverBackgroundColor: '#3b82f6',
                     borderRadius: 6
                 }]
             },

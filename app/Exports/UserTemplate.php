@@ -3,29 +3,50 @@
 namespace App\Exports;
 
 use Illuminate\Support\Collection;
-use Maatwebsite\Excel\Concerns\Export;
-use Maatwebsite\Excel\Concerns\Exportable;
+use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
-class UserTemplate implements Export, WithHeadings
+/**
+ * Template import user, kolomnya sama dengan template DnD.
+ */
+class UserTemplate implements FromCollection, WithHeadings
 {
-    use Exportable;
+    public function collection(): Collection
+    {
+        return collect([
+            [
+                'nama_lengkap' => 'KUSUMA CHANDRA',
+                'username' => 'kusumachandra',
+                'id_karyawan' => '25.02.001',
+                'no_hp' => '081234567890',
+                'email' => 'kusuma.chandra@example.com',
+                'role' => 'MANAGER',
+                'area' => 'ULS',
+                'divisi' => 'RETAIL',
+                'position' => 'ULS - GENERAL MANAGER',
+                'approval' => '',
+                'password' => '',
+            ],
+        ]);
+    }
 
     /**
-     * @return Collection
+     * @return array<int, string>
      */
     public function headings(): array
     {
         return [
-            'id_karyawan',
-            'full_name',
+            'nama_lengkap',
             'username',
+            'id_karyawan',
+            'no_hp',
             'email',
-            'no_wa',
-            'password',
+            'role',
+            'area',
             'divisi',
-            'sub_divisi',
-            'job_level',
+            'position',
+            'approval',
+            'password',
         ];
     }
 }

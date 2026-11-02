@@ -6,13 +6,13 @@
         <div class="row mb-2 align-items-center">
             <div class="col-sm-6">
                 <h1 class="m-0 font-weight-bold" style="font-size: 1.4rem;">
-                    Manajemen Role & Hak Akses
+                    Manajemen Jabatan & Hak Akses
                 </h1>
                 <small class="text-muted">Kelola peran pengguna dan tentukan fitur apa saja yang dapat diakses oleh setiap role.</small>
             </div>
             <div class="col-sm-6 text-sm-right mt-2 mt-sm-0">
                 <a href="{{ route('roles.create') }}" class="btn btn-primary btn-sm font-weight-bold">
-                    Tambah Role Baru
+                    Tambah Jabatan Baru
                 </a>
             </div>
         </div>
@@ -44,8 +44,8 @@
             <div class="col-md-4 col-sm-6 col-12">
                 <div class="info-box shadow-none border">
                     <div class="info-box-content">
-                        <span class="info-box-text text-muted">Total Role Terdaftar</span>
-                        <span class="info-box-number h4 font-weight-bold mb-0 text-dark">{{ $roles->count() }} Role</span>
+                        <span class="info-box-text text-muted">Total Jabatan Terdaftar</span>
+                        <span class="info-box-number h4 font-weight-bold mb-0 text-dark">{{ $roles->count() }} Jabatan</span>
                     </div>
                 </div>
             </div>
@@ -73,12 +73,12 @@
                 <ul class="nav nav-tabs" id="roleTab" role="tablist">
                     <li class="nav-item">
                         <a class="nav-link active font-weight-bold" id="roles-tab" data-toggle="pill" href="#tab-roles" role="tab" aria-controls="tab-roles" aria-selected="true">
-                            Daftar Role & Hak Akses Fitur ({{ $roles->count() }})
+                            Daftar Jabatan & Hak Akses Fitur ({{ $roles->count() }})
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link font-weight-bold" id="users-tab" data-toggle="pill" href="#tab-users" role="tab" aria-controls="tab-users" aria-selected="false">
-                            Penetapan Role Pengguna ({{ $users->count() }})
+                            Penetapan Jabatan Pengguna ({{ $users->count() }})
                         </a>
                     </li>
                 </ul>
@@ -94,25 +94,33 @@
                                     <div class="card h-100 shadow-sm border" style="border-radius: 12px; overflow: hidden;">
                                         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
                                             <div class="d-flex align-items-center">
-                                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white mr-2 {{ $role->name === 'Admin' ? 'bg-danger' : ($role->name === 'Trainer' ? 'bg-success' : 'bg-primary') }}" style="width: 36px; height: 36px;">
-                                                    <i class="fas {{ $role->name === 'Admin' ? 'fa-shield-alt' : ($role->name === 'Trainer' ? 'fa-chalkboard-teacher' : 'fa-user-tag') }}"></i>
+                                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white mr-2 {{ $role->name === 'ADMIN' ? 'bg-danger' : 'bg-primary' }}" style="width: 36px; height: 36px;">
+                                                    <i class="fas {{ $role->name === 'ADMIN' ? 'fa-shield-alt' : 'fa-user-tag' }}"></i>
                                                 </div>
-                                                <h5 class="font-weight-bold mb-0 text-dark">{{ $role->name }}</h5>
+                                                <div>
+                                                    <h5 class="font-weight-bold mb-0 text-dark">{{ $role->name }}</h5>
+                                                    <span class="text-muted small">
+                                                        Level {{ $role->level ?? '-' }}
+                                                        @if($role->requires_approval)
+                                                            &middot; Wajib atasan
+                                                        @endif
+                                                    </span>
+                                                </div>
                                             </div>
                                             <span class="badge badge-light border font-weight-bold px-2 py-1">
-                                                {{ $role->users->count() }} Pengguna
+                                                {{ $role->users_count }} Pengguna
                                             </span>
                                         </div>
                                         <div class="card-body py-3">
                                             <div class="d-flex justify-content-between align-items-center mb-2">
                                                 <span class="text-muted small font-weight-bold text-uppercase">Hak Akses Fitur:</span>
                                                 <span class="badge badge-info px-2 py-1">
-                                                    {{ $role->name === 'Admin' ? 'Akses Penuh (Semua)' : $role->permissions->count() . ' / ' . $permissions->count() . ' Fitur' }}
+                                                    {{ $role->name === 'ADMIN' ? 'Akses Penuh (Semua)' : $role->permissions->count() . ' / ' . $permissions->count() . ' Fitur' }}
                                                 </span>
                                             </div>
                                             
                                             <div class="p-2 bg-light rounded border mb-3" style="max-height: 170px; overflow-y: auto;">
-                                                @if($role->name === 'Admin')
+                                                @if($role->name === 'ADMIN')
                                                     <div class="text-success small font-weight-bold py-2 text-center">
                                                         <i class="fas fa-check-double mr-1"></i> Administrator memiliki akses ke seluruh fitur sistem
                                                     </div>
@@ -135,11 +143,11 @@
                                             <a href="{{ route('roles.edit', $role->id) }}" class="btn btn-default btn-sm font-weight-bold flex-grow-1 mr-1">
                                                 Atur Hak Akses
                                             </a>
-                                            @if(!in_array($role->name, ['Admin', 'Staff', 'Trainer']))
-                                                <form action="{{ route('roles.destroy', $role->id) }}" method="POST" class="d-inline" onsubmit="return confirm(@js('Hapus role '.$role->name.'?'))">
+                                            @if(! $role->isBuiltIn())
+                                                <form action="{{ route('roles.destroy', $role->id) }}" method="POST" class="d-inline" onsubmit="return confirm(@js('Hapus jabatan '.$role->name.'?'))">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Hapus Role">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Hapus Jabatan">
                                                         <i class="fas fa-trash-alt"></i>
                                                     </button>
                                                 </form>
@@ -154,7 +162,7 @@
                     {{-- TAB 2: PENETAPAN ROLE PENGGUNA --}}
                     <div class="tab-pane fade" id="tab-users" role="tabpanel" aria-labelledby="users-tab">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span class="text-muted small">Atur role untuk masing-masing pengguna agar mendapatkan izin fitur sesuai perannya.</span>
+                            <span class="text-muted small">Atur jabatan masing-masing pengguna (hak akses mengikuti jabatan). Centang Trainer untuk memberi hak akses tambahan kelola training, video, dan dokumen.</span>
                             <input type="text" id="searchUserTable" class="form-control form-control-sm" placeholder="Cari nama / username..." style="width: 250px;">
                         </div>
 
@@ -166,8 +174,8 @@
                                         <th>Nama Lengkap</th>
                                         <th>Username / Kontak</th>
                                         <th>Divisi</th>
-                                        <th>Role Spatie Saat Ini</th>
-                                        <th style="width: 280px;" class="text-center">Ubah Role</th>
+                                        <th>Jabatan Saat Ini</th>
+                                        <th style="width: 360px;" class="text-center">Ubah Jabatan</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -175,13 +183,13 @@
                                     <tr>
                                         <td class="text-center align-middle text-muted">{{ $index + 1 }}</td>
                                         <td class="align-middle">
-                                            <strong class="text-dark d-block">{{ $u->full_name }}</strong>
-                                            <span class="text-muted small">ID: {{ $u->id_karyawan ?? '-' }}</span>
+                                            <strong class="text-dark d-block">{{ $u->nama_lengkap }}</strong>
+                                            <span class="text-muted small">ID: {{ $u->employee_id ?? '-' }}</span>
                                         </td>
                                         <td class="align-middle text-muted">
                                             <span>{{ $u->username }}</span>
-                                            @if($u->no_wa)
-                                                <span class="d-block small text-success"><i class="fab fa-whatsapp mr-1"></i>{{ $u->no_wa }}</span>
+                                            @if($u->no_hp)
+                                                <span class="d-block small text-success"><i class="fab fa-whatsapp mr-1"></i>{{ $u->no_hp }}</span>
                                             @endif
                                         </td>
                                         <td class="align-middle text-muted">
@@ -189,12 +197,15 @@
                                         </td>
                                         <td class="align-middle">
                                             @forelse($u->roles as $r)
-                                                <span class="badge border px-2 py-1 {{ $r->name === 'Admin' ? 'bg-light text-danger border-danger' : ($r->name === 'Trainer' ? 'bg-light text-success border-success' : 'bg-light text-primary border-primary') }}">
+                                                <span class="badge border px-2 py-1 {{ $r->name === 'ADMIN' ? 'bg-light text-danger border-danger' : 'bg-light text-primary border-primary' }}">
                                                     {{ $r->name }}
                                                 </span>
                                             @empty
-                                                <span class="badge badge-light border text-muted px-2 py-1">Belum Ada Role</span>
+                                                <span class="badge badge-light border text-muted px-2 py-1">Belum Ada Jabatan</span>
                                             @endforelse
+                                            @if($u->isTrainer())
+                                                <span class="badge border px-2 py-1 bg-light text-success border-success">TRAINER</span>
+                                            @endif
                                         </td>
                                         <td class="align-middle text-center">
                                             <form action="{{ route('roles.assign') }}" method="POST" class="d-flex align-items-center justify-content-center" style="gap: 6px;">
@@ -207,6 +218,11 @@
                                                         </option>
                                                     @endforeach
                                                 </select>
+                                                <input type="hidden" name="trainer" value="0">
+                                                <div class="custom-control custom-checkbox">
+                                                    <input type="checkbox" class="custom-control-input" id="trainer{{ $u->id }}" name="trainer" value="1" @checked($u->isTrainer())>
+                                                    <label class="custom-control-label small" for="trainer{{ $u->id }}">Trainer</label>
+                                                </div>
                                                 <button type="submit" class="btn btn-primary btn-sm font-weight-bold px-2">
                                                     Simpan
                                                 </button>

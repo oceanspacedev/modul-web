@@ -53,7 +53,7 @@
                                 @endif
                             </td>
                             <td class="align-middle text-muted" style="padding: 16px;">
-                                {{ $t->trainer->full_name ?? '-' }}
+                                {{ $t->trainer->nama_lengkap ?? '-' }}
                             </td>
                             <td class="align-middle" style="padding: 16px;">
                                 <span class="d-block">{{ \Carbon\Carbon::parse($t->training_date)->format('d M Y') }}</span>

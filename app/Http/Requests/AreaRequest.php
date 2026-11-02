@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class JobLevelRequest extends FormRequest
+class AreaRequest extends FormRequest
 {
     /**
      * Authorization is handled by the "can:manage-master-data" route middleware.
@@ -26,7 +26,7 @@ class JobLevelRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255', Rule::unique('job_levels', 'name')->ignore($this->route('joblevel'))->withoutTrashed()],
+            'name' => ['required', 'string', 'max:255', Rule::unique('areas', 'name')->ignore($this->route('area'))],
         ];
     }
 
@@ -35,6 +35,6 @@ class JobLevelRequest extends FormRequest
      */
     public function attributes(): array
     {
-        return ['name' => 'nama job level'];
+        return ['name' => 'nama area'];
     }
 }

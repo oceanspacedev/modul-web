@@ -26,19 +26,17 @@ class TrainingAttendanceFeatureTest extends TestCase
         parent::setUp();
         Storage::fake('public');
 
-        $this->admin = User::where('username', 'admin')->first() ?? User::factory()->create([
+        $this->admin = User::where('username', 'admin')->first() ?? User::factory()->admin()->create([
             'username' => 'admin',
-            'job_level_id' => 1,
         ]);
 
         $divisi = Divisi::first() ?? Divisi::create(['name' => 'Divisi Test']);
 
         $this->participantUser = User::create([
             'username' => 'peserta_absen_'.uniqid(),
-            'full_name' => 'Peserta Uji Absensi',
+            'nama_lengkap' => 'Peserta Uji Absensi',
             'email' => 'peserta_'.uniqid().'@example.com',
             'password' => bcrypt('password'),
-            'job_level_id' => 2,
             'divisi_id' => $divisi->id,
         ]);
 
@@ -218,5 +216,21 @@ class TrainingAttendanceFeatureTest extends TestCase
 
         $res2->assertSessionHas('success');
         $this->assertEquals('pending', $this->participant->fresh()->attendance_status);
+    }
+
+    public function test_portal_hides_zoom_link_when_training_is_cancelled()
+    {
+        $this->get("/training/portal/{$this->participant->token}")
+            ->assertOk()
+            ->assertSee('Dijadwalkan')
+            ->assertSee('https://zoom.us/test-zoom');
+
+        $this->training->update(['status' => 'cancelled']);
+
+        $this->get("/training/portal/{$this->participant->token}")
+            ->assertOk()
+            ->assertSee('Dibatalkan')
+            ->assertSee('Pelatihan ini dibatalkan')
+            ->assertDontSee('https://zoom.us/test-zoom');
     }
 }

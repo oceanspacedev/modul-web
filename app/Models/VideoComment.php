@@ -53,6 +53,6 @@ class VideoComment extends Model
      */
     public function isAdmin(): bool
     {
-        return $this->user && $this->user->job_level_id == 1;
+        return (bool) $this->user?->isAdmin();
     }
 }

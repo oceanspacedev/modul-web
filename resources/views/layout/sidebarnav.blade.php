@@ -1,6 +1,6 @@
 @auth
  <!-- Main Sidebar Container -->
- <aside class="main-sidebar main-sidebar-custom sidebar-dark-primary elevation-4">
+ <aside class="main-sidebar main-sidebar-custom sidebar-light-primary elevation-4">
      <!-- Brand Logo -->
      <a href="/dashboard" class="brand-link">
          <span class="d-inline-flex align-items-center justify-content-center bg-primary rounded-circle mr-2" style="width: 34px; height: 34px;">
@@ -34,8 +34,8 @@
                 @endcan
 
                 @canany(['manage-trainings', 'view-my-trainings'])
-                <li class="nav-item {{ ($active ?? '') === 'training' ? 'menu-open' : '' }}">
-                    <a href="#" class="nav-link {{ ($active ?? '') === 'training' ? 'active' : '' }}">
+                <li class="nav-item {{ (($active ?? '') === 'training' || request()->is('training*') || request()->is('my-trainings*')) ? 'menu-open' : '' }}">
+                    <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-chalkboard-teacher"></i>
                         <p>
                             Pelatihan
@@ -45,22 +45,22 @@
                     <ul class="nav nav-treeview">
                         @can('manage-trainings')
                         <li class="nav-item">
-                            <a href="/training" class="nav-link">
-                                <i class="far fa-circle nav-icon text-xs"></i>
+                            <a href="/training" class="nav-link {{ request()->is('training') || (request()->is('training/*') && !request()->is('training/create')) ? 'active' : '' }}">
+                                <i class="fas fa-calendar-alt nav-icon"></i>
                                 <p>Jadwal Pelatihan</p>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="/training/create" class="nav-link">
-                                <i class="far fa-circle nav-icon text-xs"></i>
+                            <a href="/training/create" class="nav-link {{ request()->is('training/create') ? 'active' : '' }}">
+                                <i class="fas fa-plus-circle nav-icon"></i>
                                 <p>Tambah Pelatihan</p>
                             </a>
                         </li>
                         @endcan
                         @can('view-my-trainings')
                         <li class="nav-item">
-                            <a href="/my-trainings" class="nav-link">
-                                <i class="far fa-circle nav-icon text-xs"></i>
+                            <a href="/my-trainings" class="nav-link {{ request()->is('my-trainings*') ? 'active' : '' }}">
+                                <i class="fas fa-user-graduate nav-icon"></i>
                                 <p>Pelatihan Saya</p>
                             </a>
                         </li>
@@ -80,8 +80,8 @@
 
 
                 @canany(['manage-users', 'manage-roles', 'manage-master-data'])
-                 <li class="nav-item">
-                     <a href="#" class="nav-link {{ ($active ?? '') === 'setting' ? 'active' : '' }}">
+                 <li class="nav-item {{ (request()->is('user*') || request()->is('divisi*') || request()->is('area*') || request()->is('position*') || request()->is('dokumentype*') || request()->is('roles*')) ? 'menu-open' : '' }}">
+                     <a href="#" class="nav-link">
                          <i class="nav-icon fas fa-sliders-h"></i>
                          <p>
                              Settings
@@ -91,8 +91,8 @@
                      <ul class="nav nav-treeview">
                         @can('manage-users')
                         <li class="nav-item">
-                             <a href="/user" class="nav-link">
-                                 <i class="far fa-circle nav-icon text-xs"></i>
+                             <a href="/user" class="nav-link {{ request()->is('user*') ? 'active' : '' }}">
+                                 <i class="fas fa-users nav-icon"></i>
                                  <p>User</p>
                              </a>
                          </li>
@@ -100,26 +100,26 @@
 
                         @can('manage-master-data')
                          <li class="nav-item">
-                             <a href="/divisi" class="nav-link">
-                                 <i class="far fa-circle nav-icon text-xs"></i>
+                             <a href="/area" class="nav-link {{ request()->is('area*') ? 'active' : '' }}">
+                                 <i class="fas fa-building nav-icon"></i>
+                                 <p>Area</p>
+                             </a>
+                         </li>
+                         <li class="nav-item">
+                             <a href="/divisi" class="nav-link {{ request()->is('divisi*') ? 'active' : '' }}">
+                                 <i class="fas fa-sitemap nav-icon"></i>
                                  <p>Divisi</p>
                              </a>
                          </li>
                          <li class="nav-item">
-                             <a href="/subdivisi" class="nav-link">
-                                 <i class="far fa-circle nav-icon text-xs"></i>
-                                 <p>Sub Divisi</p>
+                             <a href="/position" class="nav-link {{ request()->is('position*') ? 'active' : '' }}">
+                                 <i class="fas fa-briefcase nav-icon"></i>
+                                 <p>Posisi</p>
                              </a>
                          </li>
                          <li class="nav-item">
-                             <a href="/joblevel" class="nav-link">
-                                 <i class="far fa-circle nav-icon text-xs"></i>
-                                 <p>Job Level</p>
-                             </a>
-                         </li>
-                         <li class="nav-item">
-                             <a href="/dokumentype" class="nav-link">
-                                 <i class="far fa-circle nav-icon text-xs"></i>
+                             <a href="/dokumentype" class="nav-link {{ request()->is('dokumentype*') ? 'active' : '' }}">
+                                 <i class="fas fa-file-alt nav-icon"></i>
                                  <p>Document Type</p>
                              </a>
                          </li>
@@ -127,9 +127,9 @@
 
                         @can('manage-roles')
                          <li class="nav-item">
-                             <a href="/roles" class="nav-link">
-                                 <i class="far fa-circle nav-icon text-xs"></i>
-                                 <p>Role & Hak Akses</p>
+                             <a href="/roles" class="nav-link {{ request()->is('roles*') ? 'active' : '' }}">
+                                 <i class="fas fa-user-shield nav-icon"></i>
+                                 <p>Jabatan & Hak Akses</p>
                              </a>
                          </li>
                         @endcan

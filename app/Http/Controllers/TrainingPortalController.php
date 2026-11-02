@@ -281,7 +281,7 @@ class TrainingPortalController extends Controller
                     return [
                         'rank' => $idx + 1,
                         'user_id' => $r->user_id,
-                        'name' => $r->user ? $r->user->full_name : 'Peserta',
+                        'name' => $r->user ? $r->user->nama_lengkap : 'Peserta',
                         'score' => (float) $r->score,
                     ];
                 });

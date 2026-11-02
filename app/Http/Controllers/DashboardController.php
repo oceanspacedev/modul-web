@@ -6,7 +6,7 @@ use App\Enums\TrainingStatus;
 use App\Models\Divisi;
 use App\Models\Document;
 use App\Models\DokumenType;
-use App\Models\SubDivisi;
+use App\Models\Position;
 use App\Models\Training;
 use App\Models\TrainingParticipant;
 use App\Models\TrainingQuizResult;
@@ -34,7 +34,7 @@ class DashboardController extends Controller
         $totalParticipant = TrainingParticipant::count();
         $totalQuizResult = TrainingQuizResult::count();
         $totalDivisi = Divisi::count();
-        $totalSubDivisi = SubDivisi::count();
+        $totalPosition = Position::count();
         $totalDokumenType = DokumenType::count();
 
         // Recent trainings
@@ -118,7 +118,7 @@ class DashboardController extends Controller
                 'totalParticipant' => $totalParticipant,
                 'totalQuizResult' => $totalQuizResult,
                 'totalDivisi' => $totalDivisi,
-                'totalSubDivisi' => $totalSubDivisi,
+                'totalPosition' => $totalPosition,
                 'totalDokumenType' => $totalDokumenType,
                 'recentTrainings' => $recentTrainings,
                 'recentVideos' => $recentVideos,

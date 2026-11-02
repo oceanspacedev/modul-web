@@ -1,17 +1,18 @@
 <?php
 
+use App\Http\Controllers\AreaController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DivisiController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DokumenTypeController;
-use App\Http\Controllers\JobLevelController;
+use App\Http\Controllers\PositionController;
 use App\Http\Controllers\RoleController;
-use App\Http\Controllers\SubDivisiController;
 use App\Http\Controllers\TrainingController;
 use App\Http\Controllers\TrainingPortalController;
 use App\Http\Controllers\TrainingQuestionController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\UserSyncController;
 use App\Http\Controllers\VideoController;
 use Illuminate\Support\Facades\Route;
 
@@ -48,7 +49,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::view('panduan', 'panduan.index', ['active' => 'panduan'])->name('panduan');
     Route::get('my-trainings', [TrainingPortalController::class, 'myTrainings'])->name('training.my-trainings');
-    Route::get('subdivisi/get/{divisi}', [SubDivisiController::class, 'byDivisi'])->name('subdivisi.by-divisi');
 
     Route::post('video/{video}/comments', [VideoController::class, 'storeComment'])->name('video.comments.store');
     Route::delete('video/comments/{comment}', [VideoController::class, 'destroyComment'])->name('video.comments.destroy');
@@ -70,8 +70,8 @@ Route::middleware('auth')->group(function () {
     // # MASTER DATA
     Route::middleware('can:manage-master-data')->group(function () {
         Route::resource('divisi', DivisiController::class)->except(['create', 'show'])->parameters(['divisi' => 'divisi']);
-        Route::resource('subdivisi', SubDivisiController::class)->except(['create', 'show'])->parameters(['subdivisi' => 'subdivisi']);
-        Route::resource('joblevel', JobLevelController::class)->except(['create', 'show'])->parameters(['joblevel' => 'joblevel']);
+        Route::resource('area', AreaController::class)->except(['create', 'show']);
+        Route::resource('position', PositionController::class)->except(['create', 'show']);
         Route::resource('dokumentype', DokumenTypeController::class)->except(['create', 'show'])->parameters(['dokumentype' => 'dokumentype']);
     });
 
@@ -80,6 +80,12 @@ Route::middleware('auth')->group(function () {
         Route::get('export', 'export')->name('export');
         Route::get('template', 'template')->name('template');
         Route::post('import', 'import')->name('import');
+        Route::get('approvers', 'approvers')->name('approvers');
+        Route::post('bulk', 'bulk')->name('bulk');
+        Route::post('import-json', [UserSyncController::class, 'importJson'])->name('import-json');
+        Route::post('sync-dnd', [UserSyncController::class, 'preview'])->name('dnd.preview');
+        Route::get('sync-dnd/{token}', [UserSyncController::class, 'show'])->whereUuid('token')->name('dnd.show');
+        Route::post('sync-dnd/process', [UserSyncController::class, 'process'])->name('dnd.process');
         Route::get('{user}/edit', 'edit')->withTrashed()->name('edit');
         Route::patch('{user}/restore', 'restore')->withTrashed()->name('restore');
     });

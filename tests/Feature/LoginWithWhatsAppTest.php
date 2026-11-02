@@ -18,7 +18,7 @@ class LoginWithWhatsAppTest extends TestCase
     {
         $user = User::factory()->create([
             'username' => 'test_user_unique',
-            'no_wa' => '081299990001',
+            'no_hp' => '081299990001',
             'password' => Hash::make('password123'),
         ]);
 
@@ -35,7 +35,7 @@ class LoginWithWhatsAppTest extends TestCase
     {
         $user = User::factory()->create([
             'username' => 'test_wa_user',
-            'no_wa' => '081299990002',
+            'no_hp' => '081299990002',
             'password' => Hash::make('password123'),
         ]);
 
@@ -52,7 +52,7 @@ class LoginWithWhatsAppTest extends TestCase
     {
         $user = User::factory()->create([
             'username' => 'test_wa_user_62',
-            'no_wa' => '081299990003',
+            'no_hp' => '081299990003',
             'password' => Hash::make('password123'),
         ]);
 
@@ -69,7 +69,7 @@ class LoginWithWhatsAppTest extends TestCase
     {
         $user = User::factory()->create([
             'username' => 'test_wa_user_formatted',
-            'no_wa' => '081299990004',
+            'no_hp' => '081299990004',
             'password' => Hash::make('password123'),
         ]);
 
@@ -86,7 +86,7 @@ class LoginWithWhatsAppTest extends TestCase
     {
         User::factory()->create([
             'username' => 'test_fail_user',
-            'no_wa' => '081299990005',
+            'no_hp' => '081299990005',
             'password' => Hash::make('password123'),
         ]);
 
@@ -103,7 +103,7 @@ class LoginWithWhatsAppTest extends TestCase
     {
         $user = User::factory()->create([
             'username' => 'test_otp_user',
-            'no_wa' => '081299990010',
+            'no_hp' => '081299990010',
             'password' => Hash::make('password123'),
         ]);
 
@@ -126,7 +126,7 @@ class LoginWithWhatsAppTest extends TestCase
     {
         $user = User::factory()->create([
             'username' => 'test_otp_verify_user',
-            'no_wa' => '081299990011',
+            'no_hp' => '081299990011',
             'password' => Hash::make('password123'),
         ]);
 
@@ -165,7 +165,7 @@ class LoginWithWhatsAppTest extends TestCase
     {
         User::factory()->create([
             'username' => 'no_wa_user',
-            'no_wa' => null,
+            'no_hp' => null,
             'password' => Hash::make('password123'),
         ]);
 
@@ -181,8 +181,7 @@ class LoginWithWhatsAppTest extends TestCase
 
     public function test_user_with_any_role_can_logout_via_post(): void
     {
-        $staff = User::factory()->create(['job_level_id' => 2]);
-        $staff->syncRoles(['Staff']);
+        $staff = User::factory()->staff()->create();
 
         $response = $this->actingAs($staff)->post('/logout');
         $response->assertRedirect('/');
@@ -191,8 +190,7 @@ class LoginWithWhatsAppTest extends TestCase
 
     public function test_logout_via_get_is_rejected_so_links_cannot_sign_users_out(): void
     {
-        $trainer = User::factory()->create(['job_level_id' => 2]);
-        $trainer->syncRoles(['Trainer']);
+        $trainer = User::factory()->staff()->trainer()->create();
 
         $this->actingAs($trainer)->get('/logout')->assertMethodNotAllowed();
         $this->assertAuthenticatedAs($trainer);

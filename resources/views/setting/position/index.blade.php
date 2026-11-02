@@ -9,11 +9,11 @@
                     <div class="card">
                         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                             <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.2rem;">
-                                Data Sub Divisi
+                                Data Posisi
                             </h3>
                             <div class="card-tools m-0">
-                                <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#addsubdivisi">
-                                    Tambah Sub Divisi
+                                <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#addPosition">
+                                    Tambah Posisi
                                 </button>
                             </div>
                         </div>
@@ -34,23 +34,23 @@
                                 <thead>
                                     <tr>
                                         <th style="width: 70px;">No</th>
-                                        <th>Divisi Utama</th>
-                                        <th>Nama Sub Divisi</th>
+                                        <th>Nama Posisi</th>
+                                        <th style="width: 160px;">Jumlah Karyawan</th>
                                         <th style="width: 120px;">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach ($subdivisis as $subdivisi)
+                                    @foreach ($positions as $position)
                                         <tr>
                                             <td>{{ $loop->iteration }}</td>
-                                            <td><span class="badge badge-light border">{{ $subdivisi->divisi->name }}</span></td>
-                                            <td><strong>{{ $subdivisi->name }}</strong></td>
+                                            <td><strong>{{ $position->name }}</strong></td>
+                                            <td>{{ $position->users_count }}</td>
                                             <td>
                                                 <div class="d-flex align-items-center" style="gap: 4px;">
-                                                    <a href="{{ route('subdivisi.edit', $subdivisi) }}" class="btn btn-default btn-xs">
+                                                    <a href="{{ route('position.edit', $position) }}" class="btn btn-default btn-xs">
                                                         Edit
                                                     </a>
-                                                    <form action="{{ route('subdivisi.destroy', $subdivisi) }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Hapus subdivisi '.$subdivisi->name.'?'))">
+                                                    <form action="{{ route('position.destroy', $position) }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Hapus posisi '.$position->name.'?'))">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" class="btn btn-default btn-xs text-danger">
@@ -73,27 +73,17 @@
     </section>
 
     <!-- Modal -->
-    <form action="{{ route('subdivisi.store') }}" method="POST" enctype="multipart/form-data">
+    <form action="{{ route('position.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
-        <div class="modal fade" id="addsubdivisi" tabindex="-1" aria-labelledby="addsubdivisiLabel" aria-hidden="true">
+        <div class="modal fade" id="addPosition" tabindex="-1" aria-labelledby="addPositionLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="addsubdivisiLabel">Add Sub Divisi</h5>
+                        <h5 class="modal-title" id="addPositionLabel">Tambah Posisi</h5>
                     </div>
                     <div class="modal-body">
-                        <div class="col-6 mt-3">
-                            <label for="divisi_id" class="form-label col-lg-12">Main Divisi</label>
-                            <select class="custom-select col-lg-12" name="divisi_id" id="divisi_id" required>
-                                <option value=''>--Choose Main Divisi--</option>
-                                @foreach ($divisis as $divisi)
-                                    <option value="{{ $divisi->id }}">
-                                        {{ $divisi->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
                         <div class="col-12 mt-3">
-                            <label for="name" class="form-label">Nama Sub Divisi</label>
+                            <label for="name" class="form-label">Nama Posisi</label>
                             <input class="form-control" type="text" id="name" name="name">
                         </div>
                     </div>

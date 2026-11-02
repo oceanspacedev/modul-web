@@ -72,7 +72,7 @@ class Training extends Model
                 $q->where('title', 'like', "%{$search}%")
                     ->orWhere('description', 'like', "%{$search}%")
                     ->orWhereHas('trainer', function ($t) use ($search) {
-                        $t->where('full_name', 'like', "%{$search}%");
+                        $t->where('nama_lengkap', 'like', "%{$search}%");
                     });
             });
         }

@@ -40,30 +40,24 @@
                                     <div class="my-3">
                                         <div class="row">
                                             <div class="col-lg-3">
-                                                <label for="job_level_id" class="form-label col-lg-12 font-weight-bold">Job Level</label>
-                                                <select class="custom-select col-lg-12 select2" multiple="multiple" name="job_level_id[]"
-                                                    id="job_level_id" required>
-                                                    @foreach ($joblevels as $joblevel)
-                                                        <option value="{{ $joblevel->id }}">{{ $joblevel->name }}
-                                                        </option>
+                                                <label for="role_id" class="form-label col-lg-12 font-weight-bold">Jabatan</label>
+                                                <select class="custom-select col-lg-12 select2" multiple="multiple" name="role_id[]"
+                                                    id="role_id" required>
+                                                    <option value="0">SEMUA JABATAN</option>
+                                                    @foreach ($roles as $role)
+                                                        <option value="{{ $role->id }}">{{ $role->name }}</option>
                                                     @endforeach
                                                 </select>
                                             </div>
                                             <div class="col-lg-3">
                                                 <label for="divisi_id" class="form-label col-lg-12 font-weight-bold">Divisi</label>
-                                                <select class="custom-select col-lg-12 adduserdivisi" name="divisi_id"
+                                                <select class="custom-select col-lg-12" name="divisi_id"
                                                     id="divisi_id" required>
                                                     <option value="">--Pilih Divisi--</option>
                                                     @foreach ($divisis as $divisi)
                                                         <option value="{{ $divisi->id }}">
                                                             {{ $divisi->name }}</option>
                                                     @endforeach
-                                                </select>
-                                            </div>
-                                            <div class="col-lg-3">
-                                                <label for="sub_divisi_id" class="form-label col-lg-12 font-weight-bold">Sub Divisi</label>
-                                                <select class="custom-select col-lg-12 addusersubdivisi" id="sub_divisi_id"
-                                                    name="sub_divisi_id">
                                                 </select>
                                             </div>
 

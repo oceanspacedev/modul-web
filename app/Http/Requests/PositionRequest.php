@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class SubDivisiRequest extends FormRequest
+class PositionRequest extends FormRequest
 {
     /**
      * Authorization is handled by the "can:manage-master-data" route middleware.
@@ -26,14 +26,7 @@ class SubDivisiRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'divisi_id' => ['required', 'integer', Rule::exists('divisis', 'id')->withoutTrashed()],
-            'name' => [
-                'required', 'string', 'max:255',
-                Rule::unique('sub_divisis', 'name')
-                    ->where('divisi_id', $this->input('divisi_id'))
-                    ->ignore($this->route('subdivisi'))
-                    ->withoutTrashed(),
-            ],
+            'name' => ['required', 'string', 'max:255', Rule::unique('positions', 'name')->ignore($this->route('position'))->withoutTrashed()],
         ];
     }
 
@@ -42,6 +35,6 @@ class SubDivisiRequest extends FormRequest
      */
     public function attributes(): array
     {
-        return ['divisi_id' => 'divisi', 'name' => 'nama sub divisi'];
+        return ['name' => 'nama posisi'];
     }
 }

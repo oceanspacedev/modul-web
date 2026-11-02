@@ -686,7 +686,7 @@
             </div>
             <h2 class="font-weight-800 mb-2 text-dark" style="font-size: 1.55rem;">{{ $training->title }}</h2>
             <p class="text-muted mb-4" style="font-size: 0.95rem;">
-                Halo <strong>{{ $participant->user->full_name }}</strong>! Siapkan diri Anda untuk menjawab kuis interaktif ini.
+                Halo <strong>{{ $participant->user->nama_lengkap }}</strong>! Siapkan diri Anda untuk menjawab kuis interaktif ini.
             </p>
 
             <div class="row justify-content-center mb-4">
@@ -820,11 +820,11 @@
         const QUIZ_QUESTIONS = @json($questions);
         const PARTICIPANT_TOKEN = "{{ $participant->token }}";
         const CURRENT_USER_ID = {{ (int)$participant->user_id }};
-        const CURRENT_USER_NAME = "{{ addslashes($participant->user->full_name) }}";
+        const CURRENT_USER_NAME = "{{ addslashes($participant->user->nama_lengkap) }}";
         let INITIAL_LEADERBOARD = {!! json_encode(collect($leaderboard)->map(function($l) {
             return [
                 'user_id' => $l->user_id,
-                'name' => $l->user ? $l->user->full_name : 'Peserta',
+                'name' => $l->user ? $l->user->nama_lengkap : 'Peserta',
                 'score' => (float)$l->score,
             ];
         })->values()) !!};

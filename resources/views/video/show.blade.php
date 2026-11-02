@@ -5,14 +5,14 @@
     <div class="@auth container-fluid @else container @endauth">
         <div class="row mb-2 align-items-center">
             <div class="col-sm-6">
-                <a href="{{ route('video.index') }}" class="btn btn-outline-secondary btn-sm mb-2">
-                    <i class="fas fa-arrow-left mr-1"></i> Kembali ke Galeri
-                </a>
                 <h1 class="m-0 font-weight-bold text-truncate" title="{{ $video->title }}">
                     {{ $video->title }}
                 </h1>
             </div>
             <div class="col-sm-6 text-sm-right mt-2 mt-sm-0">
+                <a href="{{ route('video.index') }}" class="btn btn-outline-secondary btn-sm mr-1">
+                    <i class="fas fa-arrow-left mr-1"></i> Kembali ke Galeri
+                </a>
                 @auth
                     @can('update', $video)
                     <a href="{{ route('video.edit', $video->id) }}" class="btn btn-default btn-sm mr-1">
@@ -37,7 +37,7 @@
         <div class="row">
             {{-- Main Video Player Column --}}
             <div class="col-lg-8 mb-4">
-                <div class="card shadow-sm border-0 rounded-lg overflow-hidden bg-black mb-3">
+                <div class="card border-0 rounded-lg overflow-hidden bg-black mb-3">
                     <div class="embed-responsive embed-responsive-16by9 bg-black">
                         @if($video->isLink() && $video->embed_url)
                             <iframe class="embed-responsive-item" src="{{ $video->embed_url }}" frameborder="0" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
@@ -50,11 +50,11 @@
                     </div>
                 </div>
 
-                <div class="card shadow-sm border-0">
+                <div class="card border-0">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <h3 class="font-weight-bold mb-0">{{ $video->title }}</h3>
-                            <span class="badge {{ $video->isLink() ? 'badge-info' : 'badge-danger' }} px-2 py-1">
+                            <span class="badge {{ $video->isLink() ? 'badge-light border' : 'badge-light border' }} px-2 py-1">
                                 @if($video->isLink())
                                     <i class="fas fa-link mr-1"></i> Link Eksternal
                                 @else
@@ -65,19 +65,19 @@
                         
                         <div class="d-flex flex-wrap align-items-center text-muted small border-bottom pb-3 mb-3">
                             <span class="mr-3 mb-1">
-                                <i class="far fa-calendar-alt mr-1 text-danger"></i> Diunggah {{ $video->created_at->format('d F Y, H:i') }} WIB
+                                <i class="far fa-calendar-alt mr-1 text-muted"></i> Diunggah {{ $video->created_at->format('d F Y, H:i') }} WIB
                             </span>
                             <span class="mr-3 mb-1">
-                                <i class="far fa-eye mr-1 text-danger"></i> {{ $video->views_count }} kali ditonton
+                                <i class="far fa-eye mr-1 text-muted"></i> {{ $video->views_count }} kali ditonton
                             </span>
                             @if($video->file_size)
                                 <span class="mr-3 mb-1">
-                                    <i class="fas fa-hdd mr-1 text-danger"></i> Ukuran: {{ $video->file_size }}
+                                    <i class="fas fa-hdd mr-1 text-muted"></i> Ukuran: {{ $video->file_size }}
                                 </span>
                             @endif
                             @if($video->isLink())
                                 <span class="mb-1 text-truncate" style="max-width: 300px;">
-                                    <i class="fas fa-external-link-alt mr-1 text-danger"></i>
+                                    <i class="fas fa-external-link-alt mr-1 text-muted"></i>
                                     <a href="{{ $video->video_link }}" target="_blank" class="text-muted">Buka Tautan Asli</a>
                                 </span>
                             @endif
@@ -91,10 +91,10 @@
                 </div>
 
                 {{-- DISKUSI & TANYA JAWAB MATERI (KOMENTAR) --}}
-                <div class="card shadow-sm border-0 mt-4" id="comments">
+                <div class="card border-0 mt-4" id="comments">
                     <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
                         <div class="d-flex align-items-center">
-                            <i class="fas fa-comments text-danger fa-lg mr-2"></i>
+                            <i class="fas fa-comments text-muted fa-lg mr-2"></i>
                             <h5 class="card-title font-weight-bold mb-0 text-dark">
                                 Diskusi & Tanya Jawab Materi
                             </h5>
@@ -129,16 +129,16 @@
                             <form action="{{ route('video.comments.store', $video->id) }}" method="POST" class="mb-4 comment-submit-form">
                                 @csrf
                                 <div class="d-flex align-items-start">
-                                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-danger text-white font-weight-bold mr-3 flex-shrink-0" style="width: 44px; height: 44px; font-size: 1rem;">
-                                        {{ strtoupper(substr(auth()->user()->full_name ?? auth()->user()->username, 0, 2)) }}
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary text-white font-weight-bold mr-3 flex-shrink-0" style="width: 44px; height: 44px; font-size: 1rem;">
+                                        {{ strtoupper(substr(auth()->user()->nama_lengkap ?? auth()->user()->username, 0, 2)) }}
                                     </div>
                                     <div class="flex-grow-1">
                                         <div class="d-flex align-items-center mb-1">
-                                            <strong class="text-dark mr-2">{{ auth()->user()->full_name }}</strong>
+                                            <strong class="text-dark mr-2">{{ auth()->user()->nama_lengkap }}</strong>
                                             @if($video->training && $video->training->trainer_id === auth()->id())
                                                 <span class="badge badge-success px-2 py-1"><i class="fas fa-chalkboard-teacher mr-1"></i> Pemateri</span>
-                                            @elseif(auth()->user()->job_level_id == 1)
-                                                <span class="badge badge-danger px-2 py-1"><i class="fas fa-shield-alt mr-1"></i> Admin</span>
+                                            @elseif(auth()->user()->isAdmin())
+                                                <span class="badge badge-primary px-2 py-1"><i class="fas fa-shield-alt mr-1"></i> Admin</span>
                                             @else
                                                 <span class="badge badge-secondary px-2 py-1"><i class="fas fa-user mr-1"></i> Peserta</span>
                                             @endif
@@ -149,7 +149,7 @@
                                         <textarea name="comment" class="form-control" rows="3" placeholder="Ada materi yang belum dipahami? Tuliskan pertanyaan Anda di sini agar pemateri atau rekan lain dapat membantu menjawab..." required minlength="2" maxlength="2000" style="border-radius: 8px; resize: vertical;"></textarea>
                                         <div class="d-flex justify-content-between align-items-center mt-2">
                                             <small class="text-muted"><i class="fas fa-info-circle mr-1"></i> Peserta dan pemateri dapat saling berdiskusi dan menjawab.</small>
-                                            <button type="submit" class="btn btn-danger btn-sm font-weight-bold px-3 shadow-sm btn-submit-comment">
+                                            <button type="submit" class="btn btn-primary btn-sm font-weight-bold px-3 btn-submit-comment">
                                                 <i class="fas fa-paper-plane mr-1"></i> Kirim Pertanyaan / Komentar
                                             </button>
                                         </div>
@@ -162,7 +162,7 @@
                             </div>
                             @endcan
                         @else
-                            <div class="p-4 rounded border text-center mb-4" style="background: #fdfdfd; border-color: #e5e7eb !important;">
+                            <div class="p-4 rounded border text-center mb-4" style="background: #ffffff; border-color: #e5e7eb !important;">
                                 <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-2" style="width: 50px; height: 50px;">
                                     <i class="fas fa-lock text-muted" style="font-size: 1.3rem;"></i>
                                 </div>
@@ -170,7 +170,7 @@
                                 <p class="text-muted small mb-3" style="max-width: 520px; margin: 0 auto;">
                                     Peserta wajib masuk / login terlebih dahulu untuk dapat mengajukan pertanyaan kepada pemateri atau berdiskusi di kolom komentar materi ini.
                                 </p>
-                                <a href="{{ route('login', ['redirect' => request()->fullUrl()]) }}" class="btn btn-danger btn-sm font-weight-bold px-4 shadow-sm">
+                                <a href="{{ route('login', ['redirect' => request()->fullUrl()]) }}" class="btn btn-primary btn-sm font-weight-bold px-4">
                                     <i class="fas fa-sign-in-alt mr-1"></i> Masuk / Login untuk Bertanya
                                 </a>
                             </div>
@@ -183,17 +183,17 @@
                             @forelse($video->comments as $comment)
                                 <div class="comment-item mb-4 pb-3 border-bottom" id="comment-{{ $comment->id }}">
                                     <div class="d-flex align-items-start">
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white font-weight-bold mr-3 flex-shrink-0 {{ $comment->isTrainer() ? 'bg-success' : ($comment->isAdmin() ? 'bg-danger' : 'bg-secondary') }}" style="width: 40px; height: 40px; font-size: 0.9rem;">
-                                            {{ strtoupper(substr($comment->user->full_name ?? $comment->user->username ?? 'U', 0, 2)) }}
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white font-weight-bold mr-3 flex-shrink-0 {{ $comment->isTrainer() ? 'bg-success' : ($comment->isAdmin() ? 'bg-primary' : 'bg-secondary') }}" style="width: 40px; height: 40px; font-size: 0.9rem;">
+                                            {{ strtoupper(substr($comment->user->nama_lengkap ?? $comment->user->username ?? 'U', 0, 2)) }}
                                         </div>
                                         <div class="flex-grow-1">
                                             <div class="d-flex justify-content-between align-items-center mb-1">
                                                 <div>
-                                                    <strong class="text-dark">{{ $comment->user->full_name ?? 'Pengguna' }}</strong>
+                                                    <strong class="text-dark">{{ $comment->user->nama_lengkap ?? 'Pengguna' }}</strong>
                                                     @if($comment->isTrainer())
                                                         <span class="badge badge-success px-2 py-0 ml-1 text-xs"><i class="fas fa-chalkboard-teacher mr-1"></i> Pemateri</span>
                                                     @elseif($comment->isAdmin())
-                                                        <span class="badge badge-danger px-2 py-0 ml-1 text-xs"><i class="fas fa-shield-alt mr-1"></i> Admin</span>
+                                                        <span class="badge badge-primary px-2 py-0 ml-1 text-xs"><i class="fas fa-shield-alt mr-1"></i> Admin</span>
                                                     @else
                                                         <span class="badge badge-light border px-2 py-0 ml-1 text-xs text-muted">Peserta</span>
                                                     @endif
@@ -236,7 +236,7 @@
                                                         <input type="hidden" name="parent_id" value="{{ $comment->id }}">
                                                         <div class="form-group mb-2">
                                                             <label class="small font-weight-bold text-dark mb-1">
-                                                                <i class="fas fa-reply text-primary mr-1"></i> Balas ke {{ $comment->user->full_name ?? 'Pengguna' }}:
+                                                                <i class="fas fa-reply text-primary mr-1"></i> Balas ke {{ $comment->user->nama_lengkap ?? 'Pengguna' }}:
                                                             </label>
                                                             <textarea name="comment" class="form-control form-control-sm" rows="2" placeholder="Tulis balasan Anda..." required minlength="2" maxlength="2000" style="border-radius: 6px; resize: vertical;"></textarea>
                                                         </div>
@@ -254,19 +254,19 @@
                                             @if($comment->replies && $comment->replies->count() > 0)
                                                 <div class="replies-container mt-3 pl-3 border-left" style="border-left: 2px solid #e2e8f0 !important; gap: 10px; display: flex; flex-direction: column;">
                                                     @foreach($comment->replies as $reply)
-                                                        <div class="p-3 rounded border" style="background: #f8fafc;" id="comment-{{ $reply->id }}">
+                                                        <div class="p-3 rounded border" style="background: #f9fafb;" id="comment-{{ $reply->id }}">
                                                             <div class="d-flex align-items-start">
-                                                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white font-weight-bold mr-2 flex-shrink-0 {{ $reply->isTrainer() ? 'bg-success' : ($reply->isAdmin() ? 'bg-danger' : 'bg-secondary') }}" style="width: 32px; height: 32px; font-size: 0.8rem;">
-                                                                    {{ strtoupper(substr($reply->user->full_name ?? $reply->user->username ?? 'U', 0, 2)) }}
+                                                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white font-weight-bold mr-2 flex-shrink-0 {{ $reply->isTrainer() ? 'bg-success' : ($reply->isAdmin() ? 'bg-primary' : 'bg-secondary') }}" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                                                    {{ strtoupper(substr($reply->user->nama_lengkap ?? $reply->user->username ?? 'U', 0, 2)) }}
                                                                 </div>
                                                                 <div class="flex-grow-1">
                                                                     <div class="d-flex justify-content-between align-items-center mb-1">
                                                                         <div>
-                                                                            <strong class="text-dark small">{{ $reply->user->full_name ?? 'Pengguna' }}</strong>
+                                                                            <strong class="text-dark small">{{ $reply->user->nama_lengkap ?? 'Pengguna' }}</strong>
                                                                             @if($reply->isTrainer())
                                                                                 <span class="badge badge-success px-2 py-0 ml-1 text-xs"><i class="fas fa-chalkboard-teacher mr-1"></i> Pemateri</span>
                                                                             @elseif($reply->isAdmin())
-                                                                                <span class="badge badge-danger px-2 py-0 ml-1 text-xs"><i class="fas fa-shield-alt mr-1"></i> Admin</span>
+                                                                                <span class="badge badge-primary px-2 py-0 ml-1 text-xs"><i class="fas fa-shield-alt mr-1"></i> Admin</span>
                                                                             @else
                                                                                 <span class="badge badge-light border px-2 py-0 ml-1 text-xs text-muted">Peserta</span>
                                                                             @endif
@@ -317,9 +317,9 @@
 
             {{-- Other Recommended Videos Column --}}
             <div class="col-lg-4">
-                <div class="card shadow-sm border-0">
+                <div class="card border-0">
                     <div class="card-header bg-white border-bottom">
-                        <h5 class="card-title font-weight-bold m-0 text-danger">
+                        <h5 class="card-title font-weight-bold m-0 text-dark">
                             <i class="fas fa-play-circle mr-1"></i> Video Lainnya
                         </h5>
                     </div>

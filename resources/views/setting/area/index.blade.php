@@ -9,11 +9,11 @@
                     <div class="card">
                         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                             <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.2rem;">
-                                Data Job Level
+                                Data Area (Badan Usaha)
                             </h3>
                             <div class="card-tools m-0">
-                                <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#addjoblevel">
-                                    Tambah Job Level
+                                <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#addArea">
+                                    Tambah Area
                                 </button>
                             </div>
                         </div>
@@ -34,21 +34,23 @@
                                 <thead>
                                     <tr>
                                         <th style="width: 70px;">No</th>
-                                        <th>Nama Job Level</th>
+                                        <th>Nama Area</th>
+                                        <th style="width: 160px;">Jumlah Karyawan</th>
                                         <th style="width: 120px;">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach ($joblevels as $joblevel)
+                                    @foreach ($areas as $area)
                                         <tr>
                                             <td>{{ $loop->iteration }}</td>
-                                            <td><strong>{{ $joblevel->name }}</strong></td>
+                                            <td><strong>{{ $area->name }}</strong></td>
+                                            <td>{{ $area->users_count }}</td>
                                             <td>
                                                 <div class="d-flex align-items-center" style="gap: 4px;">
-                                                    <a href="{{ route('joblevel.edit', $joblevel) }}" class="btn btn-default btn-xs">
+                                                    <a href="{{ route('area.edit', $area) }}" class="btn btn-default btn-xs">
                                                         Edit
                                                     </a>
-                                                    <form action="{{ route('joblevel.destroy', $joblevel) }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Hapus job level '.$joblevel->name.'?'))">
+                                                    <form action="{{ route('area.destroy', $area) }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Hapus area '.$area->name.'?'))">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" class="btn btn-default btn-xs text-danger">
@@ -71,17 +73,17 @@
     </section>
 
     <!-- Modal -->
-    <form action="{{ route('joblevel.store') }}" method="POST" enctype="multipart/form-data">
+    <form action="{{ route('area.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
-        <div class="modal fade" id="addjoblevel" tabindex="-1" aria-labelledby="addjoblevelLabel" aria-hidden="true">
+        <div class="modal fade" id="addArea" tabindex="-1" aria-labelledby="addAreaLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="addjoblevelLabel">Add Job Level</h5>
+                        <h5 class="modal-title" id="addAreaLabel">Tambah Area</h5>
                     </div>
                     <div class="modal-body">
                         <div class="col-12 mt-3">
-                            <label for="name" class="form-label">Nama Job Level</label>
+                            <label for="name" class="form-label">Nama Area</label>
                             <input class="form-control" type="text" id="name" name="name">
                         </div>
                     </div>

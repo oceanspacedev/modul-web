@@ -36,19 +36,23 @@ class FrameworkUpgradeTest extends TestCase
 
     public function test_admins_implicitly_pass_every_gate_check(): void
     {
-        $admin = User::factory()->create(['job_level_id' => 1]);
-        $staff = User::factory()->create(['job_level_id' => 2]);
+        $admin = User::factory()->admin()->create();
+        $staff = User::factory()->staff()->create();
 
         $this->assertTrue($admin->can('something-undefined'));
         $this->assertFalse($staff->can('something-undefined'));
+
+        // Only super admins (ADMIN with access to every area) bypass every check.
+        $areaAdmin = User::factory()->jabatan('ADMIN')->create(['data_access' => 'selected', 'area_id' => 1]);
+        $this->assertFalse($areaAdmin->can('something-undefined'));
     }
 
     public function test_expired_and_used_whatsapp_otps_cannot_authenticate(): void
     {
-        $user = User::factory()->create(['no_wa' => '081299990020']);
+        $user = User::factory()->create(['no_hp' => '081299990020']);
         $otp = LoginOtp::create([
             'user_id' => $user->id,
-            'phone' => $user->no_wa,
+            'phone' => $user->no_hp,
             'otp_code' => '123456',
             'expires_at' => now()->subMinute(),
             'is_used' => false,
@@ -70,10 +74,10 @@ class FrameworkUpgradeTest extends TestCase
     public function test_otp_cooldown_counts_down_with_carbon_three(): void
     {
         $this->freezeSecond();
-        $user = User::factory()->create(['no_wa' => '081299990021']);
+        $user = User::factory()->create(['no_hp' => '081299990021']);
         $otp = LoginOtp::create([
             'user_id' => $user->id,
-            'phone' => $user->no_wa,
+            'phone' => $user->no_hp,
             'otp_code' => '123456',
             'expires_at' => now()->addMinutes(5),
             'is_used' => false,
@@ -194,7 +198,7 @@ class FrameworkUpgradeTest extends TestCase
                 $expectedPermissions,
                 $restored->getPermissions()->pluck('name')->sort()->values()->all()
             );
-            $this->assertTrue($restored->getPermissions(['name' => 'manage-trainings'])->first()->roles->contains('name', 'Trainer'));
+            $this->assertTrue($restored->getPermissions(['name' => 'manage-trainings'])->first()->roles->contains('name', 'ADMIN'));
         } finally {
             File::deleteDirectory($cachePath);
         }

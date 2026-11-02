@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\DivisiRequest;
+use App\Models\Area;
 use App\Models\Divisi;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -14,7 +16,9 @@ class DivisiController extends Controller
         return view('setting.divisi.index', [
             'title' => 'Divisi',
             'active' => 'setting',
-            'divisis' => Divisi::orderBy('name')->get(),
+            'divisis' => Divisi::with(['area', 'manager'])->withCount('users')->orderBy('name')->get(),
+            'areas' => Area::orderBy('name')->get(),
+            'managers' => User::orderBy('nama_lengkap')->get(['id', 'nama_lengkap']),
         ]);
     }
 
@@ -31,6 +35,8 @@ class DivisiController extends Controller
             'title' => 'Divisi',
             'active' => 'setting',
             'divisi' => $divisi,
+            'areas' => Area::orderBy('name')->get(),
+            'managers' => User::orderBy('nama_lengkap')->get(['id', 'nama_lengkap']),
         ]);
     }
 

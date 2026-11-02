@@ -2,14 +2,14 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Validation\Rule;
+use App\Models\User;
 use Illuminate\Validation\Rules\Password;
 
 class UpdateUserRequest extends StoreUserRequest
 {
-    protected function uniqueUsername(): mixed
+    public function record(): ?User
     {
-        return Rule::unique('users', 'username')->ignore($this->route('user'));
+        return $this->route('user');
     }
 
     /**
@@ -19,11 +19,6 @@ class UpdateUserRequest extends StoreUserRequest
      */
     protected function passwordRules(): array
     {
-        return ['nullable', 'string', Password::defaults()];
-    }
-
-    protected function roleRequirement(): string
-    {
-        return 'nullable';
+        return ['nullable', 'string', 'max:255', Password::defaults()];
     }
 }

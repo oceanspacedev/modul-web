@@ -35,6 +35,9 @@
                                     <tr>
                                         <th style="width: 70px;">No</th>
                                         <th>Nama Divisi</th>
+                                        <th>Area</th>
+                                        <th>Kepala Divisi</th>
+                                        <th>Jumlah Karyawan</th>
                                         <th style="width: 120px;">Aksi</th>
                                     </tr>
                                 </thead>
@@ -43,6 +46,9 @@
                                         <tr>
                                             <td>{{ $loop->iteration }}</td>
                                             <td><strong>{{ $divisi->name }}</strong></td>
+                                            <td>{{ $divisi->area->name ?? '-' }}</td>
+                                            <td>{{ $divisi->manager->nama_lengkap ?? '-' }}</td>
+                                            <td>{{ $divisi->users_count }}</td>
                                             <td>
                                                 <div class="d-flex align-items-center" style="gap: 4px;">
                                                     <a href="{{ route('divisi.edit', $divisi) }}" class="btn btn-default btn-xs">
@@ -83,6 +89,25 @@
                         <div class="col-12 mt-3">
                             <label for="name" class="form-label">Nama Divisi</label>
                             <input class="form-control" type="text" id="name" name="name">
+                        </div>
+                        <div class="col-12 mt-3">
+                            <label for="area_id" class="form-label">Area</label>
+                            <select class="custom-select" id="area_id" name="area_id">
+                                <option value="">-- Tanpa Area --</option>
+                                @foreach ($areas as $area)
+                                    <option value="{{ $area->id }}">{{ $area->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12 mt-3">
+                            <label for="manager_id" class="form-label">Kepala Divisi</label>
+                            <select class="custom-select select2" id="manager_id" name="manager_id" style="width: 100%;">
+                                <option value="">-- Belum Ada --</option>
+                                @foreach ($managers as $manager)
+                                    <option value="{{ $manager->id }}">{{ $manager->nama_lengkap }}</option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">Disarankan sebagai approval line default karyawan divisi ini.</small>
                         </div>
                     </div>
                     <div class="modal-footer">

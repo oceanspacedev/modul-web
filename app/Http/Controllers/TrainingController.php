@@ -64,7 +64,7 @@ class TrainingController extends Controller
      */
     public function create(): View
     {
-        $users = User::with('divisi')->orderBy('full_name')->get();
+        $users = User::with('divisi')->orderBy('nama_lengkap')->get();
         $divisis = Divisi::with('users')->orderBy('name')->get();
         $documents = Document::with('dokumentype')->orderBy('name')->get();
 
@@ -157,7 +157,7 @@ class TrainingController extends Controller
     public function edit(Training $training): View
     {
         $training->load(['participants', 'documents']);
-        $users = User::with('divisi')->orderBy('full_name')->get();
+        $users = User::with('divisi')->orderBy('nama_lengkap')->get();
         $divisis = Divisi::with('users')->orderBy('name')->get();
         $documents = Document::with('dokumentype')->orderBy('name')->get();
         $selectedParticipants = $training->participants->pluck('user_id')->toArray();
@@ -330,9 +330,9 @@ class TrainingController extends Controller
         $result = WhatsAppService::sendToParticipant($participant);
 
         if ($result['status']) {
-            return back()->with('success', "Pesan WhatsApp berhasil dikirim ke {$participant->user->full_name}.");
+            return back()->with('success', "Pesan WhatsApp berhasil dikirim ke {$participant->user->nama_lengkap}.");
         } else {
-            return back()->with('error', "Gagal kirim WA ke {$participant->user->full_name}: {$result['message']}");
+            return back()->with('error', "Gagal kirim WA ke {$participant->user->nama_lengkap}: {$result['message']}");
         }
     }
 
@@ -344,7 +344,7 @@ class TrainingController extends Controller
         TrainingQuizResult::where('training_participant_id', $participant->id)->delete();
         $training->quizResults()->where('user_id', $participant->user_id)->delete();
 
-        return back()->with('success', "Status kuis untuk {$participant->user->full_name} berhasil di-reset. Peserta dapat mengerjakan kuis kembali.");
+        return back()->with('success', "Status kuis untuk {$participant->user->nama_lengkap} berhasil di-reset. Peserta dapat mengerjakan kuis kembali.");
     }
 
     /**
@@ -365,7 +365,7 @@ class TrainingController extends Controller
             'attendance_proof' => null,
         ]);
 
-        return back()->with('success', "Status presensi untuk {$participant->user->full_name} berhasil diubah menjadi BELUM ABSEN.");
+        return back()->with('success', "Status presensi untuk {$participant->user->nama_lengkap} berhasil diubah menjadi BELUM ABSEN.");
     }
 
     /**
@@ -398,7 +398,7 @@ class TrainingController extends Controller
 
         $participant->update($data);
 
-        return back()->with('success', "Presensi {$participant->user->full_name} berhasil diperbarui.");
+        return back()->with('success', "Presensi {$participant->user->nama_lengkap} berhasil diperbarui.");
     }
 
     /**
@@ -488,8 +488,8 @@ class TrainingController extends Controller
                 return [
                     'id' => $part->id,
                     'user_id' => $part->user_id,
-                    'name' => $part->user->full_name ?? ($part->name ?? 'Peserta'),
-                    'id_karyawan' => $part->user->id_karyawan ?? '-',
+                    'name' => $part->user->nama_lengkap ?? ($part->name ?? 'Peserta'),
+                    'id_karyawan' => $part->user->employee_id ?? '-',
                     'email' => $part->user->email ?? '-',
                 ];
             })->values()->toArray();
@@ -592,7 +592,7 @@ class TrainingController extends Controller
             'attendance_notes' => $cleanNote ?: null,
         ]);
 
-        $name = $participant->user->full_name ?? ($participant->name ?? 'Peserta');
+        $name = $participant->user->nama_lengkap ?? ($participant->name ?? 'Peserta');
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -623,7 +623,7 @@ class TrainingController extends Controller
             $newCount = max(0, (int) $request->input('count', 0));
         }
 
-        $participantName = $participant->user->full_name ?? ($participant->name ?? 'Peserta');
+        $participantName = $participant->user->nama_lengkap ?? ($participant->name ?? 'Peserta');
 
         if ($newCount > 0) {
             $cleanNote = preg_replace('/;?\s*Off Cam Zoom [^;]+/', '', $participant->attendance_notes ?? '');
