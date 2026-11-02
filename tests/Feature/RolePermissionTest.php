@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Models\Video;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Tests\TestCase;
 
@@ -255,7 +256,7 @@ class RolePermissionTest extends TestCase
 
     public function test_video_manage_buttons_only_shown_to_users_who_can_manage_videos()
     {
-        $video = \App\Models\Video::create([
+        $video = Video::create([
             'title' => 'Video Uji Tombol',
             'video_type' => 'link',
             'video_link' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
