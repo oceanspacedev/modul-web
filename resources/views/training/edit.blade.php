@@ -65,7 +65,7 @@
                                     <label for="trainer_id" class="font-weight-600 mb-2">Pemateri (Trainer) <span class="text-danger">*</span></label>
                                     <select id="trainer_id" name="trainer_id" class="form-control" required>
                                         @foreach($users as $u)
-                                            <option value="{{ $u->id }}" {{ (old('trainer_id', $training->trainer_id) == $u->id) ? 'selected' : '' }}>
+                                            <option value="{{ $u->id }}" data-search="{{ strtolower($u->nama_lengkap.' '.$u->username.' '.$u->employee_id) }}" {{ (old('trainer_id', $training->trainer_id) == $u->id) ? 'selected' : '' }}>
                                                 {{ $u->nama_lengkap }} ({{ $u->divisi->name ?? 'Divisi Umum' }})
                                             </option>
                                         @endforeach
@@ -188,7 +188,7 @@
                                     </select>
                                 </div>
                                 <div class="col-sm-6">
-                                    <input type="text" id="searchParticipant" class="form-control form-control-sm" placeholder="Cari nama peserta...">
+                                    <input type="text" id="searchParticipant" class="form-control form-control-sm" placeholder="Cari nama, username, atau ID karyawan...">
                                 </div>
                             </div>
 
@@ -197,6 +197,7 @@
                                 <div class="participant-item d-flex align-items-center justify-content-between p-3 mb-2 bg-white border rounded"
                                      data-name="{{ strtolower($user->nama_lengkap) }}"
                                      data-idk="{{ strtolower($user->employee_id ?? '') }}"
+                                     data-username="{{ strtolower($user->username ?? '') }}"
                                      data-divisi="{{ $user->divisi_id }}">
                                     <div class="custom-control custom-checkbox">
                                         <input type="checkbox" name="participants[]" value="{{ $user->id }}"
@@ -205,7 +206,7 @@
                                         <label class="custom-control-label font-weight-normal text-dark ml-2" for="user_{{ $user->id }}" style="cursor: pointer;">
                                             <strong class="d-block">{{ $user->nama_lengkap }}</strong>
                                             <span class="text-muted small">
-                                                {{ $user->employee_id ?? '-' }} &bull; {{ $user->divisi->name ?? 'Divisi Umum' }}
+                                                {{ $user->employee_id ?? '-' }} &bull; {{ $user->username }} &bull; {{ $user->divisi->name ?? 'Divisi Umum' }}
                                             </span>
                                         </label>
                                     </div>
@@ -279,9 +280,10 @@ document.addEventListener('DOMContentLoaded', function() {
         items.forEach(item => {
             const name = item.getAttribute('data-name');
             const idk = item.getAttribute('data-idk');
+            const username = item.getAttribute('data-username');
             const itemDiv = item.getAttribute('data-divisi');
 
-            const matchSearch = (!search || name.includes(search) || idk.includes(search));
+            const matchSearch = (!search || name.includes(search) || idk.includes(search) || username.includes(search));
             const matchDiv = (!divId || itemDiv === divId);
 
             if (matchSearch && matchDiv) {
@@ -295,8 +297,19 @@ document.addEventListener('DOMContentLoaded', function() {
     filterDivisi.addEventListener('change', applyFilter);
     searchInput.addEventListener('input', applyFilter);
 
-    // Initialize select2 for documents
+    // Initialize select2 for trainer (dicari lewat nama, username, atau ID karyawan di data-search) and documents
     if (typeof $ !== 'undefined' && $.fn.select2) {
+        $('#trainer_id').select2({
+            theme: 'bootstrap4',
+            width: '100%',
+            matcher: function(params, data) {
+                const term = (params.term || '').toLowerCase().trim();
+                if (!term || !data.element) return data;
+                const haystack = (data.element.getAttribute('data-search') || data.text).toLowerCase();
+                return haystack.includes(term) ? data : null;
+            }
+        });
+
         $('#documents').select2({
             theme: 'bootstrap4',
             width: '100%',
