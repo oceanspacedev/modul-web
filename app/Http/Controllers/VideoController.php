@@ -14,6 +14,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Routing\Attributes\Controllers\Authorize;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 #[Authorize('create', Video::class, only: ['create', 'store'])]
@@ -90,7 +91,7 @@ class VideoController extends Controller
         $isLink = $request->validated('video_type') === 'link';
         $videoFile = $request->file('video_file');
         $videoPath = ! $isLink && $videoFile ? $this->storeUpload($videoFile, 'videos') : null;
-        $thumbnailPath = $request->hasFile('thumbnail') ? $this->storeUpload($request->file('thumbnail'), 'videos/thumbnails') : null;
+        $thumbnailPath = $request->hasFile('thumbnail') ? $this->storeUpload($request->file('thumbnail'), 'videos/thumbnails', 'thumbnail') : null;
 
         $attributes = [
             'title' => $request->validated('title'),
@@ -154,15 +155,17 @@ class VideoController extends Controller
             $video->video_link = null;
 
             if ($request->hasFile('video_file')) {
+                $newPath = $this->storeUpload($request->file('video_file'), 'videos');
                 $this->deleteStoredFile($video->video_file);
                 $video->file_size = $this->formatBytes($request->file('video_file')->getSize());
-                $video->video_file = $this->storeUpload($request->file('video_file'), 'videos');
+                $video->video_file = $newPath;
             }
         }
 
         if ($request->hasFile('thumbnail')) {
+            $newPath = $this->storeUpload($request->file('thumbnail'), 'videos/thumbnails', 'thumbnail');
             $this->deleteStoredFile($video->thumbnail);
-            $video->thumbnail = $this->storeUpload($request->file('thumbnail'), 'videos/thumbnails');
+            $video->thumbnail = $newPath;
         }
 
         $video->save();
@@ -214,10 +217,20 @@ class VideoController extends Controller
 
     /**
      * Store with a random name and an extension derived from the file contents, not the client name.
+     * The disk does not throw on write failures, so a false result is turned into a form error
+     * instead of saving a video record without a file.
      */
-    private function storeUpload(UploadedFile $file, string $directory): string
+    private function storeUpload(UploadedFile $file, string $directory, string $field = 'video_file'): string
     {
-        return $file->storeAs($directory, Str::random(20).'.'.$file->extension());
+        $path = $file->storeAs($directory, Str::random(20).'.'.$file->extension());
+
+        if ($path === false) {
+            throw ValidationException::withMessages([
+                $field => 'File gagal disimpan ke storage server. Silakan coba lagi atau hubungi administrator.',
+            ]);
+        }
+
+        return $path;
     }
 
     private function deleteStoredFile(?string $path): void
