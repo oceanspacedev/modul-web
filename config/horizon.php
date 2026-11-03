@@ -222,6 +222,15 @@ return [
             ],
         ],
 
+        // Server staging berjalan dengan APP_ENV=staging; tanpa entri ini Horizon tidak menjalankan worker sama sekali.
+        'staging' => [
+            'supervisor-1' => [
+                'maxProcesses' => 3,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
+        ],
+
         'local' => [
             'supervisor-1' => [
                 'maxProcesses' => 3,

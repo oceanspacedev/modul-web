@@ -38,6 +38,14 @@ class OperationsToolsTest extends TestCase
         $this->get('/log-viewer')->assertRedirect()->assertSessionHas('error');
     }
 
+    public function test_horizon_runs_workers_in_every_deployed_environment(): void
+    {
+        // Tanpa supervisor untuk APP_ENV server, job antrean (mis. Broadcast WA) tidak pernah diproses.
+        foreach (['production', 'staging', 'local'] as $environment) {
+            $this->assertNotEmpty(config("horizon.environments.{$environment}"), "Horizon tidak punya worker untuk {$environment}.");
+        }
+    }
+
     public function test_upload_urls_follow_the_default_filesystem_disk(): void
     {
         config([
