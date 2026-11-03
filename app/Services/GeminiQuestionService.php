@@ -6,6 +6,7 @@ use App\Models\Document;
 use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use ZipArchive;
 
 class GeminiQuestionService
@@ -58,13 +59,18 @@ class GeminiQuestionService
 
         // Attach documents to prompt parts
         foreach ($documents as $doc) {
-            $filePath = $this->resolveDocumentPath($doc);
-            if (! $filePath || ! file_exists($filePath)) {
+            $filePath = $this->downloadDocument($doc);
+            if (! $filePath) {
                 continue;
             }
 
-            $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-            $docPart = $this->buildFilePart($filePath, $ext, $doc->name);
+            try {
+                $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+                $docPart = $this->buildFilePart($filePath, $ext, $doc->name);
+            } finally {
+                @unlink($filePath);
+            }
+
             if ($docPart) {
                 $parts[] = $docPart;
             }
@@ -87,28 +93,36 @@ class GeminiQuestionService
     }
 
     /**
-     * Resolve absolute file path for a Document
+     * Copy a Document's file to a local temp file (same extension) and return its path; the caller deletes it.
+     *
+     * Uploads live on the default disk (S3 on the servers), so the file is read through Storage, not a local path.
+     * The "public" disk is checked too for files uploaded before the switch to S3.
      */
-    protected function resolveDocumentPath(Document $doc): ?string
+    protected function downloadDocument(Document $doc): ?string
     {
-        // Try latest version first
-        $latestVersion = $doc->versions()->first();
-        if ($latestVersion && ! empty($latestVersion->path)) {
-            $path = storage_path('app/public/dokumen/'.$latestVersion->path);
-            if (file_exists($path)) {
-                return $path;
-            }
-        }
+        $paths = array_unique(array_filter([$doc->versions()->first()?->path, $doc->path]));
+        $disks = array_unique([config('filesystems.default'), 'public']);
 
-        // Try document direct path
-        if (! empty($doc->path)) {
-            $path = storage_path('app/public/dokumen/'.$doc->path);
-            if (file_exists($path)) {
-                return $path;
-            }
-            $publicPath = public_path('storage/dokumen/'.$doc->path);
-            if (file_exists($publicPath)) {
-                return $publicPath;
+        foreach ($paths as $relative) {
+            foreach ($disks as $diskName) {
+                $disk = Storage::disk($diskName);
+                $path = 'dokumen/'.$relative;
+
+                if (! $disk->exists($path)) {
+                    continue;
+                }
+
+                $tempPath = tempnam(sys_get_temp_dir(), 'gemini-doc-');
+                $localPath = $tempPath.'.'.strtolower(pathinfo($relative, PATHINFO_EXTENSION));
+                rename($tempPath, $localPath);
+
+                $source = $disk->readStream($path);
+                $target = fopen($localPath, 'wb');
+                stream_copy_to_stream($source, $target);
+                fclose($target);
+                fclose($source);
+
+                return $localPath;
             }
         }
 
