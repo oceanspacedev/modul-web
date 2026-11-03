@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Training;
+use App\Support\StorageUrl;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithEvents;
@@ -86,8 +87,9 @@ class TrainingRekapExport implements FromArray, WithEvents, WithTitle
                 $participant->attended_at
                     ? Carbon::parse($participant->attended_at)->format('d-m-Y H:i')
                     : '-',
+                // The spreadsheet is opened long after export, so sign the link for as long as S3 allows.
                 $participant->attendance_proof
-                    ? $participant->attendance_proof_url
+                    ? StorageUrl::for($participant->attendance_proof, StorageUrl::MAX_TTL_MINUTES)
                     : '-',
                 $quiz ? 'Sudah Mengerjakan' : 'Belum Mengerjakan',
                 $quiz ? (float) ($quiz->mc_score ?? $quiz->score) : 0,

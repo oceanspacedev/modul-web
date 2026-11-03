@@ -42,12 +42,19 @@ class OperationsToolsTest extends TestCase
     {
         config([
             'filesystems.default' => 's3',
+            'filesystems.disks.s3.key' => 'test-key',
+            'filesystems.disks.s3.secret' => 'test-secret',
+            'filesystems.disks.s3.region' => 'us-east-1',
             'filesystems.disks.s3.bucket' => 'modul',
+            'filesystems.disks.s3.endpoint' => 'https://storage.example.test',
+            'filesystems.disks.s3.use_path_style_endpoint' => true,
             'filesystems.disks.s3.url' => 'https://storage.example.test/modul',
         ]);
 
         $document = new Document(['path' => 'sop-v1.pdf']);
 
-        $this->assertSame('https://storage.example.test/modul/dokumen/sop-v1.pdf', $document->file_url);
+        // The bucket need not be publicly readable, so S3 links are signed.
+        $this->assertStringStartsWith('https://storage.example.test/modul/dokumen/sop-v1.pdf?', $document->file_url);
+        $this->assertStringContainsString('X-Amz-Signature=', $document->file_url);
     }
 }

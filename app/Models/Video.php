@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\StorageUrl;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class Video extends Model
 {
@@ -69,7 +69,7 @@ class Video extends Model
     public function getVideoUrlAttribute()
     {
         if ($this->video_type === 'file') {
-            return $this->video_file ? Storage::url($this->video_file) : '';
+            return $this->video_file ? StorageUrl::for($this->video_file) : '';
         }
 
         return $this->video_link ?: '';
@@ -134,7 +134,7 @@ class Video extends Model
     {
         // Custom uploaded thumbnail
         if (! empty($this->thumbnail)) {
-            return Storage::url($this->thumbnail);
+            return StorageUrl::for($this->thumbnail);
         }
 
         // Auto YouTube thumbnail

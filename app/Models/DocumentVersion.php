@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\StorageUrl;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class DocumentVersion extends Model
 {
@@ -27,6 +27,6 @@ class DocumentVersion extends Model
 
     public function getFileUrlAttribute()
     {
-        return Storage::url('dokumen/'.$this->path);
+        return StorageUrl::for('dokumen/'.$this->path);
     }
 }
