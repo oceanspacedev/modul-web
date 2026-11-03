@@ -47,7 +47,7 @@ class TrainingUserPickerTest extends TestCase
             ->assertHeader('Cache-Control', 'no-store, private')
             ->assertSee('data-name="budi santoso"', false)
             ->assertSee('data-username="azka"', false)
-            ->assertSee('<option value="'.$user->id.'" data-search="budi santoso azka emp-901"', false);
+            ->assertSee('<option value="'.$user->id.'"', false);
     }
 
     public function test_new_user_is_searchable_in_edit_form(): void
@@ -67,6 +67,6 @@ class TrainingUserPickerTest extends TestCase
             ->assertOk()
             ->assertHeader('Cache-Control', 'no-store, private')
             ->assertSee('data-username="azka"', false)
-            ->assertSee('<option value="'.$user->id.'" data-search="budi santoso azka emp-901"', false);
+            ->assertSee('<option value="'.$user->id.'"', false);
     }
 }

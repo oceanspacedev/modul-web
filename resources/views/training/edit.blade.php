@@ -65,7 +65,7 @@
                                     <label for="trainer_id" class="font-weight-600 mb-2">Pemateri (Trainer) <span class="text-danger">*</span></label>
                                     <select id="trainer_id" name="trainer_id" class="form-control" required>
                                         @foreach($users as $u)
-                                            <option value="{{ $u->id }}" data-search="{{ strtolower($u->nama_lengkap.' '.$u->username.' '.$u->employee_id) }}" {{ (old('trainer_id', $training->trainer_id) == $u->id) ? 'selected' : '' }}>
+                                            <option value="{{ $u->id }}" {{ (old('trainer_id', $training->trainer_id) == $u->id) ? 'selected' : '' }}>
                                                 {{ $u->nama_lengkap }} ({{ $u->divisi->name ?? 'Divisi Umum' }})
                                             </option>
                                         @endforeach
@@ -297,19 +297,8 @@ document.addEventListener('DOMContentLoaded', function() {
     filterDivisi.addEventListener('change', applyFilter);
     searchInput.addEventListener('input', applyFilter);
 
-    // Initialize select2 for trainer (dicari lewat nama, username, atau ID karyawan di data-search) and documents
+    // Initialize select2 for documents
     if (typeof $ !== 'undefined' && $.fn.select2) {
-        $('#trainer_id').select2({
-            theme: 'bootstrap4',
-            width: '100%',
-            matcher: function(params, data) {
-                const term = (params.term || '').toLowerCase().trim();
-                if (!term || !data.element) return data;
-                const haystack = (data.element.getAttribute('data-search') || data.text).toLowerCase();
-                return haystack.includes(term) ? data : null;
-            }
-        });
-
         $('#documents').select2({
             theme: 'bootstrap4',
             width: '100%',
