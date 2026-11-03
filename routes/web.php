@@ -98,7 +98,9 @@ Route::middleware('auth')->group(function () {
     });
 
     // # TRAINING MANAGEMENT (authorized by TrainingPolicy)
-    Route::resource('training', TrainingController::class)->whereNumber('training');
+    // no_store: tombol Back tidak menampilkan salinan lama form, jadi user yang baru dibuat ikut terdaftar.
+    Route::resource('training', TrainingController::class)->whereNumber('training')
+        ->middlewareFor(['create', 'edit'], 'cache.headers:no_store;private');
 
     Route::prefix('training/{training}')
         ->whereNumber('training')
