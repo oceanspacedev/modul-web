@@ -47,7 +47,10 @@ class TrainingUserPickerTest extends TestCase
             ->assertHeader('Cache-Control', 'no-store, private')
             ->assertSee('data-name="budi santoso"', false)
             ->assertSee('data-username="azka"', false)
-            ->assertSee('<option value="'.$user->id.'"', false);
+            ->assertSee('<option value="'.$user->id.'"', false)
+            // Baris peserta ber-kelas d-flex (!important), jadi filter harus menyembunyikan lewat kelas d-none.
+            ->assertSee("item.classList.toggle('d-none', !visible)", false)
+            ->assertDontSee("item.style.display = 'none'", false);
     }
 
     public function test_new_user_is_searchable_in_edit_form(): void
@@ -67,6 +70,9 @@ class TrainingUserPickerTest extends TestCase
             ->assertOk()
             ->assertHeader('Cache-Control', 'no-store, private')
             ->assertSee('data-username="azka"', false)
-            ->assertSee('<option value="'.$user->id.'"', false);
+            ->assertSee('<option value="'.$user->id.'"', false)
+            // Baris peserta ber-kelas d-flex (!important), jadi filter harus menyembunyikan lewat kelas d-none.
+            ->assertSee("item.classList.toggle('d-none', !visible)", false)
+            ->assertDontSee("item.style.display = 'none'", false);
     }
 }

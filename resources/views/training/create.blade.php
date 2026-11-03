@@ -256,7 +256,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('btnSelectAll').addEventListener('click', function() {
         items.forEach(item => {
-            if (item.style.display !== 'none') {
+            if (!item.classList.contains('d-none')) {
                 const cb = item.querySelector('.participant-checkbox');
                 if (cb) cb.checked = true;
             }
@@ -266,7 +266,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('btnDeselectAll').addEventListener('click', function() {
         items.forEach(item => {
-            if (item.style.display !== 'none') {
+            if (!item.classList.contains('d-none')) {
                 const cb = item.querySelector('.participant-checkbox');
                 if (cb) cb.checked = false;
             }
@@ -287,11 +287,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const matchSearch = (!search || name.includes(search) || idk.includes(search) || username.includes(search));
             const matchDiv = (!divId || itemDiv === divId);
 
-            if (matchSearch && matchDiv) {
-                item.style.display = 'flex';
-            } else {
-                item.style.display = 'none';
-            }
+            // .d-flex memakai !important, jadi baris disembunyikan lewat kelas d-none, bukan style.display.
+            const visible = matchSearch && matchDiv;
+            item.classList.toggle('d-flex', visible);
+            item.classList.toggle('d-none', !visible);
         });
     }
 
