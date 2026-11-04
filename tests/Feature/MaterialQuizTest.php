@@ -292,6 +292,21 @@ class MaterialQuizTest extends TestCase
             ->assertOk()->assertSee('href="'.route('video.show', $video).'"', false);
     }
 
+    public function test_login_after_hitting_a_quiz_page_goes_to_the_dashboard(): void
+    {
+        [$video, $quiz] = $this->videoWithQuiz(['pretest' => true, 'posttest' => true]);
+
+        // Sesi habis lalu halaman pretest di-refresh: setelah login masuk ke dashboard, bukan lembar soal.
+        $this->get($quiz->url('quiz', ['phase' => 'pretest']))->assertRedirect(route('login'));
+        $this->post('/login', ['username' => $this->staff->username, 'password' => 'password'])->assertRedirect(url('dashboard'));
+        $this->post('/logout');
+
+        // Membuka video ber-kuis dari link saat belum login tetap kembali ke video tersebut.
+        $this->get(route('video.show', $video))->assertRedirect(route('login', ['redirect' => '/video/watch/'.$video->id]));
+        $this->get(route('login', ['redirect' => '/video/watch/'.$video->id]));
+        $this->post('/login', ['username' => $this->staff->username, 'password' => 'password'])->assertRedirect(url('/video/watch/'.$video->id));
+    }
+
     public function test_deleting_video_soft_deletes_its_quiz(): void
     {
         [$video, $quiz] = $this->videoWithQuiz(['pretest' => true, 'posttest' => true]);

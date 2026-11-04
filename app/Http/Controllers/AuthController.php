@@ -94,6 +94,7 @@ class AuthController extends Controller
         if ($user && Hash::check($password, $user->password)) {
             Auth::login($user, $remember);
             $request->session()->regenerate();
+            $this->forgetQuizIntendedUrl($request);
 
             return redirect()->intended('dashboard');
         }
@@ -101,6 +102,29 @@ class AuthController extends Controller
         return back()->withInput($request->only('username'))->with([
             'error' => 'Username / Nomor WhatsApp atau Password salah.',
         ]);
+    }
+
+    /**
+     * A pretest/posttest page opened without a session (expired session, Back after logout, an old tab refreshed)
+     * becomes Laravel's intended URL. Landing on a question sheet right after login is confusing, so those go to the
+     * dashboard instead; other intended pages (e.g. a video opened from a link) are kept.
+     */
+    private function forgetQuizIntendedUrl(Request $request): void
+    {
+        $intended = $request->session()->get('url.intended');
+        if (! $intended) {
+            return;
+        }
+
+        try {
+            $routeName = app('router')->getRoutes()->match(Request::create($intended))->getName();
+        } catch (\Throwable) {
+            return;
+        }
+
+        if ($routeName !== null && str_ends_with($routeName, '.quiz')) {
+            $request->session()->forget('url.intended');
+        }
     }
 
     /**
