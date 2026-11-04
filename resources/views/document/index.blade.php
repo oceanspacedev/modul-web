@@ -127,8 +127,8 @@
                                             </td>
                                             <td>
                                                 <div class="d-inline-flex align-items-center" style="gap: 4px;">
-                                                    @if($quiz && ! $document->deleted_at && auth()->user()->cannot('update', $document))
-                                                        {{-- Dokumen ber-kuis dibuka lewat halaman pretest -> dokumen -> posttest. --}}
+                                                    @if($quiz && ! $document->deleted_at)
+                                                        {{-- Dokumen ber-kuis dibuka lewat halaman pretest -> dokumen -> posttest, juga oleh pengelola (ada tombol pratinjau di sana). --}}
                                                         <a href="{{ route('learning.show', $quiz) }}" class="btn btn-primary btn-xs" title="Buka dokumen beserta pretest/posttest">
                                                             Buka
                                                         </a>

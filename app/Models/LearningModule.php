@@ -86,6 +86,18 @@ class LearningModule extends Model
     }
 
     /**
+     * Pratinjau materi asal tanpa pretest, khusus pengelola video/dokumen.
+     */
+    public function previewUrl(): ?string
+    {
+        return match ($this->source_type) {
+            LearningModuleItem::TYPE_VIDEO => route('video.show', ['video' => $this->source_id, 'preview' => 1]),
+            LearningModuleItem::TYPE_DOCUMENT => $this->source?->file_url,
+            default => null,
+        };
+    }
+
+    /**
      * Halaman pengelolaan materi asal, untuk tombol kembali di halaman admin.
      */
     public function managementUrl(): string

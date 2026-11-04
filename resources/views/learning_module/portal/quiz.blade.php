@@ -26,14 +26,8 @@
     <div class="container-fluid" style="max-width: 900px;">
         @include('learning_module.partials.alerts')
 
-        @if($isPretest && $module->isOwnedByVideo() && auth()->user()->can('update', $module))
-            {{-- Hanya pengelola video; peserta tidak melihat link ini dan tetap wajib pretest. --}}
-            <div class="alert alert-light border d-flex justify-content-between align-items-center flex-wrap" style="gap: 8px;">
-                <span class="text-muted small">Anda pengelola video ini. Pratinjau tidak mengisi nilai pretest Anda.</span>
-                <a href="{{ route('video.show', ['video' => $module->source_id, 'preview' => 1]) }}" class="btn btn-default btn-sm">
-                    Pratinjau video tanpa pretest
-                </a>
-            </div>
+        @if($isPretest)
+            @include('learning_module.partials.manager-preview')
         @endif
 
         <div class="alert {{ $isPretest ? 'alert-info' : 'alert-light border' }}">

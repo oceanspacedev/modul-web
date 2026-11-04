@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\Document;
 use App\Models\LearningModule;
 use App\Models\LearningModuleAttempt;
+use App\Models\Training;
+use App\Models\TrainingParticipant;
 use App\Models\User;
 use App\Models\Video;
 use App\Services\MaterialQuizService;
@@ -205,6 +207,35 @@ class MaterialQuizTest extends TestCase
         $attempt = LearningModuleAttempt::sole();
         $this->actingAs($this->staff)->get(route('learning.attempt', [$quiz, $attempt]))->assertOk()->assertSee('Lanjut Tonton Video');
         $this->actingAs($this->staff)->get(route('learning.quiz', [$quiz, 'pretest']))->assertRedirect(route('video.show', $video));
+    }
+
+    public function test_document_pretest_is_required_for_everyone_but_managers_get_a_preview_link(): void
+    {
+        $document = Document::create(['name' => 'SOP PDF', 'divisi_id' => 1, 'document_type' => 1, 'path' => 'sop.pdf']);
+        $quiz = app(MaterialQuizService::class)->sync($document, ['pretest' => true, 'posttest' => false, 'pretest_max_attempts' => 1]);
+        $quiz->questions()->create(['question' => 'APD utama?', 'option_a' => 'Helm', 'option_b' => 'Topi', 'correct_answer' => 'a']);
+        app(MaterialQuizService::class)->refresh($quiz);
+        $hubUrl = route('learning.show', $quiz);
+
+        // Tombol Buka di menu Dokumen mengarah ke halaman kuis, juga untuk admin.
+        foreach ([$this->admin, $this->staff] as $user) {
+            $this->actingAs($user)->get(route('document.index'))->assertSee($hubUrl, false);
+        }
+
+        $this->actingAs($this->admin)->get($hubUrl)->assertOk()->assertSee('Pratinjau dokumen tanpa pretest');
+        $this->actingAs($this->admin)->get(route('learning.quiz', [$quiz, 'pretest']))->assertOk()->assertSee('Pratinjau dokumen tanpa pretest');
+        $this->actingAs($this->staff)->get($hubUrl)->assertOk()->assertDontSee('Pratinjau dokumen tanpa pretest');
+        $this->actingAs($this->staff)->get(route('learning.items.open', [$quiz, $quiz->items()->sole()]))->assertRedirect($hubUrl);
+
+        // Portal peserta pelatihan (link WhatsApp) juga lewat halaman kuis, bukan file langsung.
+        $training = Training::create([
+            'title' => 'Pelatihan K3', 'trainer_id' => $this->admin->id, 'training_date' => now()->toDateString(),
+            'start_time' => '09:00', 'end_time' => '10:00', 'zoom_link' => 'https://zoom.us/test',
+        ]);
+        $training->documents()->attach($document);
+        $participant = TrainingParticipant::create(['training_id' => $training->id, 'user_id' => $this->staff->id, 'token' => 'token_doc_quiz']);
+
+        $this->get(route('training.portal', $participant->token))->assertOk()->assertSee($hubUrl, false)->assertDontSee('dokumen/sop.pdf');
     }
 
     public function test_deleting_video_soft_deletes_its_quiz(): void

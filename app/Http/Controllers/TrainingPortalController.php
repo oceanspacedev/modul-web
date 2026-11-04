@@ -41,6 +41,7 @@ class TrainingPortalController extends Controller
             'training.questions',
             'training.documents.versions',
             'training.documents.dokumentype',
+            'training.documents.quizModule',
             'user.divisi',
             'quizResult',
         ]);

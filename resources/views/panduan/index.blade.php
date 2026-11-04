@@ -422,7 +422,7 @@
                         <li>Gunakan filter <b>Divisi</b>, <b>Type</b>, dan pencarian untuk menemukan dokumen.</li>
                     </ul>
                     <h3>Pretest &amp; posttest pada dokumen</h3>
-                    <p>Form tambah/edit dokumen memiliki bagian <b>Pretest &amp; Posttest</b> yang sama seperti video. Untuk dokumen ber-kuis, tombol <b>Buka</b> milik peserta membuka halaman kuis dokumen: pretest (bila nyala) → buka dokumen → posttest (bila nyala). Soal dan rekap nilai ada di menu <b>Aksi → Soal Pretest/Posttest</b> dan <b>Aksi → Rekap Nilai Kuis</b>. Bila satu unggahan dibuat untuk beberapa jabatan, setiap dokumen memiliki bank soal sendiri.</p>
+                    <p>Form tambah/edit dokumen memiliki bagian <b>Pretest &amp; Posttest</b> yang sama seperti video. Untuk dokumen ber-kuis, tombol <b>Buka</b> membuka halaman kuis dokumen: pretest (bila nyala) → buka dokumen → posttest (bila nyala). Bila pretest aktif, <b>semua akun</b> (termasuk admin) wajib pretest dulu; pengelola dokumen mendapat tombol <b>Pratinjau dokumen tanpa pretest</b> di halaman kuis. Dokumen yang dilampirkan ke pelatihan juga dibuka lewat halaman kuis ini dari portal peserta (perlu login). Soal dan rekap nilai ada di menu <b>Aksi → Soal Pretest/Posttest</b> dan <b>Aksi → Rekap Nilai Kuis</b>. Bila satu unggahan dibuat untuk beberapa jabatan, setiap dokumen memiliki bank soal sendiri.</p>
                 </div>
 
                 {{-- 11 --}}

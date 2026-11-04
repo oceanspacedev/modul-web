@@ -29,6 +29,10 @@
     <div class="container-fluid">
         @include('learning_module.partials.alerts')
 
+        @if($progress->needsPretest())
+            @include('learning_module.partials.manager-preview')
+        @endif
+
         @if($module->description)
             <p class="text-muted" style="white-space: pre-line;">{{ $module->description }}</p>
         @endif
