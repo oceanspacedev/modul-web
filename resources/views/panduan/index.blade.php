@@ -422,7 +422,7 @@
                         <li>Gunakan filter <b>Divisi</b>, <b>Type</b>, dan pencarian untuk menemukan dokumen.</li>
                     </ul>
                     <h3>Pretest &amp; posttest pada dokumen</h3>
-                    <p>Form tambah/edit dokumen memiliki bagian <b>Pretest &amp; Posttest</b> yang sama seperti video. Untuk dokumen ber-kuis, tombol <b>Buka</b> membuka halaman kuis dokumen: pretest (bila nyala) → buka dokumen → posttest (bila nyala). Bila pretest aktif, <b>semua akun</b> (termasuk admin) wajib pretest dulu; pengelola dokumen mendapat tombol <b>Pratinjau dokumen tanpa pretest</b> di halaman kuis. Dokumen yang dilampirkan ke pelatihan juga dibuka lewat halaman kuis ini dari portal peserta (perlu login). Soal dan rekap nilai ada di menu <b>Aksi → Soal Pretest/Posttest</b> dan <b>Aksi → Rekap Nilai Kuis</b>. Bila satu unggahan dibuat untuk beberapa jabatan, setiap dokumen memiliki bank soal sendiri.</p>
+                    <p>Form tambah/edit dokumen memiliki bagian <b>Pretest &amp; Posttest</b> yang sama seperti video. Untuk dokumen ber-kuis, tombol <b>Buka</b> membuka halaman kuis dokumen: pretest (bila nyala) → buka dokumen → posttest (bila nyala). Bila pretest aktif, <b>semua akun</b> (termasuk admin) wajib pretest dulu; pengelola dokumen mendapat tombol <b>Pratinjau dokumen tanpa pretest</b> di halaman kuis. Dokumen yang dilampirkan ke pelatihan juga dibuka lewat halaman kuis ini dari portal peserta (perlu login). Soal dan rekap nilai ada di menu <b>Aksi → Soal Pretest/Posttest</b> dan <b>Aksi → Rekap Nilai Kuis</b>. Bila satu unggahan dibuat untuk beberapa jabatan, setiap dokumen memiliki bank soal sendiri. Tes dokumen berada di bawah menu <b>Document</b> dan tidak muncul di <b>Modul Saya</b>.</p>
                 </div>
 
                 {{-- 11 --}}
@@ -442,18 +442,21 @@
                         <li>Klik <b>Tambah Video Baru</b>.</li>
                         <li>Isi <b>Judul Video</b> dan deskripsi.</li>
                         <li>Pilih <b>Sumber Video</b>: <b>file</b> (mp4, webm, ogg, mov, mkv, maks. 2 GB) atau <b>link</b> (YouTube, Google Drive, Vimeo, atau link langsung).</li>
-                        <li>Cover/thumbnail bersifat opsional (JPG, PNG, WEBP, maks. 5 MB). Untuk YouTube, cover otomatis.</li>
+                        <li>Cover/thumbnail bersifat opsional (JPG, PNG, WEBP, maks. 5 MB). Bila tidak dipilih, video file mendapat <b>cover otomatis</b> dari detik pertama video (terlihat di pratinjau cover sebelum disimpan), dan link YouTube memakai thumbnail YouTube.</li>
                         <li>Klik <b>Simpan Video</b> dan <b>jangan tutup halaman</b> selama unggahan berjalan.</li>
                     </ol>
                     <div class="pg-note">Untuk link Google Drive, atur akses berbagi ke <b>"Siapa saja yang memiliki link"</b> agar video bisa diputar. <b>Edit</b> dan <b>Hapus</b> tersedia pada tiap video.</div>
+                    <p>Video lama yang belum punya cover: buka <b>Edit</b>, klik <b>Ambil cover dari video</b>, lalu <b>Simpan Perubahan</b>. Format yang tidak bisa diputar browser (mis. sebagian file MKV) tidak bisa diambil cover-nya; pilih gambar cover manual.</p>
                     <h3>Pretest &amp; posttest pada video</h3>
-                    <p>Di form tambah/edit video, bagian <b>Pretest &amp; Posttest</b> berisi tombol <b>Aktifkan Pretest</b> dan <b>Aktifkan Posttest</b>, batas percobaan masing-masing (kosong = tanpa batas), dan nilai minimal lulus. Setelah disimpan Anda diarahkan ke halaman soal; kuis baru aktif setelah ada minimal satu soal (manual, Excel, atau AI dari video itu). Lihat bagian <a href="#modulbelajar">16</a> untuk alur peserta.</p>
+                    <p>Di form tambah/edit video, bagian <b>Pretest &amp; Posttest</b> berisi tombol <b>Aktifkan Pretest</b> dan <b>Aktifkan Posttest</b>, batas percobaan masing-masing (kosong = tanpa batas), dan nilai minimal lulus. Setelah disimpan Anda diarahkan ke halaman soal; kuis baru aktif setelah ada minimal satu soal (manual, Excel, atau AI dari video itu). Tes video berada di bawah menu <b>Video Materi</b> dan tidak muncul di <b>Modul Saya</b>.</p>
                     <ul>
                         <li>Video ber-kuis tetap tampil di galeri, tetapi peserta wajib login untuk menontonnya.</li>
                         <li>Pretest nyala: peserta mengerjakan pretest dulu sebelum video bisa ditonton.</li>
                         <li>Posttest nyala: tombol <b>Kerjakan Posttest</b> muncul di bawah video setelah video selesai ditonton.</li>
                         <li>Bila pretest aktif, <b>semua akun</b> (termasuk admin) diarahkan ke pretest sebelum video bisa ditonton. Khusus pengelola video, halaman pretest menampilkan tombol <b>Pratinjau video tanpa pretest</b> untuk mengecek video; pratinjau tidak mengisi nilai.</li>
-                        <li>Pengelola video bisa membuka <b>Kelola Soal</b> dan <b>Rekap Nilai</b> dari halaman tonton.</li>
+                        <li>Pengelola video bisa membuka <b>Kelola Soal</b> dan <b>Rekap Nilai</b> dari halaman tonton, atau tombol <b>Soal Kuis</b> di kartu galeri.</li>
+                        <li>Soal diacak sekali untuk setiap percobaan. Urutannya tetap sama walaupun halaman soal di-refresh atau ditinggalkan lalu dibuka lagi, sampai jawaban dikirim.</li>
+                        <li>Panah kembali di halaman pretest membawa peserta ke Galeri Video (video baru bisa ditonton setelah pretest dikirim).</li>
                         <li>Mematikan pretest/posttest hanya menonaktifkan kuis; riwayat nilai tetap tersimpan.</li>
                     </ul>
                 </div>
@@ -523,6 +526,11 @@
                         <tr><td>Impor soal Excel gagal di baris tertentu</td><td>Impor soal berhenti di baris yang salah dan baris sebelumnya sudah tersimpan. Hapus baris yang sudah masuk dari file sebelum impor ulang agar soal tidak dobel.</td></tr>
                         <tr><td>Video Google Drive tidak bisa diputar</td><td>Ubah akses berbagi menjadi "Siapa saja yang memiliki link".</td></tr>
                         <tr><td>Unggah video gagal / terputus</td><td>Periksa ukuran file (maks. 2 GB) dan koneksi. Batas unggah server bisa lebih kecil, hubungi administrator.</td></tr>
+                        <tr><td>Muncul "413 Request Entity Too Large" saat mengunggah</td><td>File lebih besar dari batas unggah server (nginx/PHP), bukan dari aplikasi. Administrator server perlu menaikkan <code>client_max_body_size</code> nginx serta <code>upload_max_filesize</code> dan <code>post_max_size</code> PHP.</td></tr>
+                        <tr><td>Video/dokumen langsung membuka pretest</td><td>Pretest untuk materi itu aktif: kerjakan pretest dulu, lalu materi terbuka. Pengelola materi bisa memakai tombol <b>Pratinjau ... tanpa pretest</b> di halaman pretest.</td></tr>
+                        <tr><td>Tombol posttest video belum muncul</td><td>Posttest terbuka setelah video ditonton sampai selesai (≥90% durasi untuk file video, sampai akhir untuk YouTube, atau tombol <b>Saya sudah menonton</b> untuk Drive/Vimeo).</td></tr>
+                        <tr><td>Pretest/posttest sudah dinyalakan tetapi tidak muncul ke peserta</td><td>Kuis baru aktif setelah ada minimal satu soal. Tambahkan soal lewat <b>Soal Kuis</b> (video) atau <b>Aksi → Soal Pretest/Posttest</b> (dokumen).</td></tr>
+                        <tr><td>"Batas ... kali percobaan sudah habis"</td><td>Jumlah percobaan sudah mencapai batas yang diatur pembuat materi/modul. Pengelola bisa menaikkan atau mengosongkan batas percobaan di form edit.</td></tr>
                         <tr><td>Soal AI tidak bisa dibuat</td><td>API key AI belum disetel di server, atau dokumen tidak terbaca. Hubungi administrator.</td></tr>
                     </table>
                 </div>
@@ -561,11 +569,11 @@
                         <li>Klik <b>Simpan &amp; Lanjut Buat Soal</b>. Tambahkan soal pilihan ganda lewat <b>Buat Soal via AI</b>, <b>Tambah Manual</b>, atau <b>Import Excel / CSV</b>.</li>
                         <li>Klik <b>Publikasikan Modul</b>. Modul baru bisa dipublikasikan bila sudah punya minimal 1 materi dan 1 soal.</li>
                     </ol>
-                    <div class="pg-note">Soal AI bisa dibuat dari dokumen dan dari video (file upload atau link YouTube publik). Link Google Drive/Vimeo tidak bisa dibaca AI. Pembacaan video memakan waktu beberapa menit; biarkan jendela AI terbuka sampai hasil muncul.</div>
+                    <div class="pg-note">Soal AI bisa dibuat dari dokumen dan dari video (file upload atau link YouTube publik). Link Google Drive/Vimeo tidak bisa dibaca AI. Pembacaan video memakan waktu beberapa menit; biarkan jendela AI terbuka sampai hasil muncul. Saat meninjau hasil AI, klik huruf A–E untuk menandai kunci jawaban (pilihan kunci ditandai hijau), sunting teks bila perlu, lalu simpan. Cara yang sama dipakai untuk soal pretest/posttest video dan dokumen.</div>
                     <h3>Mengerjakan modul (Peserta)</h3>
                     <ol>
                         <li>Buka <b>Modul Belajar → Modul Saya</b> dan pilih modul.</li>
-                        <li><b>Pretest</b> hanya bisa dikerjakan <b>satu kali</b>. Materi baru terbuka setelah pretest dikirim.</li>
+                        <li>Kerjakan <b>Pretest</b> (bawaan: satu kali). Materi baru terbuka setelah pretest dikirim.</li>
                         <li>Selesaikan semua materi: video upload/YouTube tercatat selesai setelah ditonton sampai akhir, dokumen tercatat selesai saat dibuka. Video Drive/Vimeo ditandai lewat tombol <b>Saya sudah menonton</b>.</li>
                         <li>Setelah semua materi selesai, <b>Posttest</b> terbuka. Setiap percobaan dan nilainya tetap tersimpan di riwayat.</li>
                         <li>Batas percobaan pretest dan posttest diatur pembuat modul (kosong = tanpa batas). Nilai awal untuk kenaikan nilai adalah pretest pertama.</li>
