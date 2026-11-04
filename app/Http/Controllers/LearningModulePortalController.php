@@ -6,6 +6,7 @@ use App\Models\LearningModule;
 use App\Models\LearningModuleAttempt;
 use App\Models\LearningModuleItem;
 use App\Models\LearningModuleItemProgress;
+use App\Models\LearningModuleQuestion;
 use App\Models\User;
 use App\Support\LearningModuleProgress;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -13,6 +14,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Attributes\Controllers\Authorize;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 /**
@@ -58,14 +60,47 @@ class LearningModulePortalController extends Controller
             return $redirect;
         }
 
+        $progress = LearningModuleProgress::for($module, $request->user());
+        $attemptNumber = $progress->attemptsFor($phase)->count() + 1;
+
         return view('learning_module.portal.quiz', [
             'title' => ($phase === LearningModuleAttempt::PHASE_PRETEST ? 'Pretest' : 'Posttest').': '.$module->title,
             'active' => $module->menuKey('my-learning-modules'),
             'module' => $module,
             'phase' => $phase,
-            'questions' => $module->shuffle_questions ? $module->questions->shuffle() : $module->questions,
-            'attemptNumber' => LearningModuleProgress::for($module, $request->user())->attemptsFor($phase)->count() + 1,
+            'questions' => $this->questionOrder($request, $module, $phase, $attemptNumber),
+            'attemptNumber' => $attemptNumber,
+            // Halaman tonton video mengalihkan kembali ke pretest yang belum dikerjakan, jadi kembali ke galeri.
+            'backUrl' => $module->isOwnedByVideo() && $progress->needsPretest() ? route('video.index') : $module->participantUrl(),
         ]);
+    }
+
+    /**
+     * Urutan soal untuk satu percobaan. Urutan acak disimpan di session sampai jawaban dikirim, jadi membuka ulang
+     * atau me-refresh halaman tidak mengacak soal lagi.
+     *
+     * @return Collection<int, LearningModuleQuestion>
+     */
+    private function questionOrder(Request $request, LearningModule $module, string $phase, int $attemptNumber): Collection
+    {
+        if (! $module->shuffle_questions) {
+            return $module->questions;
+        }
+
+        $key = $this->questionOrderKey($module, $phase, $attemptNumber);
+        $questions = $module->questions->keyBy('id');
+        $order = collect($request->session()->get($key, []))->filter(fn ($id) => $questions->has($id));
+
+        // Soal yang ditambahkan admin setelah urutan dibuat ikut diacak di belakang.
+        $order = $order->merge($questions->keys()->diff($order)->shuffle())->values();
+        $request->session()->put($key, $order->all());
+
+        return $order->map(fn ($id) => $questions[$id]);
+    }
+
+    private function questionOrderKey(LearningModule $module, string $phase, int $attemptNumber): string
+    {
+        return "learning-quiz-order.{$module->id}.{$phase}.{$attemptNumber}";
     }
 
     public function submit(Request $request, LearningModule $module, string $phase): RedirectResponse
@@ -87,6 +122,8 @@ class LearningModulePortalController extends Controller
             // Kiriman ganda (klik dua kali / dua tab): percobaan yang pertama sudah tersimpan.
             return redirect($module->participantUrl())->with('error', 'Jawaban Anda sudah tersimpan sebelumnya.');
         }
+
+        $request->session()->forget($this->questionOrderKey($module, $phase, $attempt->attempt_number));
 
         return redirect($module->url('attempt', ['attempt' => $attempt]))->with('success', 'Jawaban berhasil dikirim!');
     }

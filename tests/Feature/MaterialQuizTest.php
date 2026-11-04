@@ -268,6 +268,30 @@ class MaterialQuizTest extends TestCase
         $this->actingAs($this->staff)->get(route('video-quiz.show', $module))->assertRedirect(route('learning.show', $module));
     }
 
+    public function test_pretest_back_button_and_question_order_stay_put(): void
+    {
+        [$video, $quiz] = $this->videoWithQuiz(['pretest' => true, 'posttest' => true, 'pretest_max_attempts' => 1]);
+        foreach (range(2, 12) as $n) {
+            $quiz->questions()->create(['question' => "Soal nomor {$n}?", 'option_a' => 'Ya', 'option_b' => 'Tidak', 'correct_answer' => 'a']);
+        }
+        $pretestUrl = $quiz->url('quiz', ['phase' => 'pretest']);
+        $order = fn (string $html) => preg_match_all('/name="answers\[(\d+)\]" value="a"/', $html, $m) ? $m[1] : [];
+
+        // Halaman tonton mengalihkan ke pretest, jadi panah kembali menuju galeri video.
+        $first = $this->actingAs($this->staff)->get($pretestUrl)->assertOk()->assertSee('href="'.route('video.index').'"', false)->getContent();
+        $second = $this->actingAs($this->staff)->get($pretestUrl)->getContent();
+
+        $this->assertCount(12, $order($first));
+        $this->assertSame($order($first), $order($second), 'Membuka ulang pretest tidak boleh mengacak soal lagi.');
+
+        // Setelah pretest dikirim, posttest kembali ke halaman tonton dan urutannya disimpan terpisah.
+        $this->actingAs($this->staff)->post($quiz->url('submit', ['phase' => 'pretest']), ['answers' => []]);
+        $this->assertNull(session('learning-quiz-order.'.$quiz->id.'.pretest.1'));
+        $this->actingAs($this->staff)->postJson($quiz->url('items.complete', ['item' => $quiz->items()->sole()]));
+        $this->actingAs($this->staff)->get($quiz->url('quiz', ['phase' => 'posttest']))
+            ->assertOk()->assertSee('href="'.route('video.show', $video).'"', false);
+    }
+
     public function test_deleting_video_soft_deletes_its_quiz(): void
     {
         [$video, $quiz] = $this->videoWithQuiz(['pretest' => true, 'posttest' => true]);
