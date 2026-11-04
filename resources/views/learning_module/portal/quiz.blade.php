@@ -43,7 +43,7 @@
             @endif
         </div>
 
-        <form action="{{ route('learning.submit', [$module, $phase]) }}" method="POST" id="quizForm">
+        <form action="{{ $module->url('submit', ['phase' => $phase]) }}" method="POST" id="quizForm">
             @csrf
             @foreach($questions as $index => $question)
                 <div class="card mb-3">

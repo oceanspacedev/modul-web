@@ -110,7 +110,7 @@ class DocumentController extends Controller
 
         // Setiap dokumen (satu per jabatan) punya bank soal sendiri.
         if (count($quizzes) === 1 && $this->materialQuiz->needsQuestions($quizzes[0])) {
-            return to_route('learning-module.questions.index', $quizzes[0])
+            return redirect($quizzes[0]->url('questions.index'))
                 ->with('success', 'Berhasil menambahkan dokumen baru (Versi 1). Tambahkan soal agar pretest/posttest aktif.');
         }
 
@@ -142,7 +142,7 @@ class DocumentController extends Controller
                 'id' => $version->id,
                 'version_number' => $version->version_number,
                 'file_name' => $version->file_name,
-                'file_url' => $hideFiles ? route('learning.show', $quiz) : $version->file_url,
+                'file_url' => $hideFiles ? $quiz->url('show') : $version->file_url,
                 'file_size' => $version->file_size ?: '-',
                 'change_note' => $version->change_note ?: 'Tidak ada catatan revisi',
                 'created_by' => $version->created_by ?: 'Admin',
@@ -230,7 +230,7 @@ class DocumentController extends Controller
         $quiz = $this->materialQuiz->sync($document, $request->validated('quiz'));
 
         if ($this->materialQuiz->needsQuestions($quiz)) {
-            return to_route('learning-module.questions.index', $quiz)->with('success', $message.'. Tambahkan soal agar pretest/posttest aktif.');
+            return redirect($quiz->url('questions.index'))->with('success', $message.'. Tambahkan soal agar pretest/posttest aktif.');
         }
 
         return to_route('document.index')->with('success', $message);

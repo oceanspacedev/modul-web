@@ -78,7 +78,7 @@ class LearningModuleController extends Controller
 
         return view('learning_module.show', [
             'title' => 'Rekap Modul: '.$module->title,
-            'active' => 'learning-module',
+            'active' => $module->menuKey('learning-module'),
             'module' => $module,
             'participants' => LearningModuleProgress::forParticipants($module),
         ]);
@@ -94,7 +94,7 @@ class LearningModuleController extends Controller
 
         return view('learning_module.participant', [
             'title' => 'Riwayat '.$user->nama_lengkap,
-            'active' => 'learning-module',
+            'active' => $module->menuKey('learning-module'),
             'module' => $module,
             'progress' => LearningModuleProgress::for($module, $user),
         ]);

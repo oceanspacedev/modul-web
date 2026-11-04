@@ -143,7 +143,7 @@
                                 $pver = $pdoc->versions->first();
                                 // Dokumen ber-pretest/posttest dibuka lewat halaman kuisnya (perlu login).
                                 $pquiz = $pdoc->activeQuiz();
-                                $purl = $pquiz ? route('learning.show', $pquiz) : ($pver ? $pver->file_url : $pdoc->file_url);
+                                $purl = $pquiz ? $pquiz->url('show') : ($pver ? $pver->file_url : $pdoc->file_url);
                             @endphp
                             <a href="{{ $purl }}" target="_blank" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-2">
                                 <div class="text-truncate mr-2">

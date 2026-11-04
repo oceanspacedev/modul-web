@@ -54,7 +54,7 @@
                 @else
                     <a href="{{ $backUrl }}" class="btn btn-default mr-1">Kembali ke {{ $backLabel }}</a>
                     @if($progress->canTakePosttest())
-                        <a href="{{ route('learning.quiz', [$module, 'posttest']) }}" class="btn btn-primary">Ulangi Posttest</a>
+                        <a href="{{ $module->url('quiz', ['phase' => 'posttest']) }}" class="btn btn-primary">Ulangi Posttest</a>
                     @endif
                 @endif
             </div>

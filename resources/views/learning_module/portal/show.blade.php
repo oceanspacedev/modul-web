@@ -58,10 +58,10 @@
                 </div>
                 <div class="text-right">
                     @if($progress->pretest)
-                        <a href="{{ route('learning.attempt', [$module, $progress->pretests->last()]) }}" class="btn btn-default btn-sm">Lihat hasil</a>
+                        <a href="{{ $module->url('attempt', ['attempt' => $progress->pretests->last()]) }}" class="btn btn-default btn-sm">Lihat hasil</a>
                     @endif
                     @if($progress->canTakePretest())
-                        <a href="{{ route('learning.quiz', [$module, 'pretest']) }}" class="btn {{ $progress->pretest ? 'btn-outline-primary' : 'btn-primary' }} btn-sm">
+                        <a href="{{ $module->url('quiz', ['phase' => 'pretest']) }}" class="btn {{ $progress->pretest ? 'btn-outline-primary' : 'btn-primary' }} btn-sm">
                             {{ $progress->pretest ? 'Ulangi Pretest' : 'Mulai Pretest' }}
                         </a>
                     @endif
@@ -92,11 +92,11 @@
                             <i class="fas {{ $item->isVideo() ? 'fa-play-circle text-danger' : 'fa-file-alt text-warning' }}"></i>
                             <span class="flex-grow-1">{{ $index + 1 }}. {{ $item->title() }}</span>
                             @if($item->isVideo())
-                                <a href="{{ route('learning.items.show', [$module, $item]) }}" class="btn btn-sm {{ $done ? 'btn-default' : 'btn-outline-primary' }}">
+                                <a href="{{ $module->url('items.show', ['item' => $item]) }}" class="btn btn-sm {{ $done ? 'btn-default' : 'btn-outline-primary' }}">
                                     {{ $done ? 'Tonton Lagi' : 'Tonton Video' }}
                                 </a>
                             @else
-                                <a href="{{ route('learning.items.open', [$module, $item]) }}" target="_blank" rel="noopener" class="btn btn-sm {{ $done ? 'btn-default' : 'btn-outline-primary' }} open-document">
+                                <a href="{{ $module->url('items.open', ['item' => $item]) }}" target="_blank" rel="noopener" class="btn btn-sm {{ $done ? 'btn-default' : 'btn-outline-primary' }} open-document">
                                     {{ $done ? 'Buka Lagi' : 'Buka Dokumen' }}
                                 </a>
                             @endif
@@ -130,7 +130,7 @@
                     @endif
                 </div>
                 @if($progress->canTakePosttest())
-                    <a href="{{ route('learning.quiz', [$module, 'posttest']) }}" class="btn btn-primary">
+                    <a href="{{ $module->url('quiz', ['phase' => 'posttest']) }}" class="btn btn-primary">
                         {{ $progress->posttests->isEmpty() ? 'Mulai Posttest' : 'Ulangi Posttest' }}
                     </a>
                 @endif
@@ -165,7 +165,7 @@
                                         <span class="badge {{ $attempt->is_passed ? 'badge-success' : 'badge-danger' }}">{{ $attempt->is_passed ? 'Lulus' : 'Belum Lulus' }}</span>
                                     </td>
                                     <td class="text-right pr-3">
-                                        <a href="{{ route('learning.attempt', [$module, $attempt]) }}" class="btn btn-default btn-xs">Lihat</a>
+                                        <a href="{{ $module->url('attempt', ['attempt' => $attempt]) }}" class="btn btn-default btn-xs">Lihat</a>
                                     </td>
                                 </tr>
                             @endforeach

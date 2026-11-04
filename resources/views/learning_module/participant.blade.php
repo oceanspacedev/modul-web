@@ -9,7 +9,7 @@
 <section class="content-header">
     <div class="container-fluid">
         <div class="mb-3 d-flex align-items-center">
-            <a href="{{ route('learning-module.show', $module) }}" class="btn btn-default btn-sm mr-3">
+            <a href="{{ $module->url('results') }}" class="btn btn-default btn-sm mr-3">
                 <i class="fas fa-arrow-left"></i>
             </a>
             <div>

@@ -13,7 +13,7 @@
     <div class="d-flex justify-content-between align-items-center mb-2">
         <label class="font-weight-bold mb-0">Pretest &amp; Posttest</label>
         @if($quiz && ($quiz->has_pretest || $quiz->has_posttest))
-            <a href="{{ route('learning-module.questions.index', $quiz) }}" class="small">Kelola soal ({{ $quiz->questions()->count() }})</a>
+            <a href="{{ $quiz->url('questions.index') }}" class="small">Kelola soal ({{ $quiz->questions()->count() }})</a>
         @endif
     </div>
     <p class="text-muted small mb-3">

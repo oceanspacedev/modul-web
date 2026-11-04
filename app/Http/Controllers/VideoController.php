@@ -77,7 +77,7 @@ class VideoController extends Controller
             $isPreview = $request->boolean('preview') && $request->user()->can('update', $video);
 
             if ($quizProgress->needsPretest() && ! $isPreview) {
-                return to_route('learning.quiz', [$quiz, 'pretest'])
+                return redirect($quiz->url('quiz', ['phase' => 'pretest']))
                     ->with('info', 'Kerjakan pretest terlebih dahulu sebelum menonton video ini.');
             }
         }
@@ -159,7 +159,7 @@ class VideoController extends Controller
 
         $quiz = $this->materialQuiz->sync($video, $request->validated('quiz'));
         if ($this->materialQuiz->needsQuestions($quiz)) {
-            return to_route('learning-module.questions.index', $quiz)
+            return redirect($quiz->url('questions.index'))
                 ->with('success', 'Video berhasil diunggah! Tambahkan soal agar pretest/posttest aktif.');
         }
 
@@ -206,7 +206,7 @@ class VideoController extends Controller
 
         $quiz = $this->materialQuiz->sync($video, $request->validated('quiz'));
         if ($this->materialQuiz->needsQuestions($quiz)) {
-            return to_route('learning-module.questions.index', $quiz)
+            return redirect($quiz->url('questions.index'))
                 ->with('success', 'Video berhasil diperbarui! Tambahkan soal agar pretest/posttest aktif.');
         }
 

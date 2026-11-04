@@ -34,7 +34,7 @@ class LearningModuleQuestionController extends Controller
 
         return view('learning_module.questions', [
             'title' => 'Soal Modul: '.$module->title,
-            'active' => 'learning-module',
+            'active' => $module->menuKey('learning-module'),
             'module' => $module,
             'questions' => $module->questions,
             'aiItems' => $module->availableItems()->filter(fn (LearningModuleItem $item) => GenerateLearningModuleQuestions::supports($item)),

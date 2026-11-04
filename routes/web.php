@@ -17,6 +17,7 @@ use App\Http\Controllers\TrainingQuestionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserSyncController;
 use App\Http\Controllers\VideoController;
+use App\Http\Middleware\EnsureLearningModuleContext;
 use Illuminate\Support\Facades\Route;
 
 // # AUTHENTICATION
@@ -146,49 +147,66 @@ Route::middleware('auth')->group(function () {
             });
         });
 
-    // # MODUL BELAJAR: MANAGEMENT (authorized by LearningModulePolicy)
+    // # MODUL BELAJAR & KUIS VIDEO/DOKUMEN (authorized by LearningModulePolicy)
+    // Controller yang sama dipasang di tiga alamat: Modul Belajar (modul-saya / learning-module), kuis video
+    // (video/kuis/...) dan kuis dokumen (document/kuis/...). EnsureLearningModuleContext menjaga modul tetap di
+    // alamat konteksnya sendiri.
+    $quizParticipantRoutes = function () {
+        Route::controller(LearningModulePortalController::class)->group(function () {
+            Route::get('/', 'show')->name('show');
+            Route::get('attempts/{attempt}', 'attempt')->name('attempt');
+            Route::get('items/{item}', 'item')->name('items.show');
+            Route::get('items/{item}/open', 'openDocument')->name('items.open');
+            Route::post('items/{item}/complete', 'completeItem')->name('items.complete');
+            Route::get('{phase}', 'quiz')->whereIn('phase', ['pretest', 'posttest'])->name('quiz');
+            Route::post('{phase}', 'submit')->whereIn('phase', ['pretest', 'posttest'])->name('submit');
+        });
+    };
+
+    $quizManagementRoutes = function () {
+        Route::controller(LearningModuleQuestionController::class)->prefix('questions')->name('questions.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->name('store');
+            Route::get('template', 'downloadTemplate')->name('template');
+            Route::post('import-excel', 'importExcel')->name('import-excel');
+            Route::post('generate-ai', 'generateAi')->name('generate-ai');
+            Route::get('ai-status/{token}', 'aiStatus')->whereUuid('token')->name('ai-status');
+            Route::post('save-ai-batch', 'saveAiBatch')->name('save-ai-batch');
+            Route::post('delete-all', 'deleteAll')->name('delete-all');
+            Route::put('{question}', 'update')->name('update');
+            Route::delete('{question}', 'destroy')->name('destroy');
+        });
+
+        Route::controller(LearningModuleController::class)->group(function () {
+            Route::get('export', 'export')->name('export');
+            Route::get('participants/{user}', 'participant')->withoutScopedBindings()->withTrashed()->name('participant');
+        });
+    };
+
+    $standalone = EnsureLearningModuleContext::class.':standalone';
+
     Route::resource('learning-module', LearningModuleController::class)
         ->parameters(['learning-module' => 'module'])
-        ->whereNumber('module');
-
-    Route::prefix('learning-module/{module}')
         ->whereNumber('module')
-        ->name('learning-module.')
-        ->scopeBindings()
-        ->group(function () {
-            Route::controller(LearningModuleController::class)->group(function () {
-                Route::post('publish', 'togglePublish')->name('publish');
-                Route::get('export', 'export')->name('export');
-                Route::get('participants/{user}', 'participant')->withoutScopedBindings()->withTrashed()->name('participant');
-            });
+        ->middleware($standalone);
 
-            Route::controller(LearningModuleQuestionController::class)->prefix('questions')->name('questions.')->group(function () {
-                Route::get('/', 'index')->name('index');
-                Route::post('/', 'store')->name('store');
-                Route::get('template', 'downloadTemplate')->name('template');
-                Route::post('import-excel', 'importExcel')->name('import-excel');
-                Route::post('generate-ai', 'generateAi')->name('generate-ai');
-                Route::get('ai-status/{token}', 'aiStatus')->whereUuid('token')->name('ai-status');
-                Route::post('save-ai-batch', 'saveAiBatch')->name('save-ai-batch');
-                Route::post('delete-all', 'deleteAll')->name('delete-all');
-                Route::put('{question}', 'update')->name('update');
-                Route::delete('{question}', 'destroy')->name('destroy');
-            });
+    Route::prefix('learning-module/{module}')->whereNumber('module')->name('learning-module.')->middleware($standalone)->scopeBindings()
+        ->group(function () use ($quizManagementRoutes) {
+            Route::post('publish', [LearningModuleController::class, 'togglePublish'])->name('publish');
+            $quizManagementRoutes();
         });
 
-    // # MODUL BELAJAR: PESERTA (pretest -> materi -> posttest); juga kuis milik video/dokumen (LearningModulePolicy::take)
-    Route::prefix('modul-saya')
-        ->name('learning.')
-        ->controller(LearningModulePortalController::class)
-        ->scopeBindings()
-        ->group(function () {
-            Route::get('/', 'index')->middleware('can:view-learning-modules')->name('index');
-            Route::get('{module}', 'show')->whereNumber('module')->name('show');
-            Route::get('{module}/attempts/{attempt}', 'attempt')->whereNumber('module')->name('attempt');
-            Route::get('{module}/items/{item}', 'item')->whereNumber('module')->name('items.show');
-            Route::get('{module}/items/{item}/open', 'openDocument')->whereNumber('module')->name('items.open');
-            Route::post('{module}/items/{item}/complete', 'completeItem')->whereNumber('module')->name('items.complete');
-            Route::get('{module}/{phase}', 'quiz')->whereNumber('module')->whereIn('phase', ['pretest', 'posttest'])->name('quiz');
-            Route::post('{module}/{phase}', 'submit')->whereNumber('module')->whereIn('phase', ['pretest', 'posttest'])->name('submit');
-        });
+    Route::get('modul-saya', [LearningModulePortalController::class, 'index'])->middleware('can:view-learning-modules')->name('learning.index');
+    Route::prefix('modul-saya/{module}')->whereNumber('module')->name('learning.')->middleware($standalone)->scopeBindings()
+        ->group($quizParticipantRoutes);
+
+    foreach (['video' => 'video-quiz.', 'document' => 'document-quiz.'] as $context => $name) {
+        Route::prefix($context.'/kuis/{module}')->whereNumber('module')->name($name)
+            ->middleware(EnsureLearningModuleContext::class.':'.$context)->scopeBindings()
+            ->group(function () use ($quizParticipantRoutes, $quizManagementRoutes) {
+                $quizParticipantRoutes();
+                $quizManagementRoutes();
+                Route::get('rekap', [LearningModuleController::class, 'show'])->name('results');
+            });
+    }
 });

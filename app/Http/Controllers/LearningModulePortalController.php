@@ -44,7 +44,7 @@ class LearningModulePortalController extends Controller
 
         return view('learning_module.portal.show', [
             'title' => $module->title,
-            'active' => 'my-learning-modules',
+            'active' => $module->menuKey('my-learning-modules'),
             'module' => $module,
             'progress' => LearningModuleProgress::for($module, $request->user()),
         ]);
@@ -60,7 +60,7 @@ class LearningModulePortalController extends Controller
 
         return view('learning_module.portal.quiz', [
             'title' => ($phase === LearningModuleAttempt::PHASE_PRETEST ? 'Pretest' : 'Posttest').': '.$module->title,
-            'active' => 'my-learning-modules',
+            'active' => $module->menuKey('my-learning-modules'),
             'module' => $module,
             'phase' => $phase,
             'questions' => $module->shuffle_questions ? $module->questions->shuffle() : $module->questions,
@@ -88,7 +88,7 @@ class LearningModulePortalController extends Controller
             return redirect($module->participantUrl())->with('error', 'Jawaban Anda sudah tersimpan sebelumnya.');
         }
 
-        return to_route('learning.attempt', [$module, $attempt])->with('success', 'Jawaban berhasil dikirim!');
+        return redirect($module->url('attempt', ['attempt' => $attempt]))->with('success', 'Jawaban berhasil dikirim!');
     }
 
     public function attempt(Request $request, LearningModule $module, LearningModuleAttempt $attempt): View
@@ -99,7 +99,7 @@ class LearningModulePortalController extends Controller
 
         return view('learning_module.portal.result', [
             'title' => 'Hasil '.($attempt->isPretest() ? 'Pretest' : 'Posttest'),
-            'active' => 'my-learning-modules',
+            'active' => $module->menuKey('my-learning-modules'),
             'module' => $module,
             'attempt' => $attempt,
             'progress' => LearningModuleProgress::for($module, $request->user()),
@@ -119,14 +119,14 @@ class LearningModulePortalController extends Controller
         }
 
         if (! $item->isVideo()) {
-            return to_route('learning.items.open', [$module, $item]);
+            return redirect($module->url('items.open', ['item' => $item]));
         }
 
         $this->markProgress($item, $request->user(), completed: false);
 
         return view('learning_module.portal.video', [
             'title' => $item->title(),
-            'active' => 'my-learning-modules',
+            'active' => $module->menuKey('my-learning-modules'),
             'module' => $module,
             'item' => $item,
             'video' => $item->materialable,

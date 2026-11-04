@@ -11,7 +11,7 @@
 <section class="content-header">
     <div class="container-fluid">
         <div class="mb-3 d-flex align-items-center">
-            <a href="{{ route('learning.show', $module) }}" class="btn btn-default btn-sm mr-3">
+            <a href="{{ $module->url('show') }}" class="btn btn-default btn-sm mr-3">
                 <i class="fas fa-arrow-left"></i>
             </a>
             <div>
@@ -26,16 +26,16 @@
     <div class="container-fluid" style="max-width: 1000px;">
         @include('learning_module.partials.video-player', [
             'video' => $video,
-            'completeUrl' => route('learning.items.complete', [$module, $item]),
+            'completeUrl' => $module->url('items.complete', ['item' => $item]),
             'done' => $done,
         ])
 
         <div class="d-flex justify-content-end mb-3" style="gap: 8px;">
             <span class="text-success font-weight-bold align-self-center d-none" id="posttestOpenNote">Semua materi selesai, posttest sudah terbuka.</span>
             @if($next)
-                <a href="{{ $next->isVideo() ? route('learning.items.show', [$module, $next]) : route('learning.show', $module) }}" class="btn btn-default">Materi berikutnya</a>
+                <a href="{{ $next->isVideo() ? $module->url('items.show', ['item' => $next]) : $module->url('show') }}" class="btn btn-default">Materi berikutnya</a>
             @endif
-            <a href="{{ route('learning.show', $module) }}" class="btn btn-primary {{ $done ? '' : 'd-none' }}" id="btnBack">Kembali ke Modul</a>
+            <a href="{{ $module->url('show') }}" class="btn btn-primary {{ $done ? '' : 'd-none' }}" id="btnBack">Kembali ke Modul</a>
         </div>
 
         @if($video->description)

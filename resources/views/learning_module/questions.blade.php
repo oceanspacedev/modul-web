@@ -29,11 +29,11 @@
                 <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#importExcelModal">
                     Import Excel / CSV
                 </button>
-                <a href="{{ route('learning-module.questions.template', $module) }}" class="btn btn-default btn-sm">
+                <a href="{{ $module->url('questions.template') }}" class="btn btn-default btn-sm">
                     Download Template
                 </a>
                 @if($questions->isNotEmpty())
-                <form action="{{ route('learning-module.questions.delete-all', $module) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus SEMUA soal modul ini? Riwayat nilai peserta tetap tersimpan.')">
+                <form action="{{ $module->url('questions.delete-all') }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus SEMUA soal modul ini? Riwayat nilai peserta tetap tersimpan.')">
                     @csrf
                     <button type="submit" class="btn btn-outline-danger btn-sm">Hapus Semua Soal</button>
                 </form>
@@ -58,7 +58,7 @@
                         @else
                             <span class="badge badge-secondary px-2 py-1">Kuis belum aktif</span>
                         @endif
-                        <a href="{{ route('learning-module.show', $module) }}" class="btn btn-xs btn-default">Rekap Nilai</a>
+                        <a href="{{ $module->url('results') }}" class="btn btn-xs btn-default">Rekap Nilai</a>
                     @else
                         @if($module->is_published)
                             <span class="badge badge-success px-2 py-1">Dipublikasikan</span>
@@ -82,7 +82,7 @@
                         <strong class="text-sm">Pertanyaan #{{ $index + 1 }}</strong>
                         <div>
                             <button type="button" class="btn btn-default btn-xs mr-1" data-toggle="modal" data-target="#editModal_{{ $q->id }}">Edit</button>
-                            <form action="{{ route('learning-module.questions.destroy', [$module, $q]) }}" method="POST" class="d-inline m-0" onsubmit="return confirm('Hapus soal ini?')">
+                            <form action="{{ $module->url('questions.destroy', ['question' => $q]) }}" method="POST" class="d-inline m-0" onsubmit="return confirm('Hapus soal ini?')">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-default btn-xs text-danger">Hapus</button>
@@ -115,7 +115,7 @@
                 <div class="modal fade" id="editModal_{{ $q->id }}" tabindex="-1" role="dialog" aria-hidden="true">
                     <div class="modal-dialog modal-lg" role="document">
                         <div class="modal-content">
-                            <form action="{{ route('learning-module.questions.update', [$module, $q]) }}" method="POST">
+                            <form action="{{ $module->url('questions.update', ['question' => $q]) }}" method="POST">
                                 @csrf
                                 @method('PUT')
                                 <div class="modal-header py-3">
@@ -148,7 +148,7 @@
 <div class="modal fade" id="addQuestionModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <form action="{{ route('learning-module.questions.store', $module) }}" method="POST">
+            <form action="{{ $module->url('questions.store') }}" method="POST">
                 @csrf
                 <div class="modal-header py-3">
                     <h5 class="modal-title font-weight-bold">Tambah Soal Pilihan Ganda</h5>
@@ -170,7 +170,7 @@
 <div class="modal fade" id="importExcelModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <form action="{{ route('learning-module.questions.import-excel', $module) }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ $module->url('questions.import-excel') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-header py-3">
                     <h5 class="modal-title font-weight-bold">Import Soal dari Excel / CSV</h5>
@@ -178,7 +178,7 @@
                 </div>
                 <div class="modal-body p-4">
                     <p class="text-muted small">
-                        Gunakan <a href="{{ route('learning-module.questions.template', $module) }}">template Excel</a>.
+                        Gunakan <a href="{{ $module->url('questions.template') }}">template Excel</a>.
                         Kolom: pertanyaan, kunci_jawaban (A-E), pilihan_a s/d pilihan_e, penjelasan. Minimal isi pilihan A dan B.
                     </p>
                     <input type="file" name="file" class="form-control-file" accept=".xlsx,.xls,.csv" required>
@@ -288,9 +288,9 @@
 <script>
 $(function () {
     var csrf = '{{ csrf_token() }}';
-    var generateUrl = '{{ route('learning-module.questions.generate-ai', $module) }}';
-    var statusUrl = '{{ url('learning-module/'.$module->id.'/questions/ai-status') }}/';
-    var saveUrl = '{{ route('learning-module.questions.save-ai-batch', $module) }}';
+    var generateUrl = '{{ $module->url('questions.generate-ai') }}';
+    var statusUrlTemplate = @json($module->url('questions.ai-status', ['token' => '00000000-0000-0000-0000-000000000000']));
+    var saveUrl = '{{ $module->url('questions.save-ai-batch') }}';
     var letters = ['a', 'b', 'c', 'd', 'e'];
     var pollTimer = null;
     var elapsedTimer = null;
@@ -326,7 +326,7 @@ $(function () {
     }
 
     function poll(token) {
-        fetch(statusUrl + token, { headers: { 'Accept': 'application/json' } })
+        fetch(statusUrlTemplate.replace('00000000-0000-0000-0000-000000000000', token), { headers: { 'Accept': 'application/json' } })
             .then(function (res) { return res.json(); })
             .then(function (data) {
                 if (data.status === 'done') {

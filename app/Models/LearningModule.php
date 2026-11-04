@@ -21,6 +21,9 @@ class LearningModule extends Model
 {
     use SoftDeletes;
 
+    /** Aksi halaman peserta (rute learning.* untuk modul biasa). */
+    public const PARTICIPANT_ACTIONS = ['show', 'quiz', 'submit', 'attempt', 'items.show', 'items.open', 'items.complete'];
+
     protected $guarded = ['id'];
 
     protected function casts(): array
@@ -76,13 +79,68 @@ class LearningModule extends Model
     }
 
     /**
-     * Halaman tempat peserta kembali setelah kuis: halaman tonton untuk video, halaman modul untuk lainnya.
+     * Halaman tempat peserta kembali setelah kuis: halaman tonton untuk video, halaman kuis/modul untuk lainnya.
      */
     public function participantUrl(): string
     {
         return $this->isOwnedByVideo()
             ? route('video.show', $this->source_id)
-            : route('learning.show', $this);
+            : $this->url('show');
+    }
+
+    /**
+     * Konteks rute: kuis video dan dokumen punya alamat sendiri (video/kuis/..., document/kuis/...) agar tidak
+     * tercampur dengan menu Modul Belajar.
+     */
+    public function routeContext(): string
+    {
+        return $this->source_type ?? 'standalone';
+    }
+
+    /**
+     * Nama rute untuk sebuah aksi di konteks modul ini. Modul biasa memakai learning.* (peserta) dan
+     * learning-module.* (pengelola, rekap = learning-module.show); kuis video/dokumen memakai video-quiz.* /
+     * document-quiz.* untuk keduanya.
+     */
+    public function routeName(string $action): string
+    {
+        return match ($this->source_type) {
+            LearningModuleItem::TYPE_VIDEO => 'video-quiz.'.$action,
+            LearningModuleItem::TYPE_DOCUMENT => 'document-quiz.'.$action,
+            default => match (true) {
+                in_array($action, self::PARTICIPANT_ACTIONS, true) => 'learning.'.$action,
+                $action === 'results' => 'learning-module.show',
+                default => 'learning-module.'.$action,
+            },
+        };
+    }
+
+    /**
+     * Kebalikan routeName(): aksi dari nama rute mana pun.
+     */
+    public static function actionFromRouteName(string $routeName): string
+    {
+        return $routeName === 'learning-module.show' ? 'results' : substr($routeName, strpos($routeName, '.') + 1);
+    }
+
+    /**
+     * @param  array<string, mixed>  $parameters  parameter rute selain module, mis. ['phase' => 'pretest']
+     */
+    public function url(string $action, array $parameters = []): string
+    {
+        return route($this->routeName($action), ['module' => $this, ...$parameters]);
+    }
+
+    /**
+     * Menu sidebar yang aktif: kuis video/dokumen tetap di bawah menunya sendiri.
+     */
+    public function menuKey(string $standaloneKey): string
+    {
+        return match ($this->source_type) {
+            LearningModuleItem::TYPE_VIDEO => 'video',
+            LearningModuleItem::TYPE_DOCUMENT => 'document',
+            default => $standaloneKey,
+        };
     }
 
     /**
@@ -103,7 +161,7 @@ class LearningModule extends Model
     public function managementUrl(): string
     {
         return match ($this->source_type) {
-            LearningModuleItem::TYPE_VIDEO => route('video.show', $this->source_id),
+            LearningModuleItem::TYPE_VIDEO => route('video.show', ['video' => $this->source_id, 'preview' => 1]),
             LearningModuleItem::TYPE_DOCUMENT => route('document.index'),
             default => route('learning-module.index'),
         };

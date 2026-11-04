@@ -42,7 +42,7 @@
                     @php $quizItem = $quiz->items->first(); @endphp
                     @include('learning_module.partials.video-player', [
                         'video' => $video,
-                        'completeUrl' => route('learning.items.complete', [$quiz, $quizItem]),
+                        'completeUrl' => $quiz->url('items.complete', ['item' => $quizItem]),
                         'done' => $quizProgress->isItemCompleted($quizItem),
                     ])
                     @include('learning_module.partials.material-quiz-panel', [

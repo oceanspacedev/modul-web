@@ -129,7 +129,7 @@
                                                 <div class="d-inline-flex align-items-center" style="gap: 4px;">
                                                     @if($quiz && ! $document->deleted_at)
                                                         {{-- Dokumen ber-kuis dibuka lewat halaman pretest -> dokumen -> posttest, juga oleh pengelola (ada tombol pratinjau di sana). --}}
-                                                        <a href="{{ route('learning.show', $quiz) }}" class="btn btn-primary btn-xs" title="Buka dokumen beserta pretest/posttest">
+                                                        <a href="{{ $quiz->url('show') }}" class="btn btn-primary btn-xs" title="Buka dokumen beserta pretest/posttest">
                                                             Buka
                                                         </a>
                                                     @else
@@ -150,10 +150,10 @@
                                                                     Edit Dokumen
                                                                 </a>
                                                                 @if($quizSettings)
-                                                                    <a class="dropdown-item py-1" href="{{ route('learning-module.questions.index', $quizSettings) }}">
+                                                                    <a class="dropdown-item py-1" href="{{ $quizSettings->url('questions.index') }}">
                                                                         Soal Pretest/Posttest
                                                                     </a>
-                                                                    <a class="dropdown-item py-1" href="{{ route('learning-module.show', $quizSettings) }}">
+                                                                    <a class="dropdown-item py-1" href="{{ $quizSettings->url('results') }}">
                                                                         Rekap Nilai Kuis
                                                                     </a>
                                                                 @endif

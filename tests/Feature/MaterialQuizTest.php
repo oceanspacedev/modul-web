@@ -53,7 +53,7 @@ class MaterialQuizTest extends TestCase
             'video_type' => 'link',
             'video_link' => 'https://youtu.be/dQw4w9WgXcQ',
             'quiz' => ['pretest' => '1', 'posttest' => '1', 'pretest_max_attempts' => '1', 'posttest_max_attempts' => '', 'passing_score' => '80'],
-        ])->assertRedirect(route('learning-module.questions.index', LearningModule::sole()));
+        ])->assertRedirect(LearningModule::sole()->url('questions.index'));
 
         $quiz = LearningModule::sole();
         $this->assertSame('video', $quiz->source_type);
@@ -64,7 +64,7 @@ class MaterialQuizTest extends TestCase
         $this->assertFalse($quiz->is_published, 'Kuis belum aktif sebelum ada soal.');
 
         // Menambah soal pertama mengaktifkan kuis.
-        $this->actingAs($this->admin)->post(route('learning-module.questions.store', $quiz), [
+        $this->actingAs($this->admin)->post($quiz->url('questions.store'), [
             'question' => 'APD utama?', 'option_a' => 'Helm', 'option_b' => 'Topi', 'correct_answer' => 'a',
         ]);
         $this->assertTrue($quiz->fresh()->is_published);
@@ -87,25 +87,25 @@ class MaterialQuizTest extends TestCase
 
         $this->get(route('video.show', $video))->assertRedirect(route('login', ['redirect' => '/video/watch/'.$video->id]));
         $this->actingAs($this->staff)->get(route('video.show', $video))
-            ->assertRedirect(route('learning.quiz', [$quiz, 'pretest']));
+            ->assertRedirect($quiz->url('quiz', ['phase' => 'pretest']));
 
-        $this->actingAs($this->staff)->post(route('learning.submit', [$quiz, 'pretest']), $this->answer($quiz, 'b'))->assertRedirect();
+        $this->actingAs($this->staff)->post($quiz->url('submit', ['phase' => 'pretest']), $this->answer($quiz, 'b'))->assertRedirect();
         $this->actingAs($this->staff)->get(route('video.show', $video))->assertOk()->assertSee('Kerjakan Posttest');
 
         // Posttest terkunci sampai video selesai ditonton.
-        $this->actingAs($this->staff)->post(route('learning.submit', [$quiz, 'posttest']), $this->answer($quiz, 'a'))
+        $this->actingAs($this->staff)->post($quiz->url('submit', ['phase' => 'posttest']), $this->answer($quiz, 'a'))
             ->assertRedirect(route('video.show', $video));
         $this->assertSame(0, LearningModuleAttempt::where('phase', 'posttest')->count());
 
-        $this->actingAs($this->staff)->postJson(route('learning.items.complete', [$quiz, $item]))
+        $this->actingAs($this->staff)->postJson($quiz->url('items.complete', ['item' => $item]))
             ->assertOk()->assertJson(['posttest_open' => true]);
 
-        $this->actingAs($this->staff)->post(route('learning.submit', [$quiz, 'posttest']), $this->answer($quiz, 'a'))->assertRedirect();
-        $this->actingAs($this->staff)->post(route('learning.submit', [$quiz, 'posttest']), $this->answer($quiz, 'b'))->assertRedirect();
+        $this->actingAs($this->staff)->post($quiz->url('submit', ['phase' => 'posttest']), $this->answer($quiz, 'a'))->assertRedirect();
+        $this->actingAs($this->staff)->post($quiz->url('submit', ['phase' => 'posttest']), $this->answer($quiz, 'b'))->assertRedirect();
         $this->assertSame([1, 2], LearningModuleAttempt::where('phase', 'posttest')->orderBy('id')->pluck('attempt_number')->all());
 
         // Pretest dibatasi sekali.
-        $this->actingAs($this->staff)->post(route('learning.submit', [$quiz, 'pretest']), $this->answer($quiz, 'a'))
+        $this->actingAs($this->staff)->post($quiz->url('submit', ['phase' => 'pretest']), $this->answer($quiz, 'a'))
             ->assertSessionHas('error', 'Pretest hanya dapat dikerjakan satu kali.');
         $this->assertSame(1, LearningModuleAttempt::where('phase', 'pretest')->count());
     }
@@ -115,10 +115,10 @@ class MaterialQuizTest extends TestCase
         [$video, $quiz] = $this->videoWithQuiz(['pretest' => false, 'posttest' => true]);
 
         $this->actingAs($this->staff)->get(route('video.show', $video))->assertOk()->assertDontSee('Kerjakan Pretest');
-        $this->actingAs($this->staff)->get(route('learning.quiz', [$quiz, 'pretest']))->assertRedirect(route('video.show', $video));
+        $this->actingAs($this->staff)->get($quiz->url('quiz', ['phase' => 'pretest']))->assertRedirect(route('video.show', $video));
 
-        $this->actingAs($this->staff)->postJson(route('learning.items.complete', [$quiz, $quiz->items()->sole()]))->assertOk();
-        $this->actingAs($this->staff)->get(route('learning.quiz', [$quiz, 'posttest']))->assertOk();
+        $this->actingAs($this->staff)->postJson($quiz->url('items.complete', ['item' => $quiz->items()->sole()]))->assertOk();
+        $this->actingAs($this->staff)->get($quiz->url('quiz', ['phase' => 'posttest']))->assertOk();
     }
 
     public function test_attempt_limits_are_configurable_per_phase(): void
@@ -127,18 +127,18 @@ class MaterialQuizTest extends TestCase
 
         foreach (['pretest', 'posttest'] as $phase) {
             if ($phase === 'posttest') {
-                $this->actingAs($this->staff)->postJson(route('learning.items.complete', [$quiz, $quiz->items()->sole()]))->assertOk();
+                $this->actingAs($this->staff)->postJson($quiz->url('items.complete', ['item' => $quiz->items()->sole()]))->assertOk();
             }
-            $this->actingAs($this->staff)->post(route('learning.submit', [$quiz, $phase]), $this->answer($quiz, 'b'));
-            $this->actingAs($this->staff)->post(route('learning.submit', [$quiz, $phase]), $this->answer($quiz, 'a'));
-            $this->actingAs($this->staff)->post(route('learning.submit', [$quiz, $phase]), $this->answer($quiz, 'a'))
+            $this->actingAs($this->staff)->post($quiz->url('submit', ['phase' => $phase]), $this->answer($quiz, 'b'));
+            $this->actingAs($this->staff)->post($quiz->url('submit', ['phase' => $phase]), $this->answer($quiz, 'a'));
+            $this->actingAs($this->staff)->post($quiz->url('submit', ['phase' => $phase]), $this->answer($quiz, 'a'))
                 ->assertSessionHas('error');
         }
 
         $this->assertSame(2, LearningModuleAttempt::where('phase', 'pretest')->count());
         $this->assertSame(2, LearningModuleAttempt::where('phase', 'posttest')->count());
         // Nilai awal tetap pretest pertama.
-        $this->actingAs($this->admin)->get(route('learning-module.show', $quiz))->assertOk()->assertSee('+100');
+        $this->actingAs($this->admin)->get($quiz->url('results'))->assertOk()->assertSee('+100');
     }
 
     public function test_pretest_is_required_for_everyone_but_managers_get_a_preview_link(): void
@@ -149,15 +149,15 @@ class MaterialQuizTest extends TestCase
         $previewUrl = route('video.show', ['video' => $video, 'preview' => 1]);
 
         foreach ([$this->admin, $trainer, $this->staff] as $user) {
-            $this->actingAs($user)->get(route('video.show', $video))->assertRedirect(route('learning.quiz', [$quiz, 'pretest']));
+            $this->actingAs($user)->get(route('video.show', $video))->assertRedirect($quiz->url('quiz', ['phase' => 'pretest']));
         }
 
-        $this->actingAs($trainer)->get(route('learning.quiz', [$quiz, 'pretest']))->assertOk()->assertSee($previewUrl, false);
+        $this->actingAs($trainer)->get($quiz->url('quiz', ['phase' => 'pretest']))->assertOk()->assertSee($previewUrl, false);
         $this->actingAs($trainer)->get($previewUrl)->assertOk();
 
         // Peserta tidak melihat link pratinjau dan tidak bisa memakainya.
-        $this->actingAs($this->staff)->get(route('learning.quiz', [$quiz, 'pretest']))->assertOk()->assertDontSee('Pratinjau video tanpa pretest');
-        $this->actingAs($this->staff)->get($previewUrl)->assertRedirect(route('learning.quiz', [$quiz, 'pretest']));
+        $this->actingAs($this->staff)->get($quiz->url('quiz', ['phase' => 'pretest']))->assertOk()->assertDontSee('Pratinjau video tanpa pretest');
+        $this->actingAs($this->staff)->get($previewUrl)->assertRedirect($quiz->url('quiz', ['phase' => 'pretest']));
     }
 
     public function test_video_manager_can_manage_quiz_without_learning_module_permission(): void
@@ -166,15 +166,15 @@ class MaterialQuizTest extends TestCase
         $trainer = User::factory()->staff()->create();
         $trainer->givePermissionTo('manage-videos');
 
-        $this->actingAs($trainer)->get(route('learning-module.questions.index', $quiz))->assertOk();
-        $this->actingAs($trainer)->get(route('learning-module.show', $quiz))->assertOk();
+        $this->actingAs($trainer)->get($quiz->url('questions.index'))->assertOk();
+        $this->actingAs($trainer)->get($quiz->url('results'))->assertOk();
         $this->actingAs($trainer)->get(route('learning-module.edit', $quiz))->assertNotFound();
     }
 
     public function test_turning_quiz_off_keeps_history_and_removes_gating(): void
     {
         [$video, $quiz] = $this->videoWithQuiz(['pretest' => true, 'posttest' => false]);
-        $this->actingAs($this->staff)->post(route('learning.submit', [$quiz, 'pretest']), $this->answer($quiz, 'a'));
+        $this->actingAs($this->staff)->post($quiz->url('submit', ['phase' => 'pretest']), $this->answer($quiz, 'a'));
 
         $this->actingAs($this->admin)->put(route('video.update', $video), [
             'title' => 'K3 Gudang',
@@ -200,13 +200,13 @@ class MaterialQuizTest extends TestCase
         $this->actingAs($this->admin)->get(route('video.show', ['video' => $video, 'preview' => 1]))->assertOk()->assertSee('Rekap Nilai');
         $this->actingAs($this->admin)->get(route('document.create'))->assertOk()->assertSee('Aktifkan Posttest');
         $this->actingAs($this->admin)->get(route('document.edit', $document))->assertOk();
-        $this->actingAs($this->admin)->get(route('learning-module.questions.index', $quiz))->assertOk()->assertSee('Kuis aktif');
+        $this->actingAs($this->admin)->get($quiz->url('questions.index'))->assertOk()->assertSee('Kuis aktif');
         $this->actingAs($this->admin)->get(route('learning-module.create'))->assertOk()->assertSee('Batas Percobaan Posttest');
 
-        $this->actingAs($this->staff)->post(route('learning.submit', [$quiz, 'pretest']), $this->answer($quiz, 'a'));
+        $this->actingAs($this->staff)->post($quiz->url('submit', ['phase' => 'pretest']), $this->answer($quiz, 'a'));
         $attempt = LearningModuleAttempt::sole();
-        $this->actingAs($this->staff)->get(route('learning.attempt', [$quiz, $attempt]))->assertOk()->assertSee('Lanjut Tonton Video');
-        $this->actingAs($this->staff)->get(route('learning.quiz', [$quiz, 'pretest']))->assertRedirect(route('video.show', $video));
+        $this->actingAs($this->staff)->get($quiz->url('attempt', ['attempt' => $attempt]))->assertOk()->assertSee('Lanjut Tonton Video');
+        $this->actingAs($this->staff)->get($quiz->url('quiz', ['phase' => 'pretest']))->assertRedirect(route('video.show', $video));
     }
 
     public function test_document_pretest_is_required_for_everyone_but_managers_get_a_preview_link(): void
@@ -215,7 +215,7 @@ class MaterialQuizTest extends TestCase
         $quiz = app(MaterialQuizService::class)->sync($document, ['pretest' => true, 'posttest' => false, 'pretest_max_attempts' => 1]);
         $quiz->questions()->create(['question' => 'APD utama?', 'option_a' => 'Helm', 'option_b' => 'Topi', 'correct_answer' => 'a']);
         app(MaterialQuizService::class)->refresh($quiz);
-        $hubUrl = route('learning.show', $quiz);
+        $hubUrl = $quiz->url('show');
 
         // Tombol Buka di menu Dokumen mengarah ke halaman kuis, juga untuk admin.
         foreach ([$this->admin, $this->staff] as $user) {
@@ -223,9 +223,9 @@ class MaterialQuizTest extends TestCase
         }
 
         $this->actingAs($this->admin)->get($hubUrl)->assertOk()->assertSee('Pratinjau dokumen tanpa pretest');
-        $this->actingAs($this->admin)->get(route('learning.quiz', [$quiz, 'pretest']))->assertOk()->assertSee('Pratinjau dokumen tanpa pretest');
+        $this->actingAs($this->admin)->get($quiz->url('quiz', ['phase' => 'pretest']))->assertOk()->assertSee('Pratinjau dokumen tanpa pretest');
         $this->actingAs($this->staff)->get($hubUrl)->assertOk()->assertDontSee('Pratinjau dokumen tanpa pretest');
-        $this->actingAs($this->staff)->get(route('learning.items.open', [$quiz, $quiz->items()->sole()]))->assertRedirect($hubUrl);
+        $this->actingAs($this->staff)->get($quiz->url('items.open', ['item' => $quiz->items()->sole()]))->assertRedirect($hubUrl);
 
         // Portal peserta pelatihan (link WhatsApp) juga lewat halaman kuis, bukan file langsung.
         $training = Training::create([
@@ -236,6 +236,36 @@ class MaterialQuizTest extends TestCase
         $participant = TrainingParticipant::create(['training_id' => $training->id, 'user_id' => $this->staff->id, 'token' => 'token_doc_quiz']);
 
         $this->get(route('training.portal', $participant->token))->assertOk()->assertSee($hubUrl, false)->assertDontSee('dokumen/sop.pdf');
+    }
+
+    public function test_video_and_document_quizzes_live_under_their_own_menus(): void
+    {
+        [$video, $videoQuiz] = $this->videoWithQuiz(['pretest' => true, 'posttest' => true, 'pretest_max_attempts' => 1]);
+        $document = Document::create(['name' => 'SOP PDF', 'divisi_id' => 1, 'document_type' => 1, 'path' => 'sop.pdf']);
+        $documentQuiz = app(MaterialQuizService::class)->sync($document, ['pretest' => true, 'posttest' => true]);
+
+        $this->assertStringContainsString('/video/kuis/', $videoQuiz->url('quiz', ['phase' => 'pretest']));
+        $this->assertStringContainsString('/document/kuis/', $documentQuiz->url('show'));
+        $this->assertStringContainsString('/video/kuis/', $videoQuiz->url('questions.index'));
+
+        // Halaman tes video: menu Video Materi yang aktif, menu Modul Belajar tetap tertutup.
+        $page = $this->actingAs($this->staff)->get($videoQuiz->url('quiz', ['phase' => 'pretest']))->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('#href="/video" class="nav-link active"#', $page);
+        $this->assertDoesNotMatchRegularExpression('#modul-saya" class="nav-link active"#', $page);
+
+        $page = $this->actingAs($this->admin)->get($documentQuiz->url('questions.index'))->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('#href="/document" class="nav-link active"#', $page);
+
+        // Link lama /modul-saya/... dan /learning-module/... dialihkan ke alamat barunya; POST lama ditolak.
+        $this->actingAs($this->staff)->get(route('learning.quiz', [$videoQuiz, 'pretest']))
+            ->assertRedirect($videoQuiz->url('quiz', ['phase' => 'pretest']));
+        $this->actingAs($this->admin)->get(route('learning-module.questions.index', $documentQuiz))
+            ->assertRedirect($documentQuiz->url('questions.index'));
+        $this->actingAs($this->staff)->post(route('learning.submit', [$videoQuiz, 'pretest']), $this->answer($videoQuiz, 'a'))->assertNotFound();
+
+        // Modul Belajar biasa tidak bisa dibuka lewat alamat video/dokumen.
+        $module = LearningModule::create(['title' => 'Modul Biasa', 'passing_score' => 70, 'is_published' => true]);
+        $this->actingAs($this->staff)->get(route('video-quiz.show', $module))->assertRedirect(route('learning.show', $module));
     }
 
     public function test_deleting_video_soft_deletes_its_quiz(): void
@@ -264,17 +294,17 @@ class MaterialQuizTest extends TestCase
         app(MaterialQuizService::class)->refresh($quiz);
         $item = $quiz->items()->sole();
 
-        $this->actingAs($this->staff)->get(route('document.index'))->assertSee(route('learning.show', $quiz));
+        $this->actingAs($this->staff)->get(route('document.index'))->assertSee($quiz->url('show'));
         $this->actingAs($this->staff)->getJson(route('document.history', $document))
-            ->assertJsonPath('versions.0.file_url', route('learning.show', $quiz));
+            ->assertJsonPath('versions.0.file_url', $quiz->url('show'));
 
-        $this->actingAs($this->staff)->get(route('learning.items.open', [$quiz, $item]))->assertRedirect(route('learning.show', $quiz));
-        $this->actingAs($this->staff)->post(route('learning.submit', [$quiz, 'pretest']), $this->answer($quiz, 'b'));
-        $this->actingAs($this->staff)->get(route('learning.items.open', [$quiz, $item]))->assertRedirectContains('dokumen/');
-        $this->actingAs($this->staff)->post(route('learning.submit', [$quiz, 'posttest']), $this->answer($quiz, 'a'));
+        $this->actingAs($this->staff)->get($quiz->url('items.open', ['item' => $item]))->assertRedirect($quiz->url('show'));
+        $this->actingAs($this->staff)->post($quiz->url('submit', ['phase' => 'pretest']), $this->answer($quiz, 'b'));
+        $this->actingAs($this->staff)->get($quiz->url('items.open', ['item' => $item]))->assertRedirectContains('dokumen/');
+        $this->actingAs($this->staff)->post($quiz->url('submit', ['phase' => 'posttest']), $this->answer($quiz, 'a'));
 
         $this->assertSame(['pretest', 'posttest'], LearningModuleAttempt::orderBy('id')->pluck('phase')->all());
-        $this->actingAs($this->staff)->get(route('learning.show', $quiz))->assertOk()->assertSee('Kuis Dokumen');
+        $this->actingAs($this->staff)->get($quiz->url('show'))->assertOk()->assertSee('Kuis Dokumen');
         $this->actingAs($this->staff)->get(route('learning.index'))->assertDontSee('SOP-GUDANG');
     }
 }

@@ -153,7 +153,7 @@
                             @can('update', $v)
                             <div class="card-footer bg-white px-3 py-2 d-flex justify-content-end align-items-center border-top">
                                 @if($v->quizModule && ($v->quizModule->has_pretest || $v->quizModule->has_posttest))
-                                    <a href="{{ route('learning-module.questions.index', $v->quizModule) }}" class="btn btn-default btn-xs mr-1" title="Soal pretest/posttest">
+                                    <a href="{{ $v->quizModule->url('questions.index') }}" class="btn btn-default btn-xs mr-1" title="Soal pretest/posttest">
                                         Soal Kuis
                                     </a>
                                 @endif

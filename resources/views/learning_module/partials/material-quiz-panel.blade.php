@@ -17,8 +17,8 @@
         </h5>
         @if($canManage)
             <div class="d-flex" style="gap: 6px;">
-                <a href="{{ route('learning-module.questions.index', $quiz) }}" class="btn btn-default btn-xs">Kelola Soal</a>
-                <a href="{{ route('learning-module.show', $quiz) }}" class="btn btn-default btn-xs">Rekap Nilai</a>
+                <a href="{{ $quiz->url('questions.index') }}" class="btn btn-default btn-xs">Kelola Soal</a>
+                <a href="{{ $quiz->url('results') }}" class="btn btn-default btn-xs">Rekap Nilai</a>
             </div>
         @endif
     </div>
@@ -38,7 +38,7 @@
                     @endif
                 </div>
                 @if($progress->canTakePretest())
-                    <a href="{{ route('learning.quiz', [$quiz, 'pretest']) }}" class="btn btn-outline-primary btn-sm">
+                    <a href="{{ $quiz->url('quiz', ['phase' => 'pretest']) }}" class="btn btn-outline-primary btn-sm">
                         {{ $progress->hasDonePretest() ? 'Ulangi Pretest' : 'Kerjakan Pretest' }}
                     </a>
                 @endif
@@ -63,7 +63,7 @@
                     </span>
                 </div>
                 @if($progress->remainingAttempts('posttest') !== 0)
-                    <a href="{{ route('learning.quiz', [$quiz, 'posttest']) }}" class="btn btn-primary btn-sm {{ $progress->isPosttestUnlocked() ? '' : 'd-none' }}" id="btnPosttest">
+                    <a href="{{ $quiz->url('quiz', ['phase' => 'posttest']) }}" class="btn btn-primary btn-sm {{ $progress->isPosttestUnlocked() ? '' : 'd-none' }}" id="btnPosttest">
                         {{ $progress->posttests->isEmpty() ? 'Kerjakan Posttest' : 'Ulangi Posttest' }}
                     </a>
                 @endif
@@ -83,7 +83,7 @@
                                 <td>{{ $attempt->submitted_at->format('d M Y H:i') }}</td>
                                 <td class="text-center">{{ $attempt->correct_answers }}/{{ $attempt->total_questions }}</td>
                                 <td class="text-center font-weight-bold {{ $attempt->is_passed ? 'text-success' : '' }}">{{ $attempt->score }}</td>
-                                <td class="text-right"><a href="{{ route('learning.attempt', [$quiz, $attempt]) }}" class="btn btn-default btn-xs">Lihat</a></td>
+                                <td class="text-right"><a href="{{ $quiz->url('attempt', ['attempt' => $attempt]) }}" class="btn btn-default btn-xs">Lihat</a></td>
                             </tr>
                         @endforeach
                     </tbody>

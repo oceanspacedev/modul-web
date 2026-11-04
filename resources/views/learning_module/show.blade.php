@@ -21,11 +21,11 @@
                 </div>
             </div>
             <div class="d-flex flex-wrap" style="gap: 8px;">
-                <a href="{{ route('learning-module.questions.index', $module) }}" class="btn btn-default btn-sm">Kelola Soal ({{ $module->questions_count }})</a>
+                <a href="{{ $module->url('questions.index') }}" class="btn btn-default btn-sm">Kelola Soal ({{ $module->questions_count }})</a>
                 @unless($module->isOwned())
                     <a href="{{ route('learning-module.edit', $module) }}" class="btn btn-default btn-sm">Edit Modul & Materi</a>
                 @endunless
-                <a href="{{ route('learning-module.export', $module) }}" class="btn btn-success btn-sm">
+                <a href="{{ $module->url('export') }}" class="btn btn-success btn-sm">
                     <i class="fas fa-file-excel mr-1"></i> Export Excel
                 </a>
             </div>
@@ -124,7 +124,7 @@
                                 } }}">{{ $status }}</span>
                             </td>
                             <td class="text-center align-middle">
-                                <a href="{{ route('learning-module.participant', [$module, $p->user]) }}" class="btn btn-default btn-xs">Riwayat</a>
+                                <a href="{{ $module->url('participant', ['user' => $p->user]) }}" class="btn btn-default btn-xs">Riwayat</a>
                             </td>
                         </tr>
                         @empty
