@@ -58,6 +58,8 @@
                 <a href="#akses">15. Hak akses per fitur</a>
                 <div class="toc-title mt-2">Modul Belajar</div>
                 <a href="#modulbelajar">16. Pretest, materi &amp; posttest</a>
+                <a href="#video-kuis">Video dengan pretest/posttest</a>
+                <a href="#dokumen-kuis">Dokumen dengan pretest/posttest</a>
             </nav>
 
             <div class="pg-body">
@@ -421,8 +423,19 @@
                         <li><b>Nonaktifkan Dokumen</b> menyembunyikan dokumen tanpa menghapus, <b>Aktifkan Dokumen</b> mengembalikannya.</li>
                         <li>Gunakan filter <b>Divisi</b>, <b>Type</b>, dan pencarian untuk menemukan dokumen.</li>
                     </ul>
-                    <h3>Pretest &amp; posttest pada dokumen</h3>
-                    <p>Form tambah/edit dokumen memiliki bagian <b>Pretest &amp; Posttest</b> yang sama seperti video. Untuk dokumen ber-kuis, tombol <b>Buka</b> membuka halaman kuis dokumen: pretest (bila nyala) → buka dokumen → posttest (bila nyala). Bila pretest aktif, <b>semua akun</b> (termasuk admin) wajib pretest dulu; pengelola dokumen mendapat tombol <b>Pratinjau dokumen tanpa pretest</b> di halaman kuis. Dokumen yang dilampirkan ke pelatihan juga dibuka lewat halaman kuis ini dari portal peserta (perlu login). Soal dan rekap nilai ada di menu <b>Aksi → Soal Pretest/Posttest</b> dan <b>Aksi → Rekap Nilai Kuis</b>. Bila satu unggahan dibuat untuk beberapa jabatan, setiap dokumen memiliki bank soal sendiri. Tes dokumen berada di bawah menu <b>Document</b> dan tidak muncul di <b>Modul Saya</b>.</p>
+                    <h3 id="dokumen-kuis">Membuat dokumen dengan pretest &amp; posttest</h3>
+                    <p>Pretest dikerjakan peserta <b>sebelum</b> dokumen bisa dibuka, posttest <b>setelah</b> dokumen dibuka. Pengaturannya sama dengan video.</p>
+                    <figure class="pg-shot"><img src="/assets/panduan/dokumen-kuis-buat.gif" alt="Animasi: membuat dokumen dengan pretest dan posttest" loading="lazy"><figcaption>Animasi: memilih file PDF, Document Type, Jabatan, dan Divisi, menyalakan pretest dan posttest, lalu <b>Simpan</b>. Halaman soal dokumen terbuka dengan status <b>Kuis belum aktif</b>. Data pada animasi hanya contoh.</figcaption></figure>
+                    <ol>
+                        <li>Buka <b>Document</b> → <b>Tambah Dokumen</b>, lalu pilih file PDF, <b>Document Type</b>, <b>Jabatan</b>, dan <b>Divisi</b>.</li>
+                        <li>Di bagian <b>Pretest &amp; Posttest</b>, nyalakan <b>Aktifkan Pretest</b> dan/atau <b>Aktifkan Posttest</b>.</li>
+                        <li>Atur <b>Batas percobaan</b> (pretest bawaannya 1 kali, kosong = tanpa batas) dan <b>Nilai minimal lulus (KKM)</b>.</li>
+                        <li>Klik <b>Simpan</b>. Bila memilih satu jabatan, Anda langsung dibawa ke halaman <b>Soal Pretest &amp; Posttest</b> dokumen tersebut. Bila memilih beberapa jabatan, sistem membuat satu dokumen per jabatan, masing-masing dengan bank soal sendiri; buka soalnya lewat <b>Aksi → Soal Pretest/Posttest</b> pada tiap dokumen.</li>
+                        <li>Tambahkan soal lewat <b>Buat Soal via AI</b> (dibaca dari isi PDF), <b>Tambah Manual</b>, atau <b>Import Excel / CSV</b>. Kuis aktif setelah ada minimal satu soal.</li>
+                    </ol>
+                    <div class="pg-note">Untuk dokumen yang sudah ada, buka <b>Aksi → Edit Dokumen</b>, nyalakan pretest/posttest, lalu simpan. Mematikan keduanya hanya menonaktifkan kuis; riwayat nilai tetap tersimpan.</div>
+                    <h3>Yang dialami peserta pada dokumen ber-kuis</h3>
+                    <p>Untuk dokumen ber-kuis, tombol <b>Buka</b> membuka halaman kuis dokumen: pretest (bila nyala) → buka dokumen → posttest (bila nyala). Bila pretest aktif, <b>semua akun</b> (termasuk admin) wajib pretest dulu; pengelola dokumen mendapat tombol <b>Pratinjau dokumen tanpa pretest</b> di halaman kuis. Dokumen yang dilampirkan ke pelatihan juga dibuka lewat halaman kuis ini dari portal peserta (perlu login). Soal dan rekap nilai ada di menu <b>Aksi → Soal Pretest/Posttest</b> dan <b>Aksi → Rekap Nilai Kuis</b>. Bila satu unggahan dibuat untuk beberapa jabatan, setiap dokumen memiliki bank soal sendiri. Tes dokumen berada di bawah menu <b>Document</b> dan tidak muncul di <b>Modul Saya</b>.</p>
                     <figure class="pg-shot"><img src="/assets/panduan/dokumen-kuis.gif" alt="Animasi: membuka dokumen ber-kuis" loading="lazy"><figcaption>Animasi (peserta): klik <b>Buka</b> pada dokumen ber-kuis, halaman kuis dokumen menampilkan langkah Pretest → Materi → Posttest, lalu <b>Mulai Pretest</b> dan memilih jawaban. Data pada animasi hanya contoh.</figcaption></figure>
                 </div>
 
@@ -448,9 +461,22 @@
                     </ol>
                     <div class="pg-note">Untuk link Google Drive, atur akses berbagi ke <b>"Siapa saja yang memiliki link"</b> agar video bisa diputar. <b>Edit</b> dan <b>Hapus</b> tersedia pada tiap video.</div>
                     <p>Video lama yang belum punya cover: buka <b>Edit</b>, klik <b>Ambil cover dari video</b>, lalu <b>Simpan Perubahan</b>. Format yang tidak bisa diputar browser (mis. sebagian file MKV) tidak bisa diambil cover-nya; pilih gambar cover manual.</p>
-                    <h3>Pretest &amp; posttest pada video</h3>
-                    <p>Di form tambah/edit video, bagian <b>Pretest &amp; Posttest</b> berisi tombol <b>Aktifkan Pretest</b> dan <b>Aktifkan Posttest</b>, batas percobaan masing-masing (kosong = tanpa batas), dan nilai minimal lulus. Setelah disimpan Anda diarahkan ke halaman soal; kuis baru aktif setelah ada minimal satu soal (manual, Excel, atau AI dari video itu). Tes video berada di bawah menu <b>Video Materi</b> dan tidak muncul di <b>Modul Saya</b>.</p>
-                    <figure class="pg-shot"><img src="/assets/panduan/video-kuis-atur.gif" alt="Animasi: menyalakan pretest dan posttest video" loading="lazy"><figcaption>Animasi (admin): menyalakan <b>Aktifkan Pretest</b> dan <b>Aktifkan Posttest</b>, mengisi batas percobaan posttest dan nilai minimal lulus (contoh, tidak disimpan).</figcaption></figure>
+                    <h3 id="video-kuis">Membuat video dengan pretest &amp; posttest</h3>
+                    <p>Pretest dikerjakan peserta <b>sebelum</b> menonton video, posttest <b>setelah</b> video selesai ditonton. Keduanya memakai bank soal yang sama dengan urutan diacak, dan bisa dinyalakan salah satu atau keduanya.</p>
+                    <figure class="pg-shot"><img src="/assets/panduan/video-kuis-buat.gif" alt="Animasi: membuat video dengan pretest dan posttest" loading="lazy"><figcaption>Animasi: mengisi judul dan deskripsi, memilih file video (cover otomatis muncul), menyalakan pretest dan posttest dengan batas posttest 3 kali, lalu <b>Simpan Video</b>. Setelah tersimpan, halaman soal terbuka dengan status <b>Kuis belum aktif</b>. Data pada animasi hanya contoh.</figcaption></figure>
+                    <ol>
+                        <li>Buka <b>Video Materi</b> → <b>Tambah Video Baru</b>, lalu isi judul, deskripsi, sumber video, dan cover seperti biasa.</li>
+                        <li>Di bagian <b>Pretest &amp; Posttest</b> (di bawah cover), nyalakan <b>Aktifkan Pretest</b> dan/atau <b>Aktifkan Posttest</b>.</li>
+                        <li>Atur <b>Batas percobaan</b> masing-masing. Pretest bawaannya <b>1</b> kali; kosongkan kolom bila boleh diulang tanpa batas. Contoh: posttest diisi <b>3</b> berarti peserta boleh mengulang posttest sampai 3 kali.</li>
+                        <li>Isi <b>Nilai minimal lulus (KKM)</b>, bawaannya 70.</li>
+                        <li>Klik <b>Simpan Video</b>. Anda langsung dibawa ke halaman <b>Soal Pretest &amp; Posttest</b> video tersebut.</li>
+                        <li>Tambahkan soal lewat <b>Buat Soal via AI</b> (dari file video atau link YouTube), <b>Tambah Manual</b>, atau <b>Import Excel / CSV</b>.</li>
+                        <li>Setelah ada minimal satu soal, status berubah dari <b>Kuis belum aktif</b> menjadi <b>Kuis aktif</b>, dan sejak itu peserta wajib mengikuti pretest/posttest video ini.</li>
+                    </ol>
+                    <figure class="pg-shot"><img src="/assets/panduan/kuis-tambah-soal.gif" alt="Animasi: menambah soal sampai kuis aktif" loading="lazy"><figcaption>Animasi: di halaman soal klik <b>Tambah Manual</b>, isi pertanyaan, pilihan A–D, dan <b>Kunci Jawaban</b>, lalu <b>Simpan Soal</b>. Status berubah menjadi <b>Kuis aktif</b>. Langkah yang sama berlaku untuk soal dokumen.</figcaption></figure>
+                    <div class="pg-note">Untuk menyalakan kuis pada video yang sudah ada, buka <b>Edit</b> pada video, nyalakan pretest/posttest di bagian yang sama, lalu <b>Simpan Perubahan</b>. Bila video sudah punya soal, link <b>Kelola soal</b> di bagian tersebut membuka halaman soalnya. Halaman soal juga bisa dibuka dari tombol <b>Soal Kuis</b> di kartu galeri atau <b>Kelola Soal</b> di halaman tonton.</div>
+                    <h3>Yang dialami peserta pada video ber-kuis</h3>
+                    <p>Tes video berada di bawah menu <b>Video Materi</b> dan tidak muncul di <b>Modul Saya</b>.</p>
                     <figure class="pg-shot"><img src="/assets/panduan/video-pretest.gif" alt="Animasi: pretest sebelum menonton video" loading="lazy"><figcaption>Animasi (peserta): membuka video ber-kuis dari galeri, langsung diarahkan ke pretest, mengirim jawaban, lalu <b>Lanjut Tonton Video</b>.</figcaption></figure>
                     <figure class="pg-shot"><img src="/assets/panduan/video-posttest.gif" alt="Animasi: posttest setelah video selesai" loading="lazy"><figcaption>Animasi (peserta): menonton video sampai selesai, tombol <b>Kerjakan Posttest</b> muncul, lalu membuka posttest.</figcaption></figure>
                     <ul>
