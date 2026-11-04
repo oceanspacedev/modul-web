@@ -139,13 +139,31 @@ class MaterialQuizTest extends TestCase
         $this->actingAs($this->admin)->get(route('learning-module.show', $quiz))->assertOk()->assertSee('+100');
     }
 
-    public function test_video_manager_can_preview_and_manage_without_learning_module_permission(): void
+    public function test_pretest_is_required_for_everyone_but_managers_get_a_preview_link(): void
     {
         [$video, $quiz] = $this->videoWithQuiz(['pretest' => true, 'posttest' => true]);
         $trainer = User::factory()->staff()->create();
         $trainer->givePermissionTo('manage-videos');
+        $previewUrl = route('video.show', ['video' => $video, 'preview' => 1]);
 
-        $this->actingAs($trainer)->get(route('video.show', $video))->assertOk();
+        foreach ([$this->admin, $trainer, $this->staff] as $user) {
+            $this->actingAs($user)->get(route('video.show', $video))->assertRedirect(route('learning.quiz', [$quiz, 'pretest']));
+        }
+
+        $this->actingAs($trainer)->get(route('learning.quiz', [$quiz, 'pretest']))->assertOk()->assertSee($previewUrl, false);
+        $this->actingAs($trainer)->get($previewUrl)->assertOk();
+
+        // Peserta tidak melihat link pratinjau dan tidak bisa memakainya.
+        $this->actingAs($this->staff)->get(route('learning.quiz', [$quiz, 'pretest']))->assertOk()->assertDontSee('Pratinjau video tanpa pretest');
+        $this->actingAs($this->staff)->get($previewUrl)->assertRedirect(route('learning.quiz', [$quiz, 'pretest']));
+    }
+
+    public function test_video_manager_can_manage_quiz_without_learning_module_permission(): void
+    {
+        [, $quiz] = $this->videoWithQuiz(['pretest' => true, 'posttest' => true]);
+        $trainer = User::factory()->staff()->create();
+        $trainer->givePermissionTo('manage-videos');
+
         $this->actingAs($trainer)->get(route('learning-module.questions.index', $quiz))->assertOk();
         $this->actingAs($trainer)->get(route('learning-module.show', $quiz))->assertOk();
         $this->actingAs($trainer)->get(route('learning-module.edit', $quiz))->assertNotFound();
@@ -177,7 +195,7 @@ class MaterialQuizTest extends TestCase
         $this->actingAs($this->admin)->get(route('video.create'))->assertOk()->assertSee('Aktifkan Pretest');
         $this->actingAs($this->admin)->get(route('video.edit', $video))->assertOk()->assertSee('Kelola soal (1)');
         $this->actingAs($this->admin)->get(route('video.index'))->assertOk()->assertSee('Pretest &amp; Posttest', false);
-        $this->actingAs($this->admin)->get(route('video.show', $video))->assertOk()->assertSee('Rekap Nilai');
+        $this->actingAs($this->admin)->get(route('video.show', ['video' => $video, 'preview' => 1]))->assertOk()->assertSee('Rekap Nilai');
         $this->actingAs($this->admin)->get(route('document.create'))->assertOk()->assertSee('Aktifkan Posttest');
         $this->actingAs($this->admin)->get(route('document.edit', $document))->assertOk();
         $this->actingAs($this->admin)->get(route('learning-module.questions.index', $quiz))->assertOk()->assertSee('Kuis aktif');

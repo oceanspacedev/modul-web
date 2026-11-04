@@ -53,7 +53,8 @@ class VideoController extends Controller
 
     /**
      * Show single video player page (public). A video with an active pretest/posttest needs a signed-in user, and
-     * the pretest (when enabled) comes before the video; video managers can preview without it.
+     * the pretest (when enabled) comes before the video for everyone; video managers can open ?preview=1 to check
+     * the video without taking it.
      */
     public function show(Request $request, Video $video): View|RedirectResponse
     {
@@ -73,7 +74,9 @@ class VideoController extends Controller
 
             $quizProgress = LearningModuleProgress::for($quiz, $request->user());
 
-            if ($quizProgress->needsPretest() && $request->user()->cannot('update', $video)) {
+            $isPreview = $request->boolean('preview') && $request->user()->can('update', $video);
+
+            if ($quizProgress->needsPretest() && ! $isPreview) {
                 return to_route('learning.quiz', [$quiz, 'pretest'])
                     ->with('info', 'Kerjakan pretest terlebih dahulu sebelum menonton video ini.');
             }

@@ -452,7 +452,8 @@
                         <li>Video ber-kuis tetap tampil di galeri, tetapi peserta wajib login untuk menontonnya.</li>
                         <li>Pretest nyala: peserta mengerjakan pretest dulu sebelum video bisa ditonton.</li>
                         <li>Posttest nyala: tombol <b>Kerjakan Posttest</b> muncul di bawah video setelah video selesai ditonton.</li>
-                        <li>Pengelola video bisa menonton tanpa pretest (pratinjau), serta membuka <b>Kelola Soal</b> dan <b>Rekap Nilai</b> dari halaman tonton.</li>
+                        <li>Bila pretest aktif, <b>semua akun</b> (termasuk admin) diarahkan ke pretest sebelum video bisa ditonton. Khusus pengelola video, halaman pretest menampilkan tombol <b>Pratinjau video tanpa pretest</b> untuk mengecek video; pratinjau tidak mengisi nilai.</li>
+                        <li>Pengelola video bisa membuka <b>Kelola Soal</b> dan <b>Rekap Nilai</b> dari halaman tonton.</li>
                         <li>Mematikan pretest/posttest hanya menonaktifkan kuis; riwayat nilai tetap tersimpan.</li>
                     </ul>
                 </div>
