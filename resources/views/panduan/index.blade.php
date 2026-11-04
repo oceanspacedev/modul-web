@@ -405,7 +405,7 @@
                 <div class="pg-card" id="dokumen">
                     <h2>10. Dokumen</h2>
                     <p>Menu <b>Document</b> menyimpan dokumen PDF modul, lengkap dengan riwayat versi.</p>
-                    <figure class="pg-shot"><img src="/assets/panduan/document-create.png" alt="Tambah dokumen" loading="lazy"><figcaption>Form Tambah Dokumen Baru.</figcaption></figure>
+                    <figure class="pg-shot"><img src="/assets/panduan/document-create.png" alt="Tambah dokumen" loading="lazy"><figcaption>Form Tambah Dokumen Baru, termasuk bagian Pretest &amp; Posttest.</figcaption></figure>
                     <h3>Menambah dokumen</h3>
                     <ol>
                         <li>Klik <b>Tambah Dokumen</b>.</li>
@@ -423,6 +423,7 @@
                     </ul>
                     <h3>Pretest &amp; posttest pada dokumen</h3>
                     <p>Form tambah/edit dokumen memiliki bagian <b>Pretest &amp; Posttest</b> yang sama seperti video. Untuk dokumen ber-kuis, tombol <b>Buka</b> membuka halaman kuis dokumen: pretest (bila nyala) → buka dokumen → posttest (bila nyala). Bila pretest aktif, <b>semua akun</b> (termasuk admin) wajib pretest dulu; pengelola dokumen mendapat tombol <b>Pratinjau dokumen tanpa pretest</b> di halaman kuis. Dokumen yang dilampirkan ke pelatihan juga dibuka lewat halaman kuis ini dari portal peserta (perlu login). Soal dan rekap nilai ada di menu <b>Aksi → Soal Pretest/Posttest</b> dan <b>Aksi → Rekap Nilai Kuis</b>. Bila satu unggahan dibuat untuk beberapa jabatan, setiap dokumen memiliki bank soal sendiri. Tes dokumen berada di bawah menu <b>Document</b> dan tidak muncul di <b>Modul Saya</b>.</p>
+                    <figure class="pg-shot"><img src="/assets/panduan/dokumen-kuis.gif" alt="Animasi: membuka dokumen ber-kuis" loading="lazy"><figcaption>Animasi (peserta): klik <b>Buka</b> pada dokumen ber-kuis, halaman kuis dokumen menampilkan langkah Pretest → Materi → Posttest, lalu <b>Mulai Pretest</b> dan memilih jawaban. Data pada animasi hanya contoh.</figcaption></figure>
                 </div>
 
                 {{-- 11 --}}
@@ -449,6 +450,9 @@
                     <p>Video lama yang belum punya cover: buka <b>Edit</b>, klik <b>Ambil cover dari video</b>, lalu <b>Simpan Perubahan</b>. Format yang tidak bisa diputar browser (mis. sebagian file MKV) tidak bisa diambil cover-nya; pilih gambar cover manual.</p>
                     <h3>Pretest &amp; posttest pada video</h3>
                     <p>Di form tambah/edit video, bagian <b>Pretest &amp; Posttest</b> berisi tombol <b>Aktifkan Pretest</b> dan <b>Aktifkan Posttest</b>, batas percobaan masing-masing (kosong = tanpa batas), dan nilai minimal lulus. Setelah disimpan Anda diarahkan ke halaman soal; kuis baru aktif setelah ada minimal satu soal (manual, Excel, atau AI dari video itu). Tes video berada di bawah menu <b>Video Materi</b> dan tidak muncul di <b>Modul Saya</b>.</p>
+                    <figure class="pg-shot"><img src="/assets/panduan/video-kuis-atur.gif" alt="Animasi: menyalakan pretest dan posttest video" loading="lazy"><figcaption>Animasi (admin): menyalakan <b>Aktifkan Pretest</b> dan <b>Aktifkan Posttest</b>, mengisi batas percobaan posttest dan nilai minimal lulus (contoh, tidak disimpan).</figcaption></figure>
+                    <figure class="pg-shot"><img src="/assets/panduan/video-pretest.gif" alt="Animasi: pretest sebelum menonton video" loading="lazy"><figcaption>Animasi (peserta): membuka video ber-kuis dari galeri, langsung diarahkan ke pretest, mengirim jawaban, lalu <b>Lanjut Tonton Video</b>.</figcaption></figure>
+                    <figure class="pg-shot"><img src="/assets/panduan/video-posttest.gif" alt="Animasi: posttest setelah video selesai" loading="lazy"><figcaption>Animasi (peserta): menonton video sampai selesai, tombol <b>Kerjakan Posttest</b> muncul, lalu membuka posttest.</figcaption></figure>
                     <ul>
                         <li>Video ber-kuis tetap tampil di galeri, tetapi peserta wajib login untuk menontonnya.</li>
                         <li>Pretest nyala: peserta mengerjakan pretest dulu sebelum video bisa ditonton.</li>
@@ -562,6 +566,7 @@
                     <h2>16. Modul Belajar: pretest, materi &amp; posttest</h2>
                     <p>Modul Belajar adalah kuis mandiri (tanpa jadwal/Zoom) yang materinya diambil dari <b>Video Materi</b> dan <b>Dokumen</b>. Alurnya: peserta mengerjakan <b>pretest</b>, mempelajari semua materi, lalu mengerjakan <b>posttest</b>. Pretest dan posttest memakai soal yang sama dengan urutan diacak.</p>
                     <h3>Membuat modul (Admin/Pemateri)</h3>
+                    <figure class="pg-shot"><img src="/assets/panduan/modul-buat.gif" alt="Animasi: membuat modul belajar" loading="lazy"><figcaption>Animasi: mengisi judul, deskripsi, dan KKM, lalu menambahkan video dan dokumen ke <b>Materi Modul</b> (contoh, tidak disimpan).</figcaption></figure>
                     <ol>
                         <li>Buka <b>Modul Belajar → Kelola Modul</b>, klik <b>Tambah Modul</b>.</li>
                         <li>Isi judul, deskripsi, <b>Nilai Minimal Lulus (KKM)</b>, dan pilih <b>Divisi</b> / <b>Jabatan</b> sasaran (kosong = semua).</li>
@@ -571,6 +576,7 @@
                     </ol>
                     <div class="pg-note">Soal AI bisa dibuat dari dokumen dan dari video (file upload atau link YouTube publik). Link Google Drive/Vimeo tidak bisa dibaca AI. Pembacaan video memakan waktu beberapa menit; biarkan jendela AI terbuka sampai hasil muncul. Saat meninjau hasil AI, klik huruf A–E untuk menandai kunci jawaban (pilihan kunci ditandai hijau), sunting teks bila perlu, lalu simpan. Cara yang sama dipakai untuk soal pretest/posttest video dan dokumen.</div>
                     <h3>Mengerjakan modul (Peserta)</h3>
+                    <figure class="pg-shot"><img src="/assets/panduan/modul-peserta.gif" alt="Animasi: mengerjakan modul belajar" loading="lazy"><figcaption>Animasi: membuka modul dari <b>Modul Saya</b>, melihat tiga langkah (Pretest, Materi, Posttest), lalu <b>Mulai Pretest</b> dan memilih jawaban.</figcaption></figure>
                     <ol>
                         <li>Buka <b>Modul Belajar → Modul Saya</b> dan pilih modul.</li>
                         <li>Kerjakan <b>Pretest</b> (bawaan: satu kali). Materi baru terbuka setelah pretest dikirim.</li>
