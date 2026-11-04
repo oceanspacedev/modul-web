@@ -62,17 +62,94 @@ class LearningModulePortalController extends Controller
 
         $progress = LearningModuleProgress::for($module, $request->user());
         $attemptNumber = $progress->attemptsFor($phase)->count() + 1;
+        $questions = $this->questionOrder($request, $module, $phase, $attemptNumber);
 
-        return view('learning_module.portal.quiz', [
+        $data = [
             'title' => ($phase === LearningModuleAttempt::PHASE_PRETEST ? 'Pretest' : 'Posttest').': '.$module->title,
             'active' => $module->menuKey('my-learning-modules'),
             'module' => $module,
             'phase' => $phase,
-            'questions' => $this->questionOrder($request, $module, $phase, $attemptNumber),
+            'questions' => $questions,
             'attemptNumber' => $attemptNumber,
+            'remainingAttempts' => $progress->remainingAttempts($phase),
             // Halaman tonton video mengalihkan kembali ke pretest yang belum dikerjakan, jadi kembali ke galeri.
             'backUrl' => $module->isOwnedByVideo() && $progress->needsPretest() ? route('video.index') : $module->participantUrl(),
+        ];
+
+        if (! $module->isGameMode()) {
+            return view('learning_module.portal.quiz', $data);
+        }
+
+        // Mode Quizizz: kunci jawaban tidak pernah dikirim ke browser. Soal yang sudah dijawab (mis. setelah refresh)
+        // dikirim beserta hasil benar/salahnya agar permainan berlanjut dari soal berikutnya.
+        $locked = $this->lockedAnswers($request, $module, $phase, $attemptNumber);
+
+        return view('learning_module.portal.quiz_game', [
+            ...$data,
+            'gameQuestions' => $questions->map(fn (LearningModuleQuestion $question) => [
+                'id' => $question->id,
+                'question' => $question->question,
+                'options' => $question->options(),
+            ])->values(),
+            'answered' => $questions->filter(fn ($question) => array_key_exists($question->id, $locked))
+                ->mapWithKeys(fn ($question) => [$question->id => $this->isCorrect($question, $locked[$question->id])]),
         ]);
+    }
+
+    /**
+     * Mode Quizizz: mengunci jawaban satu soal dan membalas benar/salah saja (tanpa kunci jawaban). Jawaban pertama
+     * yang dipakai; mengirim ulang soal yang sama tidak mengubahnya. Jawaban kosong berarti waktu habis.
+     */
+    public function answer(Request $request, LearningModule $module, string $phase): JsonResponse
+    {
+        $module->load(['items.materialable', 'questions']);
+
+        abort_unless($module->isGameMode(), 404);
+
+        if ($error = $this->phaseError($module, $request->user(), $phase)) {
+            return response()->json(['message' => $error], 403);
+        }
+
+        $validated = $request->validate([
+            'question_id' => 'required|integer',
+            'answer' => 'nullable|in:a,b,c,d,e',
+        ]);
+
+        $question = $module->questions->firstWhere('id', (int) $validated['question_id']);
+        abort_if($question === null, 404);
+
+        $attemptNumber = LearningModuleProgress::for($module, $request->user())->attemptsFor($phase)->count() + 1;
+        $locked = $this->lockedAnswers($request, $module, $phase, $attemptNumber);
+
+        if (! array_key_exists($question->id, $locked)) {
+            $locked[$question->id] = $validated['answer'] ?? null;
+            $request->session()->put($this->answersKey($module, $phase, $attemptNumber), $locked);
+        }
+
+        return response()->json([
+            'correct' => $this->isCorrect($question, $locked[$question->id]),
+            'answered' => count($locked),
+        ]);
+    }
+
+    /**
+     * Jawaban mode Quizizz yang sudah dikunci untuk satu percobaan: [question_id => huruf|null].
+     *
+     * @return array<int, string|null>
+     */
+    private function lockedAnswers(Request $request, LearningModule $module, string $phase, int $attemptNumber): array
+    {
+        return $request->session()->get($this->answersKey($module, $phase, $attemptNumber), []);
+    }
+
+    private function answersKey(LearningModule $module, string $phase, int $attemptNumber): string
+    {
+        return "learning-quiz-answers.{$module->id}.{$phase}.{$attemptNumber}";
+    }
+
+    private function isCorrect(LearningModuleQuestion $question, ?string $answer): bool
+    {
+        return $answer !== null && $answer === strtolower((string) $question->correct_answer);
     }
 
     /**
@@ -111,19 +188,28 @@ class LearningModulePortalController extends Controller
             return $redirect;
         }
 
-        $validated = $request->validate([
-            'answers' => 'nullable|array',
-            'answers.*' => 'nullable|in:a,b,c,d,e',
-        ]);
+        if ($module->isGameMode()) {
+            // Mode Quizizz dinilai dari jawaban yang sudah dikunci per soal, bukan dari isi form.
+            $attemptNumber = LearningModuleProgress::for($module, $request->user())->attemptsFor($phase)->count() + 1;
+            $answers = $this->lockedAnswers($request, $module, $phase, $attemptNumber);
+        } else {
+            $answers = $request->validate([
+                'answers' => 'nullable|array',
+                'answers.*' => 'nullable|in:a,b,c,d,e',
+            ])['answers'] ?? [];
+        }
 
         try {
-            $attempt = LearningModuleAttempt::record($module, $request->user(), $phase, $validated['answers'] ?? []);
+            $attempt = LearningModuleAttempt::record($module, $request->user(), $phase, $answers);
         } catch (UniqueConstraintViolationException) {
             // Kiriman ganda (klik dua kali / dua tab): percobaan yang pertama sudah tersimpan.
             return redirect($module->participantUrl())->with('error', 'Jawaban Anda sudah tersimpan sebelumnya.');
         }
 
-        $request->session()->forget($this->questionOrderKey($module, $phase, $attempt->attempt_number));
+        $request->session()->forget([
+            $this->questionOrderKey($module, $phase, $attempt->attempt_number),
+            $this->answersKey($module, $phase, $attempt->attempt_number),
+        ]);
 
         return redirect($module->url('attempt', ['attempt' => $attempt]))->with('success', 'Jawaban berhasil dikirim!');
     }
@@ -222,33 +308,42 @@ class LearningModulePortalController extends Controller
      */
     private function guardPhase(LearningModule $module, User $user, string $phase): ?RedirectResponse
     {
+        $error = $this->phaseError($module, $user, $phase);
+
+        return $error === null ? null : redirect($module->participantUrl())->with('error', $error);
+    }
+
+    /**
+     * Alasan fase tidak bisa dikerjakan saat ini, atau null bila boleh.
+     */
+    private function phaseError(LearningModule $module, User $user, string $phase): ?string
+    {
         abort_unless(in_array($phase, LearningModuleAttempt::PHASES, true), 404);
 
-        $back = redirect($module->participantUrl());
         $label = $phase === LearningModuleAttempt::PHASE_PRETEST ? 'Pretest' : 'Posttest';
 
         if (! $module->hasPhase($phase)) {
-            return $back->with('error', "{$label} tidak diaktifkan untuk materi ini.");
+            return "{$label} tidak diaktifkan untuk materi ini.";
         }
 
         if ($module->questions->isEmpty()) {
-            return $back->with('error', 'Soal belum tersedia. Silakan hubungi trainer.');
+            return 'Soal belum tersedia. Silakan hubungi trainer.';
         }
 
         $progress = LearningModuleProgress::for($module, $user);
 
         if ($phase === LearningModuleAttempt::PHASE_POSTTEST && ! $progress->isPosttestUnlocked()) {
-            return $back->with('error', $progress->needsPretest()
+            return $progress->needsPretest()
                 ? 'Kerjakan pretest terlebih dahulu.'
-                : 'Selesaikan semua materi terlebih dahulu sebelum mengerjakan posttest.');
+                : 'Selesaikan semua materi terlebih dahulu sebelum mengerjakan posttest.';
         }
 
         if ($progress->remainingAttempts($phase) === 0) {
             $max = $module->maxAttempts($phase);
 
-            return $back->with('error', $max === 1
+            return $max === 1
                 ? "{$label} hanya dapat dikerjakan satu kali."
-                : "Batas {$max} kali percobaan {$label} sudah habis.");
+                : "Batas {$max} kali percobaan {$label} sudah habis.";
         }
 
         return null;

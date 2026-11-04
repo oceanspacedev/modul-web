@@ -28,6 +28,8 @@ class MaterialQuizService
             'quiz.pretest_max_attempts' => ['nullable', 'integer', 'min:1', 'max:255'],
             'quiz.posttest_max_attempts' => ['nullable', 'integer', 'min:1', 'max:255'],
             'quiz.passing_score' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'quiz.mode' => ['nullable', 'in:'.implode(',', LearningModule::MODES)],
+            'quiz.question_seconds' => ['nullable', 'integer', 'min:'.LearningModule::MIN_QUESTION_SECONDS, 'max:'.LearningModule::MAX_QUESTION_SECONDS],
         ];
     }
 
@@ -68,6 +70,8 @@ class MaterialQuizService
             'pretest_max_attempts' => $settings['pretest_max_attempts'] ?? null,
             'posttest_max_attempts' => $settings['posttest_max_attempts'] ?? null,
             'passing_score' => $settings['passing_score'] ?? 70,
+            'quiz_mode' => $settings['mode'] ?? LearningModule::MODE_FORMAL,
+            'question_seconds' => $settings['question_seconds'] ?? 30,
             'deleted_at' => null,
         ])->save();
 

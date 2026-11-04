@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Document;
+use App\Models\LearningModule;
 use App\Models\LearningModuleItem;
 use App\Models\Video;
 use Illuminate\Foundation\Http\FormRequest;
@@ -37,6 +38,8 @@ class LearningModuleRequest extends FormRequest
             'shuffle_questions' => ['boolean'],
             'pretest_max_attempts' => ['nullable', 'integer', 'min:1', 'max:255'],
             'posttest_max_attempts' => ['nullable', 'integer', 'min:1', 'max:255'],
+            'quiz_mode' => ['nullable', 'in:'.implode(',', LearningModule::MODES)],
+            'question_seconds' => ['nullable', 'integer', 'min:'.LearningModule::MIN_QUESTION_SECONDS, 'max:'.LearningModule::MAX_QUESTION_SECONDS],
             'divisi_ids' => ['nullable', 'array'],
             'divisi_ids.*' => ['integer', 'exists:divisis,id'],
             'role_ids' => ['nullable', 'array'],
@@ -103,6 +106,8 @@ class LearningModuleRequest extends FormRequest
             ...$this->safe()->only(['title', 'description', 'passing_score', 'shuffle_questions']),
             'pretest_max_attempts' => $this->validated('pretest_max_attempts'),
             'posttest_max_attempts' => $this->validated('posttest_max_attempts'),
+            'quiz_mode' => $this->validated('quiz_mode') ?? LearningModule::MODE_FORMAL,
+            'question_seconds' => $this->validated('question_seconds') ?? 30,
         ];
     }
 }

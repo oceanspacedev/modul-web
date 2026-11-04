@@ -48,7 +48,14 @@
 
     <div id="quizPassing" class="{{ $quizPretest || $quizPosttest ? '' : 'd-none' }}">
         <label class="small text-muted mb-1" for="quiz_passing_score">Nilai minimal lulus (KKM)</label>
-        <input type="number" min="0" max="100" class="form-control form-control-sm" id="quiz_passing_score" name="quiz[passing_score]" value="{{ $quizPassing }}" style="max-width: 140px;">
+        <input type="number" min="0" max="100" class="form-control form-control-sm mb-3" id="quiz_passing_score" name="quiz[passing_score]" value="{{ $quizPassing }}" style="max-width: 140px;">
+        @include('learning_module.partials.quiz-mode-fields', [
+            'modeName' => 'quiz[mode]',
+            'secondsName' => 'quiz[question_seconds]',
+            'mode' => old('quiz.mode', $quiz?->quiz_mode ?? \App\Models\LearningModule::MODE_FORMAL),
+            'seconds' => old('quiz.question_seconds', $quiz?->question_seconds ?? 30),
+            'idPrefix' => 'quiz',
+        ])
     </div>
 </div>
 

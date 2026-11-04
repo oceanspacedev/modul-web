@@ -22,15 +22,32 @@ class LearningModule extends Model
     use SoftDeletes;
 
     /** Aksi halaman peserta (rute learning.* untuk modul biasa). */
-    public const PARTICIPANT_ACTIONS = ['show', 'quiz', 'submit', 'attempt', 'items.show', 'items.open', 'items.complete'];
+    public const PARTICIPANT_ACTIONS = ['show', 'quiz', 'answer', 'submit', 'attempt', 'items.show', 'items.open', 'items.complete'];
+
+    public const MODE_FORMAL = 'formal';
+
+    /** Mode game ala Quizizz: satu soal per layar dengan timer, jawaban dikunci per soal di server. */
+    public const MODE_GAME = 'game';
+
+    public const MODES = [self::MODE_FORMAL, self::MODE_GAME];
+
+    public const MIN_QUESTION_SECONDS = 5;
+
+    public const MAX_QUESTION_SECONDS = 300;
 
     protected $guarded = ['id'];
+
+    protected $attributes = [
+        'quiz_mode' => self::MODE_FORMAL,
+        'question_seconds' => 30,
+    ];
 
     protected function casts(): array
     {
         return [
             'passing_score' => 'integer',
             'shuffle_questions' => 'boolean',
+            'question_seconds' => 'integer',
             'is_published' => 'boolean',
             'has_pretest' => 'boolean',
             'has_posttest' => 'boolean',
@@ -63,6 +80,11 @@ class LearningModule extends Model
     public function scopeStandalone(Builder $query): void
     {
         $query->whereNull('source_type');
+    }
+
+    public function isGameMode(): bool
+    {
+        return $this->quiz_mode === self::MODE_GAME;
     }
 
     public function hasPhase(string $phase): bool

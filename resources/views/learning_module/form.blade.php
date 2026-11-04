@@ -86,6 +86,16 @@
                             </div>
 
                             <div class="form-group mb-4">
+                                @include('learning_module.partials.quiz-mode-fields', [
+                                    'modeName' => 'quiz_mode',
+                                    'secondsName' => 'question_seconds',
+                                    'mode' => old('quiz_mode', $module->quiz_mode ?? \App\Models\LearningModule::MODE_FORMAL),
+                                    'seconds' => old('question_seconds', $module->question_seconds ?? 30),
+                                    'idPrefix' => 'module',
+                                ])
+                            </div>
+
+                            <div class="form-group mb-4">
                                 <label for="divisi_ids" class="font-weight-600 mb-2">Divisi Sasaran</label>
                                 <select id="divisi_ids" name="divisi_ids[]" class="form-control select2" multiple data-placeholder="Semua divisi">
                                     @foreach($divisis as $divisi)

@@ -161,6 +161,7 @@ Route::middleware('auth')->group(function () {
             Route::post('items/{item}/complete', 'completeItem')->name('items.complete');
             Route::get('{phase}', 'quiz')->whereIn('phase', ['pretest', 'posttest'])->name('quiz');
             Route::post('{phase}', 'submit')->whereIn('phase', ['pretest', 'posttest'])->name('submit');
+            Route::post('{phase}/answer', 'answer')->whereIn('phase', ['pretest', 'posttest'])->name('answer');
         });
     };
 

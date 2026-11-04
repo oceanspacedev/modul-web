@@ -60,6 +60,7 @@
                 <a href="#modulbelajar">16. Pretest, materi &amp; posttest</a>
                 <a href="#video-kuis">Video dengan pretest/posttest</a>
                 <a href="#dokumen-kuis">Dokumen dengan pretest/posttest</a>
+                <a href="#mode-quizizz">Mode Quizizz (Game)</a>
             </nav>
 
             <div class="pg-body">
@@ -430,6 +431,7 @@
                         <li>Buka <b>Document</b> → <b>Tambah Dokumen</b>, lalu pilih file PDF, <b>Document Type</b>, <b>Jabatan</b>, dan <b>Divisi</b>.</li>
                         <li>Di bagian <b>Pretest &amp; Posttest</b>, nyalakan <b>Aktifkan Pretest</b> dan/atau <b>Aktifkan Posttest</b>.</li>
                         <li>Atur <b>Batas percobaan</b> (pretest bawaannya 1 kali, kosong = tanpa batas) dan <b>Nilai minimal lulus (KKM)</b>.</li>
+                        <li>Pilih <b>Tampilan pretest &amp; posttest</b>: <b>Mode Formal (Ujian)</b> atau <b>Mode Quizizz (Game)</b> beserta <b>Detik per soal</b>. Lihat <a href="#mode-quizizz">Mode Quizizz</a>.</li>
                         <li>Klik <b>Simpan</b>. Bila memilih satu jabatan, Anda langsung dibawa ke halaman <b>Soal Pretest &amp; Posttest</b> dokumen tersebut. Bila memilih beberapa jabatan, sistem membuat satu dokumen per jabatan, masing-masing dengan bank soal sendiri; buka soalnya lewat <b>Aksi → Soal Pretest/Posttest</b> pada tiap dokumen.</li>
                         <li>Tambahkan soal lewat <b>Buat Soal via AI</b> (dibaca dari isi PDF), <b>Tambah Manual</b>, atau <b>Import Excel / CSV</b>. Kuis aktif setelah ada minimal satu soal.</li>
                     </ol>
@@ -469,6 +471,7 @@
                         <li>Di bagian <b>Pretest &amp; Posttest</b> (di bawah cover), nyalakan <b>Aktifkan Pretest</b> dan/atau <b>Aktifkan Posttest</b>.</li>
                         <li>Atur <b>Batas percobaan</b> masing-masing. Pretest bawaannya <b>1</b> kali; kosongkan kolom bila boleh diulang tanpa batas. Contoh: posttest diisi <b>3</b> berarti peserta boleh mengulang posttest sampai 3 kali.</li>
                         <li>Isi <b>Nilai minimal lulus (KKM)</b>, bawaannya 70.</li>
+                        <li>Pilih <b>Tampilan pretest &amp; posttest</b>: <b>Mode Formal (Ujian)</b> menampilkan semua soal dalam satu halaman, <b>Mode Quizizz (Game)</b> menampilkan satu soal per layar dengan timer. Untuk Quizizz isi <b>Detik per soal</b> (5–300 detik, bawaan 30). Lihat <a href="#mode-quizizz">Mode Quizizz</a>.</li>
                         <li>Klik <b>Simpan Video</b>. Anda langsung dibawa ke halaman <b>Soal Pretest &amp; Posttest</b> video tersebut.</li>
                         <li>Tambahkan soal lewat <b>Buat Soal via AI</b> (dari file video atau link YouTube), <b>Tambah Manual</b>, atau <b>Import Excel / CSV</b>.</li>
                         <li>Setelah ada minimal satu soal, status berubah dari <b>Kuis belum aktif</b> menjadi <b>Kuis aktif</b>, dan sejak itu peserta wajib mengikuti pretest/posttest video ini.</li>
@@ -596,6 +599,7 @@
                     <ol>
                         <li>Buka <b>Modul Belajar → Kelola Modul</b>, klik <b>Tambah Modul</b>.</li>
                         <li>Isi judul, deskripsi, <b>Nilai Minimal Lulus (KKM)</b>, dan pilih <b>Divisi</b> / <b>Jabatan</b> sasaran (kosong = semua).</li>
+                        <li>Pilih <b>Tampilan pretest &amp; posttest</b>: Mode Formal atau <a href="#mode-quizizz">Mode Quizizz</a> beserta detik per soal.</li>
                         <li>Di <b>Materi Modul</b>, cari video atau dokumen lalu klik <b>Tambah</b>. Atur urutan dengan tombol panah.</li>
                         <li>Klik <b>Simpan &amp; Lanjut Buat Soal</b>. Tambahkan soal pilihan ganda lewat <b>Buat Soal via AI</b>, <b>Tambah Manual</b>, atau <b>Import Excel / CSV</b>.</li>
                         <li>Klik <b>Publikasikan Modul</b>. Modul baru bisa dipublikasikan bila sudah punya minimal 1 materi dan 1 soal.</li>
@@ -610,6 +614,19 @@
                         <li>Setelah semua materi selesai, <b>Posttest</b> terbuka. Setiap percobaan dan nilainya tetap tersimpan di riwayat.</li>
                         <li>Batas percobaan pretest dan posttest diatur pembuat modul (kosong = tanpa batas). Nilai awal untuk kenaikan nilai adalah pretest pertama.</li>
                     </ol>
+                    <h3 id="mode-quizizz">Mode Quizizz (Game)</h3>
+                    <p>Pretest dan posttest pada video, dokumen, dan Modul Belajar bisa ditampilkan seperti Quizizz. Pilihannya ada di bagian <b>Tampilan pretest &amp; posttest</b> pada form video, dokumen, atau modul, dan berlaku untuk pretest maupun posttest.</p>
+                    <figure class="pg-shot"><img src="/assets/panduan/kuis-mode-atur.gif" alt="Animasi: memilih Mode Quizizz" loading="lazy"><figcaption>Animasi (admin): di form edit video, memilih <b>Mode Quizizz (Game)</b> lalu mengisi <b>Detik per soal</b> 20 (contoh, tidak disimpan).</figcaption></figure>
+                    <figure class="pg-shot"><img src="/assets/panduan/kuis-mode-quizizz.gif" alt="Animasi: mengerjakan pretest Mode Quizizz" loading="lazy"><figcaption>Animasi (peserta): membuka video, menekan <b>Mulai Pretest</b>, menjawab satu soal per layar (hijau = benar, merah = salah), lalu layar akhir menampilkan jawaban benar, nilai, poin, dan streak. Data pada animasi hanya contoh.</figcaption></figure>
+                    <ul>
+                        <li>Satu soal per layar dengan timer. Waktu per soal diatur pembuat; bila waktu habis, soal dihitung salah.</li>
+                        <li>Jawaban <b>langsung terkunci</b> setelah dipilih dan hanya ditandai <b>Benar</b> atau <b>Salah</b>. Kunci jawaban tidak ditampilkan, karena pretest dan posttest memakai bank soal yang sama.</li>
+                        <li>Bila halaman di-refresh atau ditinggalkan, permainan dilanjutkan dari soal yang belum dijawab; soal yang sudah dijawab tidak bisa diubah.</li>
+                        <li><b>Nilai</b> tetap persentase jawaban benar dan dibandingkan dengan KKM, sama seperti Mode Formal. <b>Poin</b> (cepat menjawab + streak) hanya untuk keseruan dan tidak disimpan.</li>
+                        <li>Di layar akhir klik <b>Simpan &amp; Lihat Hasil</b>; bila tidak diklik, hasil tersimpan otomatis setelah 8 detik. Percobaan baru tercatat setelah hasil tersimpan.</li>
+                        <li>Riwayat, rekap, dan export nilai sama dengan Mode Formal. Tidak ada papan peringkat antar peserta.</li>
+                    </ul>
+
                     <h3>Rekap nilai</h3>
                     <p>Klik <b>Rekap</b> pada modul untuk melihat progres materi, nilai pretest, jumlah percobaan posttest, nilai terbaik dan terakhir, kenaikan nilai, serta status Lulus/Belum Lulus. <b>Riwayat</b> menampilkan jawaban setiap percobaan. <b>Export Excel</b> menghasilkan dua sheet: rekap per peserta dan riwayat semua percobaan.</p>
                 </div>
