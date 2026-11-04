@@ -23,7 +23,8 @@ class LearningModulePortalController extends Controller
 {
     public function index(Request $request): View
     {
-        $modules = LearningModule::visibleTo($request->user())
+        $modules = LearningModule::standalone()
+            ->visibleTo($request->user())
             ->with('items.materialable')
             ->withCount('questions')
             ->orderBy('title')
@@ -63,9 +64,7 @@ class LearningModulePortalController extends Controller
             'module' => $module,
             'phase' => $phase,
             'questions' => $module->shuffle_questions ? $module->questions->shuffle() : $module->questions,
-            'attemptNumber' => $phase === LearningModuleAttempt::PHASE_POSTTEST
-                ? LearningModuleProgress::for($module, $request->user())->posttests->count() + 1
-                : 1,
+            'attemptNumber' => LearningModuleProgress::for($module, $request->user())->attemptsFor($phase)->count() + 1,
         ]);
     }
 
@@ -85,8 +84,8 @@ class LearningModulePortalController extends Controller
         try {
             $attempt = LearningModuleAttempt::record($module, $request->user(), $phase, $validated['answers'] ?? []);
         } catch (UniqueConstraintViolationException) {
-            // Kiriman ganda (klik dua kali / pretest di dua tab): percobaan yang pertama sudah tersimpan.
-            return to_route('learning.show', $module)->with('error', 'Jawaban Anda sudah tersimpan sebelumnya.');
+            // Kiriman ganda (klik dua kali / dua tab): percobaan yang pertama sudah tersimpan.
+            return redirect($module->participantUrl())->with('error', 'Jawaban Anda sudah tersimpan sebelumnya.');
         }
 
         return to_route('learning.attempt', [$module, $attempt])->with('success', 'Jawaban berhasil dikirim!');
@@ -162,8 +161,11 @@ class LearningModulePortalController extends Controller
         $module->load('items.materialable');
         $item->setRelation('materialable', $module->items->find($item->id)?->materialable);
 
-        if ($this->guardMaterials($module, $request->user(), $item)) {
-            return response()->json(['success' => false, 'message' => 'Materi belum bisa diakses.'], 403);
+        abort_if($item->materialable === null, 404);
+
+        // Dicek langsung (bukan guardMaterials) agar tidak meninggalkan pesan flash untuk halaman berikutnya.
+        if (LearningModuleProgress::for($module, $request->user())->needsPretest()) {
+            return response()->json(['success' => false, 'message' => 'Kerjakan pretest terlebih dahulu.'], 403);
         }
 
         $this->markProgress($item, $request->user(), completed: true);
@@ -178,26 +180,38 @@ class LearningModulePortalController extends Controller
     }
 
     /**
-     * Pretest hanya sekali dan harus dikerjakan sebelum materi; posttest terbuka setelah semua materi selesai.
+     * Pretest (bila nyala) dikerjakan sebelum materi; posttest (bila nyala) terbuka setelah semua materi selesai.
+     * Keduanya dibatasi jumlah percobaan yang diatur pada modul.
      */
     private function guardPhase(LearningModule $module, User $user, string $phase): ?RedirectResponse
     {
         abort_unless(in_array($phase, LearningModuleAttempt::PHASES, true), 404);
 
+        $back = redirect($module->participantUrl());
+        $label = $phase === LearningModuleAttempt::PHASE_PRETEST ? 'Pretest' : 'Posttest';
+
+        if (! $module->hasPhase($phase)) {
+            return $back->with('error', "{$label} tidak diaktifkan untuk materi ini.");
+        }
+
         if ($module->questions->isEmpty()) {
-            return to_route('learning.show', $module)->with('error', 'Soal untuk modul ini belum tersedia. Silakan hubungi trainer.');
+            return $back->with('error', 'Soal belum tersedia. Silakan hubungi trainer.');
         }
 
         $progress = LearningModuleProgress::for($module, $user);
 
-        if ($phase === LearningModuleAttempt::PHASE_PRETEST && $progress->hasDonePretest()) {
-            return to_route('learning.show', $module)->with('error', 'Pretest hanya dapat dikerjakan satu kali.');
+        if ($phase === LearningModuleAttempt::PHASE_POSTTEST && ! $progress->isPosttestUnlocked()) {
+            return $back->with('error', $progress->needsPretest()
+                ? 'Kerjakan pretest terlebih dahulu.'
+                : 'Selesaikan semua materi terlebih dahulu sebelum mengerjakan posttest.');
         }
 
-        if ($phase === LearningModuleAttempt::PHASE_POSTTEST && ! $progress->canTakePosttest()) {
-            return to_route('learning.show', $module)->with('error', $progress->hasDonePretest()
-                ? 'Selesaikan semua materi terlebih dahulu sebelum mengerjakan posttest.'
-                : 'Kerjakan pretest terlebih dahulu.');
+        if ($progress->remainingAttempts($phase) === 0) {
+            $max = $module->maxAttempts($phase);
+
+            return $back->with('error', $max === 1
+                ? "{$label} hanya dapat dikerjakan satu kali."
+                : "Batas {$max} kali percobaan {$label} sudah habis.");
         }
 
         return null;
@@ -207,8 +221,8 @@ class LearningModulePortalController extends Controller
     {
         abort_if($item->materialable === null, 404);
 
-        if (! LearningModuleProgress::for($module, $user)->hasDonePretest()) {
-            return to_route('learning.show', $module)->with('error', 'Kerjakan pretest terlebih dahulu sebelum membuka materi.');
+        if (LearningModuleProgress::for($module, $user)->needsPretest()) {
+            return redirect($module->participantUrl())->with('error', 'Kerjakan pretest terlebih dahulu sebelum membuka materi.');
         }
 
         return null;

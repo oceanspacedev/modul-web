@@ -92,7 +92,23 @@
                                     @foreach ($documents as $document)
                                         <tr>
                                             <td>{{ $loop->iteration }}</td>
-                                            <td><strong>{{ $document->name }}</strong></td>
+                                            @php
+                                                $quiz = $document->activeQuiz();
+                                                $quizSettings = $document->quizModule && ($document->quizModule->has_pretest || $document->quizModule->has_posttest) ? $document->quizModule : null;
+                                            @endphp
+                                            <td>
+                                                <strong>{{ $document->name }}</strong>
+                                                @if($quiz)
+                                                    <div class="mt-1">
+                                                        @if($quiz->has_pretest)<span class="badge badge-info">Pretest</span>@endif
+                                                        @if($quiz->has_posttest)<span class="badge badge-primary">Posttest</span>@endif
+                                                    </div>
+                                                @elseif($quizSettings)
+                                                    @can('update', $document)
+                                                        <div class="mt-1"><span class="badge badge-light border text-muted">Kuis belum ada soal</span></div>
+                                                    @endcan
+                                                @endif
+                                            </td>
                                             <td>{{ $document->divisi->name }}</td>
                                             <td>{{ $document->role->name ?? 'SEMUA JABATAN' }}</td>
                                             <td>{{ $document->dokumentype->name }}</td>
@@ -111,9 +127,16 @@
                                             </td>
                                             <td>
                                                 <div class="d-inline-flex align-items-center" style="gap: 4px;">
-                                                    <a href="{{ $document->file_url }}" target='_blank' class="btn btn-default btn-xs" title="Buka File Dokumen">
-                                                        Buka
-                                                    </a>
+                                                    @if($quiz && ! $document->deleted_at && auth()->user()->cannot('update', $document))
+                                                        {{-- Dokumen ber-kuis dibuka lewat halaman pretest -> dokumen -> posttest. --}}
+                                                        <a href="{{ route('learning.show', $quiz) }}" class="btn btn-primary btn-xs" title="Buka dokumen beserta pretest/posttest">
+                                                            Buka
+                                                        </a>
+                                                    @else
+                                                        <a href="{{ $document->file_url }}" target='_blank' class="btn btn-default btn-xs" title="Buka File Dokumen">
+                                                            Buka
+                                                        </a>
+                                                    @endif
                                                     <div class="dropdown">
                                                         <button class="btn btn-default btn-xs dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                                             Aksi
@@ -126,6 +149,14 @@
                                                                 <a class="dropdown-item py-1" href="{{ route('document.edit', $document) }}">
                                                                     Edit Dokumen
                                                                 </a>
+                                                                @if($quizSettings)
+                                                                    <a class="dropdown-item py-1" href="{{ route('learning-module.questions.index', $quizSettings) }}">
+                                                                        Soal Pretest/Posttest
+                                                                    </a>
+                                                                    <a class="dropdown-item py-1" href="{{ route('learning-module.show', $quizSettings) }}">
+                                                                        Rekap Nilai Kuis
+                                                                    </a>
+                                                                @endif
                                                                 <div class="dropdown-divider my-1"></div>
                                                                 @if ($document->deleted_at)
                                                                     <form action="{{ route('document.restore', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Mengaktifkan kembali dokumen '.$document->name.'?'))">

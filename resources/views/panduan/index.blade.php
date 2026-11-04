@@ -421,6 +421,8 @@
                         <li><b>Nonaktifkan Dokumen</b> menyembunyikan dokumen tanpa menghapus, <b>Aktifkan Dokumen</b> mengembalikannya.</li>
                         <li>Gunakan filter <b>Divisi</b>, <b>Type</b>, dan pencarian untuk menemukan dokumen.</li>
                     </ul>
+                    <h3>Pretest &amp; posttest pada dokumen</h3>
+                    <p>Form tambah/edit dokumen memiliki bagian <b>Pretest &amp; Posttest</b> yang sama seperti video. Untuk dokumen ber-kuis, tombol <b>Buka</b> milik peserta membuka halaman kuis dokumen: pretest (bila nyala) → buka dokumen → posttest (bila nyala). Soal dan rekap nilai ada di menu <b>Aksi → Soal Pretest/Posttest</b> dan <b>Aksi → Rekap Nilai Kuis</b>. Bila satu unggahan dibuat untuk beberapa jabatan, setiap dokumen memiliki bank soal sendiri.</p>
                 </div>
 
                 {{-- 11 --}}
@@ -444,6 +446,15 @@
                         <li>Klik <b>Simpan Video</b> dan <b>jangan tutup halaman</b> selama unggahan berjalan.</li>
                     </ol>
                     <div class="pg-note">Untuk link Google Drive, atur akses berbagi ke <b>"Siapa saja yang memiliki link"</b> agar video bisa diputar. <b>Edit</b> dan <b>Hapus</b> tersedia pada tiap video.</div>
+                    <h3>Pretest &amp; posttest pada video</h3>
+                    <p>Di form tambah/edit video, bagian <b>Pretest &amp; Posttest</b> berisi tombol <b>Aktifkan Pretest</b> dan <b>Aktifkan Posttest</b>, batas percobaan masing-masing (kosong = tanpa batas), dan nilai minimal lulus. Setelah disimpan Anda diarahkan ke halaman soal; kuis baru aktif setelah ada minimal satu soal (manual, Excel, atau AI dari video itu). Lihat bagian <a href="#modulbelajar">16</a> untuk alur peserta.</p>
+                    <ul>
+                        <li>Video ber-kuis tetap tampil di galeri, tetapi peserta wajib login untuk menontonnya.</li>
+                        <li>Pretest nyala: peserta mengerjakan pretest dulu sebelum video bisa ditonton.</li>
+                        <li>Posttest nyala: tombol <b>Kerjakan Posttest</b> muncul di bawah video setelah video selesai ditonton.</li>
+                        <li>Pengelola video bisa menonton tanpa pretest (pratinjau), serta membuka <b>Kelola Soal</b> dan <b>Rekap Nilai</b> dari halaman tonton.</li>
+                        <li>Mematikan pretest/posttest hanya menonaktifkan kuis; riwayat nilai tetap tersimpan.</li>
+                    </ul>
                 </div>
 
                 {{-- 12 --}}
@@ -555,7 +566,8 @@
                         <li>Buka <b>Modul Belajar → Modul Saya</b> dan pilih modul.</li>
                         <li><b>Pretest</b> hanya bisa dikerjakan <b>satu kali</b>. Materi baru terbuka setelah pretest dikirim.</li>
                         <li>Selesaikan semua materi: video upload/YouTube tercatat selesai setelah ditonton sampai akhir, dokumen tercatat selesai saat dibuka. Video Drive/Vimeo ditandai lewat tombol <b>Saya sudah menonton</b>.</li>
-                        <li>Setelah semua materi selesai, <b>Posttest</b> terbuka. Posttest boleh diulang berkali-kali; setiap percobaan dan nilainya tetap tersimpan di riwayat.</li>
+                        <li>Setelah semua materi selesai, <b>Posttest</b> terbuka. Setiap percobaan dan nilainya tetap tersimpan di riwayat.</li>
+                        <li>Batas percobaan pretest dan posttest diatur pembuat modul (kosong = tanpa batas). Nilai awal untuk kenaikan nilai adalah pretest pertama.</li>
                     </ol>
                     <h3>Rekap nilai</h3>
                     <p>Klik <b>Rekap</b> pada modul untuk melihat progres materi, nilai pretest, jumlah percobaan posttest, nilai terbaik dan terakhir, kenaikan nilai, serta status Lulus/Belum Lulus. <b>Riwayat</b> menampilkan jawaban setiap percobaan. <b>Export Excel</b> menghasilkan dua sheet: rekap per peserta dan riwayat semua percobaan.</p>

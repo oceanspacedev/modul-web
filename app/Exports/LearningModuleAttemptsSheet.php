@@ -35,7 +35,7 @@ class LearningModuleAttemptsSheet implements FromArray, ShouldAutoSize, WithHead
     public function array(): array
     {
         return $this->participants
-            ->flatMap(fn (LearningModuleProgress $progress) => collect([$progress->pretest])->filter()->merge($progress->posttests)
+            ->flatMap(fn (LearningModuleProgress $progress) => $progress->pretests->merge($progress->posttests)
                 ->map(fn (LearningModuleAttempt $attempt) => [
                     $progress->user->employee_id ?? '-',
                     $progress->user->nama_lengkap ?? '-',

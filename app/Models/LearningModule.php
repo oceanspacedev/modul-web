@@ -7,11 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
 
 /**
- * Modul Belajar: pretest sekali, materi (video/dokumen) wajib diselesaikan, lalu posttest yang bisa diulang.
+ * Modul Belajar: pretest, materi (video/dokumen) wajib diselesaikan, lalu posttest.
+ *
+ * Modul dengan source (video/dokumen) adalah kuis milik satu materi: tidak tampil di menu Modul Belajar dan dikelola
+ * dari form video/dokumen tersebut. Pretest/posttest bisa dimatikan; *_max_attempts null berarti tanpa batas.
  */
 class LearningModule extends Model
 {
@@ -25,7 +29,72 @@ class LearningModule extends Model
             'passing_score' => 'integer',
             'shuffle_questions' => 'boolean',
             'is_published' => 'boolean',
+            'has_pretest' => 'boolean',
+            'has_posttest' => 'boolean',
+            'pretest_max_attempts' => 'integer',
+            'posttest_max_attempts' => 'integer',
         ];
+    }
+
+    /**
+     * Video/dokumen pemilik kuis; null untuk Modul Belajar biasa.
+     */
+    public function source(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    public function isOwned(): bool
+    {
+        return $this->source_type !== null;
+    }
+
+    public function isOwnedByVideo(): bool
+    {
+        return $this->source_type === LearningModuleItem::TYPE_VIDEO;
+    }
+
+    /**
+     * Modul Belajar biasa (bukan kuis milik video/dokumen).
+     */
+    public function scopeStandalone(Builder $query): void
+    {
+        $query->whereNull('source_type');
+    }
+
+    public function hasPhase(string $phase): bool
+    {
+        return $phase === LearningModuleAttempt::PHASE_PRETEST ? $this->has_pretest : $this->has_posttest;
+    }
+
+    /**
+     * Batas percobaan per fase; null berarti tanpa batas.
+     */
+    public function maxAttempts(string $phase): ?int
+    {
+        return $phase === LearningModuleAttempt::PHASE_PRETEST ? $this->pretest_max_attempts : $this->posttest_max_attempts;
+    }
+
+    /**
+     * Halaman tempat peserta kembali setelah kuis: halaman tonton untuk video, halaman modul untuk lainnya.
+     */
+    public function participantUrl(): string
+    {
+        return $this->isOwnedByVideo()
+            ? route('video.show', $this->source_id)
+            : route('learning.show', $this);
+    }
+
+    /**
+     * Halaman pengelolaan materi asal, untuk tombol kembali di halaman admin.
+     */
+    public function managementUrl(): string
+    {
+        return match ($this->source_type) {
+            LearningModuleItem::TYPE_VIDEO => route('video.show', $this->source_id),
+            LearningModuleItem::TYPE_DOCUMENT => route('document.index'),
+            default => route('learning-module.index'),
+        };
     }
 
     public function creator(): BelongsTo

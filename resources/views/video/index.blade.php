@@ -89,7 +89,7 @@
                             <a href="{{ route('video.show', $v->id) }}" class="position-relative bg-dark video-thumbnail-wrapper d-block text-decoration-none" style="height: 200px;">
                                 @if($v->thumbnail_url)
                                     <img src="{{ $v->thumbnail_url }}" alt="{{ $v->title }}" class="w-100 h-100" style="object-fit: cover;">
-                                @elseif($v->isFile())
+                                @elseif($v->isFile() && ! $v->activeQuiz())
                                     <video src="{{ $v->video_url }}#t=1" preload="metadata" class="w-100 h-100" style="object-fit: cover; opacity: 0.75;"></video>
                                 @else
                                     <div class="w-100 h-100 d-flex justify-content-center align-items-center bg-secondary">
@@ -103,6 +103,13 @@
                                         <i class="fas fa-play ml-1" style="font-size: 20px;"></i>
                                     </div>
                                 </div>
+
+                                @if($quiz = $v->activeQuiz())
+                                    <span class="badge badge-primary position-absolute" style="top: 8px; left: 8px; font-size: 11px;">
+                                        <i class="fas fa-clipboard-check mr-1"></i>
+                                        {{ collect([$quiz->has_pretest ? 'Pretest' : null, $quiz->has_posttest ? 'Posttest' : null])->filter()->join(' & ') }}
+                                    </span>
+                                @endif
 
                                 {{-- Type / size badge --}}
                                 <span class="badge position-absolute" style="bottom: 8px; right: 8px; font-size: 11px; background: rgba(17,24,39,0.75); color: #fff;">
@@ -145,6 +152,11 @@
                             {{-- Card Footer --}}
                             @can('update', $v)
                             <div class="card-footer bg-white px-3 py-2 d-flex justify-content-end align-items-center border-top">
+                                @if($v->quizModule && ($v->quizModule->has_pretest || $v->quizModule->has_posttest))
+                                    <a href="{{ route('learning-module.questions.index', $v->quizModule) }}" class="btn btn-default btn-xs mr-1" title="Soal pretest/posttest">
+                                        Soal Kuis
+                                    </a>
+                                @endif
                                 <a href="{{ route('video.edit', $v->id) }}" class="btn btn-default btn-xs mr-1" title="Edit Video">
                                     Edit
                                 </a>

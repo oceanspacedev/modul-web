@@ -126,6 +126,8 @@
                                     <label class="custom-file-label" for="thumbnail" id="thumbnail_label">Pilih gambar thumbnail baru...</label>
                                 </div>
                             </div>
+
+                            @include('learning_module.partials.material-quiz-fields', ['quiz' => $quiz])
                         </div>
 
                         <div class="card-footer bg-light d-flex justify-content-between">

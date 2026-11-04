@@ -5,12 +5,17 @@
     <div class="container-fluid">
         <div class="mb-3 d-flex flex-wrap justify-content-between align-items-center" style="gap: 12px;">
             <div class="d-flex align-items-center">
-                <a href="{{ route('learning-module.index') }}" class="btn btn-default btn-sm mr-3">
+                <a href="{{ $module->managementUrl() }}" class="btn btn-default btn-sm mr-3">
                     <i class="fas fa-arrow-left"></i>
                 </a>
                 <div>
                     <h1 class="m-0 text-dark font-weight-bold" style="font-size: 1.5rem;">Soal Pretest & Posttest</h1>
-                    <span class="text-muted small">{{ $module->title }} &middot; soal yang sama dipakai untuk pretest dan posttest</span>
+                    <span class="text-muted small">
+                        @if($module->isOwned())
+                            {{ $module->isOwnedByVideo() ? 'Video' : 'Dokumen' }}:
+                        @endif
+                        {{ $module->title }} &middot; soal yang sama dipakai untuk pretest dan posttest
+                    </span>
                 </div>
             </div>
 
@@ -46,17 +51,27 @@
             <div class="card-header py-3 d-flex align-items-center justify-content-between flex-wrap" style="gap: 10px;">
                 <h3 class="card-title font-weight-bold m-0">Daftar Pertanyaan ({{ $questions->count() }} Soal)</h3>
                 <div class="d-flex align-items-center" style="gap: 8px;">
-                    @if($module->is_published)
-                        <span class="badge badge-success px-2 py-1">Dipublikasikan</span>
+                    @if($module->isOwned())
+                        {{-- Kuis milik video/dokumen aktif otomatis saat pretest/posttest nyala dan sudah ada soal. --}}
+                        @if($module->is_published)
+                            <span class="badge badge-success px-2 py-1">Kuis aktif</span>
+                        @else
+                            <span class="badge badge-secondary px-2 py-1">Kuis belum aktif</span>
+                        @endif
+                        <a href="{{ route('learning-module.show', $module) }}" class="btn btn-xs btn-default">Rekap Nilai</a>
                     @else
-                        <span class="badge badge-secondary px-2 py-1">Draft</span>
+                        @if($module->is_published)
+                            <span class="badge badge-success px-2 py-1">Dipublikasikan</span>
+                        @else
+                            <span class="badge badge-secondary px-2 py-1">Draft</span>
+                        @endif
+                        <form action="{{ route('learning-module.publish', $module) }}" method="POST" class="m-0">
+                            @csrf
+                            <button type="submit" class="btn btn-xs {{ $module->is_published ? 'btn-outline-secondary' : 'btn-success' }}">
+                                {{ $module->is_published ? 'Tarik Publikasi' : 'Publikasikan Modul' }}
+                            </button>
+                        </form>
                     @endif
-                    <form action="{{ route('learning-module.publish', $module) }}" method="POST" class="m-0">
-                        @csrf
-                        <button type="submit" class="btn btn-xs {{ $module->is_published ? 'btn-outline-secondary' : 'btn-success' }}">
-                            {{ $module->is_published ? 'Tarik Publikasi' : 'Publikasikan Modul' }}
-                        </button>
-                    </form>
                 </div>
             </div>
 

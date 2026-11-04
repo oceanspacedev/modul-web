@@ -9,6 +9,7 @@ use App\Jobs\GenerateLearningModuleQuestions;
 use App\Models\LearningModule;
 use App\Models\LearningModuleItem;
 use App\Models\LearningModuleQuestion;
+use App\Services\MaterialQuizService;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -25,6 +26,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 #[Authorize('update', 'module')]
 class LearningModuleQuestionController extends Controller
 {
+    public function __construct(private MaterialQuizService $materialQuiz) {}
+
     public function index(LearningModule $module): View
     {
         $module->load(['questions', 'items.materialable']);
@@ -43,6 +46,7 @@ class LearningModuleQuestionController extends Controller
     public function store(LearningModuleQuestionRequest $request, LearningModule $module): RedirectResponse
     {
         $module->questions()->create([...$request->questionData(), 'sort_order' => $this->nextSortOrder($module)]);
+        $this->materialQuiz->refresh($module);
 
         return back()->with('success', 'Soal baru berhasil ditambahkan!');
     }
@@ -57,6 +61,7 @@ class LearningModuleQuestionController extends Controller
     public function destroy(LearningModule $module, LearningModuleQuestion $question): RedirectResponse
     {
         $question->delete();
+        $this->materialQuiz->refresh($module);
 
         return back()->with('success', 'Soal berhasil dihapus!');
     }
@@ -64,6 +69,7 @@ class LearningModuleQuestionController extends Controller
     public function deleteAll(LearningModule $module): RedirectResponse
     {
         $module->questions()->delete();
+        $this->materialQuiz->refresh($module);
 
         return back()->with('success', 'Semua soal berhasil dihapus!');
     }
@@ -82,6 +88,7 @@ class LearningModuleQuestionController extends Controller
         try {
             $import = new LearningModuleQuestionImport($module, $this->nextSortOrder($module));
             DB::transaction(fn () => Excel::import($import, $request->file('file')));
+            $this->materialQuiz->refresh($module);
 
             return back()->with('success', "Berhasil mengimpor {$import->getImportedCount()} soal dari file Excel!");
         } catch (Exception $e) {
@@ -175,6 +182,7 @@ class LearningModuleQuestionController extends Controller
             }
         });
 
+        $this->materialQuiz->refresh($module);
         $count = count($request->questions);
 
         return response()->json([

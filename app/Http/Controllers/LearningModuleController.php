@@ -29,7 +29,8 @@ class LearningModuleController extends Controller
 {
     public function index(Request $request): View
     {
-        $modules = LearningModule::with(['divisis', 'roles'])
+        $modules = LearningModule::standalone()
+            ->with(['divisis', 'roles'])
             ->withCount(['items', 'questions'])
             ->withCount(['attempts as participants_count' => fn ($query) => $query->select(DB::raw('count(distinct user_id)'))])
             ->when($request->filled('search'), fn ($query) => $query->where('title', 'like', '%'.$request->search.'%'))
@@ -101,6 +102,7 @@ class LearningModuleController extends Controller
 
     public function edit(LearningModule $module): View
     {
+        $this->abortIfOwned($module);
         $module->load(['items.materialable', 'divisis', 'roles']);
 
         return view('learning_module.form', [
@@ -114,6 +116,8 @@ class LearningModuleController extends Controller
 
     public function update(LearningModuleRequest $request, LearningModule $module): RedirectResponse
     {
+        $this->abortIfOwned($module);
+
         if ($module->is_published && $request->materialKeys() === []) {
             return back()->withInput()->withErrors(['items' => 'Modul yang sudah dipublikasikan harus memiliki minimal 1 materi.']);
         }
@@ -138,6 +142,8 @@ class LearningModuleController extends Controller
      */
     public function togglePublish(LearningModule $module): RedirectResponse
     {
+        $this->abortIfOwned($module);
+
         if (! $module->is_published) {
             $module->load('items.materialable')->loadCount('questions');
 
@@ -156,6 +162,14 @@ class LearningModuleController extends Controller
     public function export(LearningModule $module): BinaryFileResponse
     {
         return Excel::download(new LearningModuleRekapExport($module), 'rekap_modul_'.Str::slug($module->title).'.xlsx');
+    }
+
+    /**
+     * Kuis milik video/dokumen diatur dari form materi tersebut dan aktif otomatis saat sudah ada soal.
+     */
+    private function abortIfOwned(LearningModule $module): void
+    {
+        abort_if($module->isOwned(), 404);
     }
 
     /**

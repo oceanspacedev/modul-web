@@ -176,14 +176,13 @@ Route::middleware('auth')->group(function () {
             });
         });
 
-    // # MODUL BELAJAR: PESERTA (pretest -> materi -> posttest)
+    // # MODUL BELAJAR: PESERTA (pretest -> materi -> posttest); juga kuis milik video/dokumen (LearningModulePolicy::take)
     Route::prefix('modul-saya')
         ->name('learning.')
         ->controller(LearningModulePortalController::class)
-        ->middleware('can:view-learning-modules')
         ->scopeBindings()
         ->group(function () {
-            Route::get('/', 'index')->name('index');
+            Route::get('/', 'index')->middleware('can:view-learning-modules')->name('index');
             Route::get('{module}', 'show')->whereNumber('module')->name('show');
             Route::get('{module}/attempts/{attempt}', 'attempt')->whereNumber('module')->name('attempt');
             Route::get('{module}/items/{item}', 'item')->whereNumber('module')->name('items.show');

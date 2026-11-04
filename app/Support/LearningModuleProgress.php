@@ -11,7 +11,8 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * Posisi seorang peserta di sebuah modul: pretest -> materi -> posttest.
+ * Posisi seorang peserta di sebuah modul: pretest -> materi -> posttest. Pretest/posttest bisa dimatikan per modul,
+ * dan jumlah percobaannya dibatasi *_max_attempts modul (null = tanpa batas).
  *
  * Modul harus sudah memuat relasi items.materialable.
  */
@@ -23,7 +24,14 @@ final class LearningModuleProgress
 
     public const STAGE_POSTTEST = 'posttest';
 
+    /** Materi selesai dan modul tidak punya posttest. */
+    public const STAGE_DONE = 'selesai';
+
+    /** Percobaan pretest pertama, dipakai sebagai nilai awal. */
+    public readonly ?LearningModuleAttempt $pretest;
+
     /**
+     * @param  Collection<int, LearningModuleAttempt>  $pretests  urut dari percobaan pertama
      * @param  Collection<int, LearningModuleAttempt>  $posttests  urut dari percobaan pertama
      * @param  Collection<int, int>  $completedItemIds
      * @param  Collection<int, int>  $openedItemIds
@@ -31,11 +39,13 @@ final class LearningModuleProgress
     public function __construct(
         public readonly LearningModule $module,
         public readonly User $user,
-        public readonly ?LearningModuleAttempt $pretest,
+        public readonly Collection $pretests,
         public readonly Collection $posttests,
         public readonly Collection $completedItemIds,
         public readonly Collection $openedItemIds,
-    ) {}
+    ) {
+        $this->pretest = $pretests->first();
+    }
 
     public static function for(LearningModule $module, User $user): self
     {
@@ -68,7 +78,7 @@ final class LearningModuleProgress
             return [$module->id => new self(
                 $module,
                 $user,
-                $moduleAttempts->firstWhere('phase', LearningModuleAttempt::PHASE_PRETEST),
+                $moduleAttempts->where('phase', LearningModuleAttempt::PHASE_PRETEST)->values(),
                 $moduleAttempts->where('phase', LearningModuleAttempt::PHASE_POSTTEST)->values(),
                 $progress->whereNotNull('completed_at')->pluck('learning_module_item_id'),
                 $progress->whereNotNull('opened_at')->pluck('learning_module_item_id'),
@@ -101,7 +111,7 @@ final class LearningModuleProgress
                 return new self(
                     $module,
                     $user,
-                    $userAttempts->firstWhere('phase', LearningModuleAttempt::PHASE_PRETEST),
+                    $userAttempts->where('phase', LearningModuleAttempt::PHASE_PRETEST)->values(),
                     $userAttempts->where('phase', LearningModuleAttempt::PHASE_POSTTEST)->values(),
                     $userProgress->whereNotNull('completed_at')->pluck('learning_module_item_id'),
                     $userProgress->whereNotNull('opened_at')->pluck('learning_module_item_id'),
@@ -112,6 +122,45 @@ final class LearningModuleProgress
     public function hasDonePretest(): bool
     {
         return $this->pretest !== null;
+    }
+
+    /**
+     * Pretest nyala tetapi belum pernah dikerjakan; materi dan posttest menunggu.
+     */
+    public function needsPretest(): bool
+    {
+        return $this->module->has_pretest && ! $this->hasDonePretest();
+    }
+
+    /**
+     * @return Collection<int, LearningModuleAttempt>
+     */
+    public function attemptsFor(string $phase): Collection
+    {
+        return $phase === LearningModuleAttempt::PHASE_PRETEST ? $this->pretests : $this->posttests;
+    }
+
+    /**
+     * Sisa percobaan pada fase ini; null berarti tanpa batas.
+     */
+    public function remainingAttempts(string $phase): ?int
+    {
+        $max = $this->module->maxAttempts($phase);
+
+        return $max === null ? null : max(0, $max - $this->attemptsFor($phase)->count());
+    }
+
+    public function canTakePretest(): bool
+    {
+        return $this->module->has_pretest && $this->remainingAttempts(LearningModuleAttempt::PHASE_PRETEST) !== 0;
+    }
+
+    /**
+     * Posttest sudah terbuka (pretest beres dan semua materi selesai), terlepas dari sisa percobaan.
+     */
+    public function isPosttestUnlocked(): bool
+    {
+        return $this->module->has_posttest && ! $this->needsPretest() && $this->hasCompletedMaterials();
     }
 
     public function isItemCompleted(LearningModuleItem $item): bool
@@ -137,15 +186,16 @@ final class LearningModuleProgress
     public function stage(): string
     {
         return match (true) {
-            ! $this->hasDonePretest() => self::STAGE_PRETEST,
+            $this->needsPretest() => self::STAGE_PRETEST,
             ! $this->hasCompletedMaterials() => self::STAGE_MATERIALS,
-            default => self::STAGE_POSTTEST,
+            $this->module->has_posttest => self::STAGE_POSTTEST,
+            default => self::STAGE_DONE,
         };
     }
 
     public function canTakePosttest(): bool
     {
-        return $this->stage() === self::STAGE_POSTTEST;
+        return $this->isPosttestUnlocked() && $this->remainingAttempts(LearningModuleAttempt::PHASE_POSTTEST) !== 0;
     }
 
     public function bestPosttest(): ?LearningModuleAttempt
@@ -175,7 +225,7 @@ final class LearningModuleProgress
 
     public function lastActivityAt(): ?Carbon
     {
-        return $this->posttests->last()?->submitted_at ?? $this->pretest?->submitted_at;
+        return $this->posttests->last()?->submitted_at ?? $this->pretests->last()?->submitted_at;
     }
 
     /**
@@ -186,6 +236,7 @@ final class LearningModuleProgress
         return match (true) {
             $this->hasPassed() => 'Lulus',
             $this->posttests->isNotEmpty() => 'Belum Lulus',
+            $this->stage() === self::STAGE_DONE => 'Selesai',
             $this->stage() === self::STAGE_POSTTEST => 'Belum Posttest',
             $this->stage() === self::STAGE_MATERIALS => 'Mempelajari Materi',
             default => 'Belum Pretest',

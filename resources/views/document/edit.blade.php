@@ -78,6 +78,8 @@
                                         </div>
                                     </div>
 
+                                    @include('learning_module.partials.material-quiz-fields', ['quiz' => $quiz])
+
                                     <div class="d-flex justify-content-between mt-2 pt-3 border-top">
                                         <a href="{{ route('document.index') }}" class="btn btn-secondary btn-sm">
                                             <i class="fas fa-arrow-left mr-1"></i> Kembali

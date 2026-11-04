@@ -5,17 +5,26 @@
     <div class="container-fluid">
         <div class="mb-3 d-flex flex-wrap justify-content-between align-items-center" style="gap: 12px;">
             <div class="d-flex align-items-center">
-                <a href="{{ route('learning-module.index') }}" class="btn btn-default btn-sm mr-3">
+                <a href="{{ $module->managementUrl() }}" class="btn btn-default btn-sm mr-3">
                     <i class="fas fa-arrow-left"></i>
                 </a>
                 <div>
                     <h1 class="m-0 text-dark font-weight-bold" style="font-size: 1.5rem;">{{ $module->title }}</h1>
-                    <span class="text-muted small">{{ $module->targetLabel() }}</span>
+                    <span class="text-muted small">
+                        @if($module->isOwned())
+                            Kuis {{ $module->isOwnedByVideo() ? 'video' : 'dokumen' }}
+                            &middot; {{ collect([$module->has_pretest ? 'pretest' : null, $module->has_posttest ? 'posttest' : null])->filter()->join(' & ') ?: 'pretest & posttest dimatikan' }}
+                        @else
+                            {{ $module->targetLabel() }}
+                        @endif
+                    </span>
                 </div>
             </div>
             <div class="d-flex flex-wrap" style="gap: 8px;">
                 <a href="{{ route('learning-module.questions.index', $module) }}" class="btn btn-default btn-sm">Kelola Soal ({{ $module->questions_count }})</a>
-                <a href="{{ route('learning-module.edit', $module) }}" class="btn btn-default btn-sm">Edit Modul & Materi</a>
+                @unless($module->isOwned())
+                    <a href="{{ route('learning-module.edit', $module) }}" class="btn btn-default btn-sm">Edit Modul & Materi</a>
+                @endunless
                 <a href="{{ route('learning-module.export', $module) }}" class="btn btn-success btn-sm">
                     <i class="fas fa-file-excel mr-1"></i> Export Excel
                 </a>

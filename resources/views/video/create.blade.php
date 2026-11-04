@@ -149,6 +149,8 @@
                                 </div>
                             </div>
 
+                            @include('learning_module.partials.material-quiz-fields', ['quiz' => null])
+
                             {{-- Upload Progress Bar --}}
                             <div id="uploadProgressBarContainer" class="mb-3" style="display: none;">
                                 <div class="d-flex justify-content-between mb-1">

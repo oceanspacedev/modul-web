@@ -35,6 +35,8 @@ class LearningModuleRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:5000'],
             'passing_score' => ['required', 'integer', 'min:0', 'max:100'],
             'shuffle_questions' => ['boolean'],
+            'pretest_max_attempts' => ['nullable', 'integer', 'min:1', 'max:255'],
+            'posttest_max_attempts' => ['nullable', 'integer', 'min:1', 'max:255'],
             'divisi_ids' => ['nullable', 'array'],
             'divisi_ids.*' => ['integer', 'exists:divisis,id'],
             'role_ids' => ['nullable', 'array'],
@@ -97,6 +99,10 @@ class LearningModuleRequest extends FormRequest
      */
     public function moduleData(): array
     {
-        return $this->safe()->only(['title', 'description', 'passing_score', 'shuffle_questions']);
+        return [
+            ...$this->safe()->only(['title', 'description', 'passing_score', 'shuffle_questions']),
+            'pretest_max_attempts' => $this->validated('pretest_max_attempts'),
+            'posttest_max_attempts' => $this->validated('posttest_max_attempts'),
+        ];
     }
 }

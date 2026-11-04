@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Satu percobaan pretest/posttest. Semua percobaan disimpan sebagai riwayat; pretest hanya attempt_number 1.
+ * Satu percobaan pretest/posttest. Semua percobaan disimpan sebagai riwayat; batasnya diatur per modul.
  */
 class LearningModuleAttempt extends Model
 {
@@ -76,7 +76,8 @@ class LearningModuleAttempt extends Model
         $score = $total > 0 ? round($correct / $total * 100, 2) : 0;
 
         return DB::transaction(function () use ($module, $user, $phase, $snapshot, $total, $correct, $score) {
-            $attemptNumber = $phase === self::PHASE_PRETEST ? 1 : (int) static::query()
+            // Kiriman ganda menghasilkan nomor yang sama dan ditolak unique index.
+            $attemptNumber = (int) static::query()
                 ->where('learning_module_id', $module->id)
                 ->where('user_id', $user->id)
                 ->where('phase', $phase)

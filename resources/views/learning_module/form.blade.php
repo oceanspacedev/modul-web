@@ -72,6 +72,19 @@
                                 </div>
                             </div>
 
+                            <div class="row">
+                                <div class="col-md-6 form-group mb-4">
+                                    <label for="pretest_max_attempts" class="font-weight-600 mb-2">Batas Percobaan Pretest</label>
+                                    <input type="number" id="pretest_max_attempts" name="pretest_max_attempts" class="form-control" min="1" max="255"
+                                        value="{{ old('pretest_max_attempts', $module->exists ? $module->pretest_max_attempts : 1) }}" placeholder="Kosong = tanpa batas">
+                                </div>
+                                <div class="col-md-6 form-group mb-4">
+                                    <label for="posttest_max_attempts" class="font-weight-600 mb-2">Batas Percobaan Posttest</label>
+                                    <input type="number" id="posttest_max_attempts" name="posttest_max_attempts" class="form-control" min="1" max="255"
+                                        value="{{ old('posttest_max_attempts', $module->posttest_max_attempts) }}" placeholder="Kosong = tanpa batas">
+                                </div>
+                            </div>
+
                             <div class="form-group mb-4">
                                 <label for="divisi_ids" class="font-weight-600 mb-2">Divisi Sasaran</label>
                                 <select id="divisi_ids" name="divisi_ids[]" class="form-control select2" multiple data-placeholder="Semua divisi">

@@ -3,17 +3,22 @@
 @php
     $stage = $progress->stage();
     $best = $progress->bestPosttest();
+    $step = 0;
+    $limitLabel = fn (?int $remaining) => $remaining === null ? 'boleh diulang tanpa batas' : ($remaining === 0 ? 'batas percobaan habis' : 'sisa '.$remaining.' percobaan');
+    $backUrl = $module->isOwned() ? route('document.index') : route('learning.index');
 @endphp
 
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
         <div class="mb-3 d-flex align-items-center">
-            <a href="{{ route('learning.index') }}" class="btn btn-default btn-sm mr-3">
+            <a href="{{ $backUrl }}" class="btn btn-default btn-sm mr-3">
                 <i class="fas fa-arrow-left"></i>
             </a>
             <div>
-                <h1 class="m-0 text-dark font-weight-bold" style="font-size: 1.5rem;">{{ $module->title }}</h1>
+                <h1 class="m-0 text-dark font-weight-bold" style="font-size: 1.5rem;">
+                    {{ $module->isOwned() ? 'Kuis Dokumen: ' : '' }}{{ $module->title }}
+                </h1>
                 <span class="text-muted small">{{ $module->questions_count }} soal &middot; nilai minimal lulus {{ $module->passing_score }}</span>
             </div>
         </div>
@@ -28,42 +33,49 @@
             <p class="text-muted" style="white-space: pre-line;">{{ $module->description }}</p>
         @endif
 
-        {{-- LANGKAH 1: PRETEST --}}
+        {{-- PRETEST --}}
+        @if($module->has_pretest)
         <div class="card mb-3 {{ $stage === 'pretest' ? 'border-primary' : '' }}">
             <div class="card-body d-flex flex-wrap justify-content-between align-items-center" style="gap: 12px;">
                 <div>
-                    <span class="badge badge-primary mb-1">Langkah 1</span>
+                    <span class="badge badge-primary mb-1">Langkah {{ ++$step }}</span>
                     <h5 class="font-weight-bold mb-1">Pretest</h5>
                     @if($progress->pretest)
                         <span class="text-muted small">
-                            Selesai {{ $progress->pretest->submitted_at->format('d M Y H:i') }} &middot;
-                            {{ $progress->pretest->correct_answers }}/{{ $progress->pretest->total_questions }} benar
+                            Nilai awal {{ $progress->pretest->score }} ({{ $progress->pretest->submitted_at->format('d M Y H:i') }})
+                            &middot; {{ $limitLabel($progress->remainingAttempts('pretest')) }}
                         </span>
                     @else
-                        <span class="text-muted small">Uji pemahaman awal Anda sebelum mempelajari materi. Pretest hanya dapat dikerjakan satu kali.</span>
+                        <span class="text-muted small">
+                            Uji pemahaman awal Anda sebelum mempelajari materi.
+                            {{ $module->pretest_max_attempts === 1 ? 'Pretest hanya dapat dikerjakan satu kali.' : '' }}
+                        </span>
                     @endif
                 </div>
-                @if($progress->pretest)
-                    <div class="text-right">
-                        <strong class="d-block" style="font-size: 1.6rem;">{{ $progress->pretest->score }}</strong>
-                        <a href="{{ route('learning.attempt', [$module, $progress->pretest]) }}" class="small">Lihat hasil</a>
-                    </div>
-                @else
-                    <a href="{{ route('learning.quiz', [$module, 'pretest']) }}" class="btn btn-primary">Mulai Pretest</a>
-                @endif
+                <div class="text-right">
+                    @if($progress->pretest)
+                        <a href="{{ route('learning.attempt', [$module, $progress->pretests->last()]) }}" class="btn btn-default btn-sm">Lihat hasil</a>
+                    @endif
+                    @if($progress->canTakePretest())
+                        <a href="{{ route('learning.quiz', [$module, 'pretest']) }}" class="btn {{ $progress->pretest ? 'btn-outline-primary' : 'btn-primary' }} btn-sm">
+                            {{ $progress->pretest ? 'Ulangi Pretest' : 'Mulai Pretest' }}
+                        </a>
+                    @endif
+                </div>
             </div>
         </div>
+        @endif
 
-        {{-- LANGKAH 2: MATERI --}}
+        {{-- MATERI --}}
         <div class="card mb-3 {{ $stage === 'materi' ? 'border-primary' : '' }}">
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <div>
-                    <span class="badge badge-primary mb-1">Langkah 2</span>
+                    <span class="badge badge-primary mb-1">Langkah {{ ++$step }}</span>
                     <h5 class="font-weight-bold mb-0">Materi</h5>
                 </div>
                 <span class="text-muted small">{{ $progress->completedItemCount() }}/{{ $progress->totalItemCount() }} selesai</span>
             </div>
-            @if(! $progress->hasDonePretest())
+            @if($progress->needsPretest())
                 <div class="card-body text-muted small">
                     <i class="fas fa-lock mr-1"></i> Materi terbuka setelah Anda mengerjakan pretest.
                 </div>
@@ -90,14 +102,15 @@
             @endif
         </div>
 
-        {{-- LANGKAH 3: POSTTEST --}}
+        {{-- POSTTEST --}}
+        @if($module->has_posttest)
         <div class="card mb-4 {{ $stage === 'posttest' ? 'border-primary' : '' }}">
             <div class="card-body d-flex flex-wrap justify-content-between align-items-center" style="gap: 12px;">
                 <div>
-                    <span class="badge badge-primary mb-1">Langkah 3</span>
+                    <span class="badge badge-primary mb-1">Langkah {{ ++$step }}</span>
                     <h5 class="font-weight-bold mb-1">Posttest</h5>
-                    @if(! $progress->canTakePosttest())
-                        <span class="text-muted small"><i class="fas fa-lock mr-1"></i> Terbuka setelah pretest dan semua materi selesai.</span>
+                    @if(! $progress->isPosttestUnlocked())
+                        <span class="text-muted small"><i class="fas fa-lock mr-1"></i> Terbuka setelah {{ $module->has_pretest ? 'pretest dan ' : '' }}semua materi selesai.</span>
                     @elseif($best)
                         <span class="text-muted small">
                             Nilai terbaik <strong class="text-dark">{{ $best->score }}</strong>
@@ -106,10 +119,10 @@
                             @else
                                 &middot; belum mencapai KKM {{ $module->passing_score }}
                             @endif
-                            &middot; boleh diulang untuk memperbaiki nilai.
+                            &middot; {{ $limitLabel($progress->remainingAttempts('posttest')) }}
                         </span>
                     @else
-                        <span class="text-muted small">Uji kembali pemahaman Anda setelah mempelajari materi. Posttest bisa diulang dan semua nilai tersimpan.</span>
+                        <span class="text-muted small">Uji kembali pemahaman Anda setelah mempelajari materi. Semua nilai percobaan tersimpan.</span>
                     @endif
                 </div>
                 @if($progress->canTakePosttest())
@@ -157,6 +170,7 @@
                 </div>
             @endif
         </div>
+        @endif
     </div>
 </section>
 @endsection

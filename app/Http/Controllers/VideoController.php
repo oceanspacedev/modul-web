@@ -7,6 +7,8 @@ use App\Http\Requests\StoreVideoRequest;
 use App\Http\Requests\UpdateVideoRequest;
 use App\Models\Video;
 use App\Models\VideoComment;
+use App\Services\MaterialQuizService;
+use App\Support\LearningModuleProgress;
 use App\Support\SafeRedirect;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,12 +26,14 @@ use Illuminate\View\View;
 #[Authorize('delete', 'comment', only: ['destroyComment'])]
 class VideoController extends Controller
 {
+    public function __construct(private MaterialQuizService $materialQuiz) {}
+
     /**
      * Display a listing of videos (public).
      */
     public function index(Request $request): View
     {
-        $query = Video::query()->latest();
+        $query = Video::with('quizModule')->latest();
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -48,14 +52,32 @@ class VideoController extends Controller
     }
 
     /**
-     * Show single video player page (public).
+     * Show single video player page (public). A video with an active pretest/posttest needs a signed-in user, and
+     * the pretest (when enabled) comes before the video; video managers can preview without it.
      */
-    public function show(Video $video): View
+    public function show(Request $request, Video $video): View|RedirectResponse
     {
         $video->load([
             'training',
+            'quizModule.items.materialable',
             'comments' => fn ($q) => $q->with(['user.divisi', 'replies.user.divisi']),
         ]);
+
+        $quiz = $video->activeQuiz();
+        $quizProgress = null;
+
+        if ($quiz) {
+            if (! $request->user()) {
+                return to_route('login', ['redirect' => $request->getRequestUri()]);
+            }
+
+            $quizProgress = LearningModuleProgress::for($quiz, $request->user());
+
+            if ($quizProgress->needsPretest() && $request->user()->cannot('update', $video)) {
+                return to_route('learning.quiz', [$quiz, 'pretest'])
+                    ->with('info', 'Kerjakan pretest terlebih dahulu sebelum menonton video ini.');
+            }
+        }
 
         $video->increment('views_count');
 
@@ -63,7 +85,9 @@ class VideoController extends Controller
             'title' => $video->title,
             'active' => 'video',
             'video' => $video,
-            'otherVideos' => Video::whereKeyNot($video->id)->latest()->take(6)->get(),
+            'quiz' => $quiz,
+            'quizProgress' => $quizProgress,
+            'otherVideos' => Video::with('quizModule')->whereKeyNot($video->id)->latest()->take(6)->get(),
         ]);
     }
 
@@ -122,13 +146,19 @@ class VideoController extends Controller
             return redirect($redirectTo)->with('success', 'Video materi pelatihan berhasil diperbarui!');
         }
 
-        Video::create([
+        $video = Video::create([
             ...$attributes,
             'training_id' => $request->validated('training_id'),
             'video_file' => $videoPath,
             'thumbnail' => $thumbnailPath,
             'file_size' => $videoPath ? $this->formatBytes($videoFile->getSize()) : null,
         ]);
+
+        $quiz = $this->materialQuiz->sync($video, $request->validated('quiz'));
+        if ($this->materialQuiz->needsQuestions($quiz)) {
+            return to_route('learning-module.questions.index', $quiz)
+                ->with('success', 'Video berhasil diunggah! Tambahkan soal agar pretest/posttest aktif.');
+        }
 
         return redirect($redirectTo)->with('success', 'Video materi pelatihan berhasil diunggah!');
     }
@@ -139,6 +169,7 @@ class VideoController extends Controller
             'title' => 'Edit Video: '.$video->title,
             'active' => 'video',
             'video' => $video,
+            'quiz' => $video->quizModule,
         ]);
     }
 
@@ -170,6 +201,12 @@ class VideoController extends Controller
 
         $video->save();
 
+        $quiz = $this->materialQuiz->sync($video, $request->validated('quiz'));
+        if ($this->materialQuiz->needsQuestions($quiz)) {
+            return to_route('learning-module.questions.index', $quiz)
+                ->with('success', 'Video berhasil diperbarui! Tambahkan soal agar pretest/posttest aktif.');
+        }
+
         return to_route('video.index')->with('success', 'Video berhasil diperbarui!');
     }
 
@@ -178,6 +215,8 @@ class VideoController extends Controller
         $this->deleteStoredFile($video->video_file);
         $this->deleteStoredFile($video->thumbnail);
 
+        // Riwayat nilai kuis video tetap tersimpan (soft delete).
+        $video->quizModule()->first()?->delete();
         $video->delete();
 
         return to_route('video.index')->with('success', 'Video berhasil dihapus!');

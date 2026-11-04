@@ -1,17 +1,20 @@
 @extends('layout.main_template')
 
-@php $isPretest = $phase === 'pretest'; @endphp
+@php
+    $isPretest = $phase === 'pretest';
+    $maxAttempts = $module->maxAttempts($phase);
+@endphp
 
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
         <div class="mb-3 d-flex align-items-center">
-            <a href="{{ route('learning.show', $module) }}" class="btn btn-default btn-sm mr-3">
+            <a href="{{ $module->participantUrl() }}" class="btn btn-default btn-sm mr-3">
                 <i class="fas fa-arrow-left"></i>
             </a>
             <div>
                 <h1 class="m-0 text-dark font-weight-bold" style="font-size: 1.5rem;">
-                    {{ $isPretest ? 'Pretest' : 'Posttest ke-'.$attemptNumber }}
+                    {{ $isPretest ? 'Pretest' : 'Posttest' }}{{ $maxAttempts === 1 ? '' : ' ke-'.$attemptNumber }}
                 </h1>
                 <span class="text-muted small">{{ $module->title }} &middot; {{ $questions->count() }} soal</span>
             </div>
@@ -25,9 +28,14 @@
 
         <div class="alert {{ $isPretest ? 'alert-info' : 'alert-light border' }}">
             @if($isPretest)
-                Pretest mengukur pemahaman awal Anda dan <strong>hanya dapat dikerjakan satu kali</strong>. Jawab sebisanya, materi akan terbuka setelah pretest dikirim.
+                Pretest mengukur pemahaman awal Anda. Jawab sebisanya, materi akan terbuka setelah pretest dikirim.
             @else
-                Nilai minimal lulus: <strong>{{ $module->passing_score }}</strong>. Posttest boleh diulang; setiap percobaan tetap tersimpan.
+                Nilai minimal lulus: <strong>{{ $module->passing_score }}</strong>. Setiap percobaan tetap tersimpan.
+            @endif
+            @if($maxAttempts === 1)
+                <strong>{{ $isPretest ? 'Pretest' : 'Posttest' }} hanya dapat dikerjakan satu kali.</strong>
+            @elseif($maxAttempts !== null)
+                Ini percobaan ke-{{ $attemptNumber }} dari maksimal {{ $maxAttempts }}.
             @endif
         </div>
 

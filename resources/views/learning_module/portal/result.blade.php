@@ -2,18 +2,20 @@
 
 @php
     $diff = ! $attempt->isPretest() && $progress->pretest ? round($attempt->score - $progress->pretest->score, 2) : null;
+    $backUrl = $module->participantUrl();
+    $backLabel = $module->isOwnedByVideo() ? 'Video' : ($module->isOwned() ? 'Dokumen' : 'Modul');
 @endphp
 
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
         <div class="mb-3 d-flex align-items-center">
-            <a href="{{ route('learning.show', $module) }}" class="btn btn-default btn-sm mr-3">
+            <a href="{{ $backUrl }}" class="btn btn-default btn-sm mr-3">
                 <i class="fas fa-arrow-left"></i>
             </a>
             <div>
                 <h1 class="m-0 text-dark font-weight-bold" style="font-size: 1.5rem;">
-                    Hasil {{ $attempt->isPretest() ? 'Pretest' : 'Posttest ke-'.$attempt->attempt_number }}
+                    Hasil {{ $attempt->isPretest() ? 'Pretest' : 'Posttest' }} ke-{{ $attempt->attempt_number }}
                 </h1>
                 <span class="text-muted small">{{ $module->title }} &middot; {{ $attempt->submitted_at->format('d M Y H:i') }}</span>
             </div>
@@ -48,10 +50,12 @@
             </div>
             <div class="card-footer bg-white text-center">
                 @if($attempt->isPretest())
-                    <a href="{{ route('learning.show', $module) }}" class="btn btn-primary">Lanjut Pelajari Materi</a>
+                    <a href="{{ $backUrl }}" class="btn btn-primary">{{ $module->isOwnedByVideo() ? 'Lanjut Tonton Video' : 'Lanjut Pelajari Materi' }}</a>
                 @else
-                    <a href="{{ route('learning.show', $module) }}" class="btn btn-default mr-1">Kembali ke Modul</a>
-                    <a href="{{ route('learning.quiz', [$module, 'posttest']) }}" class="btn btn-primary">Ulangi Posttest</a>
+                    <a href="{{ $backUrl }}" class="btn btn-default mr-1">Kembali ke {{ $backLabel }}</a>
+                    @if($progress->canTakePosttest())
+                        <a href="{{ route('learning.quiz', [$module, 'posttest']) }}" class="btn btn-primary">Ulangi Posttest</a>
+                    @endif
                 @endif
             </div>
         </div>

@@ -10,6 +10,7 @@ use App\Models\DocumentVersion;
 use App\Models\DokumenType;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\MaterialQuizService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,12 +27,14 @@ use Illuminate\View\View;
 #[Authorize('restore', 'document', only: ['restore'])]
 class DocumentController extends Controller
 {
+    public function __construct(private MaterialQuizService $materialQuiz) {}
+
     public function index(Request $request): View
     {
         $divisis = Divisi::all();
         $doctypes = DokumenType::all();
 
-        $query = Document::with(['divisi', 'role', 'dokumentype', 'versions'])->withTrashed();
+        $query = Document::with(['divisi', 'role', 'dokumentype', 'versions', 'quizModule'])->withTrashed();
 
         if ($request->filled('divisi_id')) {
             $query->where('divisi_id', $request->divisi_id);
@@ -79,7 +82,8 @@ class DocumentController extends Controller
 
         $file->storeAs('dokumen', $path);
 
-        DB::transaction(function () use ($request, $file, $fileName, $path, $fileSize, $changeNote, $userName) {
+        $quizzes = DB::transaction(function () use ($request, $file, $fileName, $path, $fileSize, $changeNote, $userName) {
+            $quizzes = [];
             foreach ($request->validated('role_id') as $roleId) {
                 $document = Document::create([
                     ...$request->safe()->only(['document_type', 'divisi_id']),
@@ -97,18 +101,33 @@ class DocumentController extends Controller
                     'change_note' => $changeNote,
                     'created_by' => $userName,
                 ]);
+
+                $quizzes[] = $this->materialQuiz->sync($document, $request->validated('quiz'));
             }
+
+            return array_values(array_filter($quizzes));
         });
 
-        return to_route('document.index')->with('success', 'Berhasil menambahkan dokumen baru (Versi 1)');
+        // Setiap dokumen (satu per jabatan) punya bank soal sendiri.
+        if (count($quizzes) === 1 && $this->materialQuiz->needsQuestions($quizzes[0])) {
+            return to_route('learning-module.questions.index', $quizzes[0])
+                ->with('success', 'Berhasil menambahkan dokumen baru (Versi 1). Tambahkan soal agar pretest/posttest aktif.');
+        }
+
+        return to_route('document.index')->with('success', count($quizzes) > 1
+            ? 'Berhasil menambahkan dokumen baru (Versi 1). Tambahkan soal pretest/posttest lewat menu Aksi pada setiap dokumen.'
+            : 'Berhasil menambahkan dokumen baru (Versi 1)');
     }
 
     /**
-     * Version history of a document, loaded by the history modal on the index page.
+     * Version history of a document, loaded by the history modal on the index page. While the document has an
+     * active pretest/posttest, participants get no direct file links (they open it through the quiz page).
      */
-    public function history(Document $document): JsonResponse
+    public function history(Request $request, Document $document): JsonResponse
     {
-        $document->load(['versions', 'divisi', 'role']);
+        $document->load(['versions', 'divisi', 'role', 'quizModule']);
+        $quiz = $document->activeQuiz();
+        $hideFiles = $quiz && $request->user()->cannot('update', $document);
 
         return response()->json([
             'document' => [
@@ -123,7 +142,7 @@ class DocumentController extends Controller
                 'id' => $version->id,
                 'version_number' => $version->version_number,
                 'file_name' => $version->file_name,
-                'file_url' => $version->file_url,
+                'file_url' => $hideFiles ? route('learning.show', $quiz) : $version->file_url,
                 'file_size' => $version->file_size ?: '-',
                 'change_note' => $version->change_note ?: 'Tidak ada catatan revisi',
                 'created_by' => $version->created_by ?: 'Admin',
@@ -143,6 +162,7 @@ class DocumentController extends Controller
             'documentypes' => DokumenType::all(),
             'roles' => $this->targetRoles(),
             'document' => $document,
+            'quiz' => $document->quizModule,
         ]);
     }
 
@@ -171,7 +191,7 @@ class DocumentController extends Controller
         if (! $request->hasFile('file')) {
             $document->update($metadata);
 
-            return to_route('document.index')->with('success', 'Berhasil memperbarui informasi dokumen');
+            return $this->afterUpdate($document, $request, 'Berhasil memperbarui informasi dokumen');
         }
 
         $file = $request->file('file');
@@ -199,7 +219,21 @@ class DocumentController extends Controller
             ]);
         });
 
-        return to_route('document.index')->with('success', 'Berhasil memperbarui dokumen ke Versi '.$nextVersion.' (file versi lama tersimpan di riwayat)');
+        return $this->afterUpdate($document, $request, 'Berhasil memperbarui dokumen ke Versi '.$nextVersion.' (file versi lama tersimpan di riwayat)');
+    }
+
+    /**
+     * Simpan pengaturan pretest/posttest; arahkan ke halaman soal bila kuis dinyalakan tetapi belum ada soal.
+     */
+    private function afterUpdate(Document $document, UpdateDocumentRequest $request, string $message): RedirectResponse
+    {
+        $quiz = $this->materialQuiz->sync($document, $request->validated('quiz'));
+
+        if ($this->materialQuiz->needsQuestions($quiz)) {
+            return to_route('learning-module.questions.index', $quiz)->with('success', $message.'. Tambahkan soal agar pretest/posttest aktif.');
+        }
+
+        return to_route('document.index')->with('success', $message);
     }
 
     /**

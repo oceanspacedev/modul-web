@@ -2,7 +2,7 @@
 
 @php
     $user = $progress->user;
-    $attempts = collect([$progress->pretest])->filter()->merge($progress->posttests->reverse());
+    $attempts = $progress->pretests->merge($progress->posttests)->reverse();
 @endphp
 
 @section('content')
@@ -60,7 +60,7 @@
                     <div class="border rounded mb-3">
                         <a class="d-flex justify-content-between align-items-center p-3 text-dark" data-toggle="collapse" href="#attempt_{{ $attempt->id }}" role="button">
                             <span>
-                                <strong>{{ $attempt->isPretest() ? 'Pretest' : 'Posttest ke-'.$attempt->attempt_number }}</strong>
+                                <strong>{{ ($attempt->isPretest() ? 'Pretest' : 'Posttest').' ke-'.$attempt->attempt_number }}</strong>
                                 <span class="text-muted small ml-2">{{ $attempt->submitted_at->format('d M Y H:i') }}</span>
                             </span>
                             <span>

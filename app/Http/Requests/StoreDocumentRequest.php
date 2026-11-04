@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Role;
+use App\Services\MaterialQuizService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -28,6 +29,7 @@ class StoreDocumentRequest extends FormRequest
             'divisi_id' => ['required', 'integer', Rule::exists('divisis', 'id')->withoutTrashed()],
             'role_id' => ['required', 'array', 'min:1'],
             'role_id.*' => ['integer', $this->validTargetRole()],
+            ...MaterialQuizService::rules(),
         ];
     }
 

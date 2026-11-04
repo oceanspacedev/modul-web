@@ -63,6 +63,9 @@
 
                                         </div>
                                     </div>
+                                    <div class="mt-3">
+                                        @include('learning_module.partials.material-quiz-fields', ['quiz' => null])
+                                    </div>
                                     <a href="{{ route('document.index') }}" class="btn btn-secondary mt-3 mr-1">Kembali</a>
                                     <button type="submit" class="btn btn-primary mt-3">Simpan</button>
                                 </form>

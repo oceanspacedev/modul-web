@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\StorageUrl;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Document extends Model
@@ -54,5 +55,21 @@ class Document extends Model
     public function getFileUrlAttribute()
     {
         return StorageUrl::for('dokumen/'.$this->path);
+    }
+
+    /**
+     * Kuis pretest/posttest milik dokumen ini (LearningModule tersembunyi).
+     */
+    public function quizModule(): MorphOne
+    {
+        return $this->morphOne(LearningModule::class, 'source');
+    }
+
+    /**
+     * Kuis yang sedang aktif (pretest atau posttest nyala dan sudah ada soal); butuh relasi quizModule.
+     */
+    public function activeQuiz(): ?LearningModule
+    {
+        return $this->quizModule?->is_published ? $this->quizModule : null;
     }
 }

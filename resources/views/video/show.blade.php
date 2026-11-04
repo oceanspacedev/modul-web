@@ -37,6 +37,20 @@
         <div class="row">
             {{-- Main Video Player Column --}}
             <div class="col-lg-8 mb-4">
+                @if($quiz)
+                    {{-- Video ber-kuis: catat selesai ditonton agar posttest terbuka. --}}
+                    @php $quizItem = $quiz->items->first(); @endphp
+                    @include('learning_module.partials.video-player', [
+                        'video' => $video,
+                        'completeUrl' => route('learning.items.complete', [$quiz, $quizItem]),
+                        'done' => $quizProgress->isItemCompleted($quizItem),
+                    ])
+                    @include('learning_module.partials.material-quiz-panel', [
+                        'quiz' => $quiz,
+                        'progress' => $quizProgress,
+                        'canManage' => auth()->user()->can('update', $video),
+                    ])
+                @else
                 <div class="card border-0 rounded-lg overflow-hidden bg-black mb-3">
                     <div class="embed-responsive embed-responsive-16by9 bg-black">
                         @if($video->isLink() && $video->embed_url)
@@ -49,6 +63,7 @@
                         @endif
                     </div>
                 </div>
+                @endif
 
                 <div class="card border-0">
                     <div class="card-body">
@@ -332,7 +347,7 @@
                                     <div class="position-relative flex-shrink-0 bg-dark rounded overflow-hidden mr-3" style="width: 110px; height: 68px;">
                                         @if($other->thumbnail_url)
                                             <img src="{{ $other->thumbnail_url }}" alt="{{ $other->title }}" class="w-100 h-100" style="object-fit: cover;">
-                                        @elseif($other->isFile())
+                                        @elseif($other->isFile() && ! $other->activeQuiz())
                                             <video src="{{ $other->video_url }}#t=1" preload="metadata" class="w-100 h-100" style="object-fit: cover; opacity: 0.8;"></video>
                                         @else
                                             <div class="w-100 h-100 d-flex justify-content-center align-items-center bg-secondary">

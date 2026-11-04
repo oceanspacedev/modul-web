@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\StorageUrl;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class Video extends Model
 {
@@ -157,5 +158,21 @@ class Video extends Model
         }
 
         return null;
+    }
+
+    /**
+     * Kuis pretest/posttest milik video ini (LearningModule tersembunyi).
+     */
+    public function quizModule(): MorphOne
+    {
+        return $this->morphOne(LearningModule::class, 'source');
+    }
+
+    /**
+     * Kuis yang sedang aktif (pretest atau posttest nyala dan sudah ada soal); butuh relasi quizModule.
+     */
+    public function activeQuiz(): ?LearningModule
+    {
+        return $this->quizModule?->is_published ? $this->quizModule : null;
     }
 }
