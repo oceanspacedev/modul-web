@@ -44,6 +44,14 @@ class RoleController extends Controller
                     'view-my-trainings' => 'Mengakses Menu Pelatihan Saya',
                 ],
             ],
+            'Modul Belajar' => [
+                'icon' => 'fas fa-graduation-cap',
+                'color' => 'text-success',
+                'permissions' => [
+                    'manage-learning-modules' => 'Mengelola Modul Belajar, Soal Pretest/Posttest, & Rekap Nilai',
+                    'view-learning-modules' => 'Mengerjakan Modul Belajar (Pretest, Materi, Posttest)',
+                ],
+            ],
             'Dokumen Modul' => [
                 'icon' => 'fas fa-file-alt',
                 'color' => 'text-warning',

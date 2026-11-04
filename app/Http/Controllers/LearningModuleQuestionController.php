@@ -1,0 +1,190 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Exports\LearningModuleQuestionTemplate;
+use App\Http\Requests\LearningModuleQuestionRequest;
+use App\Imports\LearningModuleQuestionImport;
+use App\Jobs\GenerateLearningModuleQuestions;
+use App\Models\LearningModule;
+use App\Models\LearningModuleItem;
+use App\Models\LearningModuleQuestion;
+use Exception;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Attributes\Controllers\Authorize;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+
+#[Authorize('update', 'module')]
+class LearningModuleQuestionController extends Controller
+{
+    public function index(LearningModule $module): View
+    {
+        $module->load(['questions', 'items.materialable']);
+
+        return view('learning_module.questions', [
+            'title' => 'Soal Modul: '.$module->title,
+            'active' => 'learning-module',
+            'module' => $module,
+            'questions' => $module->questions,
+            'aiItems' => $module->availableItems()->filter(fn (LearningModuleItem $item) => GenerateLearningModuleQuestions::supports($item)),
+            'unsupportedAiItems' => $module->availableItems()->reject(fn (LearningModuleItem $item) => GenerateLearningModuleQuestions::supports($item)),
+            'isGeminiConfigured' => ! empty(config('services.gemini.api_key')),
+        ]);
+    }
+
+    public function store(LearningModuleQuestionRequest $request, LearningModule $module): RedirectResponse
+    {
+        $module->questions()->create([...$request->questionData(), 'sort_order' => $this->nextSortOrder($module)]);
+
+        return back()->with('success', 'Soal baru berhasil ditambahkan!');
+    }
+
+    public function update(LearningModuleQuestionRequest $request, LearningModule $module, LearningModuleQuestion $question): RedirectResponse
+    {
+        $question->update($request->questionData());
+
+        return back()->with('success', 'Soal berhasil diperbarui!');
+    }
+
+    public function destroy(LearningModule $module, LearningModuleQuestion $question): RedirectResponse
+    {
+        $question->delete();
+
+        return back()->with('success', 'Soal berhasil dihapus!');
+    }
+
+    public function deleteAll(LearningModule $module): RedirectResponse
+    {
+        $module->questions()->delete();
+
+        return back()->with('success', 'Semua soal berhasil dihapus!');
+    }
+
+    public function downloadTemplate(LearningModule $module): BinaryFileResponse
+    {
+        return Excel::download(new LearningModuleQuestionTemplate, 'template_soal_modul_'.Str::slug($module->title).'.xlsx');
+    }
+
+    public function importExcel(Request $request, LearningModule $module): RedirectResponse
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+        ]);
+
+        try {
+            $import = new LearningModuleQuestionImport($module, $this->nextSortOrder($module));
+            DB::transaction(fn () => Excel::import($import, $request->file('file')));
+
+            return back()->with('success', "Berhasil mengimpor {$import->getImportedCount()} soal dari file Excel!");
+        } catch (Exception $e) {
+            return back()->with('error', 'Gagal impor file: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Mulai pembuatan soal AI di queue; video bisa butuh beberapa menit. Hasilnya diambil lewat aiStatus.
+     */
+    public function generateAi(Request $request, LearningModule $module): JsonResponse
+    {
+        $validated = $request->validate([
+            'item_ids' => 'required|array|min:1',
+            'item_ids.*' => ['integer', Rule::exists('learning_module_items', 'id')->where('learning_module_id', $module->id)],
+            'question_count' => 'required|integer|min:1|max:100',
+            'difficulty' => 'required|in:mudah,sedang,sulit,campuran',
+            'custom_prompt' => 'nullable|string|max:1000',
+        ]);
+
+        if (empty(config('services.gemini.api_key'))) {
+            return response()->json(['success' => false, 'message' => 'GEMINI_API_KEY belum dikonfigurasi.'], 422);
+        }
+
+        $token = (string) Str::uuid();
+        Cache::put(GenerateLearningModuleQuestions::cacheKey($token), ['status' => 'pending'], now()->addHours(2));
+
+        GenerateLearningModuleQuestions::dispatch(
+            $token,
+            $module->id,
+            $validated['item_ids'],
+            (int) $validated['question_count'],
+            $validated['difficulty'],
+            $validated['custom_prompt'] ?? null,
+        );
+
+        return response()->json(['success' => true, 'token' => $token]);
+    }
+
+    public function aiStatus(LearningModule $module, string $token): JsonResponse
+    {
+        $result = Cache::get(GenerateLearningModuleQuestions::cacheKey($token));
+
+        if (! $result) {
+            return response()->json(['status' => 'failed', 'message' => 'Proses AI tidak ditemukan atau sudah kedaluwarsa. Silakan ulangi.'], 404);
+        }
+
+        return response()->json($result);
+    }
+
+    /**
+     * Simpan soal AI setelah ditinjau trainer.
+     */
+    public function saveAiBatch(Request $request, LearningModule $module): JsonResponse
+    {
+        $request->validate([
+            'questions' => 'required|array|min:1',
+            'questions.*.question' => 'required|string',
+            'questions.*.option_a' => 'required|string',
+            'questions.*.option_b' => 'required|string',
+            'questions.*.option_c' => 'nullable|string',
+            'questions.*.option_d' => 'nullable|string',
+            'questions.*.option_e' => 'nullable|string',
+            'questions.*.correct_answer' => 'required|in:a,b,c,d,e',
+            'questions.*.explanation' => 'nullable|string',
+        ]);
+
+        foreach ($request->questions as $index => $q) {
+            if (blank($q['option_'.$q['correct_answer']] ?? null)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Soal #'.($index + 1).': kunci jawaban menunjuk pilihan '.strtoupper($q['correct_answer']).' yang kosong.',
+                ], 422);
+            }
+        }
+
+        $sortOrder = $this->nextSortOrder($module);
+        DB::transaction(function () use ($request, $module, &$sortOrder) {
+            foreach ($request->questions as $q) {
+                $module->questions()->create([
+                    'question' => $q['question'],
+                    'option_a' => $q['option_a'],
+                    'option_b' => $q['option_b'],
+                    'option_c' => $q['option_c'] ?? null,
+                    'option_d' => $q['option_d'] ?? null,
+                    'option_e' => $q['option_e'] ?? null,
+                    'correct_answer' => $q['correct_answer'],
+                    'explanation' => $q['explanation'] ?? null,
+                    'sort_order' => $sortOrder++,
+                ]);
+            }
+        });
+
+        $count = count($request->questions);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Berhasil menyimpan {$count} soal hasil AI ke modul!",
+        ]);
+    }
+
+    private function nextSortOrder(LearningModule $module): int
+    {
+        return (int) LearningModuleQuestion::where('learning_module_id', $module->id)->max('sort_order') + 1;
+    }
+}

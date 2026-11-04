@@ -19,6 +19,7 @@ class RoleAndPermissionSeeder extends Seeder
         'comment-videos',
         'view-my-trainings',
         'view-documents',
+        'view-learning-modules',
     ];
 
     /**
@@ -44,6 +45,10 @@ class RoleAndPermissionSeeder extends Seeder
             // Pelatihan
             'manage-trainings' => 'Mengelola Jadwal Pelatihan & Peserta',
             'view-my-trainings' => 'Mengakses Menu Pelatihan Saya',
+
+            // Modul Belajar
+            'manage-learning-modules' => 'Mengelola Modul Belajar, Soal Pretest/Posttest, & Rekap Nilai',
+            'view-learning-modules' => 'Mengerjakan Modul Belajar (Pretest, Materi, Posttest)',
 
             // Dokumen
             'manage-documents' => 'Mengelola & Mengunggah Dokumen Modul',

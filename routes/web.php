@@ -6,6 +6,9 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DivisiController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DokumenTypeController;
+use App\Http\Controllers\LearningModuleController;
+use App\Http\Controllers\LearningModulePortalController;
+use App\Http\Controllers\LearningModuleQuestionController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TrainingController;
@@ -141,5 +144,52 @@ Route::middleware('auth')->group(function () {
                 Route::put('{question}', 'update')->name('update');
                 Route::delete('{question}', 'destroy')->name('destroy');
             });
+        });
+
+    // # MODUL BELAJAR: MANAGEMENT (authorized by LearningModulePolicy)
+    Route::resource('learning-module', LearningModuleController::class)
+        ->parameters(['learning-module' => 'module'])
+        ->whereNumber('module');
+
+    Route::prefix('learning-module/{module}')
+        ->whereNumber('module')
+        ->name('learning-module.')
+        ->scopeBindings()
+        ->group(function () {
+            Route::controller(LearningModuleController::class)->group(function () {
+                Route::post('publish', 'togglePublish')->name('publish');
+                Route::get('export', 'export')->name('export');
+                Route::get('participants/{user}', 'participant')->withoutScopedBindings()->withTrashed()->name('participant');
+            });
+
+            Route::controller(LearningModuleQuestionController::class)->prefix('questions')->name('questions.')->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::post('/', 'store')->name('store');
+                Route::get('template', 'downloadTemplate')->name('template');
+                Route::post('import-excel', 'importExcel')->name('import-excel');
+                Route::post('generate-ai', 'generateAi')->name('generate-ai');
+                Route::get('ai-status/{token}', 'aiStatus')->whereUuid('token')->name('ai-status');
+                Route::post('save-ai-batch', 'saveAiBatch')->name('save-ai-batch');
+                Route::post('delete-all', 'deleteAll')->name('delete-all');
+                Route::put('{question}', 'update')->name('update');
+                Route::delete('{question}', 'destroy')->name('destroy');
+            });
+        });
+
+    // # MODUL BELAJAR: PESERTA (pretest -> materi -> posttest)
+    Route::prefix('modul-saya')
+        ->name('learning.')
+        ->controller(LearningModulePortalController::class)
+        ->middleware('can:view-learning-modules')
+        ->scopeBindings()
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('{module}', 'show')->whereNumber('module')->name('show');
+            Route::get('{module}/attempts/{attempt}', 'attempt')->whereNumber('module')->name('attempt');
+            Route::get('{module}/items/{item}', 'item')->whereNumber('module')->name('items.show');
+            Route::get('{module}/items/{item}/open', 'openDocument')->whereNumber('module')->name('items.open');
+            Route::post('{module}/items/{item}/complete', 'completeItem')->whereNumber('module')->name('items.complete');
+            Route::get('{module}/{phase}', 'quiz')->whereNumber('module')->whereIn('phase', ['pretest', 'posttest'])->name('quiz');
+            Route::post('{module}/{phase}', 'submit')->whereNumber('module')->whereIn('phase', ['pretest', 'posttest'])->name('submit');
         });
 });

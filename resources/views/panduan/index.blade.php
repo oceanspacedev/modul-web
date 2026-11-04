@@ -56,6 +56,8 @@
                 <div class="toc-title mt-2">Bantuan</div>
                 <a href="#faq">14. FAQ &amp; masalah umum</a>
                 <a href="#akses">15. Hak akses per fitur</a>
+                <div class="toc-title mt-2">Modul Belajar</div>
+                <a href="#modulbelajar">16. Pretest, materi &amp; posttest</a>
             </nav>
 
             <div class="pg-body">
@@ -526,11 +528,37 @@
                         <tr><td><code>view-my-trainings</code></td><td>Pelatihan Saya</td><td class="text-center">✔</td><td class="text-center">✔</td><td class="text-center">–</td></tr>
                         <tr><td><code>manage-documents</code></td><td>Kelola dokumen</td><td class="text-center">✔</td><td class="text-center">–</td><td class="text-center">✔</td></tr>
                         <tr><td><code>view-documents</code></td><td>Melihat dokumen</td><td class="text-center">✔</td><td class="text-center">✔</td><td class="text-center">–</td></tr>
+                        <tr><td><code>manage-learning-modules</code></td><td>Kelola Modul Belajar &amp; rekap nilai</td><td class="text-center">✔</td><td class="text-center">–</td><td class="text-center">✔</td></tr>
+                        <tr><td><code>view-learning-modules</code></td><td>Modul Saya (mengerjakan modul)</td><td class="text-center">✔</td><td class="text-center">✔</td><td class="text-center">–</td></tr>
                         <tr><td><code>manage-users</code></td><td>User</td><td class="text-center">✔</td><td class="text-center">–</td><td class="text-center">–</td></tr>
                         <tr><td><code>manage-roles</code></td><td>Jabatan &amp; Hak Akses</td><td class="text-center">✔</td><td class="text-center">–</td><td class="text-center">–</td></tr>
                         <tr><td><code>manage-master-data</code></td><td>Area, Divisi, Posisi, Document Type</td><td class="text-center">✔</td><td class="text-center">–</td><td class="text-center">–</td></tr>
                     </table>
                     <p class="small text-muted mb-0">Tabel menunjukkan pengaturan bawaan. Kolom <b>+ Trainer</b> adalah izin yang ditambahkan oleh centang Trainer di atas izin jabatan. Izin jabatan selain ADMIN dapat diubah di menu Jabatan &amp; Hak Akses.</p>
+                </div>
+
+                {{-- 16 --}}
+                <div class="pg-card" id="modulbelajar">
+                    <h2>16. Modul Belajar: pretest, materi &amp; posttest</h2>
+                    <p>Modul Belajar adalah kuis mandiri (tanpa jadwal/Zoom) yang materinya diambil dari <b>Video Materi</b> dan <b>Dokumen</b>. Alurnya: peserta mengerjakan <b>pretest</b>, mempelajari semua materi, lalu mengerjakan <b>posttest</b>. Pretest dan posttest memakai soal yang sama dengan urutan diacak.</p>
+                    <h3>Membuat modul (Admin/Pemateri)</h3>
+                    <ol>
+                        <li>Buka <b>Modul Belajar → Kelola Modul</b>, klik <b>Tambah Modul</b>.</li>
+                        <li>Isi judul, deskripsi, <b>Nilai Minimal Lulus (KKM)</b>, dan pilih <b>Divisi</b> / <b>Jabatan</b> sasaran (kosong = semua).</li>
+                        <li>Di <b>Materi Modul</b>, cari video atau dokumen lalu klik <b>Tambah</b>. Atur urutan dengan tombol panah.</li>
+                        <li>Klik <b>Simpan &amp; Lanjut Buat Soal</b>. Tambahkan soal pilihan ganda lewat <b>Buat Soal via AI</b>, <b>Tambah Manual</b>, atau <b>Import Excel / CSV</b>.</li>
+                        <li>Klik <b>Publikasikan Modul</b>. Modul baru bisa dipublikasikan bila sudah punya minimal 1 materi dan 1 soal.</li>
+                    </ol>
+                    <div class="pg-note">Soal AI bisa dibuat dari dokumen dan dari video (file upload atau link YouTube publik). Link Google Drive/Vimeo tidak bisa dibaca AI. Pembacaan video memakan waktu beberapa menit; biarkan jendela AI terbuka sampai hasil muncul.</div>
+                    <h3>Mengerjakan modul (Peserta)</h3>
+                    <ol>
+                        <li>Buka <b>Modul Belajar → Modul Saya</b> dan pilih modul.</li>
+                        <li><b>Pretest</b> hanya bisa dikerjakan <b>satu kali</b>. Materi baru terbuka setelah pretest dikirim.</li>
+                        <li>Selesaikan semua materi: video upload/YouTube tercatat selesai setelah ditonton sampai akhir, dokumen tercatat selesai saat dibuka. Video Drive/Vimeo ditandai lewat tombol <b>Saya sudah menonton</b>.</li>
+                        <li>Setelah semua materi selesai, <b>Posttest</b> terbuka. Posttest boleh diulang berkali-kali; setiap percobaan dan nilainya tetap tersimpan di riwayat.</li>
+                    </ol>
+                    <h3>Rekap nilai</h3>
+                    <p>Klik <b>Rekap</b> pada modul untuk melihat progres materi, nilai pretest, jumlah percobaan posttest, nilai terbaik dan terakhir, kenaikan nilai, serta status Lulus/Belum Lulus. <b>Riwayat</b> menampilkan jawaban setiap percobaan. <b>Export Excel</b> menghasilkan dua sheet: rekap per peserta dan riwayat semua percobaan.</p>
                 </div>
 
             </div>

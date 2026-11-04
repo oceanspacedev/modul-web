@@ -2,9 +2,13 @@
 
 namespace App\Providers;
 
+use App\Models\Document;
+use App\Models\LearningModuleItem;
 use App\Models\User;
+use App\Models\Video;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -41,6 +45,12 @@ class AppServiceProvider extends ServiceProvider
     protected function configureModels(): void
     {
         Model::preventLazyLoading(! $this->app->isProduction());
+
+        // Materi Modul Belajar disimpan sebagai "video" / "document", bukan nama class.
+        Relation::morphMap([
+            LearningModuleItem::TYPE_VIDEO => Video::class,
+            LearningModuleItem::TYPE_DOCUMENT => Document::class,
+        ]);
 
         Model::handleLazyLoadingViolationUsing(function (Model $model, string $relation) {
             Log::warning('Lazy loaded ['.$relation.'] on model ['.$model::class.'].');

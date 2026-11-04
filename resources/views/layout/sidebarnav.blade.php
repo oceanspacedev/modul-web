@@ -69,6 +69,36 @@
                 </li>
                 @endcanany
 
+                @canany(['manage-learning-modules', 'view-learning-modules'])
+                <li class="nav-item {{ (request()->is('learning-module*') || request()->is('modul-saya*')) ? 'menu-open' : '' }}">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-graduation-cap"></i>
+                        <p>
+                            Modul Belajar
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        @can('manage-learning-modules')
+                        <li class="nav-item">
+                            <a href="{{ route('learning-module.index') }}" class="nav-link {{ request()->is('learning-module*') ? 'active' : '' }}">
+                                <i class="fas fa-tasks nav-icon"></i>
+                                <p>Kelola Modul</p>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('view-learning-modules')
+                        <li class="nav-item">
+                            <a href="{{ route('learning.index') }}" class="nav-link {{ request()->is('modul-saya*') ? 'active' : '' }}">
+                                <i class="fas fa-book-reader nav-icon"></i>
+                                <p>Modul Saya</p>
+                            </a>
+                        </li>
+                        @endcan
+                    </ul>
+                </li>
+                @endcanany
+
                 @canany(['manage-documents', 'view-documents'])
                 <li class="nav-item">
                     <a href="/document" class="nav-link {{ ($active ?? '') === 'document' ? 'active' : '' }}">

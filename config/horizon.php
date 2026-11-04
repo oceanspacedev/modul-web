@@ -210,6 +210,20 @@ return [
             'timeout' => 60,
             'nice' => 0,
         ],
+
+        // Job AI Modul Belajar: satu proses, batas waktu panjang (lihat koneksi redis-long di config/queue.php).
+        'supervisor-ai' => [
+            'connection' => 'redis-long',
+            'queue' => ['ai'],
+            'balance' => false,
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 256,
+            'tries' => 1,
+            'timeout' => 900,
+            'nice' => 0,
+        ],
     ],
 
     'environments' => [
@@ -220,6 +234,7 @@ return [
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
+            'supervisor-ai' => [],
         ],
 
         // Server staging berjalan dengan APP_ENV=staging; tanpa entri ini Horizon tidak menjalankan worker sama sekali.
@@ -229,12 +244,14 @@ return [
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
+            'supervisor-ai' => [],
         ],
 
         'local' => [
             'supervisor-1' => [
                 'maxProcesses' => 3,
             ],
+            'supervisor-ai' => [],
         ],
     ],
 

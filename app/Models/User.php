@@ -34,7 +34,7 @@ class User extends Authenticatable
     public const DATA_ACCESS_SELECTED = 'selected';
 
     /** Hak akses tambahan trainer, diberikan langsung ke user di luar jabatannya. */
-    public const TRAINER_PERMISSIONS = ['manage-trainings', 'manage-videos', 'manage-documents'];
+    public const TRAINER_PERMISSIONS = ['manage-trainings', 'manage-videos', 'manage-documents', 'manage-learning-modules'];
 
     protected static function booted(): void
     {

@@ -3,14 +3,31 @@
 namespace App\Services;
 
 use App\Models\Document;
+use App\Models\Video;
 use Exception;
+use GuzzleHttp\Psr7\Utils;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Sleep;
 use ZipArchive;
 
 class GeminiQuestionService
 {
+    protected const API_BASE = 'https://generativelanguage.googleapis.com';
+
+    /** Format video yang dibaca Gemini, per ekstensi file upload. */
+    protected const VIDEO_MIME_TYPES = [
+        'mp4' => 'video/mp4',
+        'webm' => 'video/webm',
+        'mov' => 'video/quicktime',
+        'ogg' => 'video/ogg',
+        'mkv' => 'video/x-matroska',
+    ];
+
+    /** Batas tunggu Gemini selesai memproses video upload: 120 x 5 detik. */
+    protected const VIDEO_POLL_ATTEMPTS = 120;
+
     protected ?string $apiKey;
 
     protected string $model;
@@ -30,9 +47,17 @@ class GeminiQuestionService
     }
 
     /**
-     * Generate quiz questions from one or more documents
+     * Video yang bisa dibaca AI: file upload, atau link YouTube publik. Link Drive/Vimeo tidak bisa diakses Gemini.
+     */
+    public static function supportsVideo(Video $video): bool
+    {
+        return $video->isFile() ? filled($video->video_file) : $video->youtubeId() !== null;
+    }
+
+    /**
+     * Generate quiz questions from one or more documents and/or videos
      *
-     * @param  array  $documents  List of Document models
+     * @param  array  $documents  List of Document and Video models
      * @param  int  $count  Number of questions to generate
      * @param  string  $type  Question type: 'multiple_choice' or 'essay'
      * @param  string  $difficulty  Difficulty level: 'mudah', 'sedang', 'sulit', 'campuran'
@@ -56,6 +81,39 @@ class GeminiQuestionService
         }
 
         $parts = [];
+        $uploadedFiles = [];
+
+        try {
+            foreach ($documents as $source) {
+                if ($source instanceof Video) {
+                    $parts[] = $this->buildVideoPart($source, $uploadedFiles);
+                }
+            }
+
+            return $this->generateFromParts(
+                $parts,
+                array_filter($documents, fn ($source) => ! $source instanceof Video),
+                $count,
+                $type,
+                $difficulty,
+                $customPrompt
+            );
+        } finally {
+            foreach ($uploadedFiles as $fileName) {
+                $this->deleteUploadedFile($fileName);
+            }
+        }
+    }
+
+    /**
+     * @param  array  $parts  Video parts that are already prepared
+     * @param  array  $documents  List of Document models
+     *
+     * @throws Exception
+     */
+    protected function generateFromParts(array $parts, array $documents, int $count, string $type, string $difficulty, ?string $customPrompt): array
+    {
+        $hasVideo = ! empty($parts);
 
         // Attach documents to prompt parts
         foreach ($documents as $doc) {
@@ -87,9 +145,124 @@ class GeminiQuestionService
         ];
 
         // Call Gemini API
-        $response = $this->callGeminiApi($parts);
+        $response = $this->callGeminiApi($parts, $hasVideo);
 
         return $this->parseResponse($response, $type);
+    }
+
+    /**
+     * Part Gemini untuk sebuah video. File upload dikirim lewat Files API (nama file Gemini dicatat di $uploadedFiles
+     * agar dihapus setelah selesai); link YouTube dikirim langsung sebagai file_uri.
+     *
+     * @param  array<int, string>  $uploadedFiles
+     *
+     * @throws Exception
+     */
+    protected function buildVideoPart(Video $video, array &$uploadedFiles): array
+    {
+        if (! self::supportsVideo($video)) {
+            throw new Exception("Video \"{$video->title}\" berupa link selain YouTube sehingga tidak bisa dibaca AI. Gunakan video upload atau link YouTube publik.");
+        }
+
+        if ($video->isLink()) {
+            return ['file_data' => ['file_uri' => 'https://www.youtube.com/watch?v='.$video->youtubeId()]];
+        }
+
+        $localPath = $this->downloadFromDisks([$video->video_file], 'gemini-video-');
+        if (! $localPath) {
+            throw new Exception("File video \"{$video->title}\" tidak ditemukan pada storage server.");
+        }
+
+        try {
+            $mimeType = self::VIDEO_MIME_TYPES[strtolower(pathinfo($localPath, PATHINFO_EXTENSION))] ?? 'video/mp4';
+            $file = $this->uploadFile($localPath, $mimeType, $video->title);
+        } finally {
+            @unlink($localPath);
+        }
+
+        $uploadedFiles[] = $file['name'];
+        $file = $this->waitUntilActive($file, $video->title);
+
+        return ['file_data' => ['mime_type' => $file['mimeType'] ?? $mimeType, 'file_uri' => $file['uri']]];
+    }
+
+    /**
+     * Unggah file ke Gemini Files API (resumable upload; isi file di-stream, tidak dimuat ke memori).
+     *
+     * @throws Exception
+     */
+    protected function uploadFile(string $localPath, string $mimeType, string $displayName): array
+    {
+        $start = Http::timeout(60)
+            ->withHeaders([
+                'X-Goog-Upload-Protocol' => 'resumable',
+                'X-Goog-Upload-Command' => 'start',
+                'X-Goog-Upload-Header-Content-Length' => (string) filesize($localPath),
+                'X-Goog-Upload-Header-Content-Type' => $mimeType,
+            ])
+            ->post(self::API_BASE.'/upload/v1beta/files?key='.urlencode($this->apiKey), [
+                'file' => ['display_name' => $displayName],
+            ]);
+
+        $uploadUrl = $start->header('X-Goog-Upload-URL');
+        if (! $start->successful() || ! $uploadUrl) {
+            throw new Exception('Gagal memulai unggah video ke Gemini: '.($start->json('error.message') ?? 'HTTP '.$start->status()));
+        }
+
+        $stream = Utils::streamFor(fopen($localPath, 'rb'));
+        try {
+            $upload = Http::timeout(1800)
+                ->withHeaders([
+                    'X-Goog-Upload-Offset' => '0',
+                    'X-Goog-Upload-Command' => 'upload, finalize',
+                ])
+                ->withBody($stream, $mimeType)
+                ->post($uploadUrl);
+        } finally {
+            $stream->close();
+        }
+
+        $file = $upload->json('file');
+        if (! $upload->successful() || empty($file['name']) || empty($file['uri'])) {
+            throw new Exception('Gagal mengunggah video ke Gemini: '.($upload->json('error.message') ?? 'HTTP '.$upload->status()));
+        }
+
+        return $file;
+    }
+
+    /**
+     * Gemini memproses video beberapa saat setelah diunggah; file baru bisa dipakai saat state ACTIVE.
+     *
+     * @throws Exception
+     */
+    protected function waitUntilActive(array $file, string $displayName): array
+    {
+        for ($attempt = 0; $attempt < self::VIDEO_POLL_ATTEMPTS; $attempt++) {
+            $state = $file['state'] ?? 'PROCESSING';
+
+            if ($state === 'ACTIVE') {
+                return $file;
+            }
+
+            if ($state === 'FAILED') {
+                throw new Exception("Gemini gagal memproses video \"{$displayName}\". Pastikan format video didukung (mp4, webm, mov).");
+            }
+
+            Sleep::for(5)->seconds();
+            $file = Http::timeout(60)->get(self::API_BASE.'/v1beta/'.$file['name'].'?key='.urlencode($this->apiKey))->json() ?: $file;
+        }
+
+        throw new Exception("Gemini terlalu lama memproses video \"{$displayName}\". Silakan coba lagi nanti.");
+    }
+
+    protected function deleteUploadedFile(string $fileName): void
+    {
+        try {
+            Http::timeout(30)->delete(self::API_BASE.'/v1beta/'.$fileName.'?key='.urlencode($this->apiKey));
+        } catch (Exception $e) {
+            // File di Gemini juga kedaluwarsa sendiri setelah 48 jam.
+            Log::warning("Gagal menghapus file Gemini {$fileName}: ".$e->getMessage());
+        }
     }
 
     /**
@@ -100,20 +273,30 @@ class GeminiQuestionService
      */
     protected function downloadDocument(Document $doc): ?string
     {
-        $paths = array_unique(array_filter([$doc->versions()->first()?->path, $doc->path]));
+        $paths = array_map(fn ($relative) => 'dokumen/'.$relative, array_filter([$doc->versions()->first()?->path, $doc->path]));
+
+        return $this->downloadFromDisks($paths, 'gemini-doc-');
+    }
+
+    /**
+     * Copy the first of $paths found on the upload disk to a local temp file (same extension); the caller deletes it.
+     *
+     * @param  array<int, string>  $paths
+     */
+    protected function downloadFromDisks(array $paths, string $tempPrefix): ?string
+    {
         $disks = array_unique([config('filesystems.default'), 'public']);
 
-        foreach ($paths as $relative) {
+        foreach (array_unique($paths) as $path) {
             foreach ($disks as $diskName) {
                 $disk = Storage::disk($diskName);
-                $path = 'dokumen/'.$relative;
 
                 if (! $disk->exists($path)) {
                     continue;
                 }
 
-                $tempPath = tempnam(sys_get_temp_dir(), 'gemini-doc-');
-                $localPath = $tempPath.'.'.strtolower(pathinfo($relative, PATHINFO_EXTENSION));
+                $tempPath = tempnam(sys_get_temp_dir(), $tempPrefix);
+                $localPath = $tempPath.'.'.strtolower(pathinfo($path, PATHINFO_EXTENSION));
                 rename($tempPath, $localPath);
 
                 $source = $disk->readStream($path);
@@ -241,7 +424,7 @@ class GeminiQuestionService
 
         $prompt = "Anda adalah seorang instruktur pelatihan profesional dan pembuat materi ujian berpengalaman.\n\n";
         $prompt .= "TUGAS:\n";
-        $prompt .= "Analisis dokumen yang dilampirkan secara menyeluruh. Buatkan hingga {$count} butir {$typeDesc} berdasarkan materi dan fakta dalam dokumen tersebut.\n";
+        $prompt .= "Analisis materi yang dilampirkan (dokumen dan/atau video) secara menyeluruh. Buatkan hingga {$count} butir {$typeDesc} berdasarkan materi dan fakta dalam materi tersebut.\n";
         $prompt .= "Jika cakupan materi dokumen luas (misal buku/modul lengkap berbab-bab), sebar pertanyaan ke berbagai topik bab dan hasilkan hingga mencapai target {$count} butir soal.\n";
         $prompt .= "Jika isi materi dokumen terbatas sehingga tidak memungkinkan mencapai {$count} soal tanpa terjadi pengulangan, buatkan sebanyak mungkin butir soal berkualitas maksimal yang secara substantif dapat dirumuskan dari dokumen tersebut.\n\n";
         $prompt .= "PARAMETER:\n";
@@ -254,7 +437,7 @@ class GeminiQuestionService
         }
 
         $prompt .= "\nKETENTUAN KUALITAS SOAL:\n";
-        $prompt .= "1. Soal HARUS sepenuhnya berbasis pada isi dan fakta dalam dokumen materi.\n";
+        $prompt .= "1. Soal HARUS sepenuhnya berbasis pada isi dan fakta dalam materi (isi dokumen, serta penjelasan lisan dan tampilan pada video).\n";
         $prompt .= "2. Buat pertanyaan yang jelas, tidak ambigu, dan menguji pemahaman konsep/prosedur penting, bukan sekadar hafalan nomor halaman.\n";
 
         if ($type === 'multiple_choice') {
@@ -291,7 +474,7 @@ class GeminiQuestionService
     /**
      * Call Gemini API endpoint with model fallback
      */
-    protected function callGeminiApi(array $parts): array
+    protected function callGeminiApi(array $parts, bool $hasVideo = false): array
     {
         $modelsToTry = array_unique([
             $this->model,
@@ -317,6 +500,8 @@ class GeminiQuestionService
                 'generationConfig' => [
                     'response_mime_type' => 'application/json',
                     'temperature' => 0.3,
+                    // Resolusi rendah memangkas token video kira-kira 3x; isi materi tetap terbaca dari audio dan teks layar.
+                    ...($hasVideo ? ['media_resolution' => 'MEDIA_RESOLUTION_LOW'] : []),
                 ],
             ];
 
