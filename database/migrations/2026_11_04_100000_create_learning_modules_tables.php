@@ -11,6 +11,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Percobaan pertama di MySQL gagal di tengah jalan (nama index terlalu panjang) dan DDL MySQL tidak bisa
+        // di-rollback, jadi tabel kosong yang sempat dibuat dibersihkan dulu.
+        $this->down();
+
         Schema::create('learning_modules', function (Blueprint $table) {
             $table->id();
             $table->string('title');
@@ -69,7 +73,8 @@ return new class extends Migration
             $table->timestamp('completed_at')->nullable();
             $table->timestamps();
 
-            $table->unique(['learning_module_item_id', 'user_id']);
+            // Nama default melebihi batas 64 karakter MySQL.
+            $table->unique(['learning_module_item_id', 'user_id'], 'learning_module_item_progress_unique');
         });
 
         // Setiap percobaan disimpan; pretest hanya boleh attempt_number 1.
