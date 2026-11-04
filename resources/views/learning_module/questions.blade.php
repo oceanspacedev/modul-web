@@ -285,6 +285,19 @@
 @endsection
 
 @section('footer')
+<style>
+    /* Pilihan jawaban hasil AI: kotak huruf dan kolom teks setinggi, kunci jawaban ditandai hijau. */
+    .ai-option { display: flex; align-items: stretch; }
+    .ai-option-key {
+        display: flex; align-items: center; gap: 6px; flex: 0 0 56px; justify-content: center;
+        margin: 0; padding: 0 10px; border: 1px solid #ced4da; border-right: 0; border-radius: 6px 0 0 6px;
+        background: #f8f9fa; font-weight: 600; cursor: pointer;
+    }
+    .ai-option-key input { margin: 0; cursor: pointer; }
+    .ai-option .ai-opt { height: 38px; border-radius: 0 6px 6px 0; }
+    .ai-option.is-key .ai-option-key { background: #e7f6ec; border-color: #28a745; color: #1e7e34; }
+    .ai-option.is-key .ai-opt { border-color: #28a745; }
+</style>
 <script>
 $(function () {
     var csrf = '{{ csrf_token() }}';
@@ -385,12 +398,14 @@ $(function () {
 
         questions.forEach(function (q, index) {
             var options = letters.map(function (letter) {
-                return '<div class="col-md-6 mb-2"><div class="input-group input-group-sm">' +
-                    '<div class="input-group-prepend"><span class="input-group-text">' +
-                        '<input type="radio" name="ai_key_' + index + '" value="' + letter + '" class="mr-1 ai-key"' + (q.correct_answer === letter ? ' checked' : '') + '>' +
+                var id = 'ai_key_' + index + '_' + letter;
+                var isKey = q.correct_answer === letter;
+                return '<div class="col-md-6 mb-2"><div class="ai-option' + (isKey ? ' is-key' : '') + '">' +
+                    '<label class="ai-option-key" for="' + id + '" title="Tandai sebagai kunci jawaban">' +
+                        '<input type="radio" id="' + id + '" name="ai_key_' + index + '" value="' + letter + '" class="ai-key"' + (isKey ? ' checked' : '') + '>' +
                         letter.toUpperCase() +
-                    '</span></div>' +
-                    '<input type="text" class="form-control ai-opt" data-letter="' + letter + '" value="' + escapeHtml(q['option_' + letter]) + '">' +
+                    '</label>' +
+                    '<input type="text" class="form-control ai-opt" data-letter="' + letter + '" value="' + escapeHtml(q['option_' + letter]) + '" placeholder="Pilihan ' + letter.toUpperCase() + ' (opsional)">' +
                 '</div></div>';
             }).join('');
 
@@ -403,8 +418,11 @@ $(function () {
                         '</div>' +
                     '</div>' +
                     '<div class="card-body p-3">' +
-                        '<textarea class="form-control mb-2 ai-question" rows="2">' + escapeHtml(q.question) + '</textarea>' +
+                        '<label class="small font-weight-bold text-muted mb-1">Pertanyaan</label>' +
+                        '<textarea class="form-control mb-3 ai-question" rows="2">' + escapeHtml(q.question) + '</textarea>' +
+                        '<label class="small font-weight-bold text-muted mb-1">Pilihan jawaban <span class="font-weight-normal">(pilih huruf untuk menandai kunci jawaban)</span></label>' +
                         '<div class="row">' + options + '</div>' +
+                        '<label class="small font-weight-bold text-muted mb-1 mt-1">Pembahasan</label>' +
                         '<textarea class="form-control form-control-sm ai-explanation" rows="2" placeholder="Pembahasan">' + escapeHtml(q.explanation) + '</textarea>' +
                     '</div>' +
                 '</div>'
@@ -420,6 +438,10 @@ $(function () {
     }
 
     $('#aiQuestions').on('change', '.ai-include', updateSaveCount);
+    $('#aiQuestions').on('change', '.ai-key', function () {
+        $(this).closest('.ai-card').find('.ai-option').removeClass('is-key');
+        $(this).closest('.ai-option').addClass('is-key');
+    });
     $('#btnAiSelectAll').on('click', function () { $('.ai-include').prop('checked', true); updateSaveCount(); });
     $('#btnAiDeselectAll').on('click', function () { $('.ai-include').prop('checked', false); updateSaveCount(); });
 
