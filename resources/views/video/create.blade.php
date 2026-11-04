@@ -140,7 +140,7 @@
                                         accept="image/png,image/jpeg,image/webp" onchange="displaySelectedThumbnail(this)">
                                     <label class="custom-file-label" for="thumbnail" id="thumbnail_label">Pilih gambar thumbnail (JPG, PNG, WebP)...</label>
                                 </div>
-                                <small class="form-text text-muted">Jika menggunakan link YouTube, cover akan otomatis diambil dari thumbnail YouTube jika tidak diunggah.</small>
+                                <small class="form-text text-muted">Jika tidak diunggah: video file memakai cover otomatis dari detik pertama video, link YouTube memakai thumbnail YouTube.</small>
                                 @error('thumbnail')
                                     <span class="text-danger small">{{ $message }}</span>
                                 @enderror
@@ -177,6 +177,7 @@
     </div>
 </section>
 
+@include('video.partials.thumbnail-capture')
 <script>
 function switchVideoType(type) {
     if (type === 'file') {
@@ -203,6 +204,8 @@ function displaySelectedVideo(input) {
         var preview = document.getElementById('videoPreview');
         preview.src = URL.createObjectURL(file);
         document.getElementById('videoPreviewContainer').style.display = 'block';
+
+        videoThumbnail.fromSelectedFile(file);
     }
 }
 
@@ -240,6 +243,7 @@ function previewVideoLink(url) {
 
 function displaySelectedThumbnail(input) {
     if (input.files && input.files[0]) {
+        videoThumbnail.manual = true;
         var file = input.files[0];
         document.getElementById('thumbnail_label').innerText = file.name;
         

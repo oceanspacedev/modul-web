@@ -125,6 +125,16 @@
                                         accept="image/png,image/jpeg,image/webp" onchange="displayNewThumbnail(this)">
                                     <label class="custom-file-label" for="thumbnail" id="thumbnail_label">Pilih gambar thumbnail baru...</label>
                                 </div>
+                                @if($video->isFile() && $video->video_file)
+                                    <button type="button" class="btn btn-default btn-sm mt-2" id="btnCaptureCover">
+                                        <i class="fas fa-camera mr-1"></i> Ambil cover dari video
+                                    </button>
+                                    <small class="text-muted d-block mt-1" id="captureCoverStatus">Mengambil frame di detik pertama video saat ini sebagai cover.</small>
+                                @endif
+                                <div id="thumbnailPreviewContainer" class="mt-2" style="display: none;">
+                                    <span class="small text-muted d-block mb-1">Cover baru (tersimpan setelah klik Simpan):</span>
+                                    <img id="thumbnailPreview" src="#" alt="Preview cover" class="img-thumbnail" style="max-height: 120px;">
+                                </div>
                             </div>
 
                             @include('learning_module.partials.material-quiz-fields', ['quiz' => $quiz])
@@ -143,6 +153,7 @@
     </div>
 </section>
 
+@include('video.partials.thumbnail-capture')
 <script>
 function switchVideoType(type) {
     if (type === 'file') {
@@ -157,13 +168,38 @@ function switchVideoType(type) {
 function displayNewVideo(input) {
     if (input.files && input.files[0]) {
         document.getElementById('video_file_label').innerText = input.files[0].name;
+        // Video diganti dan belum ada cover: ambil cover dari file baru.
+        @unless($video->thumbnail)
+            videoThumbnail.fromSelectedFile(input.files[0]);
+        @endunless
     }
 }
 
 function displayNewThumbnail(input) {
     if (input.files && input.files[0]) {
+        videoThumbnail.manual = true;
         document.getElementById('thumbnail_label').innerText = input.files[0].name;
+        document.getElementById('thumbnailPreview').src = URL.createObjectURL(input.files[0]);
+        document.getElementById('thumbnailPreviewContainer').style.display = 'block';
     }
 }
+
+@if($video->isFile() && $video->video_file)
+// File di storage dibaca lewat aplikasi (satu domain) agar frame-nya boleh disalin ke canvas.
+document.getElementById('btnCaptureCover').addEventListener('click', function () {
+    var button = this;
+    var status = document.getElementById('captureCoverStatus');
+    button.disabled = true;
+    status.innerText = 'Mengambil cover dari video...';
+    videoThumbnail.capture(@json(route('video.source', $video))).then(function (cover) {
+        videoThumbnail.apply(cover);
+        status.innerText = 'Cover diambil. Klik Simpan Perubahan untuk menyimpannya.';
+    }).catch(function () {
+        status.innerText = 'Cover tidak bisa diambil dari video ini (format tidak didukung browser). Silakan pilih gambar cover manual.';
+    }).finally(function () {
+        button.disabled = false;
+    });
+});
+@endif
 </script>
 @endsection

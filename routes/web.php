@@ -61,6 +61,7 @@ Route::middleware('auth')->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->middleware('can:view-dashboard')->name('dashboard');
 
     // # VIDEO MANAGEMENT (authorized by VideoPolicy)
+    Route::get('video-manage/{video}/source', [VideoController::class, 'source'])->name('video.source');
     Route::resource('video-manage', VideoController::class)
         ->only(['create', 'store', 'edit', 'update', 'destroy'])
         ->parameters(['video-manage' => 'video'])

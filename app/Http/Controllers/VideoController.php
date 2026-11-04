@@ -18,9 +18,10 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 #[Authorize('create', Video::class, only: ['create', 'store'])]
-#[Authorize('update', 'video', only: ['edit', 'update'])]
+#[Authorize('update', 'video', only: ['edit', 'update', 'source'])]
 #[Authorize('delete', 'video', only: ['destroy'])]
 #[Authorize('create', VideoComment::class, only: ['storeComment'])]
 #[Authorize('delete', 'comment', only: ['destroyComment'])]
@@ -174,6 +175,17 @@ class VideoController extends Controller
             'video' => $video,
             'quiz' => $video->quizModule,
         ]);
+    }
+
+    /**
+     * The uploaded file streamed through the app (same origin), so the edit form can grab a frame as cover; a
+     * signed storage URL on another domain cannot be drawn to a canvas.
+     */
+    public function source(Video $video): StreamedResponse
+    {
+        abort_unless($video->isFile() && $video->video_file && Storage::exists($video->video_file), 404);
+
+        return Storage::response($video->video_file);
     }
 
     public function update(UpdateVideoRequest $request, Video $video): RedirectResponse
