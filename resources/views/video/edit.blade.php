@@ -17,18 +17,17 @@
     <div class="container-fluid">
         <x-flash />
 
-        <div class="row">
-            <div class="col-xl-9">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Ubah Informasi Video</h3>
-                    </div>
-
-                    <form id="editVideoForm" action="{{ route('video.update', $video) }}" method="POST" enctype="multipart/form-data">
-                        @csrf
-                        @method('PUT')
+        <form id="editVideoForm" action="{{ route('video.update', $video) }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            @method('PUT')
+            <div class="row">
+                <div class="col-lg-8">
+                    {{-- INFORMASI VIDEO --}}
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Informasi Video</h3>
+                        </div>
                         <div class="card-body">
-                            {{-- Judul Video --}}
                             <div class="form-group">
                                 <label for="title">Judul Video <span class="text-danger">*</span></label>
                                 <input type="text" name="title" id="title" class="form-control @error('title') is-invalid @enderror"
@@ -38,36 +37,39 @@
                                 @enderror
                             </div>
 
-                            {{-- Deskripsi Video --}}
-                            <div class="form-group">
+                            <div class="form-group mb-0">
                                 <label for="description">Deskripsi / Keterangan Video</label>
                                 <textarea name="description" id="description" rows="3" class="form-control @error('description') is-invalid @enderror">{{ old('description', $video->description) }}</textarea>
                                 @error('description')
                                     <span class="invalid-feedback">{{ $message }}</span>
                                 @enderror
                             </div>
+                        </div>
+                    </div>
 
-                            {{-- Pilihan Sumber Video --}}
-                            <div class="form-group">
-                                <label class="d-block">Sumber Video <span class="text-danger">*</span></label>
-                                <div class="btn-group btn-group-toggle w-100" data-toggle="buttons">
-                                    <label class="btn btn-default {{ $video->video_type === 'file' ? 'active' : '' }} w-50 py-2" id="labelOptionFile" onclick="switchVideoType('file')">
-                                        <input type="radio" name="video_type" id="option_file" value="file" autocomplete="off" {{ $video->video_type === 'file' ? 'checked' : '' }}>
-                                        <i class="fas fa-file-upload mr-1"></i> File Video Komputer
-                                    </label>
-                                    <label class="btn btn-default {{ $video->video_type === 'link' ? 'active' : '' }} w-50 py-2" id="labelOptionLink" onclick="switchVideoType('link')">
-                                        <input type="radio" name="video_type" id="option_link" value="link" autocomplete="off" {{ $video->video_type === 'link' ? 'checked' : '' }}>
-                                        <i class="fas fa-link mr-1"></i> Link Video Eksternal
-                                    </label>
-                                </div>
+                    {{-- SUMBER VIDEO --}}
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Sumber Video <span class="text-danger">*</span></h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="btn-group btn-group-toggle w-100 mb-3" data-toggle="buttons">
+                                <label class="btn btn-default {{ $video->video_type === 'file' ? 'active' : '' }} w-50 py-2" id="labelOptionFile" onclick="switchVideoType('file')">
+                                    <input type="radio" name="video_type" id="option_file" value="file" autocomplete="off" {{ $video->video_type === 'file' ? 'checked' : '' }}>
+                                    <i class="fas fa-file-upload mr-1"></i> File Video Komputer
+                                </label>
+                                <label class="btn btn-default {{ $video->video_type === 'link' ? 'active' : '' }} w-50 py-2" id="labelOptionLink" onclick="switchVideoType('link')">
+                                    <input type="radio" name="video_type" id="option_link" value="link" autocomplete="off" {{ $video->video_type === 'link' ? 'checked' : '' }}>
+                                    <i class="fas fa-link mr-1"></i> Link Video Eksternal
+                                </label>
                             </div>
 
                             {{-- SECTION FILE --}}
-                            <div id="sectionFile" class="p-3 mb-3 bg-light rounded border" style="{{ $video->video_type === 'link' ? 'display: none;' : '' }}">
+                            <div id="sectionFile" style="{{ $video->video_type === 'link' ? 'display: none;' : '' }}">
                                 @if($video->isFile() && $video->video_file)
-                                    <div class="mb-3">
+                                    <div class="mb-3" style="max-width: 480px;">
                                         <label class="d-block text-muted small">Video saat ini</label>
-                                        <div class="embed-responsive embed-responsive-16by9 bg-black rounded" style="max-height: 220px;">
+                                        <div class="embed-responsive embed-responsive-16by9 bg-black rounded">
                                             <video class="embed-responsive-item" controls preload="metadata">
                                                 <source src="{{ $video->video_url }}" type="video/mp4">
                                             </video>
@@ -86,7 +88,7 @@
                             </div>
 
                             {{-- SECTION LINK --}}
-                            <div id="sectionLink" class="p-3 mb-3 bg-light rounded border" style="{{ $video->video_type === 'file' ? 'display: none;' : '' }}">
+                            <div id="sectionLink" style="{{ $video->video_type === 'file' ? 'display: none;' : '' }}">
                                 <label for="video_link">Tautan / Link Video</label>
                                 <div class="input-group">
                                     <div class="input-group-prepend">
@@ -98,45 +100,62 @@
                                 </div>
                                 <small class="form-text text-muted">Mendukung YouTube, Google Drive, Vimeo, atau link video langsung.</small>
                             </div>
+                        </div>
+                    </div>
 
-                            {{-- Thumbnail Input (Opsional) --}}
-                            <div class="form-group">
-                                <label for="thumbnail">Cover / Thumbnail <span class="text-muted">(Opsional)</span></label>
-                                @if($video->thumbnail_url)
-                                    <div class="mb-2">
-                                        <img src="{{ $video->thumbnail_url }}" alt="Thumbnail" class="img-thumbnail" style="max-height: 100px;">
+                    @include('learning_module.partials.material-quiz-fields', ['quiz' => $quiz, 'card' => true])
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="form-aside">
+                        {{-- COVER / THUMBNAIL --}}
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Cover / Thumbnail</h3>
+                                <span class="card-tools badge badge-secondary">Opsional</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="cover-frame mb-3">
+                                    <div id="thumbnailPlaceholder" class="{{ $video->thumbnail_url ? 'w-100 h-100' : 'cover-placeholder' }}">
+                                        @if($video->thumbnail_url)
+                                            <img src="{{ $video->thumbnail_url }}" alt="Cover saat ini">
+                                        @else
+                                            <i class="far fa-image"></i>
+                                            Belum ada cover
+                                        @endif
                                     </div>
-                                @endif
+                                    <div id="thumbnailPreviewContainer" class="w-100 h-100" style="display: none;">
+                                        <img id="thumbnailPreview" src="#" alt="Preview cover">
+                                    </div>
+                                </div>
                                 <div class="custom-file">
                                     <input type="file" name="thumbnail" id="thumbnail" class="custom-file-input @error('thumbnail') is-invalid @enderror"
                                         accept="image/png,image/jpeg,image/webp" onchange="displayNewThumbnail(this)">
-                                    <label class="custom-file-label" for="thumbnail" id="thumbnail_label">Pilih gambar thumbnail baru...</label>
+                                    <label class="custom-file-label" for="thumbnail" id="thumbnail_label">Pilih gambar baru...</label>
                                 </div>
                                 @if($video->isFile() && $video->video_file)
-                                    <button type="button" class="btn btn-default btn-sm mt-2" id="btnCaptureCover">
+                                    <button type="button" class="btn btn-default btn-sm btn-block mt-2" id="btnCaptureCover">
                                         <i class="fas fa-camera"></i> Ambil cover dari video
                                     </button>
                                     <small class="form-text text-muted" id="captureCoverStatus">Mengambil frame di detik pertama video saat ini sebagai cover.</small>
                                 @endif
-                                <div id="thumbnailPreviewContainer" class="mt-2" style="display: none;">
-                                    <span class="small text-muted d-block mb-1">Cover baru (tersimpan setelah klik Simpan):</span>
-                                    <img id="thumbnailPreview" src="#" alt="Preview cover" class="img-thumbnail" style="max-height: 120px;">
-                                </div>
+                                <small class="form-text text-muted">Cover baru tersimpan setelah klik Simpan Perubahan.</small>
                             </div>
-
-                            @include('learning_module.partials.material-quiz-fields', ['quiz' => $quiz])
                         </div>
 
-                        <div class="card-footer d-flex justify-content-end gap-2">
-                            <a href="{{ route('video.index') }}" class="btn btn-default">Batal</a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Simpan Perubahan
-                            </button>
+                        {{-- SIMPAN --}}
+                        <div class="card">
+                            <div class="card-body">
+                                <button type="submit" class="btn btn-primary btn-block">
+                                    <i class="fas fa-save"></i> Simpan Perubahan
+                                </button>
+                                <a href="{{ route('video.index') }}" class="btn btn-default btn-block">Batal</a>
+                            </div>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
-        </div>
+        </form>
     </div>
 </section>
 
@@ -168,6 +187,7 @@ function displayNewThumbnail(input) {
         document.getElementById('thumbnail_label').innerText = input.files[0].name;
         document.getElementById('thumbnailPreview').src = URL.createObjectURL(input.files[0]);
         document.getElementById('thumbnailPreviewContainer').style.display = 'block';
+        document.getElementById('thumbnailPlaceholder').style.display = 'none';
     }
 }
 

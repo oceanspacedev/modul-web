@@ -17,17 +17,16 @@
     <div class="container-fluid">
         <x-flash />
 
-        <div class="row">
-            <div class="col-xl-9">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Form Materi Video</h3>
-                    </div>
-
-                    <form id="uploadVideoForm" action="{{ route('video.store') }}" method="POST" enctype="multipart/form-data">
-                        @csrf
+        <form id="uploadVideoForm" action="{{ route('video.store') }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            <div class="row">
+                <div class="col-lg-8">
+                    {{-- INFORMASI VIDEO --}}
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Informasi Video</h3>
+                        </div>
                         <div class="card-body">
-                            {{-- Judul Video --}}
                             <div class="form-group">
                                 <label for="title">Judul Video <span class="text-danger">*</span></label>
                                 <input type="text" name="title" id="title" class="form-control @error('title') is-invalid @enderror"
@@ -37,8 +36,7 @@
                                 @enderror
                             </div>
 
-                            {{-- Deskripsi Video --}}
-                            <div class="form-group">
+                            <div class="form-group mb-0">
                                 <label for="description">Deskripsi / Keterangan Video</label>
                                 <textarea name="description" id="description" rows="3" class="form-control @error('description') is-invalid @enderror"
                                     placeholder="Tuliskan ringkasan materi atau poin-poin yang dipelajari dalam video ini...">{{ old('description') }}</textarea>
@@ -46,26 +44,30 @@
                                     <span class="invalid-feedback">{{ $message }}</span>
                                 @enderror
                             </div>
+                        </div>
+                    </div>
 
-                            {{-- Pilihan Sumber Video --}}
-                            <div class="form-group">
-                                <label class="d-block">Sumber Video <span class="text-danger">*</span></label>
-                                <div class="btn-group btn-group-toggle w-100" data-toggle="buttons">
-                                    <label class="btn btn-default active w-50 py-2" id="labelOptionFile" onclick="switchVideoType('file')">
-                                        <input type="radio" name="video_type" id="option_file" value="file" autocomplete="off" checked>
-                                        <i class="fas fa-file-upload mr-1"></i> <strong>Upload File Video</strong>
-                                        <div class="small text-muted">Dari Komputer/Laptop</div>
-                                    </label>
-                                    <label class="btn btn-default w-50 py-2" id="labelOptionLink" onclick="switchVideoType('link')">
-                                        <input type="radio" name="video_type" id="option_link" value="link" autocomplete="off">
-                                        <i class="fas fa-link mr-1"></i> <strong>Gunakan Link Video</strong>
-                                        <div class="small text-muted">YouTube / Google Drive / URL</div>
-                                    </label>
-                                </div>
+                    {{-- SUMBER VIDEO --}}
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Sumber Video <span class="text-danger">*</span></h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="btn-group btn-group-toggle w-100 mb-3" data-toggle="buttons">
+                                <label class="btn btn-default active w-50 py-2" id="labelOptionFile" onclick="switchVideoType('file')">
+                                    <input type="radio" name="video_type" id="option_file" value="file" autocomplete="off" checked>
+                                    <i class="fas fa-file-upload mr-1"></i> <strong>Upload File Video</strong>
+                                    <div class="small text-muted">Dari Komputer/Laptop</div>
+                                </label>
+                                <label class="btn btn-default w-50 py-2" id="labelOptionLink" onclick="switchVideoType('link')">
+                                    <input type="radio" name="video_type" id="option_link" value="link" autocomplete="off">
+                                    <i class="fas fa-link mr-1"></i> <strong>Gunakan Link Video</strong>
+                                    <div class="small text-muted">YouTube / Google Drive / URL</div>
+                                </label>
                             </div>
 
                             {{-- SECTION 1: UPLOAD FILE LOKAL --}}
-                            <div id="sectionFile" class="p-3 mb-3 bg-light rounded border">
+                            <div id="sectionFile">
                                 <label for="video_file">
                                     Pilih File Video <span class="text-danger">*</span>
                                 </label>
@@ -82,7 +84,7 @@
                                 @enderror
 
                                 {{-- Video Preview Container --}}
-                                <div id="videoPreviewContainer" class="mt-3 p-2 bg-white rounded border text-center" style="display: none;">
+                                <div id="videoPreviewContainer" class="mt-3" style="display: none;">
                                     <div class="embed-responsive embed-responsive-16by9 bg-black rounded">
                                         <video id="videoPreview" class="embed-responsive-item" controls></video>
                                     </div>
@@ -91,7 +93,7 @@
                             </div>
 
                             {{-- SECTION 2: INPUT LINK EKSTERNAL --}}
-                            <div id="sectionLink" class="p-3 mb-3 bg-light rounded border" style="display: none;">
+                            <div id="sectionLink" style="display: none;">
                                 <label for="video_link">
                                     Tautan / Link Video <span class="text-danger">*</span>
                                 </label>
@@ -111,56 +113,74 @@
                                 @enderror
 
                                 {{-- Link Preview --}}
-                                <div id="linkPreviewContainer" class="mt-3 p-2 bg-white rounded border text-center" style="display: none;">
-                                    <p class="eyebrow text-left mb-2">Pratinjau link video</p>
+                                <div id="linkPreviewContainer" class="mt-3" style="display: none;">
+                                    <p class="eyebrow mb-2">Pratinjau link video</p>
                                     <div class="embed-responsive embed-responsive-16by9 bg-black rounded">
                                         <iframe id="linkPreviewIframe" class="embed-responsive-item" src="" frameborder="0" allowfullscreen allow="autoplay"></iframe>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
 
-                            {{-- Thumbnail Input (Opsional) --}}
-                            <div class="form-group">
-                                <label for="thumbnail">Cover / Thumbnail Gambar <span class="text-muted">(Opsional)</span></label>
+                    @include('learning_module.partials.material-quiz-fields', ['quiz' => null, 'card' => true])
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="form-aside">
+                        {{-- COVER / THUMBNAIL --}}
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Cover / Thumbnail</h3>
+                                <span class="card-tools badge badge-secondary">Opsional</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="cover-frame mb-3">
+                                    <div id="thumbnailPlaceholder" class="cover-placeholder">
+                                        <i class="far fa-image"></i>
+                                        Belum ada cover
+                                    </div>
+                                    <div id="thumbnailPreviewContainer" class="w-100 h-100" style="display: none;">
+                                        <img id="thumbnailPreview" src="#" alt="Thumbnail Preview">
+                                    </div>
+                                </div>
                                 <div class="custom-file">
                                     <input type="file" name="thumbnail" id="thumbnail" class="custom-file-input @error('thumbnail') is-invalid @enderror"
                                         accept="image/png,image/jpeg,image/webp" onchange="displaySelectedThumbnail(this)">
-                                    <label class="custom-file-label" for="thumbnail" id="thumbnail_label">Pilih gambar thumbnail (JPG, PNG, WebP)...</label>
+                                    <label class="custom-file-label" for="thumbnail" id="thumbnail_label">Pilih gambar (JPG, PNG, WebP)...</label>
                                 </div>
                                 <small class="form-text text-muted">Jika tidak diunggah: video file memakai cover otomatis dari detik pertama video, link YouTube memakai thumbnail YouTube.</small>
                                 @error('thumbnail')
                                     <span class="d-block text-danger small mt-1">{{ $message }}</span>
                                 @enderror
-                                <div id="thumbnailPreviewContainer" class="mt-2 text-left" style="display: none;">
-                                    <img id="thumbnailPreview" src="#" alt="Thumbnail Preview" class="img-thumbnail" style="max-height: 120px;">
-                                </div>
-                            </div>
-
-                            @include('learning_module.partials.material-quiz-fields', ['quiz' => null])
-
-                            {{-- Upload Progress Bar --}}
-                            <div id="uploadProgressBarContainer" class="mb-3" style="display: none;">
-                                <div class="d-flex justify-content-between mb-1">
-                                    <span class="small"><i class="fas fa-spinner fa-spin mr-1 text-muted"></i> Sedang Menyimpan Video...</span>
-                                    <span id="uploadPercent" class="small text-muted">0%</span>
-                                </div>
-                                <div class="progress">
-                                    <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
-                                </div>
-                                <small class="text-muted mt-1 d-block">Mohon tunggu hingga proses selesai dan jangan menutup halaman ini.</small>
                             </div>
                         </div>
 
-                        <div class="card-footer d-flex justify-content-end gap-2">
-                            <a href="{{ route('video.index') }}" class="btn btn-default">Batal</a>
-                            <button type="submit" id="submitBtn" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Simpan Video
-                            </button>
+                        {{-- SIMPAN --}}
+                        <div class="card">
+                            <div class="card-body">
+                                {{-- Upload Progress Bar --}}
+                                <div id="uploadProgressBarContainer" class="mb-3" style="display: none;">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="small"><i class="fas fa-spinner fa-spin mr-1 text-muted"></i> Sedang Menyimpan Video...</span>
+                                        <span id="uploadPercent" class="small text-muted">0%</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                    <small class="text-muted mt-1 d-block">Mohon tunggu hingga proses selesai dan jangan menutup halaman ini.</small>
+                                </div>
+
+                                <button type="submit" id="submitBtn" class="btn btn-primary btn-block">
+                                    <i class="fas fa-save"></i> Simpan Video
+                                </button>
+                                <a href="{{ route('video.index') }}" class="btn btn-default btn-block">Batal</a>
+                            </div>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
-        </div>
+        </form>
     </div>
 </section>
 
@@ -237,6 +257,7 @@ function displaySelectedThumbnail(input) {
         var preview = document.getElementById('thumbnailPreview');
         preview.src = URL.createObjectURL(file);
         document.getElementById('thumbnailPreviewContainer').style.display = 'block';
+        document.getElementById('thumbnailPlaceholder').style.display = 'none';
     }
 }
 

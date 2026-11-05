@@ -56,6 +56,8 @@ window.videoThumbnail = {
         var preview = document.getElementById('thumbnailPreview');
         preview.src = URL.createObjectURL(file);
         document.getElementById('thumbnailPreviewContainer').style.display = 'block';
+        var placeholder = document.getElementById('thumbnailPlaceholder');
+        if (placeholder) placeholder.style.display = 'none';
     },
 
     // Isi cover dari file video yang baru dipilih, kecuali admin sudah memilih cover sendiri.
