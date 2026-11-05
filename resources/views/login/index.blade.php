@@ -25,12 +25,12 @@
             --gray-500: #71717a;
             --gray-700: #3f3f46;
             --gray-950: #09090b;
-            --primary-500: #3b82f6;
-            --primary-600: #2563eb;
-            --primary-700: #1d4ed8;
+            --primary-500: #ec4899;
+            --primary-600: #db2777;
+            --primary-700: #be185d;
             --danger-600: #dc2626;
             --ring-input: rgba(9, 9, 11, 0.1);
-            --focus-ring: 0 0 0 1px #2563eb, 0 0 0 4px rgba(37, 99, 235, 0.12);
+            --focus-ring: 0 0 0 1px #db2777, 0 0 0 4px rgba(219, 39, 119, 0.12);
         }
 
         *, *::before, *::after {

@@ -435,9 +435,9 @@ $(document).ready(function() {
                 datasets: [{
                     label: 'Jumlah Peserta',
                     data: dataPelatihan,
-                    backgroundColor: '#2563eb',
+                    backgroundColor: '#db2777',
                     borderWidth: 0,
-                    hoverBackgroundColor: '#1d4ed8',
+                    hoverBackgroundColor: '#be185d',
                     maxBarThickness: 40,
                     borderRadius: 6
                 }]
@@ -502,7 +502,7 @@ $(document).ready(function() {
                     // Semantic: success / primary / warning / fail
                     backgroundColor: [
                         '#059669', // Sangat Baik - green
-                        '#2563eb', // Baik - primary blue
+                        '#db2777', // Baik - primary blue
                         '#d97706', // Cukup - amber
                         '#dc2626'  // Kurang - red
                     ],
@@ -562,9 +562,9 @@ $(document).ready(function() {
                 datasets: [{
                     label: 'Total Views',
                     data: dataVideo,
-                    backgroundColor: '#2563eb',
+                    backgroundColor: '#db2777',
                     borderWidth: 0,
-                    hoverBackgroundColor: '#1d4ed8',
+                    hoverBackgroundColor: '#be185d',
                     maxBarThickness: 24,
                     borderRadius: 6
                 }]
@@ -620,7 +620,7 @@ $(document).ready(function() {
                 datasets: [{
                     data: dataContent,
                     backgroundColor: [
-                        '#2563eb', // video - primary
+                        '#db2777', // video - primary
                         '#a1a1aa', // dokumen - zinc 400
                         '#d4d4d8', // pelatihan - zinc 300
                         '#e4e4e7'  // divisi - zinc 200
