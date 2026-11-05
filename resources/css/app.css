@@ -401,29 +401,22 @@ body.layout-top-nav .main-header.navbar {
 }
 
 .nav-sidebar > .nav-item > .nav-link.active,
-[class*=sidebar-light-] .nav-sidebar > .nav-item > .nav-link.active,
-.nav-sidebar > .nav-item.menu-open > .nav-link {
-    background: #ffffff !important;
+[class*=sidebar-light-] .nav-sidebar > .nav-item > .nav-link.active {
+    /* Active item: bold text only, no box or side bar. */
+    background: transparent !important;
     color: var(--gray-950) !important;
-    font-weight: 500;
-    box-shadow: 0 0 0 1px var(--ring), var(--shadow-xs) !important;
+    font-weight: 600;
+    box-shadow: none !important;
 }
 
-.nav-sidebar > .nav-item.menu-open > .nav-link {
+.nav-sidebar > .nav-item.menu-open > .nav-link:not(:hover),
+[class*=sidebar-light-] .nav-sidebar > .nav-item.menu-open > .nav-link:not(:hover) {
     background: transparent !important;
     box-shadow: none !important;
 }
 
-.nav-sidebar > .nav-item > .nav-link.active::before {
-    content: '';
-    position: absolute;
-    left: -12px;
-    top: 50%;
-    width: 4px;
-    height: 24px;
-    transform: translateY(-50%);
-    border-radius: 9999px;
-    background: var(--gray-950);
+.nav-sidebar > .nav-item > .nav-link.active:hover {
+    background: var(--gray-100) !important;
 }
 
 .nav-sidebar .nav-link.active .nav-icon {
@@ -459,7 +452,7 @@ body.layout-top-nav .main-header.navbar {
 .nav-sidebar .nav-treeview > .nav-item > .nav-link.active,
 [class*=sidebar-light-] .nav-treeview > .nav-item > .nav-link.active {
     color: var(--gray-950) !important;
-    font-weight: 500;
+    font-weight: 600;
     background: transparent !important;
     box-shadow: none !important;
 }
@@ -490,8 +483,7 @@ body.layout-top-nav .main-header.navbar {
     margin-right: 0 !important;
 }
 
-.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .nav-sidebar .nav-header,
-.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .nav-sidebar .nav-link.active::before {
+.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .nav-sidebar .nav-header {
     display: none !important;
 }
 
