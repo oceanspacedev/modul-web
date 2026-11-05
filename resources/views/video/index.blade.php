@@ -52,6 +52,13 @@
 .video-thumb-tag.is-bottom { bottom: 8px; right: 8px; }
 .video-card-title a { color: var(--gray-950); }
 .video-card-title a:hover { color: var(--primary-600); text-decoration: none; }
+.video-gallery-header { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.video-gallery-header .card-tools { margin-left: auto; }
+.video-search { width: 240px; }
+@media (max-width: 575.98px) {
+    .video-gallery-header .card-tools { width: 100%; }
+    .video-search { width: 100%; }
+}
 </style>
 
 <section class="content-header">
@@ -74,24 +81,28 @@
     <div class="@auth container-fluid @else container @endauth">
         <x-flash />
 
-        {{-- Search & Filter Bar --}}
-        <form action="{{ route('video.index') }}" method="GET" class="d-flex flex-wrap align-items-center gap-2 mb-4">
-            <div class="input-group flex-grow-1" style="max-width: 520px;">
-                <div class="input-group-prepend">
-                    <span class="input-group-text"><i class="fas fa-search"></i></span>
-                </div>
-                <input type="text" name="search" class="form-control"
-                    placeholder="Cari judul atau keterangan video..." value="{{ request('search') }}">
+        <div class="card">
+            <div class="card-header video-gallery-header">
+                <h3 class="card-title">
+                    Semua Video <span class="badge badge-secondary">{{ $videos->total() }}</span>
+                </h3>
+                {{-- Search --}}
+                <form action="{{ route('video.index') }}" method="GET" class="card-tools d-flex align-items-center gap-2">
+                    @if(request('search'))
+                        <a href="{{ route('video.index') }}" class="btn btn-link btn-sm px-1" title="Reset Pencarian">Reset</a>
+                    @endif
+                    <div class="input-group input-group-sm video-search">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        </div>
+                        <input type="text" name="search" class="form-control"
+                            placeholder="Cari video..." value="{{ request('search') }}">
+                    </div>
+                </form>
             </div>
-            <button type="submit" class="btn btn-default">Cari</button>
-            @if(request('search'))
-                <a href="{{ route('video.index') }}" class="btn btn-link" title="Reset Pencarian">Reset</a>
-            @endif
-        </form>
 
         {{-- Video Grid --}}
         @if ($videos->isEmpty())
-            <div class="card">
                 <x-empty-state icon="fa-film" title="Belum ada video"
                     :text="request('search') ? 'Tidak ada video yang cocok dengan kata kunci “'.request('search').'”.' : 'Saat ini belum ada video materi yang diunggah.'">
                     @can('create', App\Models\Video::class)
@@ -100,8 +111,8 @@
                         </a>
                     @endcan
                 </x-empty-state>
-            </div>
         @else
+            <div class="card-body pb-0">
             <div class="row">
                 @foreach ($videos as $v)
                     <div class="col-xl-4 col-md-6 col-12 mb-4 d-flex align-items-stretch">
@@ -187,11 +198,15 @@
                 @endforeach
             </div>
 
-            {{-- Pagination --}}
-            <div class="d-flex justify-content-center mt-3">
-                {{ $videos->links() }}
             </div>
+
+            @if($videos->hasPages())
+                <div class="card-footer d-flex justify-content-center">
+                    {{ $videos->links() }}
+                </div>
+            @endif
         @endif
+        </div>
     </div>
 </section>
 

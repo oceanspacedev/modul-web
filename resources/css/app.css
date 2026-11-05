@@ -519,7 +519,8 @@ body.layout-top-nav .main-footer {
     padding: 1.5rem 1.5rem 0.5rem;
 }
 
-.content {
+/* Beat AdminLTE's `.content-wrapper > .content { padding: 0 .5rem }` so content lines up with the page header. */
+.content-wrapper > .content {
     padding: 0 1.5rem 1.5rem;
 }
 
@@ -534,7 +535,7 @@ body.layout-top-nav .main-footer {
         padding: 2rem 2rem 0.5rem;
     }
 
-    .content {
+    .content-wrapper > .content {
         padding: 0 2rem 2rem;
     }
 }
@@ -544,7 +545,7 @@ body.layout-top-nav .main-footer {
         padding: 1rem 1rem 0.25rem;
     }
 
-    .content {
+    .content-wrapper > .content {
         padding: 0 1rem 1rem;
     }
 }
