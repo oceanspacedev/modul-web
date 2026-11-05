@@ -2002,6 +2002,71 @@ small.form-text {
     margin: 0 !important;
 }
 
+/* Slide-over: admin modals open as a full-height panel on the right.
+   Add .modal-center to a .modal to keep the classic centered dialog. */
+body.sidebar-mini .modal:not(.modal-center) .modal-dialog {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    max-width: 32rem;
+    height: 100%;
+    min-height: 100%;
+    max-height: none;
+    margin: 0 !important;
+    transform: translateX(100%) !important;
+    transition: transform 0.25s ease-out !important;
+}
+
+body.sidebar-mini .modal.show:not(.modal-center) .modal-dialog {
+    transform: none !important;
+}
+
+body.sidebar-mini .modal:not(.modal-center) .modal-dialog::before {
+    display: none;
+}
+
+body.sidebar-mini .modal:not(.modal-center) .modal-dialog.modal-sm { max-width: 26rem; }
+body.sidebar-mini .modal:not(.modal-center) .modal-dialog.modal-lg { max-width: 44rem; }
+body.sidebar-mini .modal:not(.modal-center) .modal-dialog.modal-xl { max-width: 60rem; }
+
+body.sidebar-mini .modal:not(.modal-center) .modal-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-height: none;
+    border-radius: 0 !important;
+    box-shadow: 0 0 0 1px rgba(9, 9, 11, 0.05), var(--shadow-xl) !important;
+}
+
+/* Some modals wrap body + footer in a <form>: let it fill the panel too. */
+body.sidebar-mini .modal:not(.modal-center) .modal-content > form {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+body.sidebar-mini .modal:not(.modal-center) .modal-header {
+    padding: 1.25rem 1.5rem !important;
+    border-bottom: 1px solid var(--ring) !important;
+    flex-shrink: 0;
+}
+
+body.sidebar-mini .modal:not(.modal-center) .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 1.25rem 1.5rem !important;
+    overflow-y: auto;
+}
+
+body.sidebar-mini .modal:not(.modal-center) .modal-footer {
+    flex-shrink: 0;
+}
+
 /* =========================================================
    NAVIGATION: tabs, pills, dropdowns, pagination
    ========================================================= */

@@ -196,7 +196,7 @@
 </section>
 
 {{-- MODAL VIDEO PLAYER --}}
-<div class="modal fade" id="videoPlayerModal" tabindex="-1" role="dialog" aria-labelledby="videoModalLabel" aria-hidden="true" data-backdrop="static">
+<div class="modal fade modal-center" id="videoPlayerModal" tabindex="-1" role="dialog" aria-labelledby="videoModalLabel" aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header">
