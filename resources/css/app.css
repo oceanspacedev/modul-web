@@ -723,6 +723,14 @@ body.layout-top-nav .main-footer {
     border-radius: 0 0 var(--radius-xl) var(--radius-xl) !important;
 }
 
+/* AdminLTE's clearfix ::after becomes an extra flex item in flex footers
+   and pushes the last button away from the right edge. */
+.card-footer.d-flex::after,
+.card-footer.d-flex::before {
+    content: none !important;
+    display: none !important;
+}
+
 /* Shelf-style double frame: gray shell + white inner panel */
 .card-framed {
     background: var(--gray-50) !important;
