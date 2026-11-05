@@ -29,7 +29,7 @@
                         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label for="title">Judul Video <span class="text-danger">*</span></label>
+                                <label for="title">Judul <span class="text-danger">*</span></label>
                                 <input type="text" name="title" id="title" class="form-control @error('title') is-invalid @enderror"
                                     value="{{ old('title', $video->title) }}" required autofocus>
                                 @error('title')
@@ -38,7 +38,7 @@
                             </div>
 
                             <div class="form-group mb-0">
-                                <label for="description">Deskripsi / Keterangan Video</label>
+                                <label for="description">Deskripsi</label>
                                 <textarea name="description" id="description" rows="3" class="form-control @error('description') is-invalid @enderror">{{ old('description', $video->description) }}</textarea>
                                 @error('description')
                                     <span class="invalid-feedback">{{ $message }}</span>
@@ -50,17 +50,17 @@
                     {{-- SUMBER VIDEO --}}
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">Sumber Video <span class="text-danger">*</span></h3>
+                            <h3 class="card-title">Sumber Video</h3>
                         </div>
                         <div class="card-body">
                             <div class="btn-group btn-group-toggle w-100 mb-3" data-toggle="buttons">
                                 <label class="btn btn-default {{ $video->video_type === 'file' ? 'active' : '' }} w-50 py-2" id="labelOptionFile" onclick="switchVideoType('file')">
                                     <input type="radio" name="video_type" id="option_file" value="file" autocomplete="off" {{ $video->video_type === 'file' ? 'checked' : '' }}>
-                                    <i class="fas fa-file-upload mr-1"></i> File Video Komputer
+                                    <i class="fas fa-file-upload mr-1"></i> Upload File
                                 </label>
                                 <label class="btn btn-default {{ $video->video_type === 'link' ? 'active' : '' }} w-50 py-2" id="labelOptionLink" onclick="switchVideoType('link')">
                                     <input type="radio" name="video_type" id="option_link" value="link" autocomplete="off" {{ $video->video_type === 'link' ? 'checked' : '' }}>
-                                    <i class="fas fa-link mr-1"></i> Link Video Eksternal
+                                    <i class="fas fa-link mr-1"></i> Link Video
                                 </label>
                             </div>
 
@@ -74,31 +74,29 @@
                                                 <source src="{{ $video->video_url }}" type="video/mp4">
                                             </video>
                                         </div>
-                                        <small class="form-text text-muted">Ukuran: {{ $video->file_size ?? 'N/A' }}</small>
-                                    </div>
+                                                                            </div>
                                 @endif
 
-                                <label for="video_file">Ganti File Video <span class="text-muted">(Kosongkan jika tidak ingin mengganti)</span></label>
+                                <label for="video_file">Ganti file <span class="text-muted">(opsional)</span></label>
                                 <div class="custom-file">
                                     <input type="file" name="video_file" id="video_file" class="custom-file-input @error('video_file') is-invalid @enderror"
                                         accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-matroska" onchange="displayNewVideo(this)">
-                                    <label class="custom-file-label" for="video_file" id="video_file_label">Pilih file video baru jika ingin mengganti...</label>
+                                    <label class="custom-file-label" for="video_file" id="video_file_label">Pilih file video...</label>
                                 </div>
-                                <small class="form-text text-muted">Maksimal 2 GB. Format: MP4, WebM, MOV, MKV.</small>
+                                <small class="form-text text-muted">MP4, WebM, MOV, atau MKV. Maks. 2 GB.</small>
                             </div>
 
                             {{-- SECTION LINK --}}
                             <div id="sectionLink" style="{{ $video->video_type === 'file' ? 'display: none;' : '' }}">
-                                <label for="video_link">Tautan / Link Video</label>
-                                <div class="input-group">
+                                                                <div class="input-group">
                                     <div class="input-group-prepend">
                                         <span class="input-group-text"><i class="fas fa-link"></i></span>
                                     </div>
                                     <input type="url" name="video_link" id="video_link" class="form-control @error('video_link') is-invalid @enderror"
-                                        placeholder="https://www.youtube.com/watch?v=... atau Google Drive link"
+                                        placeholder="https://..."
                                         value="{{ old('video_link', $video->video_link) }}">
                                 </div>
-                                <small class="form-text text-muted">Mendukung YouTube, Google Drive, Vimeo, atau link video langsung.</small>
+                                <small class="form-text text-muted">YouTube, Google Drive (akses publik), Vimeo, atau link .mp4.</small>
                             </div>
                         </div>
                     </div>
@@ -111,7 +109,7 @@
                         {{-- COVER / THUMBNAIL --}}
                         <div class="card">
                             <div class="card-header">
-                                <h3 class="card-title">Cover / Thumbnail</h3>
+                                <h3 class="card-title">Cover</h3>
                                 <span class="card-tools badge badge-secondary">Opsional</span>
                             </div>
                             <div class="card-body">
@@ -131,15 +129,14 @@
                                 <div class="custom-file">
                                     <input type="file" name="thumbnail" id="thumbnail" class="custom-file-input @error('thumbnail') is-invalid @enderror"
                                         accept="image/png,image/jpeg,image/webp" onchange="displayNewThumbnail(this)">
-                                    <label class="custom-file-label" for="thumbnail" id="thumbnail_label">Pilih gambar baru...</label>
+                                    <label class="custom-file-label" for="thumbnail" id="thumbnail_label">Pilih gambar...</label>
                                 </div>
                                 @if($video->isFile() && $video->video_file)
                                     <button type="button" class="btn btn-default btn-sm btn-block mt-2" id="btnCaptureCover">
                                         <i class="fas fa-camera"></i> Ambil cover dari video
                                     </button>
-                                    <small class="form-text text-muted" id="captureCoverStatus">Mengambil frame di detik pertama video saat ini sebagai cover.</small>
+                                    <small class="form-text text-muted" id="captureCoverStatus"></small>
                                 @endif
-                                <small class="form-text text-muted">Cover baru tersimpan setelah klik Simpan Perubahan.</small>
                             </div>
                         </div>
 
@@ -200,9 +197,9 @@ document.getElementById('btnCaptureCover').addEventListener('click', function ()
     status.innerText = 'Mengambil cover dari video...';
     videoThumbnail.capture(@json(route('video.source', $video))).then(function (cover) {
         videoThumbnail.apply(cover);
-        status.innerText = 'Cover diambil. Klik Simpan Perubahan untuk menyimpannya.';
+        status.innerText = 'Cover diambil. Klik Simpan untuk menyimpan.';
     }).catch(function () {
-        status.innerText = 'Cover tidak bisa diambil dari video ini (format tidak didukung browser). Silakan pilih gambar cover manual.';
+        status.innerText = 'Cover tidak bisa diambil dari video ini. Pilih gambar manual.';
     }).finally(function () {
         button.disabled = false;
     });

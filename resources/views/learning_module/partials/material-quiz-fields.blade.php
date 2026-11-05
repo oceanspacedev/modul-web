@@ -24,8 +24,7 @@
     </div>
     @if($quizAsCard)<div class="card-body">@endif
     <p class="text-muted small mb-3">
-        Pretest dikerjakan peserta sebelum membuka materi ini, posttest setelah materi selesai ditonton/dibuka.
-        Kuis baru aktif setelah soal ditambahkan.
+        Kuis sebelum dan sesudah materi. Aktif setelah soal ditambahkan.
     </p>
 
     <div class="row">
@@ -36,7 +35,7 @@
                 <label class="custom-control-label" for="quiz_pretest">Aktifkan Pretest</label>
             </div>
             <div id="quizPretestMax" class="{{ $quizPretest ? '' : 'd-none' }}">
-                <label class="small text-muted mb-1" for="quiz_pretest_max">Batas percobaan pretest</label>
+                <label class="small text-muted mb-1" for="quiz_pretest_max">Batas percobaan</label>
                 <input type="number" min="1" max="255" class="form-control form-control-sm" id="quiz_pretest_max" name="quiz[pretest_max_attempts]" value="{{ $quizPretestMax }}" placeholder="Kosong = tanpa batas">
             </div>
         </div>
@@ -47,7 +46,7 @@
                 <label class="custom-control-label" for="quiz_posttest">Aktifkan Posttest</label>
             </div>
             <div id="quizPosttestMax" class="{{ $quizPosttest ? '' : 'd-none' }}">
-                <label class="small text-muted mb-1" for="quiz_posttest_max">Batas percobaan posttest</label>
+                <label class="small text-muted mb-1" for="quiz_posttest_max">Batas percobaan</label>
                 <input type="number" min="1" max="255" class="form-control form-control-sm" id="quiz_posttest_max" name="quiz[posttest_max_attempts]" value="{{ $quizPosttestMax }}" placeholder="Kosong = tanpa batas">
             </div>
         </div>
