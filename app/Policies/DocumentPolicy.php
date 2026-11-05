@@ -31,9 +31,4 @@ class DocumentPolicy
     {
         return $user->checkPermissionTo('manage-documents');
     }
-
-    public function restore(User $user, Document $document): bool
-    {
-        return $user->checkPermissionTo('manage-documents');
-    }
 }

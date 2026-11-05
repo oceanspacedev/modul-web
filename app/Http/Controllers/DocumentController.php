@@ -22,9 +22,8 @@ use Illuminate\View\View;
 #[Authorize('viewAny', Document::class, only: ['index'])]
 #[Authorize('view', 'document', only: ['history'])]
 #[Authorize('create', Document::class, only: ['create', 'store'])]
-#[Authorize('update', 'document', only: ['edit', 'update'])]
+#[Authorize('update', 'document', only: ['edit', 'update', 'deactivate', 'activate'])]
 #[Authorize('delete', 'document', only: ['destroy'])]
-#[Authorize('restore', 'document', only: ['restore'])]
 class DocumentController extends Controller
 {
     public function __construct(private MaterialQuizService $materialQuiz) {}
@@ -34,7 +33,7 @@ class DocumentController extends Controller
         $divisis = Divisi::all();
         $doctypes = DokumenType::all();
 
-        $query = Document::with(['divisi', 'role', 'dokumentype', 'versions', 'quizModule'])->withTrashed();
+        $query = Document::with(['divisi', 'role', 'dokumentype', 'versions', 'quizModule'])->withInactive();
 
         if ($request->filled('divisi_id')) {
             $query->where('divisi_id', $request->divisi_id);
@@ -237,23 +236,34 @@ class DocumentController extends Controller
     }
 
     /**
-     * Deactivate (soft delete) a document.
+     * Nonaktifkan dokumen: tersembunyi dari peserta, pelatihan, dan Modul Belajar, tetapi tetap tampil di daftar dokumen.
      */
-    public function destroy(Document $document): RedirectResponse
+    public function deactivate(Document $document): RedirectResponse
     {
-        $document->delete();
+        $document->update(['is_active' => false]);
 
         return to_route('document.index')->with('success', 'Berhasil menonaktifkan dokumen');
     }
 
-    /**
-     * Reactivate a soft-deleted document.
-     */
-    public function restore(Document $document): RedirectResponse
+    public function activate(Document $document): RedirectResponse
     {
-        $document->restore();
+        $document->update(['is_active' => true]);
 
         return to_route('document.index')->with('success', 'Berhasil mengaktifkan kembali dokumen');
+    }
+
+    /**
+     * Hapus dokumen (soft delete): hilang dari daftar dokumen, tetapi data, file, dan riwayat versinya tetap tersimpan.
+     */
+    public function destroy(Document $document): RedirectResponse
+    {
+        DB::transaction(function () use ($document) {
+            // Riwayat nilai kuis dokumen tetap tersimpan (soft delete).
+            $document->quizModule()->first()?->delete();
+            $document->delete();
+        });
+
+        return to_route('document.index')->with('success', 'Berhasil menghapus dokumen '.$document->name);
     }
 
     /**

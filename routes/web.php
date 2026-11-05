@@ -68,8 +68,9 @@ Route::middleware('auth')->group(function () {
         ->names('video');
 
     // # DOCUMENTS (authorized by DocumentPolicy)
-    Route::get('document/{document}/history', [DocumentController::class, 'history'])->withTrashed()->name('document.history');
-    Route::patch('document/{document}/restore', [DocumentController::class, 'restore'])->withTrashed()->name('document.restore');
+    Route::get('document/{document}/history', [DocumentController::class, 'history'])->name('document.history');
+    Route::patch('document/{document}/deactivate', [DocumentController::class, 'deactivate'])->name('document.deactivate');
+    Route::patch('document/{document}/activate', [DocumentController::class, 'activate'])->name('document.activate');
     Route::resource('document', DocumentController::class)->except('show');
 
     // # MASTER DATA

@@ -10,6 +10,7 @@ use App\Models\Training;
 use App\Models\TrainingParticipant;
 use App\Models\User;
 use App\Models\Video;
+use App\Services\MaterialQuizService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -83,16 +84,46 @@ class SecurityHardeningTest extends TestCase
         $this->assertNotSoftDeleted($document);
     }
 
-    public function test_document_manager_can_deactivate_and_restore_documents(): void
+    public function test_document_manager_can_deactivate_and_activate_documents(): void
     {
         $trainer = $this->trainer();
         $document = $this->makeDocument();
 
-        $this->actingAs($trainer)->delete("/document/{$document->id}")->assertRedirect('/document');
-        $this->assertSoftDeleted($document);
-
-        $this->actingAs($trainer)->patch("/document/{$document->id}/restore")->assertRedirect('/document');
+        $this->actingAs($trainer)->patch("/document/{$document->id}/deactivate")->assertRedirect('/document');
+        $this->assertFalse($document->fresh()->is_active);
         $this->assertNotSoftDeleted($document);
+        $this->assertNull(Document::find($document->id), 'Dokumen nonaktif harus tersembunyi di luar halaman kelola.');
+
+        $this->actingAs($trainer)->get('/document')->assertOk()->assertSee('SOP PENJUALAN')->assertSee('NONAKTIF')->assertSee('Aktifkan Dokumen');
+        $this->actingAs($trainer)->get("/document/{$document->id}/edit")->assertOk();
+
+        $this->actingAs($trainer)->patch("/document/{$document->id}/activate")->assertRedirect('/document');
+        $this->assertTrue($document->fresh()->is_active);
+    }
+
+    public function test_document_manager_can_soft_delete_documents(): void
+    {
+        $trainer = $this->trainer();
+        $document = $this->makeDocument();
+        $quiz = app(MaterialQuizService::class)->sync($document, ['pretest' => '1', 'posttest' => '1']);
+
+        $this->actingAs($trainer)->delete("/document/{$document->id}")->assertRedirect('/document');
+
+        $this->assertSoftDeleted($document);
+        $this->assertSoftDeleted($quiz);
+        $this->assertNull(Document::withInactive()->find($document->id), 'Dokumen terhapus tidak boleh tampil di daftar dokumen.');
+        $this->actingAs($trainer)->get("/document/{$document->id}/edit")->assertNotFound();
+        $this->actingAs($trainer)->patch("/document/{$document->id}/activate")->assertNotFound();
+    }
+
+    public function test_staff_cannot_deactivate_or_delete_documents(): void
+    {
+        $staff = $this->staff();
+        $document = $this->makeDocument();
+
+        $this->actingAs($staff)->get('/document')->assertOk()->assertDontSee('Hapus Dokumen');
+        $this->actingAs($staff)->from('/document')->patch("/document/{$document->id}/deactivate")->assertSessionHas('error');
+        $this->assertTrue($document->fresh()->is_active);
     }
 
     public function test_destructive_actions_are_no_longer_reachable_with_get_requests(): void

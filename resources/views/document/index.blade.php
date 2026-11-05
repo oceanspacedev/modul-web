@@ -119,15 +119,15 @@
                                                 </button>
                                             </td>
                                             <td>
-                                                @if ($document->deleted_at)
-                                                    <span class="badge badge-secondary">NONAKTIF</span>
-                                                @else
+                                                @if ($document->is_active)
                                                     <span class="badge badge-success">AKTIF</span>
+                                                @else
+                                                    <span class="badge badge-secondary">NONAKTIF</span>
                                                 @endif
                                             </td>
                                             <td>
                                                 <div class="d-inline-flex align-items-center" style="gap: 4px;">
-                                                    @if($quiz && ! $document->deleted_at)
+                                                    @if($quiz && $document->is_active)
                                                         {{-- Dokumen ber-kuis dibuka lewat halaman pretest -> dokumen -> posttest, juga oleh pengelola (ada tombol pratinjau di sana). --}}
                                                         <a href="{{ $quiz->url('show') }}" class="btn btn-primary btn-xs" title="Buka dokumen beserta pretest/posttest">
                                                             Buka
@@ -158,19 +158,26 @@
                                                                     </a>
                                                                 @endif
                                                                 <div class="dropdown-divider my-1"></div>
-                                                                @if ($document->deleted_at)
-                                                                    <form action="{{ route('document.restore', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Mengaktifkan kembali dokumen '.$document->name.'?'))">
+                                                                @if ($document->is_active)
+                                                                    <form action="{{ route('document.deactivate', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Apakah anda yakin menonaktifkan dokumen '.$document->name.'?'))">
+                                                                        @csrf
+                                                                        @method('PATCH')
+                                                                        <button type="submit" class="dropdown-item py-1 text-warning">Nonaktifkan Dokumen</button>
+                                                                    </form>
+                                                                @else
+                                                                    <form action="{{ route('document.activate', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Mengaktifkan kembali dokumen '.$document->name.'?'))">
                                                                         @csrf
                                                                         @method('PATCH')
                                                                         <button type="submit" class="dropdown-item py-1 text-success">Aktifkan Dokumen</button>
                                                                     </form>
-                                                                @else
-                                                                    <form action="{{ route('document.destroy', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Apakah anda yakin menonaktifkan dokumen '.$document->name.'?'))">
-                                                                        @csrf
-                                                                        @method('DELETE')
-                                                                        <button type="submit" class="dropdown-item py-1 text-danger">Nonaktifkan Dokumen</button>
-                                                                    </form>
                                                                 @endif
+                                                            @endcan
+                                                            @can('delete', $document)
+                                                                <form action="{{ route('document.destroy', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Hapus dokumen '.$document->name.'? Dokumen akan hilang dari daftar beserta kuis pretest/posttest-nya.'))">
+                                                                    @csrf
+                                                                    @method('DELETE')
+                                                                    <button type="submit" class="dropdown-item py-1 text-danger">Hapus Dokumen</button>
+                                                                </form>
                                                             @endcan
                                                         </div>
                                                     </div>

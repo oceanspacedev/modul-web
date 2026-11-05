@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\StorageUrl;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
@@ -18,6 +19,34 @@ class Document extends Model
         'created_at',
         'updated_at',
     ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
+
+    /**
+     * Dokumen nonaktif tersembunyi di seluruh aplikasi kecuali halaman kelola dokumen (lihat withInactive()).
+     * Dokumen yang dihapus memakai soft delete (deleted_at).
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('active', function (Builder $query) {
+            $query->where($query->qualifyColumn('is_active'), true);
+        });
+    }
+
+    public function scopeWithInactive(Builder $query): void
+    {
+        $query->withoutGlobalScope('active');
+    }
+
+    /**
+     * Route {document} tetap menemukan dokumen nonaktif (edit, aktifkan, hapus), tetapi tidak dokumen yang dihapus.
+     */
+    public function resolveRouteBindingQuery($query, $value, $field = null)
+    {
+        return parent::resolveRouteBindingQuery($query->withoutGlobalScope('active'), $value, $field);
+    }
 
     public function scopeFilter($query)
     {
