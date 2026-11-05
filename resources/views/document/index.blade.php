@@ -51,21 +51,17 @@
                                 <i class="fas fa-tags"></i>
                             </div>
                             <select class="custom-select" name="doctype_id" id="doctype_id" onchange="this.form.submit()">
-                                <option value="">Semua Type</option>
+                                <option value="">Semua Tipe</option>
                                 @foreach ($doctypes as $doctype)
                                     <option value="{{ $doctype->id }}" {{ request('doctype_id') == $doctype->id ? 'selected' : '' }}>{{ $doctype->name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="filter-search" style="width: 260px;">
-                            <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama dokumen...">
-                            <button type="submit" title="Cari Dokumen">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
+                        <x-search-field placeholder="Cari dokumen..." style="width: 260px; max-width: 100%;"
+                            :clear-url="route('document.index', request()->except(['search', 'page']))" />
                         @if (request('divisi_id') || request('doctype_id') || request('search'))
                             <a href="{{ route('document.index', $trashed ? ['tab' => 'terhapus'] : []) }}" class="btn btn-default" title="Reset Filter">
-                                <i class="fas fa-undo"></i> Reset
+                                Reset
                             </a>
                         @endif
                     </form>

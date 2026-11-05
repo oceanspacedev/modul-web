@@ -50,57 +50,63 @@
             </ul>
 
             <div class="card">
-                <div class="card-header">
-                    <form action="{{ route('user.index') }}" method="GET" class="w-100 m-0">
-                        <input type="hidden" name="tab" value="{{ request('tab') }}">
-                        <div class="form-row">
-                            <div class="col-lg-3 col-md-6 mb-2">
-                                <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm" placeholder="Cari nama / username / ID / No. HP...">
-                            </div>
-                            <div class="col-lg-2 col-md-6 mb-2">
-                                <select name="area_id" class="form-control form-control-sm">
-                                    <option value="">Semua Area</option>
-                                    @foreach ($areas as $area)
-                                        <option value="{{ $area->id }}" @selected(request('area_id') == $area->id)>{{ $area->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-lg-2 col-md-6 mb-2">
-                                <select name="divisi_id" class="form-control form-control-sm">
-                                    <option value="">Semua Divisi</option>
-                                    @foreach ($divisis as $divisi)
-                                        <option value="{{ $divisi->id }}" @selected(request('divisi_id') == $divisi->id)>{{ $divisi->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-lg-1 col-md-6 mb-2">
-                                <select name="role_id" class="form-control form-control-sm">
-                                    <option value="">Jabatan</option>
-                                    @foreach ($roles as $role)
-                                        <option value="{{ $role->id }}" @selected(request('role_id') == $role->id)>{{ $role->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-lg-2 col-md-6 mb-2">
-                                <select name="position_id" class="form-control form-control-sm select2" style="width: 100%;">
-                                    <option value="">Semua Posisi</option>
-                                    @foreach ($positions as $position)
-                                        <option value="{{ $position->id }}" @selected(request('position_id') == $position->id)>{{ $position->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-lg-2 col-md-6 mb-2">
-                                <select name="approval_id" class="form-control form-control-sm select2" style="width: 100%;">
-                                    <option value="">Semua Atasan</option>
-                                    @foreach ($approvers as $approver)
-                                        <option value="{{ $approver->id }}" @selected(request('approval_id') == $approver->id)>{{ $approver->nama_lengkap }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
+                <div class="card-header filter-toolbar">
+                    @php($hasFilter = collect(request()->only(['search', 'area_id', 'divisi_id', 'role_id', 'position_id', 'approval_id']))->filter(fn ($v) => filled($v))->isNotEmpty())
+                    <form action="{{ route('user.index') }}" method="GET" class="user-filters w-100 m-0" role="search">
+                        @if (request('tab'))
+                            <input type="hidden" name="tab" value="{{ request('tab') }}">
+                        @endif
+                        <div class="user-filters-search">
+                            <x-search-field placeholder="Cari nama, username, ID, No. HP..."
+                                :clear-url="route('user.index', request()->except(['search', 'page']))" />
+                            @if ($hasFilter)
+                                <a href="{{ route('user.index', request('tab') ? ['tab' => request('tab')] : []) }}" class="btn btn-default" title="Hapus semua filter">Reset</a>
+                            @endif
                         </div>
-                        <div class="d-flex align-items-center gap-1">
-                            <button type="submit" class="btn btn-sm btn-default"><i class="fas fa-filter"></i> Filter</button>
-                            <a href="{{ route('user.index', ['tab' => request('tab')]) }}" class="btn btn-sm btn-link">Reset</a>
+                        <div class="filter-group">
+                            <div class="filter-group-icon"><i class="fas fa-map-marker-alt"></i></div>
+                            <select name="area_id" class="custom-select" aria-label="Area" onchange="this.form.submit()">
+                                <option value="">Area</option>
+                                @foreach ($areas as $area)
+                                    <option value="{{ $area->id }}" @selected(request('area_id') == $area->id)>{{ $area->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <div class="filter-group-icon"><i class="fas fa-building"></i></div>
+                            <select name="divisi_id" class="custom-select" aria-label="Divisi" onchange="this.form.submit()">
+                                <option value="">Divisi</option>
+                                @foreach ($divisis as $divisi)
+                                    <option value="{{ $divisi->id }}" @selected(request('divisi_id') == $divisi->id)>{{ $divisi->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <div class="filter-group-icon"><i class="fas fa-user-tag"></i></div>
+                            <select name="role_id" class="custom-select" aria-label="Jabatan" onchange="this.form.submit()">
+                                <option value="">Jabatan</option>
+                                @foreach ($roles as $role)
+                                    <option value="{{ $role->id }}" @selected(request('role_id') == $role->id)>{{ $role->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <div class="filter-group-icon"><i class="fas fa-briefcase"></i></div>
+                            <select name="position_id" class="custom-select select2" aria-label="Posisi" style="width: 100%;" onchange="this.form.submit()">
+                                <option value="">Posisi</option>
+                                @foreach ($positions as $position)
+                                    <option value="{{ $position->id }}" @selected(request('position_id') == $position->id)>{{ $position->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <div class="filter-group-icon"><i class="fas fa-user-tie"></i></div>
+                            <select name="approval_id" class="custom-select select2" aria-label="Atasan" style="width: 100%;" onchange="this.form.submit()">
+                                <option value="">Atasan</option>
+                                @foreach ($approvers as $approver)
+                                    <option value="{{ $approver->id }}" @selected(request('approval_id') == $approver->id)>{{ $approver->nama_lengkap }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </form>
                 </div>

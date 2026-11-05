@@ -1134,7 +1134,10 @@ a.stat-tile:hover {
     background: transparent !important;
     color: var(--gray-500) !important;
     border-radius: var(--radius-lg) !important;
-    padding: 0.3125rem 0.75rem !important;
+    display: inline-flex;
+    align-items: center;
+    height: 30px; /* group = 36px, same as search fields */
+    padding: 0 0.75rem !important;
     font-size: 0.8125rem !important;
     font-weight: 500 !important;
     white-space: nowrap;
@@ -1351,8 +1354,7 @@ small.form-text {
     padding: 0.625rem 1.25rem !important;
 }
 
-.filter-toolbar .filter-group,
-.filter-toolbar .filter-search {
+.filter-toolbar .filter-group {
     display: inline-flex;
     align-items: center;
     height: 36px;
@@ -1367,8 +1369,7 @@ small.form-text {
     min-width: 175px;
 }
 
-.filter-toolbar .filter-group:focus-within,
-.filter-toolbar .filter-search:focus-within {
+.filter-toolbar .filter-group:focus-within {
     border-color: var(--primary-600);
     box-shadow: var(--focus-ring);
 }
@@ -1393,33 +1394,69 @@ small.form-text {
     cursor: pointer;
 }
 
-.filter-toolbar .filter-search input {
+.filter-toolbar .filter-group select.custom-select {
     flex: 1 1 auto;
-    width: 100%;
     min-width: 0;
+    text-overflow: ellipsis;
+}
+
+/* Plain buttons (e.g. Reset) match the 36px fields. */
+.filter-toolbar form .btn:not(.btn-sm):not(.btn-xs) {
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+}
+
+/* Select2 inside a filter group: borderless, fills the group. */
+.filter-toolbar .filter-group .select2-container {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.filter-toolbar .filter-group .select2-container .select2-selection--single {
     height: 34px !important;
-    padding: 0 12px !important;
     border: 0 !important;
     background: transparent !important;
     box-shadow: none !important;
-    outline: none !important;
-    font-size: 0.8125rem !important;
+}
+
+.filter-toolbar .filter-group .select2-container .select2-selection__rendered {
+    padding-left: 2px !important;
+    font-size: 0.8125rem;
+    font-weight: 500;
     color: var(--gray-950) !important;
 }
 
-.filter-toolbar .filter-search button {
+/* User list filters: search + five selects on one tidy grid. */
+.user-filters {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+}
+
+.user-filters .filter-group {
     display: flex;
-    align-items: center;
-    height: 34px !important;
-    padding: 0 12px !important;
-    border: 0 !important;
-    background: transparent !important;
-    color: var(--gray-400) !important;
-    cursor: pointer;
+    min-width: 0;
 }
 
-.filter-toolbar .filter-search button:hover {
-    color: var(--gray-950) !important;
+.user-filters-search {
+    display: flex;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+@media (min-width: 576px) {
+    .user-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .user-filters-search { grid-column: 1 / -1; }
+}
+
+@media (min-width: 992px) {
+    .user-filters { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1500px) {
+    .user-filters { grid-template-columns: minmax(0, 1.6fr) repeat(5, minmax(0, 1fr)); }
+    .user-filters-search { grid-column: auto; }
 }
 
 /* ---------- Search field (x-search-field) ---------- */

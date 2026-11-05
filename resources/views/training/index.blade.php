@@ -25,16 +25,12 @@
                     <a href="/training?status=ongoing" class="btn {{ request('status') === 'ongoing' ? 'btn-secondary active' : 'btn-default' }}">Berlangsung ({{ $stats['ongoing'] }})</a>
                     <a href="/training?status=completed" class="btn {{ request('status') === 'completed' ? 'btn-secondary active' : 'btn-default' }}">Selesai ({{ $stats['completed'] }})</a>
                 </div>
-                <form action="/training" method="GET" class="ml-auto">
+                <form action="/training" method="GET" class="ml-auto" role="search" style="width: 280px; max-width: 100%;">
                     @if(request('status'))
                         <input type="hidden" name="status" value="{{ request('status') }}">
                     @endif
-                    <div class="filter-search" style="width: 300px; max-width: 100%;">
-                        <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari topik atau pemateri...">
-                        <button type="submit" aria-label="Cari">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
+                    <x-search-field placeholder="Cari pelatihan atau pemateri..."
+                        :clear-url="url('/training').(request('status') ? '?status='.request('status') : '')" />
                 </form>
             </div>
 
