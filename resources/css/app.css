@@ -2151,6 +2151,32 @@ body.sidebar-mini .modal:not(.modal-center) .modal-footer {
     flex-shrink: 0;
 }
 
+/* .modal-full: same panel, but covering the whole screen (long work like the
+   AI question generator). Content stays in a readable centred column. */
+body.sidebar-mini .modal.modal-full .modal-dialog,
+body.sidebar-mini .modal.modal-full .modal-dialog.modal-xl {
+    left: 0;
+    max-width: none;
+    transform: translateY(12px) !important;
+    transition: transform 0.2s ease-out !important;
+}
+
+body.sidebar-mini .modal.modal-full.show .modal-dialog,
+body.sidebar-mini .modal.modal-full.show .modal-dialog.modal-xl {
+    transform: none !important;
+}
+
+.modal-full .modal-full-inner {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+.modal-full .modal-body {
+    padding-top: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
+}
+
 /* =========================================================
    NAVIGATION: tabs, pills, dropdowns, pagination
    ========================================================= */

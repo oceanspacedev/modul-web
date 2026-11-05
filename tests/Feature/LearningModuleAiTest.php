@@ -126,4 +126,22 @@ class LearningModuleAiTest extends TestCase
 
         $this->assertSame(1, $this->module->questions()->count());
     }
+
+    public function test_saving_ai_questions_returns_where_to_go_next(): void
+    {
+        $question = ['question' => 'APD?', 'option_a' => 'Helm', 'option_b' => 'Topi', 'correct_answer' => 'a'];
+
+        // Regular module: back to its own question list.
+        $this->actingAs($this->admin)->postJson(route('learning-module.questions.save-ai-batch', $this->module), ['questions' => [$question]])
+            ->assertOk()->assertJson(['redirect' => route('learning-module.questions.index', $this->module)]);
+
+        // Video quiz: straight back to the video page, with the success message flashed.
+        $video = Video::create(['title' => 'Video SOP', 'video_type' => 'link', 'video_link' => 'https://youtu.be/dQw4w9WgXcQ']);
+        $quiz = app(\App\Services\MaterialQuizService::class)->sync($video, ['pretest' => true, 'posttest' => false]);
+
+        $this->actingAs($this->admin)->postJson($quiz->url('questions.save-ai-batch'), ['questions' => [$question]])
+            ->assertOk()
+            ->assertJson(['redirect' => route('video.show', ['video' => $video->id, 'preview' => 1])])
+            ->assertSessionHas('success');
+    }
 }

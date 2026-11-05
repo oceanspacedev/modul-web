@@ -198,7 +198,7 @@
 </div>
 
 {{-- AI GENERATOR --}}
-<div class="modal fade" id="aiGenerateModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+<div class="modal fade modal-full" id="aiGenerateModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -206,6 +206,7 @@
                 <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">&times;</button>
             </div>
             <div class="modal-body">
+                <div class="modal-full-inner">
                 <div class="alert alert-danger d-none" id="aiError"></div>
 
                 {{-- STEP 1: CONFIG --}}
@@ -277,6 +278,7 @@
                         </div>
                     </div>
                     <div id="aiQuestions"></div>
+                </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -458,7 +460,8 @@ $(function () {
         var $btn = $(this).prop('disabled', true);
         postJson(saveUrl, { questions: payload }).then(function (result) {
             if (result.ok && result.data.success) {
-                window.location.reload();
+                // Back to the material (e.g. the video page) once the questions are saved.
+                window.location.href = result.data.redirect || window.location.href;
                 return;
             }
             var errors = result.data && result.data.errors ? Object.values(result.data.errors)[0][0] : null;
