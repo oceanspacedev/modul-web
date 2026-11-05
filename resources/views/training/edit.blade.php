@@ -138,29 +138,6 @@
                             </div>
                         </div>
                     </div>
-
-                    {{-- PRESENSI --}}
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Presensi</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="custom-control custom-checkbox mb-3">
-                                <input type="checkbox" class="custom-control-input" id="is_attendance_active" name="is_attendance_active" value="1" {{ old('is_attendance_active', $training->is_attendance_active) ? 'checked' : '' }}>
-                                <label class="custom-control-label" for="is_attendance_active">
-                                    Buka akses presensi kehadiran peserta
-                                </label>
-                                <small class="form-text text-muted mt-0">Bisa dibuka/ditutup cepat dari halaman detail pelatihan.</small>
-                            </div>
-                            <div class="custom-control custom-checkbox">
-                                <input type="checkbox" class="custom-control-input" id="require_attendance_proof" name="require_attendance_proof" value="1" {{ old('require_attendance_proof', $training->require_attendance_proof) ? 'checked' : '' }}>
-                                <label class="custom-control-label" for="require_attendance_proof">
-                                    Wajibkan peserta unggah screenshot bukti Zoom/Pelatihan
-                                </label>
-                                <small class="form-text text-muted mt-0">Peserta harus melampirkan screenshot layar Zoom saat konfirmasi kehadiran.</small>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 {{-- PESERTA --}}
@@ -221,12 +198,38 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="d-flex justify-content-end gap-2 mb-4">
-                <a href="/training/{{ $training->id }}" class="btn btn-default">Batal</a>
-                <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                    {{-- PRESENSI --}}
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Presensi</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="custom-control custom-checkbox mb-3">
+                                <input type="checkbox" class="custom-control-input" id="is_attendance_active" name="is_attendance_active" value="1" {{ old('is_attendance_active', $training->is_attendance_active) ? 'checked' : '' }}>
+                                <label class="custom-control-label" for="is_attendance_active">
+                                    Buka akses presensi kehadiran peserta
+                                </label>
+                                <small class="form-text text-muted mt-0">Bisa dibuka/ditutup cepat dari halaman detail pelatihan.</small>
+                            </div>
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="require_attendance_proof" name="require_attendance_proof" value="1" {{ old('require_attendance_proof', $training->require_attendance_proof) ? 'checked' : '' }}>
+                                <label class="custom-control-label" for="require_attendance_proof">
+                                    Wajibkan peserta unggah screenshot bukti Zoom/Pelatihan
+                                </label>
+                                <small class="form-text text-muted mt-0">Peserta harus melampirkan screenshot layar Zoom saat konfirmasi kehadiran.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- SIMPAN --}}
+                    <div class="card">
+                        <div class="card-body">
+                            <button type="submit" class="btn btn-primary btn-block">Simpan Perubahan</button>
+                            <a href="/training/{{ $training->id }}" class="btn btn-default btn-block">Batal</a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </form>
     </div>
