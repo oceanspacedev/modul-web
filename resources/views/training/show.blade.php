@@ -1,95 +1,89 @@
 @extends('layout.main_template')
 
 @section('content')
+<style>
+    .zoom-drop-area {
+        border: 1px dashed var(--gray-300);
+        border-radius: var(--radius-xl);
+        background: var(--gray-50);
+        cursor: pointer;
+        transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+    .zoom-drop-area:hover,
+    .zoom-drop-area.is-dragover {
+        border-color: var(--primary-500);
+        background: var(--primary-50);
+    }
+</style>
+
+@php
+    $headerSubtitle = \Carbon\Carbon::parse($training->training_date)->format('d F Y')
+        . ' · ' . substr($training->start_time, 0, 5) . ' - ' . substr($training->end_time, 0, 5) . ' WIB'
+        . ($training->zoom_link ? ' · Online via Zoom' : '');
+@endphp
+
 <section class="content-header">
     <div class="container-fluid">
-        <div class="row mb-3 align-items-center">
-            <div class="col-md-7">
-                <div class="d-flex align-items-center">
-                    <a href="/training" class="btn btn-default btn-sm mr-3" title="Kembali ke Daftar Pelatihan">
-                        <i class="fas fa-arrow-left"></i>
-                    </a>
-                    <div>
-                        <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
-                            <h1 class="m-0 text-dark font-weight-bold" style="font-size: 1.4rem;">
-                                {{ $training->title }}
-                            </h1>
-                            <x-training-status-badge :status="$training->status" />
-                        </div>
-                        <span class="text-muted small">
-                            {{ \Carbon\Carbon::parse($training->training_date)->format('d F Y') }} &bull; {{ substr($training->start_time, 0, 5) }} - {{ substr($training->end_time, 0, 5) }} WIB
-                        </span>
-                    </div>
-                </div>
+        <x-page-header :title="$training->title" :subtitle="$headerSubtitle" eyebrow="Pelatihan / Jadwal Pelatihan">
+            <div class="mt-2">
+                <x-training-status-badge :status="$training->status" />
             </div>
-            <div class="col-md-5 text-md-right mt-3 mt-md-0">
-                <div class="d-inline-flex align-items-center" style="gap: 8px;">
-                    <button type="button" class="btn btn-outline-danger btn-sm font-weight-bold" data-toggle="modal" data-target="#scanZoomModal" style="border-radius: 6px;">
-                        <i class="fas fa-video-slash mr-1"></i> Scan Off Cam Zoom (AI)
+            <x-slot:actions>
+                <a href="/training" class="btn btn-default btn-icon" title="Kembali ke Daftar Pelatihan">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <button type="button" class="btn btn-default" data-toggle="modal" data-target="#scanZoomModal">
+                    <i class="fas fa-video-slash"></i> Scan Off Cam Zoom (AI)
+                </button>
+                <div class="dropdown d-inline-block">
+                    <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Menu Opsi
                     </button>
-                    <a href="/training/{{ $training->id }}/questions" class="btn btn-primary btn-sm font-weight-bold">
-                        Kelola Soal Kuis ({{ $training->questions->count() }})
-                    </a>
-                    <div class="dropdown d-inline-block">
-                        <button class="btn btn-default btn-sm dropdown-toggle font-weight-500" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            Menu Opsi
-                        </button>
-                        <div class="dropdown-menu dropdown-menu-right shadow-sm border text-sm">
-                            <a class="dropdown-item py-2" href="/training/{{ $training->id }}/edit">
-                                <i class="fas fa-edit mr-2 text-muted"></i> Edit Informasi Pelatihan
-                            </a>
-                            <a class="dropdown-item py-2" href="/training/{{ $training->id }}/export">
-                                <i class="fas fa-file-excel mr-2 text-muted"></i> Export Rekap Nilai
-                            </a>
-                            <div class="dropdown-divider my-1"></div>
-                            <a class="dropdown-item py-2" href="#" data-toggle="modal" data-target="#uploadTrainingVideoModal">
-                                <i class="fas fa-video mr-2 text-muted"></i> Upload Video Materi
-                            </a>
-                        </div>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a class="dropdown-item" href="/training/{{ $training->id }}/edit">
+                            <i class="fas fa-edit mr-2 text-muted"></i> Edit Informasi Pelatihan
+                        </a>
+                        <a class="dropdown-item" href="/training/{{ $training->id }}/export">
+                            <i class="fas fa-file-excel mr-2 text-muted"></i> Export Rekap Nilai
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="#" data-toggle="modal" data-target="#uploadTrainingVideoModal">
+                            <i class="fas fa-video mr-2 text-muted"></i> Upload Video Materi
+                        </a>
                     </div>
                 </div>
-            </div>
-        </div>
+                <a href="/training/{{ $training->id }}/questions" class="btn btn-primary">
+                    Kelola Soal Kuis ({{ $training->questions->count() }})
+                </a>
+            </x-slot:actions>
+        </x-page-header>
     </div>
 </section>
 
 <section class="content">
     <div class="container-fluid">
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
-                {{ session('success') }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
-
-        @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
-                {{ session('error') }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
+        <x-flash />
 
         <!-- TRAINING DETAIL OVERVIEW & SESSION CONTROL -->
-        <div class="card mb-4 border-0 shadow-sm">
-            <div class="card-body p-4">
-                <div class="row">
-                    <!-- LEFT COLUMN: DETAIL & MATERI -->
-                    <div class="col-lg-8 pr-lg-4 mb-4 mb-lg-0">
+        <div class="row">
+            <!-- LEFT COLUMN: DETAIL & MATERI -->
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Detail Pelatihan</h3>
+                    </div>
+                    <div class="card-body">
                         <!-- METADATA GRID -->
-                        <div class="row mb-3 pb-3 border-bottom text-sm">
-                            <div class="col-sm-4 mb-2 mb-sm-0">
-                                <span class="text-muted small d-block">Pemateri</span>
-                                <strong class="text-dark">{{ $training->trainer->nama_lengkap ?? '-' }}</strong>
-                                <span class="text-muted d-block text-xs">{{ optional($training->trainer)->divisi->name ?? 'Divisi Umum' }}</span>
+                        <div class="row">
+                            <div class="col-sm-4 mb-3 mb-sm-0">
+                                <div class="text-muted text-xs mb-1">Pemateri</div>
+                                <div class="font-weight-bold">{{ $training->trainer->nama_lengkap ?? '-' }}</div>
+                                <div class="text-muted text-xs">{{ optional($training->trainer)->divisi->name ?? 'Divisi Umum' }}</div>
                             </div>
-                            <div class="col-sm-4 mb-2 mb-sm-0">
-                                <span class="text-muted small d-block">Tautan Meeting</span>
+                            <div class="col-sm-4 mb-3 mb-sm-0">
+                                <div class="text-muted text-xs mb-1">Tautan Meeting</div>
                                 @if($training->zoom_link)
-                                    <a href="{{ $training->zoom_link }}" target="_blank" class="text-primary font-weight-bold d-inline-block text-truncate" style="max-width: 220px;">
+                                    <a href="{{ $training->zoom_link }}" target="_blank" class="d-inline-block text-truncate" style="max-width: 220px;">
                                         Buka Tautan Zoom
                                     </a>
                                 @else
@@ -97,213 +91,217 @@
                                 @endif
                             </div>
                             <div class="col-sm-4">
-                                <span class="text-muted small d-block">Jadwal Sesi</span>
-                                <strong class="text-dark">{{ substr($training->start_time, 0, 5) }} - {{ substr($training->end_time, 0, 5) }} WIB</strong>
+                                <div class="text-muted text-xs mb-1">Jadwal Sesi</div>
+                                <div class="font-weight-bold">{{ substr($training->start_time, 0, 5) }} - {{ substr($training->end_time, 0, 5) }} WIB</div>
                             </div>
                         </div>
 
                         @if($training->description)
-                            <div class="p-3 bg-light rounded text-sm text-muted mb-3 border">
-                                <strong class="d-block text-dark mb-1">Deskripsi & Materi Pelatihan:</strong>
-                                {{ $training->description }}
+                            <div class="border-top mt-3 pt-3">
+                                <div class="text-muted text-xs mb-1">Deskripsi & Materi Pelatihan</div>
+                                <div class="text-sm">{{ $training->description }}</div>
                             </div>
                         @endif
+                    </div>
+                </div>
 
-                        <!-- SECTION MATERI & DOKUMEN PELATIHAN -->
-                        <div class="card border mb-0 shadow-none">
-                            <div class="card-header py-2 px-3 bg-light d-flex align-items-center justify-content-between flex-wrap" style="gap: 8px;">
-                                <strong class="text-sm font-weight-bold text-dark">
-                                    Materi & Dokumen Pelatihan ({{ $training->documents->count() }})
-                                </strong>
-                                <div class="d-flex align-items-center" style="gap: 6px;">
-                                    <button type="button" class="btn btn-xs btn-default" data-toggle="modal" data-target="#attachDocumentModal">
-                                        Lampirkan Dokumen
-                                    </button>
-                                    <a href="/training/{{ $training->id }}/questions?open_ai=1" class="btn btn-xs btn-default">
-                                        Buat Soal AI
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="card-body p-3">
-                                <!-- Rekaman Video -->
-                                <div class="d-flex align-items-center justify-content-between p-2 px-3 mb-3 bg-light rounded border text-sm flex-wrap" style="gap: 10px;">
-                                    <div class="d-flex align-items-center">
-                                        <i class="fas fa-play-circle text-primary fa-lg mr-2"></i>
-                                        <div>
-                                            <strong class="d-block text-dark text-sm">
-                                                {{ $training->video ? $training->video->title : 'Rekaman Video Materi' }}
-                                            </strong>
-                                            <span class="text-muted text-xs">
-                                                @if($training->video)
-                                                    {{ $training->video->views_count }} dilihat &bull; Diunggah {{ $training->video->created_at->format('d M Y') }}
-                                                @else
-                                                    Belum ada video rekaman yang diunggah.
-                                                @endif
-                                            </span>
-                                        </div>
+                <!-- SECTION MATERI & DOKUMEN PELATIHAN -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            Materi & Dokumen Pelatihan <span class="text-muted font-weight-normal">({{ $training->documents->count() }})</span>
+                        </h3>
+                        <div class="card-tools d-flex align-items-center gap-1">
+                            <button type="button" class="btn btn-xs btn-default" data-toggle="modal" data-target="#attachDocumentModal">
+                                Lampirkan Dokumen
+                            </button>
+                            <a href="/training/{{ $training->id }}/questions?open_ai=1" class="btn btn-xs btn-default">
+                                Buat Soal AI
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Rekaman Video -->
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 p-3 mb-3 bg-light rounded border">
+                            <div class="d-flex align-items-center min-w-0">
+                                <span class="stat-tile-icon mr-3"><i class="fas fa-play"></i></span>
+                                <div class="min-w-0">
+                                    <div class="font-weight-bold text-sm text-truncate">
+                                        {{ $training->video ? $training->video->title : 'Rekaman Video Materi' }}
                                     </div>
-                                    <div class="d-flex align-items-center" style="gap: 6px;">
+                                    <div class="text-muted text-xs">
                                         @if($training->video)
-                                            <a href="{{ route('video.show', $training->video->id) }}" class="btn btn-xs btn-primary">
-                                                Tonton Video
-                                            </a>
-                                            <button type="button" class="btn btn-xs btn-default" data-toggle="modal" data-target="#uploadTrainingVideoModal">
-                                                Ganti Video
-                                            </button>
+                                            {{ $training->video->views_count }} dilihat &bull; Diunggah {{ $training->video->created_at->format('d M Y') }}
                                         @else
-                                            <button type="button" class="btn btn-xs btn-default" data-toggle="modal" data-target="#uploadTrainingVideoModal">
-                                                Upload Video Materi
-                                            </button>
+                                            Belum ada video rekaman yang diunggah.
                                         @endif
                                     </div>
                                 </div>
-
-                                <!-- Dokumen Terlampir -->
-                                @if($training->documents->isEmpty())
-                                    <div class="text-center py-2 text-muted small">
-                                        Belum ada dokumen materi yang dilampirkan.
-                                    </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                                @if($training->video)
+                                    <a href="{{ route('video.show', $training->video->id) }}" class="btn btn-xs btn-default">
+                                        Tonton Video
+                                    </a>
+                                    <button type="button" class="btn btn-xs btn-default" data-toggle="modal" data-target="#uploadTrainingVideoModal">
+                                        Ganti Video
+                                    </button>
                                 @else
-                                    <div class="list-group list-group-flush">
-                                        @foreach($training->documents as $doc)
-                                            @php
-                                                $latestVer = $doc->versions->first();
-                                                $fileUrl = $latestVer ? $latestVer->file_url : $doc->file_url;
-                                            @endphp
-                                            <div class="list-group-item px-0 py-2 d-flex align-items-center justify-content-between border-bottom">
-                                                <div class="mr-2 text-truncate">
-                                                    <a href="{{ $fileUrl }}" target="_blank" class="font-weight-bold text-dark text-sm text-truncate d-block" title="{{ $doc->name }}">
-                                                        {{ $doc->name }}
-                                                    </a>
-                                                    <span class="text-xs text-muted">
-                                                        {{ $doc->dokumentype->name ?? 'Dokumen' }} &bull; v{{ $doc->version ?? ($latestVer->version_number ?? 1) }}
-                                                    </span>
-                                                </div>
-                                                <div class="d-flex align-items-center flex-shrink-0" style="gap: 5px;">
-                                                    <a href="{{ $fileUrl }}" target="_blank" class="btn btn-xs btn-default">
-                                                        Buka
-                                                    </a>
-                                                    <form action="/training/{{ $training->id }}/detach-document/{{ $doc->id }}" method="POST" class="d-inline" onsubmit="return confirm(@js('Lepas dokumen '.$doc->name.' dari pelatihan ini?'))">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-xs btn-outline-danger">
-                                                            Lepas
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    </div>
+                                    <button type="button" class="btn btn-xs btn-default" data-toggle="modal" data-target="#uploadTrainingVideoModal">
+                                        Upload Video Materi
+                                    </button>
                                 @endif
                             </div>
                         </div>
+
+                        <!-- Dokumen Terlampir -->
+                        @if($training->documents->isEmpty())
+                            <div class="text-center py-2 text-muted text-sm">
+                                Belum ada dokumen materi yang dilampirkan.
+                            </div>
+                        @else
+                            <div class="list-group list-group-flush">
+                                @foreach($training->documents as $doc)
+                                    @php
+                                        $latestVer = $doc->versions->first();
+                                        $fileUrl = $latestVer ? $latestVer->file_url : $doc->file_url;
+                                    @endphp
+                                    <div class="list-group-item px-0 py-2 d-flex align-items-center justify-content-between">
+                                        <div class="mr-2 min-w-0">
+                                            <a href="{{ $fileUrl }}" target="_blank" class="font-weight-bold text-dark text-sm text-truncate d-block" title="{{ $doc->name }}">
+                                                {{ $doc->name }}
+                                            </a>
+                                            <span class="text-xs text-muted">
+                                                {{ $doc->dokumentype->name ?? 'Dokumen' }} &bull; v{{ $doc->version ?? ($latestVer->version_number ?? 1) }}
+                                            </span>
+                                        </div>
+                                        <div class="d-flex align-items-center flex-shrink-0 gap-1">
+                                            <a href="{{ $fileUrl }}" target="_blank" class="btn btn-xs btn-default">
+                                                Buka
+                                            </a>
+                                            <form action="/training/{{ $training->id }}/detach-document/{{ $doc->id }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Lepas dokumen '.$doc->name.' dari pelatihan ini?'))">
+                                                @csrf
+                                                <button type="submit" class="btn btn-xs btn-default text-danger">
+                                                    Lepas
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: KONTROL SESI -->
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Kontrol Sesi Pelatihan</h3>
                     </div>
 
-                    <!-- RIGHT COLUMN: KONTROL SESI -->
-                    <div class="col-lg-4 pl-lg-4 border-left">
-                        <span class="text-muted small font-weight-bold text-uppercase d-block mb-3">
-                            Kontrol Sesi Pelatihan
-                        </span>
+                    <!-- STATUS SESI -->
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted text-xs">Status Pelatihan</span>
+                            <x-training-status-badge :status="$training->status" />
+                        </div>
+                        <form action="{{ route('training.status', $training) }}" method="POST" id="formStatusPelatihan">
+                            @csrf
+                            <select name="status" class="form-control form-control-sm" onchange="document.getElementById('formStatusPelatihan').submit();">
+                                @foreach (App\Enums\TrainingStatus::cases() as $status)
+                                    <option value="{{ $status->value }}" @selected($training->status === $status)>{{ $status->label() }}</option>
+                                @endforeach
+                            </select>
+                        </form>
+                    </div>
 
-                        <!-- STATUS SESI -->
-                        <div class="p-3 bg-light rounded border mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="small text-muted font-weight-bold">Status Pelatihan</span>
-                                <x-training-status-badge :status="$training->status" />
+                    <!-- PENGATURAN AKSES & FITUR -->
+                    <div class="list-group list-group-flush border-top">
+                        <!-- AKSES ABSENSI -->
+                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
+                            <div class="min-w-0">
+                                <div class="text-sm font-weight-bold">Akses Presensi</div>
+                                <div class="text-muted text-xs">
+                                    {{ $training->is_attendance_active ? 'Peserta dapat mengisi presensi' : 'Presensi ditutup untuk peserta' }}
+                                </div>
                             </div>
-                            <form action="{{ route('training.status', $training) }}" method="POST" id="formStatusPelatihan">
+                            <form action="/training/{{ $training->id }}/toggle-attendance" method="POST" class="m-0">
                                 @csrf
-                                <select name="status" class="form-control form-control-sm" onchange="document.getElementById('formStatusPelatihan').submit();">
-                                    @foreach (App\Enums\TrainingStatus::cases() as $status)
-                                        <option value="{{ $status->value }}" @selected($training->status === $status)>{{ $status->label() }}</option>
-                                    @endforeach
-                                </select>
+                                @if($training->is_attendance_active)
+                                    <button type="submit" class="btn btn-default btn-xs text-danger text-nowrap">
+                                        Kunci Presensi
+                                    </button>
+                                @else
+                                    <button type="submit" class="btn btn-default btn-xs text-nowrap">
+                                        Buka Presensi
+                                    </button>
+                                @endif
                             </form>
                         </div>
 
-                        <!-- PENGATURAN AKSES & FITUR -->
-                        <div class="border rounded mb-3 bg-white overflow-hidden shadow-none">
-                            <!-- AKSES ABSENSI -->
-                            <div class="p-2 px-3 border-bottom d-flex align-items-center justify-content-between text-sm">
-                                <div>
-                                    <span class="text-dark font-weight-500 d-block text-sm">Akses Presensi</span>
-                                    <span class="text-muted text-xs">
-                                        {{ $training->is_attendance_active ? 'Peserta dapat mengisi presensi' : 'Presensi ditutup untuk peserta' }}
-                                    </span>
+                        <!-- AKSES KUIS -->
+                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
+                            <div class="min-w-0">
+                                <div class="text-sm font-weight-bold">Akses Kuis</div>
+                                <div class="text-muted text-xs">
+                                    {{ $training->is_quiz_active ? 'Kuis aktif untuk dikerjakan' : 'Pengerjaan kuis terkunci' }}
                                 </div>
-                                <form action="/training/{{ $training->id }}/toggle-attendance" method="POST" class="m-0">
-                                    @csrf
-                                    @if($training->is_attendance_active)
-                                        <button type="submit" class="btn btn-outline-danger btn-xs font-weight-bold px-2 py-1" style="border-radius: 12px;">
-                                            Kunci Presensi
-                                        </button>
-                                    @else
-                                        <button type="submit" class="btn btn-outline-success btn-xs font-weight-bold px-2 py-1" style="border-radius: 12px;">
-                                            Buka Presensi
-                                        </button>
-                                    @endif
-                                </form>
                             </div>
-
-                            <!-- AKSES KUIS -->
-                            <div class="p-2 px-3 border-bottom d-flex align-items-center justify-content-between text-sm">
-                                <div>
-                                    <span class="text-dark font-weight-500 d-block text-sm">Akses Kuis</span>
-                                    <span class="text-muted text-xs">
-                                        {{ $training->is_quiz_active ? 'Kuis aktif untuk dikerjakan' : 'Pengerjaan kuis terkunci' }}
-                                    </span>
-                                </div>
-                                <form action="/training/{{ $training->id }}/toggle-quiz" method="POST" class="m-0">
-                                    @csrf
-                                    @if($training->is_quiz_active)
-                                        <button type="submit" class="btn btn-outline-danger btn-xs font-weight-bold px-2 py-1" style="border-radius: 12px;">
-                                            Kunci Kuis
-                                        </button>
-                                    @else
-                                        <button type="submit" class="btn btn-outline-primary btn-xs font-weight-bold px-2 py-1" style="border-radius: 12px;">
-                                            Buka Kuis
-                                        </button>
-                                    @endif
-                                </form>
-                            </div>
-
-                            <!-- SYARAT SCREENSHOT -->
-                            <div class="p-2 px-3 border-bottom d-flex align-items-center justify-content-between text-sm">
-                                <div>
-                                    <span class="text-dark font-weight-500 d-block text-sm">Bukti Foto / SS</span>
-                                    <span class="text-muted text-xs">
-                                        {{ $training->require_attendance_proof ? 'Wajib upload foto selfie/meeting' : 'Presensi tanpa upload foto' }}
-                                    </span>
-                                </div>
-                                <form action="/training/{{ $training->id }}/toggle-proof" method="POST" class="m-0">
-                                    @csrf
-                                    <button type="submit" class="btn btn-default btn-xs px-2 py-1" style="border-radius: 12px;">
-                                        {{ $training->require_attendance_proof ? 'Jadikan Opsional' : 'Wajibkan Foto' }}
+                            <form action="/training/{{ $training->id }}/toggle-quiz" method="POST" class="m-0">
+                                @csrf
+                                @if($training->is_quiz_active)
+                                    <button type="submit" class="btn btn-default btn-xs text-danger text-nowrap">
+                                        Kunci Kuis
                                     </button>
-                                </form>
-                            </div>
-
-                            <!-- MODE KUIS -->
-                            <div class="p-2 px-3 d-flex align-items-center justify-content-between text-sm">
-                                <div>
-                                    <span class="text-dark font-weight-500 d-block text-sm">Mode Kuis</span>
-                                    <span class="text-muted text-xs">
-                                        {{ $training->quiz_mode === 'game' ? 'Tampilan interaktif (Game)' : 'Tampilan ujian standar (Formal)' }}
-                                    </span>
-                                </div>
-                                <form action="/training/{{ $training->id }}/toggle-mode" method="POST" class="m-0">
-                                    @csrf
-                                    <button type="submit" class="btn btn-default btn-xs px-2 py-1" style="border-radius: 12px;">
-                                        {{ $training->quiz_mode === 'game' ? 'Pindah ke Formal' : 'Pindah ke Game' }}
+                                @else
+                                    <button type="submit" class="btn btn-default btn-xs text-nowrap">
+                                        Buka Kuis
                                     </button>
-                                </form>
-                            </div>
+                                @endif
+                            </form>
                         </div>
 
-                        <!-- TOMBOL BROADCAST WHATSAPP -->
-                        <form action="/training/{{ $training->id }}/broadcast-wa" method="POST" onsubmit="return confirm(@js('Kirim notifikasi WhatsApp ke '.$training->participants->count().' peserta?'))">
+                        <!-- SYARAT SCREENSHOT -->
+                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
+                            <div class="min-w-0">
+                                <div class="text-sm font-weight-bold">Bukti Foto / SS</div>
+                                <div class="text-muted text-xs">
+                                    {{ $training->require_attendance_proof ? 'Wajib upload foto selfie/meeting' : 'Presensi tanpa upload foto' }}
+                                </div>
+                            </div>
+                            <form action="/training/{{ $training->id }}/toggle-proof" method="POST" class="m-0">
+                                @csrf
+                                <button type="submit" class="btn btn-default btn-xs text-nowrap">
+                                    {{ $training->require_attendance_proof ? 'Jadikan Opsional' : 'Wajibkan Foto' }}
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- MODE KUIS -->
+                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
+                            <div class="min-w-0">
+                                <div class="text-sm font-weight-bold">Mode Kuis</div>
+                                <div class="text-muted text-xs">
+                                    {{ $training->quiz_mode === 'game' ? 'Tampilan interaktif (Game)' : 'Tampilan ujian standar (Formal)' }}
+                                </div>
+                            </div>
+                            <form action="/training/{{ $training->id }}/toggle-mode" method="POST" class="m-0">
+                                @csrf
+                                <button type="submit" class="btn btn-default btn-xs text-nowrap">
+                                    {{ $training->quiz_mode === 'game' ? 'Pindah ke Formal' : 'Pindah ke Game' }}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- TOMBOL BROADCAST WHATSAPP -->
+                    <div class="card-footer">
+                        <form action="/training/{{ $training->id }}/broadcast-wa" method="POST" class="m-0" onsubmit="return confirm(@js('Kirim notifikasi WhatsApp ke '.$training->participants->count().' peserta?'))">
                             @csrf
-                            <button type="submit" class="btn btn-success btn-sm btn-block py-2 font-weight-bold shadow-none">
-                                <i class="fab fa-whatsapp mr-1"></i> Broadcast WA ke Peserta
+                            <button type="submit" class="btn btn-default btn-sm btn-block">
+                                <i class="fab fa-whatsapp"></i> Broadcast WA ke Peserta
                             </button>
                         </form>
                     </div>
@@ -318,89 +316,99 @@
         @endphp
         <div class="row mb-3">
             <div class="col-lg-3 col-sm-6 mb-3">
-                <div class="card p-3 mb-0 bg-white border shadow-none" style="border-radius: 10px;">
-                    <span class="text-muted small d-block font-weight-500">Total Peserta Terdaftar</span>
-                    <strong class="h3 mb-0 text-dark font-weight-bold mt-1 d-block" id="statTotal">{{ $stats['total'] }}</strong>
-                    <span class="text-muted small mt-1 d-block">
-                        <span class="text-success font-weight-bold" id="statAttended">{{ $stats['attended'] }}</span> Hadir &bull; <span class="text-warning font-weight-bold" id="statPending">{{ $stats['pending'] }}</span> Belum Absen
-                    </span>
-                </div>
-            </div>
-            <div class="col-lg-3 col-sm-6 mb-3">
-                <div class="card p-3 mb-0 bg-white border shadow-none" style="border-radius: 10px;">
-                    <span class="text-muted small d-block font-weight-500">Tingkat Kehadiran</span>
-                    <strong class="h3 mb-0 text-success font-weight-bold mt-1 d-block">{{ $attendanceRate }}%</strong>
-                    <span class="text-muted small mt-1 d-block">
-                        <span class="text-danger font-weight-bold" id="statAbsent">{{ $stats['absent'] }}</span> Peserta Tidak Hadir
-                    </span>
-                </div>
-            </div>
-            <div class="col-lg-3 col-sm-6 mb-3">
-                <div class="card p-3 mb-0 bg-white border shadow-none" style="border-radius: 10px;">
-                    <span class="text-muted small d-block font-weight-500">Penyelesaian Kuis</span>
-                    <div class="d-flex align-items-baseline mt-1">
-                        <strong class="h3 mb-0 text-primary font-weight-bold" id="statQuiz">{{ $stats['quizSubmitted'] }}</strong>
-                        <span class="text-muted small ml-1">/ {{ $stats['total'] }} Peserta</span>
+                <div class="stat-tile">
+                    <span class="stat-tile-icon"><i class="fas fa-users"></i></span>
+                    <div class="min-w-0">
+                        <p class="stat-tile-label">Total Peserta Terdaftar</p>
+                        <p class="stat-tile-value" id="statTotal">{{ $stats['total'] }}</p>
+                        <p class="stat-tile-hint">
+                            <span id="statAttended">{{ $stats['attended'] }}</span> Hadir &bull; <span id="statPending">{{ $stats['pending'] }}</span> Belum Absen
+                        </p>
                     </div>
-                    <span class="text-muted small mt-1 d-block">
-                        {{ $quizRate }}% Peserta sudah mengerjakan
-                    </span>
                 </div>
             </div>
             <div class="col-lg-3 col-sm-6 mb-3">
-                <div class="card p-3 mb-0 bg-white border shadow-none" style="border-radius: 10px;">
-                    <span class="text-muted small d-block font-weight-500">Rata-rata Nilai Kuis</span>
-                    <strong class="h3 mb-0 font-weight-bold mt-1 d-block {{ $stats['avgScore'] >= 75 ? 'text-success' : ($stats['avgScore'] >= 50 ? 'text-warning' : 'text-danger') }}" id="statAvg">{{ $stats['avgScore'] }}</strong>
-                    <span class="text-muted small mt-1 d-block">
-                        Dari total jawaban peserta
-                    </span>
+                <div class="stat-tile">
+                    <span class="stat-tile-icon"><i class="fas fa-user-check"></i></span>
+                    <div class="min-w-0">
+                        <p class="stat-tile-label">Tingkat Kehadiran</p>
+                        <p class="stat-tile-value">{{ $attendanceRate }}%</p>
+                        <p class="stat-tile-hint">
+                            <span id="statAbsent">{{ $stats['absent'] }}</span> Peserta Tidak Hadir
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-sm-6 mb-3">
+                <div class="stat-tile">
+                    <span class="stat-tile-icon"><i class="fas fa-clipboard-check"></i></span>
+                    <div class="min-w-0">
+                        <p class="stat-tile-label">Penyelesaian Kuis</p>
+                        <p class="stat-tile-value">
+                            <span id="statQuiz">{{ $stats['quizSubmitted'] }}</span>
+                            <span class="text-muted text-sm font-weight-normal">/ {{ $stats['total'] }} Peserta</span>
+                        </p>
+                        <p class="stat-tile-hint">
+                            {{ $quizRate }}% Peserta sudah mengerjakan
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-sm-6 mb-3">
+                <div class="stat-tile">
+                    <span class="stat-tile-icon"><i class="fas fa-chart-line"></i></span>
+                    <div class="min-w-0">
+                        <p class="stat-tile-label">Rata-rata Nilai Kuis</p>
+                        <p class="stat-tile-value" id="statAvg">{{ $stats['avgScore'] }}</p>
+                        <p class="stat-tile-hint">
+                            Dari total jawaban peserta
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- TABEL REKAP PESERTA & NILAI -->
-        <div class="card mb-4 border-0 shadow-sm">
-            <div class="card-header py-3 bg-white d-flex align-items-center justify-content-between flex-wrap" style="gap: 10px;">
-                <div>
-                    <h3 class="card-title font-weight-bold m-0 text-dark">
-                        Daftar Peserta & Nilai
-                    </h3>
-                    <span class="text-muted small ml-2">({{ $training->participants->count() }} orang)</span>
-                </div>
-                <div class="card-tools m-0 d-flex align-items-center flex-wrap" style="gap: 8px;">
-                    <button type="button" class="btn btn-outline-danger btn-sm font-weight-bold" id="btnToggleManualOffCamMode" style="border-radius: 6px;">
-                        <i class="fas fa-user-edit mr-1"></i> Input Off Cam Manual
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    Daftar Peserta & Nilai
+                    <span class="text-muted text-sm font-weight-normal">({{ $training->participants->count() }} orang)</span>
+                </h3>
+                <div class="card-tools d-flex align-items-center flex-wrap gap-2">
+                    <button type="button" class="btn btn-default btn-sm" id="btnToggleManualOffCamMode">
+                        <i class="fas fa-user-edit"></i> Input Off Cam Manual
                     </button>
                     <input type="text" id="filterTableInput" class="form-control form-control-sm" placeholder="Cari nama, divisi..." style="width: 180px;">
                 </div>
             </div>
 
             <!-- BANNER NOTIFIKASI MODE MANUAL OFF CAM (MUNCUL KETIKA MODE AKTIF) -->
-            <div id="bannerManualOffCamMode" class="alert alert-danger mx-3 mt-3 mb-0 py-2 px-3 d-none align-items-center justify-content-between shadow-sm" style="border-radius: 8px;">
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-video-slash fa-lg mr-2 text-danger"></i>
+            <div id="bannerManualOffCamMode" class="alert alert-danger mx-3 mt-3 mb-0 d-none align-items-center justify-content-between flex-wrap gap-2">
+                <div class="d-flex align-items-start">
+                    <i class="fas fa-video-slash mr-2 mt-1"></i>
                     <div>
-                        <strong class="d-block text-danger font-weight-bold">Mode Cepat Off Cam Aktif!</strong>
-                        <span class="small text-dark">Klik <strong>"Tandai Off Cam"</strong> untuk mencatat. Gunakan tombol <strong>[+]</strong> untuk menambah frekuensi atau <strong>[-]</strong> untuk mengurangi hitungan jika salah.</span>
+                        <strong class="d-block">Mode cepat Off Cam aktif</strong>
+                        <span class="text-sm">Klik <strong>"Tandai Off Cam"</strong> untuk mencatat. Gunakan tombol <strong>[+]</strong> untuk menambah frekuensi atau <strong>[-]</strong> untuk mengurangi hitungan jika salah.</span>
                     </div>
                 </div>
-                <button type="button" class="btn btn-danger btn-sm font-weight-bold ml-3" id="btnExitManualOffCamMode" style="white-space: nowrap;">
-                    <i class="fas fa-check mr-1"></i> Selesai Mode Manual
+                <button type="button" class="btn btn-default btn-sm text-nowrap" id="btnExitManualOffCamMode">
+                    <i class="fas fa-check"></i> Selesai Mode Manual
                 </button>
             </div>
 
-            <div class="card-body p-0 table-responsive" style="min-height: 260px;">
-                <table class="table table-hover mb-0" id="participantsTable" style="font-size: 0.92rem;">
-                    <thead class="bg-light text-muted">
+            <div class="card-body table-responsive p-0" style="min-height: 260px;">
+                <table class="table table-hover mb-0" id="participantsTable">
+                    <thead>
                         <tr>
-                            <th class="text-center" style="width: 50px; padding: 12px 14px;">No</th>
-                            <th style="padding: 12px 14px;">Nama Peserta</th>
-                            <th style="padding: 12px 14px;">Divisi</th>
-                            <th style="padding: 12px 14px;">WhatsApp</th>
-                            <th class="text-center" style="padding: 12px 14px;">Presensi</th>
-                            <th class="text-center" style="padding: 12px 14px;">Status Kuis</th>
-                            <th class="text-center" style="padding: 12px 14px;">Nilai</th>
-                            <th class="text-center" style="width: 110px; padding: 12px 14px;" id="thActionHeader">Aksi</th>
+                            <th class="text-center" style="width: 50px;">No</th>
+                            <th>Nama Peserta</th>
+                            <th>Divisi</th>
+                            <th>WhatsApp</th>
+                            <th class="text-center">Presensi</th>
+                            <th class="text-center">Status Kuis</th>
+                            <th class="text-center">Nilai</th>
+                            <th class="text-center" style="width: 110px;" id="thActionHeader">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -415,52 +423,52 @@
                             $quiz = $part->quizResult;
                         @endphp
                         <tr>
-                            <td class="text-center align-middle text-muted" style="padding: 14px;">
+                            <td class="text-center align-middle text-muted">
                                 {{ $index + 1 }}
                             </td>
-                            <td class="align-middle" style="padding: 14px;">
-                                <strong class="d-block text-dark">{{ $userName }}</strong>
-                                <span class="text-muted small">{{ $userIdKaryawan }} &bull; {{ $userEmail }}</span>
+                            <td class="align-middle">
+                                <strong class="d-block">{{ $userName }}</strong>
+                                <span class="text-muted text-xs">{{ $userIdKaryawan }} &bull; {{ $userEmail }}</span>
                             </td>
-                            <td class="align-middle text-muted" style="padding: 14px;">
+                            <td class="align-middle text-muted">
                                 {{ $userDivisi }}
                             </td>
-                            <td class="align-middle text-muted" style="padding: 14px;">
-                                <span class="d-block text-dark">{{ $userNoWa }}</span>
+                            <td class="align-middle">
+                                <span class="d-block">{{ $userNoWa }}</span>
                                 @if($part->wa_sent_at)
-                                    <span class="badge badge-light border text-success text-xs">WA Terkirim</span>
+                                    <span class="badge badge-success">WA Terkirim</span>
                                 @else
-                                    <span class="badge badge-light border text-muted text-xs">Belum Dikirim</span>
+                                    <span class="badge badge-secondary">Belum Dikirim</span>
                                 @endif
                             </td>
-                            <td class="text-center align-middle" style="padding: 14px;">
+                            <td class="text-center align-middle">
                                 @if($part->attendance_status === 'hadir')
-                                    <span class="badge badge-success px-2 py-1">Hadir</span>
+                                    <span class="badge badge-success">Hadir</span>
                                     <span class="d-block text-muted text-xs mt-1">
                                         {{ \Carbon\Carbon::parse($part->attended_at)->format('H:i') }} WIB
                                     </span>
                                     @if($part->attendance_proof)
-                                        <a href="javascript:void(0)" class="text-xs text-primary font-weight-bold d-block mt-1" data-toggle="modal" data-target="#proofModal_{{ $part->id }}">
+                                        <a href="javascript:void(0)" class="text-xs d-block mt-1" data-toggle="modal" data-target="#proofModal_{{ $part->id }}">
                                             Lihat Foto
                                         </a>
                                     @endif
                                 @elseif($part->attendance_status === 'tidak_hadir')
-                                    <span class="badge badge-danger px-2 py-1">Tidak Hadir</span>
+                                    <span class="badge badge-danger">Tidak Hadir</span>
                                     @if($part->attendance_notes)
                                         <span class="d-block text-muted text-xs mt-1">{{ $part->attendance_notes }}</span>
                                     @endif
                                 @else
-                                    <span class="badge badge-warning text-white px-2 py-1">Belum Absen</span>
+                                    <span class="badge badge-warning">Belum Absen</span>
                                 @endif
 
                                 <div class="offcam-badge-box" id="offcamBadge_{{ $part->id }}">
                                     @if($part->is_off_cam && ($part->off_cam_count ?? 1) > 0)
-                                        <div class="mt-1 pt-1 border-top border-light">
-                                            <span class="badge badge-danger text-xs px-2 py-1 font-weight-bold" title="Terdeteksi Off Cam di Zoom ({{ $part->off_cam_count ?: 1 }}x): {{ $part->zoom_display_name ?: '-' }}">
-                                                <i class="fas fa-video-slash mr-1"></i> Off Cam ({{ $part->off_cam_count ?: 1 }}x)
+                                        <div class="mt-1 pt-1 border-top">
+                                            <span class="badge badge-danger" title="Terdeteksi Off Cam di Zoom ({{ $part->off_cam_count ?: 1 }}x): {{ $part->zoom_display_name ?: '-' }}">
+                                                <i class="fas fa-video-slash"></i> Off Cam ({{ $part->off_cam_count ?: 1 }}x)
                                             </span>
                                             @if($part->zoom_display_name)
-                                                <span class="d-block text-danger font-italic text-xs text-truncate mx-auto" style="max-width: 130px;" title="{{ $part->zoom_display_name }}">
+                                                <span class="d-block text-muted font-italic text-xs text-truncate mx-auto" style="max-width: 130px;" title="{{ $part->zoom_display_name }}">
                                                     "{{ $part->zoom_display_name }}"
                                                 </span>
                                             @endif
@@ -468,26 +476,26 @@
                                     @endif
                                 </div>
                             </td>
-                            <td class="text-center align-middle" style="padding: 14px;">
+                            <td class="text-center align-middle">
                                 @if($quiz)
-                                    <span class="badge badge-info px-2 py-1">
+                                    <span class="badge badge-primary">
                                         Selesai ({{ $quiz->correct_answers }} PG Benar)
                                     </span>
                                     @if($quiz->essay_status === 'graded')
-                                        <span class="badge badge-success text-xs mt-1 d-block">Essay: {{ $quiz->essay_score }}/100</span>
+                                        <div class="mt-1"><span class="badge badge-success">Essay: {{ $quiz->essay_score }}/100</span></div>
                                     @elseif($quiz->essay_status === 'pending')
-                                        <span class="badge badge-warning text-white text-xs mt-1 d-block">Essay: Menunggu Review</span>
+                                        <div class="mt-1"><span class="badge badge-warning">Essay: Menunggu Review</span></div>
                                     @endif
                                     <span class="d-block text-muted text-xs mt-1">
                                         {{ \Carbon\Carbon::parse($quiz->submitted_at)->format('d/m H:i') }}
                                     </span>
                                 @else
-                                    <span class="text-muted small">Belum Mengerjakan</span>
+                                    <span class="text-muted text-sm">Belum Mengerjakan</span>
                                 @endif
                             </td>
-                            <td class="text-center align-middle" style="padding: 14px;">
+                            <td class="text-center align-middle">
                                 @if($quiz)
-                                    <strong class="{{ $quiz->score >= 75 ? 'text-success' : ($quiz->score >= 50 ? 'text-warning' : 'text-danger') }}" style="font-size: 1.15rem;">
+                                    <strong class="{{ $quiz->score >= 75 ? 'text-success' : ($quiz->score >= 50 ? 'text-warning' : 'text-danger') }}">
                                         {{ $quiz->score }}
                                     </strong>
                                     @if($quiz->essay_status === 'pending')
@@ -495,61 +503,57 @@
                                     @endif
 
                                     @if($quiz->is_force_submitted)
-                                        <span class="badge badge-danger text-xs mt-1 d-block">
-                                            Curang (Auto-Submit)
-                                        </span>
+                                        <div class="mt-1"><span class="badge badge-danger">Curang (Auto-Submit)</span></div>
                                     @elseif(($quiz->tab_switch_count ?? 0) > 0)
-                                        <span class="badge badge-warning text-dark text-xs mt-1 d-block">
-                                            Pindah Tab: {{ $quiz->tab_switch_count }}x
-                                        </span>
+                                        <div class="mt-1"><span class="badge badge-warning">Pindah Tab: {{ $quiz->tab_switch_count }}x</span></div>
                                     @endif
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
-                            <td class="text-center align-middle" style="padding: 14px;">
+                            <td class="text-center align-middle">
                                 <!-- DEFAULT ACTION DROPDOWN -->
                                 <div class="dropdown default-action-wrapper">
                                     <button class="btn btn-default btn-xs dropdown-toggle" type="button" data-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false">
                                         Aksi
                                     </button>
-                                    <div class="dropdown-menu dropdown-menu-right shadow-sm border text-sm" style="font-size: 0.85rem; max-height: 280px; overflow-y: auto;">
+                                    <div class="dropdown-menu dropdown-menu-right" style="max-height: 280px; overflow-y: auto;">
                                         @if($quiz && $quiz->answers)
-                                            <a class="dropdown-item py-1 font-weight-bold text-primary" href="#" data-toggle="modal" data-target="#answerModal_{{ $quiz->id }}">
+                                            <a class="dropdown-item" href="#" data-toggle="modal" data-target="#answerModal_{{ $quiz->id }}">
                                                 Lembar Jawaban {{ $training->questions()->where('type', 'essay')->count() > 0 ? '& Review Essay' : '' }}
                                             </a>
-                                            <div class="dropdown-divider my-1"></div>
+                                            <div class="dropdown-divider"></div>
                                         @endif
 
-                                        <a class="dropdown-item py-1 copy-link-btn" href="javascript:void(0)" data-link="{{ url('/training/portal/' . $part->token) }}">
+                                        <a class="dropdown-item copy-link-btn" href="javascript:void(0)" data-link="{{ url('/training/portal/' . $part->token) }}">
                                             Salin Link Peserta
                                         </a>
 
                                         <form action="/training/{{ $training->id }}/send-wa/{{ $part->id }}" method="POST" class="d-inline">
                                             @csrf
-                                            <button type="submit" class="dropdown-item py-1">
+                                            <button type="submit" class="dropdown-item">
                                                 Kirim Notifikasi WA
                                             </button>
                                         </form>
 
-                                        <a class="dropdown-item py-1" href="#" data-toggle="modal" data-target="#editAttendanceModal_{{ $part->id }}">
+                                        <a class="dropdown-item" href="#" data-toggle="modal" data-target="#editAttendanceModal_{{ $part->id }}">
                                             Atur Presensi Manual
                                         </a>
 
                                         @if($part->attendance_status !== 'pending')
                                             <form action="/training/{{ $training->id }}/reset-attendance/{{ $part->id }}" method="POST" class="d-inline" onsubmit="return confirm(@js('Kembalikan status presensi '.$userName.' menjadi Belum Absen?'))">
                                                 @csrf
-                                                <button type="submit" class="dropdown-item py-1 text-danger">
+                                                <button type="submit" class="dropdown-item text-danger">
                                                     Reset Presensi (Belum Absen)
                                                 </button>
                                             </form>
                                         @endif
 
                                         @if($quiz)
-                                            <div class="dropdown-divider my-1"></div>
+                                            <div class="dropdown-divider"></div>
                                             <form action="/training/{{ $training->id }}/reset-quiz/{{ $part->id }}" method="POST" class="d-inline" onsubmit="return confirm(@js('Reset hasil kuis untuk '.$userName.'?'))">
                                                 @csrf
-                                                <button type="submit" class="dropdown-item py-1 text-danger">
+                                                <button type="submit" class="dropdown-item text-danger">
                                                     Reset Kuis Peserta
                                                 </button>
                                             </form>
@@ -560,18 +564,18 @@
                                 <!-- TOMBOL TANDAI OFF CAM (STEPPER COUNTER 1-KLIK) -->
                                 <div class="quick-offcam-action-wrapper d-none" id="offcamActionWrapper_{{ $part->id }}">
                                     @if(!$part->is_off_cam || ($part->off_cam_count ?? 0) <= 0)
-                                        <button type="button" class="btn btn-outline-danger btn-sm font-weight-bold px-2 py-1 btn-offcam-step shadow-sm" data-id="{{ $part->id }}" data-action="increment" data-name="{{ $userName }}" style="border-radius: 6px; font-size: 0.8rem; white-space: nowrap;" title="Tandai peserta ini Off Cam">
-                                            <i class="fas fa-video-slash mr-1"></i> Tandai Off Cam
+                                        <button type="button" class="btn btn-default btn-xs text-danger text-nowrap btn-offcam-step" data-id="{{ $part->id }}" data-action="increment" data-name="{{ $userName }}" title="Tandai peserta ini Off Cam">
+                                            <i class="fas fa-video-slash"></i> Tandai Off Cam
                                         </button>
                                     @else
-                                        <div class="btn-group btn-group-sm shadow-sm" role="group" style="border-radius: 6px; overflow: hidden;">
-                                            <button type="button" class="btn btn-outline-danger px-2 py-1 btn-offcam-step" data-id="{{ $part->id }}" data-action="decrement" data-name="{{ $userName }}" title="Kurangi frekuensi (-1)">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-default btn-offcam-step" data-id="{{ $part->id }}" data-action="decrement" data-name="{{ $userName }}" title="Kurangi frekuensi (-1)">
                                                 <i class="fas fa-minus"></i>
                                             </button>
-                                            <span class="btn btn-danger px-2 py-1 font-weight-bold text-white text-xs d-flex align-items-center" style="cursor: default; pointer-events: none; font-size: 0.8rem; white-space: nowrap;">
-                                                <i class="fas fa-video-slash mr-1"></i> <span id="offcamCountText_{{ $part->id }}">{{ $part->off_cam_count ?: 1 }}x</span> Off
+                                            <span class="btn btn-default text-danger text-nowrap" style="pointer-events: none;">
+                                                <i class="fas fa-video-slash"></i> <span id="offcamCountText_{{ $part->id }}">{{ $part->off_cam_count ?: 1 }}x</span> Off
                                             </span>
-                                            <button type="button" class="btn btn-danger px-2 py-1 btn-offcam-step" data-id="{{ $part->id }}" data-action="increment" data-name="{{ $userName }}" title="Tambah frekuensi (+1)">
+                                            <button type="button" class="btn btn-default btn-offcam-step" data-id="{{ $part->id }}" data-action="increment" data-name="{{ $userName }}" title="Tambah frekuensi (+1)">
                                                 <i class="fas fa-plus"></i>
                                             </button>
                                         </div>
@@ -584,89 +588,93 @@
                                 <div class="modal fade text-left" id="answerModal_{{ $quiz->id }}" tabindex="-1" role="dialog" aria-hidden="true">
                                     <div class="modal-dialog modal-lg" role="document">
                                         <div class="modal-content">
-                                            <div class="modal-header py-3 bg-light">
-                                                <h5 class="modal-title font-weight-bold text-dark">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">
                                                     Lembar Jawaban: {{ $userName }}
                                                 </h5>
-                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
                                                     <span aria-hidden="true">&times;</span>
                                                 </button>
                                             </div>
-                                            <div class="modal-body p-4">
+                                            <div class="modal-body">
                                                 <!-- STATS SUMMARY -->
-                                                <div class="row mb-4 bg-light p-3 rounded border text-center">
-                                                    <div class="col-3 border-right">
-                                                        <span class="text-muted text-xs d-block">Nilai Akhir:</span>
-                                                        <strong class="h4 text-primary mb-0 font-weight-bold">{{ $quiz->score }}</strong>
+                                                <div class="row no-gutters mb-4 border rounded text-center">
+                                                    <div class="col-3 p-3 border-right">
+                                                        <p class="stat-tile-label">Nilai Akhir</p>
+                                                        <p class="stat-tile-value">{{ $quiz->score }}</p>
                                                     </div>
-                                                    <div class="col-3 border-right">
-                                                        <span class="text-muted text-xs d-block">Nilai PG ({{ $quiz->correct_answers }} Benar):</span>
-                                                        <strong class="h5 text-dark mb-0">{{ $quiz->mc_score ?? $quiz->score }}</strong>
+                                                    <div class="col-3 p-3 border-right">
+                                                        <p class="stat-tile-label">Nilai PG ({{ $quiz->correct_answers }} Benar)</p>
+                                                        <p class="stat-tile-value">{{ $quiz->mc_score ?? $quiz->score }}</p>
                                                     </div>
-                                                    <div class="col-3 border-right">
-                                                        <span class="text-muted text-xs d-block">Nilai Essay:</span>
-                                                        <strong class="h5 {{ $quiz->essay_status === 'graded' ? 'text-success' : 'text-warning' }} mb-0">
-                                                            {{ $quiz->essay_status === 'graded' ? $quiz->essay_score : 'Belum Dinilai' }}
-                                                        </strong>
+                                                    <div class="col-3 p-3 border-right">
+                                                        <p class="stat-tile-label">Nilai Essay</p>
+                                                        @if($quiz->essay_status === 'graded')
+                                                            <p class="stat-tile-value">{{ $quiz->essay_score }}</p>
+                                                        @else
+                                                            <p class="text-sm text-muted mb-0 mt-1">Belum Dinilai</p>
+                                                        @endif
                                                     </div>
-                                                    <div class="col-3">
-                                                        <span class="text-muted text-xs d-block">Waktu Submit:</span>
-                                                        <span class="small font-weight-bold text-muted">{{ \Carbon\Carbon::parse($quiz->submitted_at)->format('d/m/Y H:i') }}</span>
+                                                    <div class="col-3 p-3">
+                                                        <p class="stat-tile-label">Waktu Submit</p>
+                                                        <p class="text-sm font-weight-bold mb-0 mt-1">{{ \Carbon\Carbon::parse($quiz->submitted_at)->format('d/m/Y H:i') }}</p>
                                                     </div>
                                                 </div>
 
                                                 <!-- CATATAN ANTI-CURANG AUDIT -->
                                                 @if(($quiz->tab_switch_count ?? 0) > 0 || $quiz->is_force_submitted)
-                                                <div class="alert alert-{{ $quiz->is_force_submitted ? 'danger' : 'warning' }} mb-4 p-3 text-left">
-                                                    <strong class="font-weight-bold d-block mb-1" style="font-size: 0.95rem;">
-                                                        Catatan Integritas: {{ $quiz->is_force_submitted ? 'Kuis Dikunci Otomatis (Melebihi Toleransi Pindah Tab)' : 'Terdeteksi Keluar dari Halaman Kuis' }}
-                                                    </strong>
-                                                    <div class="small">
-                                                        Peserta terdeteksi keluar dari halaman kuis / membuka aplikasi lain sebanyak <strong>{{ $quiz->tab_switch_count }} kali</strong>.
-                                                        @if(!empty($quiz->violation_logs) && is_array($quiz->violation_logs))
-                                                            <div class="mt-2 pt-2 border-top border-{{ $quiz->is_force_submitted ? 'danger' : 'warning' }}">
-                                                                <span class="font-weight-bold d-block mb-1 text-xs">Riwayat Deteksi Pelanggaran:</span>
-                                                                <ul class="mb-0 pl-3 text-xs">
-                                                                    @foreach($quiz->violation_logs as $log)
-                                                                        <li>
-                                                                            <strong>{{ $log['type'] ?? 'Pindah Tab Browser' }}</strong>
-                                                                            (Pelanggaran ke-{{ $log['count'] ?? '1' }}) pada 
-                                                                            {{ isset($log['time']) ? \Carbon\Carbon::parse($log['time'])->timezone('Asia/Jakarta')->format('d/m/Y H:i:s') . ' WIB' : '-' }}
-                                                                        </li>
-                                                                    @endforeach
-                                                                </ul>
-                                                            </div>
-                                                        @endif
+                                                <div class="alert alert-{{ $quiz->is_force_submitted ? 'danger' : 'warning' }} mb-4 text-left">
+                                                    <div>
+                                                        <strong class="d-block mb-1">
+                                                            Catatan Integritas: {{ $quiz->is_force_submitted ? 'Kuis Dikunci Otomatis (Melebihi Toleransi Pindah Tab)' : 'Terdeteksi Keluar dari Halaman Kuis' }}
+                                                        </strong>
+                                                        <div class="text-sm">
+                                                            Peserta terdeteksi keluar dari halaman kuis / membuka aplikasi lain sebanyak <strong>{{ $quiz->tab_switch_count }} kali</strong>.
+                                                            @if(!empty($quiz->violation_logs) && is_array($quiz->violation_logs))
+                                                                <div class="mt-2 pt-2 border-top">
+                                                                    <span class="font-weight-bold d-block mb-1 text-xs">Riwayat Deteksi Pelanggaran:</span>
+                                                                    <ul class="mb-0 pl-3 text-xs">
+                                                                        @foreach($quiz->violation_logs as $log)
+                                                                            <li>
+                                                                                <strong>{{ $log['type'] ?? 'Pindah Tab Browser' }}</strong>
+                                                                                (Pelanggaran ke-{{ $log['count'] ?? '1' }}) pada
+                                                                                {{ isset($log['time']) ? \Carbon\Carbon::parse($log['time'])->timezone('Asia/Jakarta')->format('d/m/Y H:i:s') . ' WIB' : '-' }}
+                                                                            </li>
+                                                                        @endforeach
+                                                                    </ul>
+                                                                </div>
+                                                            @endif
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 @endif
 
                                                 <!-- FORM PENILAIAN ESSAY OLEH PEMATERI -->
                                                 @if($training->questions()->where('type', 'essay')->count() > 0)
-                                                <div class="card border mb-4 shadow-none bg-light">
-                                                    <div class="card-header bg-white py-2 font-weight-bold text-sm">
-                                                        Penilaian Soal Essay oleh Pemateri
+                                                <div class="card mb-4">
+                                                    <div class="card-header">
+                                                        <h3 class="card-title">Penilaian Soal Essay oleh Pemateri</h3>
                                                     </div>
-                                                    <div class="card-body p-3">
+                                                    <div class="card-body">
                                                         <form action="/training/{{ $training->id }}/grade-essay/{{ $quiz->id }}" method="POST">
                                                             @csrf
                                                             <div class="row align-items-end">
                                                                 <div class="col-md-3 mb-2 mb-md-0">
-                                                                    <label class="font-weight-bold text-dark text-xs mb-1">Nilai Essay (0-100):</label>
-                                                                    <input type="number" name="essay_score" class="form-control form-control-sm font-weight-bold" min="0" max="100" step="1" value="{{ $quiz->essay_score !== null ? round($quiz->essay_score) : '' }}" placeholder="Contoh: 90" required>
+                                                                    <label class="text-xs mb-1">Nilai Essay (0-100)</label>
+                                                                    <input type="number" name="essay_score" class="form-control form-control-sm" min="0" max="100" step="1" value="{{ $quiz->essay_score !== null ? round($quiz->essay_score) : '' }}" placeholder="Contoh: 90" required>
                                                                 </div>
                                                                 <div class="col-md-6 mb-2 mb-md-0">
-                                                                    <label class="font-weight-bold text-dark text-xs mb-1">Catatan Evaluasi (Opsional):</label>
+                                                                    <label class="text-xs mb-1">Catatan Evaluasi (Opsional)</label>
                                                                     <input type="text" name="essay_feedback" class="form-control form-control-sm" value="{{ $quiz->essay_feedback ?? '' }}" placeholder="Contoh: Pemahaman konsep materi baik.">
                                                                 </div>
                                                                 <div class="col-md-3">
-                                                                    <button type="submit" class="btn btn-primary btn-sm btn-block font-weight-bold">
+                                                                    <button type="submit" class="btn btn-primary btn-sm btn-block">
                                                                         Simpan Nilai
                                                                     </button>
                                                                 </div>
                                                             </div>
                                                             @if($quiz->essay_status === 'graded')
-                                                                <div class="text-xs text-success font-weight-bold mt-2">
+                                                                <div class="text-xs text-success mt-2">
                                                                     Nilai essay tersimpan {{ $quiz->essay_score }}/100. Nilai akhir total dihitung gabungan PG dan Essay.
                                                                 </div>
                                                             @else
@@ -679,7 +687,7 @@
                                                 </div>
                                                 @endif
 
-                                                <h6 class="font-weight-bold mb-3 text-dark">Rincian Pertanyaan & Jawaban Peserta:</h6>
+                                                <h6 class="section-title mb-3">Rincian Pertanyaan & Jawaban Peserta</h6>
                                                 @foreach($training->questions as $qIndex => $question)
                                                     @php
                                                         $ansData = $quiz->answers[$question->id] ?? null;
@@ -687,33 +695,33 @@
                                                         $isEssay = ($question->type === 'essay');
                                                         $isCorrect = $ansData['is_correct'] ?? false;
                                                     @endphp
-                                                    <div class="p-3 mb-3 rounded border {{ $isEssay ? 'border-info' : ($isCorrect ? 'border-success' : 'border-danger') }}" style="background-color: {{ $isEssay ? '#f7faff' : ($isCorrect ? '#fafffa' : '#fff8f8') }};">
-                                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <div class="p-3 mb-3 rounded border">
+                                                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                                                             <div>
-                                                                <span class="badge {{ $isEssay ? 'badge-info' : 'badge-secondary' }} mr-1">
+                                                                <span class="badge badge-secondary mr-1">
                                                                     #{{ $qIndex + 1 }} {{ $isEssay ? '(Essay)' : '(PG)' }}
                                                                 </span>
-                                                                <strong class="text-dark">{{ $question->question }}</strong>
+                                                                <strong>{{ $question->question }}</strong>
                                                             </div>
                                                             <div>
                                                                 @if($isEssay)
-                                                                    <span class="badge badge-light border text-info px-2 py-1">Tersimpan</span>
+                                                                    <span class="badge badge-primary">Tersimpan</span>
                                                                 @else
-                                                                    <span class="badge {{ $isCorrect ? 'badge-success' : 'badge-danger' }} px-2 py-1">
+                                                                    <span class="badge {{ $isCorrect ? 'badge-success' : 'badge-danger' }}">
                                                                         {{ $isCorrect ? 'Benar' : 'Salah' }}
                                                                     </span>
                                                                 @endif
                                                             </div>
                                                         </div>
 
-                                                        <div class="small mt-2 pt-2 border-top">
+                                                        <div class="text-sm mt-2 pt-2 border-top">
                                                             @if($isEssay)
                                                                 <div class="mb-2">
-                                                                    <span class="text-muted font-weight-bold d-block">Jawaban Essay Peserta:</span>
-                                                                    <div class="p-2 bg-white rounded border mt-1 text-dark" style="white-space: pre-wrap;">{{ $userAns ?: '(Tidak ada jawaban)' }}</div>
+                                                                    <span class="text-muted d-block">Jawaban Essay Peserta:</span>
+                                                                    <div class="p-2 bg-light rounded border mt-1" style="white-space: pre-wrap;">{{ $userAns ?: '(Tidak ada jawaban)' }}</div>
                                                                 </div>
                                                                 @if($question->correct_answer)
-                                                                    <div class="text-info small"><strong>Pedoman Acuan Jawaban:</strong> {{ $question->correct_answer }}</div>
+                                                                    <div class="text-muted"><strong>Pedoman Acuan Jawaban:</strong> {{ $question->correct_answer }}</div>
                                                                 @endif
                                                             @else
                                                                 <div class="mb-1">Jawaban Peserta: <strong>{{ strtoupper($userAns ?? '-') }}</strong> ({{ $question->{'option_' . $userAns} ?? '-' }})</div>
@@ -729,8 +737,8 @@
                                                     </div>
                                                 @endforeach
                                             </div>
-                                            <div class="modal-footer py-2">
-                                                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Tutup</button>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-default" data-dismiss="modal">Tutup</button>
                                             </div>
                                         </div>
                                     </div>
@@ -741,34 +749,34 @@
                                 @if($part->attendance_proof)
                                 <div class="modal fade text-left" id="proofModal_{{ $part->id }}" tabindex="-1" role="dialog" aria-hidden="true">
                                     <div class="modal-dialog modal-md modal-dialog-centered" role="document">
-                                        <div class="modal-content shadow border-0" style="border-radius: 8px;">
-                                            <div class="modal-header py-3 bg-light">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
                                                 <div>
-                                                    <h6 class="modal-title font-weight-bold text-dark mb-0">Bukti Kehadiran Peserta</h6>
+                                                    <h5 class="modal-title">Bukti Kehadiran Peserta</h5>
                                                     <small class="text-muted">{{ $userName }} &bull; {{ $userDivisi }}</small>
                                                 </div>
-                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
                                                     <span aria-hidden="true">&times;</span>
                                                 </button>
                                             </div>
-                                            <div class="modal-body p-3 text-center">
-                                                <div class="mb-2 text-left small text-muted">
+                                            <div class="modal-body text-center">
+                                                <div class="mb-2 text-left text-sm text-muted">
                                                     Waktu Presensi: <strong>{{ \Carbon\Carbon::parse($part->attended_at)->format('d F Y, H:i') }} WIB</strong>
                                                 </div>
                                                 <div class="bg-light p-2 rounded border">
                                                     <a href="{{ $part->attendance_proof_url }}" target="_blank" title="Buka gambar ukuran asli">
-                                                        <img src="{{ $part->attendance_proof_url }}" alt="Screenshot Bukti" class="img-fluid rounded border" style="max-height: 380px; object-fit: contain;">
+                                                        <img src="{{ $part->attendance_proof_url }}" alt="Screenshot Bukti" class="img-fluid rounded" style="max-height: 380px; object-fit: contain;">
                                                     </a>
                                                 </div>
                                                 <small class="text-muted mt-2 d-block">
                                                     Klik foto di atas untuk membuka ukuran penuh di tab baru.
                                                 </small>
                                             </div>
-                                            <div class="modal-footer py-2 bg-light">
-                                                <a href="{{ $part->attendance_proof_url }}" target="_blank" download class="btn btn-sm btn-default">
+                                            <div class="modal-footer">
+                                                <a href="{{ $part->attendance_proof_url }}" target="_blank" download class="btn btn-default">
                                                     Unduh Foto
                                                 </a>
-                                                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Tutup</button>
+                                                <button type="button" class="btn btn-default" data-dismiss="modal">Tutup</button>
                                             </div>
                                         </div>
                                     </div>
@@ -778,24 +786,24 @@
                                 <!-- MODAL ATUR PRESENSI MANUAL -->
                                 <div class="modal fade text-left" id="editAttendanceModal_{{ $part->id }}" tabindex="-1" role="dialog" aria-hidden="true">
                                     <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
-                                        <div class="modal-content shadow border-0" style="border-radius: 8px;">
-                                            <div class="modal-header py-3 bg-light">
-                                                <h6 class="modal-title font-weight-bold text-dark mb-0">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">
                                                     Atur Presensi Peserta
-                                                </h6>
-                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                </h5>
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
                                                     <span aria-hidden="true">&times;</span>
                                                 </button>
                                             </div>
                                             <form action="/training/{{ $training->id }}/update-attendance/{{ $part->id }}" method="POST">
                                                 @csrf
-                                                <div class="modal-body p-3">
-                                                    <div class="mb-2">
-                                                        <strong class="d-block text-dark small">{{ $userName }}</strong>
+                                                <div class="modal-body">
+                                                    <div class="mb-3">
+                                                        <strong class="d-block text-sm">{{ $userName }}</strong>
                                                         <span class="text-muted text-xs">{{ $userIdKaryawan }} &bull; {{ $userDivisi }}</span>
                                                     </div>
                                                     <div class="form-group mb-3">
-                                                        <label class="small font-weight-bold mb-1">Status Kehadiran:</label>
+                                                        <label class="mb-1">Status Kehadiran</label>
                                                         <select name="attendance_status" class="form-control form-control-sm">
                                                             <option value="pending" {{ $part->attendance_status === 'pending' ? 'selected' : '' }}>Belum Absen</option>
                                                             <option value="hadir" {{ $part->attendance_status === 'hadir' ? 'selected' : '' }}>Hadir</option>
@@ -804,13 +812,13 @@
                                                         <small class="text-muted d-block mt-1">Pilih 'Belum Absen' untuk mengizinkan peserta absen kembali.</small>
                                                     </div>
                                                     <div class="form-group mb-0">
-                                                        <label class="small font-weight-bold mb-1">Catatan / Alasan:</label>
+                                                        <label class="mb-1">Catatan / Alasan</label>
                                                         <input type="text" name="attendance_notes" class="form-control form-control-sm" value="{{ $part->attendance_notes }}" placeholder="Keterangan izin/sakit/hadir...">
                                                     </div>
                                                 </div>
-                                                <div class="modal-footer py-2 bg-light">
-                                                    <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Batal</button>
-                                                    <button type="submit" class="btn btn-primary btn-sm px-3 font-weight-bold">Simpan</button>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                                                    <button type="submit" class="btn btn-primary">Simpan</button>
                                                 </div>
                                             </form>
                                         </div>
@@ -820,8 +828,8 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="8" class="text-center py-5 text-muted">
-                                Belum ada peserta yang terdaftar pada sesi pelatihan ini.
+                            <td colspan="8">
+                                <x-empty-state icon="fa-users" title="Belum ada peserta" text="Belum ada peserta yang terdaftar pada sesi pelatihan ini." />
                             </td>
                         </tr>
                         @endforelse
@@ -835,13 +843,13 @@
 {{-- MODAL UPLOAD VIDEO MATERI PELATIHAN --}}
 <div class="modal fade" id="uploadTrainingVideoModal" tabindex="-1" role="dialog" aria-labelledby="uploadTrainingVideoModalLabel" aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-        <div class="modal-content shadow border-0" style="border-radius: 8px;">
-            <div class="modal-header bg-white border-bottom py-3">
+        <div class="modal-content">
+            <div class="modal-header">
                 <div>
-                    <h5 class="modal-title font-weight-bold text-dark mb-0" id="uploadTrainingVideoModalLabel">Upload Video Materi Pelatihan</h5>
+                    <h5 class="modal-title" id="uploadTrainingVideoModalLabel">Upload Video Materi Pelatihan</h5>
                     <small class="text-muted">Video akan otomatis masuk ke Galeri Video Materi dengan judul pelatihan ini.</small>
                 </div>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
@@ -850,10 +858,10 @@
                 <input type="hidden" name="training_id" value="{{ $training->id }}">
                 <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
 
-                <div class="modal-body p-4">
+                <div class="modal-body">
                     {{-- Judul Video Otomatis --}}
                     <div class="form-group mb-3">
-                        <label class="font-weight-bold text-dark">
+                        <label>
                             Judul Video Materi <span class="text-danger">*</span>
                         </label>
                         <input type="text" name="title" class="form-control" value="{{ $training->title }}" required placeholder="Contoh: {{ $training->title }}">
@@ -862,17 +870,17 @@
 
                     {{-- Pilihan Tipe Video: Upload File vs Tautan Link --}}
                     <div class="form-group mb-3">
-                        <label class="font-weight-bold text-dark d-block">Sumber Video <span class="text-danger">*</span></label>
-                        <div class="d-flex p-2 bg-light rounded border" style="gap: 20px;">
+                        <label class="d-block">Sumber Video <span class="text-danger">*</span></label>
+                        <div class="d-flex flex-wrap gap-3">
                             <div class="custom-control custom-radio">
                                 <input type="radio" id="showTypeFile" name="video_type" value="file" class="custom-control-input" checked onchange="toggleVideoTypeInShow('file')">
-                                <label class="custom-control-label font-weight-bold" for="showTypeFile" style="cursor: pointer;">
+                                <label class="custom-control-label" for="showTypeFile">
                                     Upload File Video
                                 </label>
                             </div>
                             <div class="custom-control custom-radio">
                                 <input type="radio" id="showTypeLink" name="video_type" value="link" class="custom-control-input" onchange="toggleVideoTypeInShow('link')">
-                                <label class="custom-control-label font-weight-bold" for="showTypeLink" style="cursor: pointer;">
+                                <label class="custom-control-label" for="showTypeLink">
                                     Tautan / Link (YouTube / Drive / Zoom)
                                 </label>
                             </div>
@@ -881,7 +889,7 @@
 
                     {{-- Group 1: File Input --}}
                     <div class="form-group mb-3" id="showFileInputGroup">
-                        <label class="font-weight-bold text-dark">Pilih File Video Rekaman <span class="text-danger">*</span></label>
+                        <label>Pilih File Video Rekaman <span class="text-danger">*</span></label>
                         <div class="custom-file">
                             <input type="file" name="video_file" id="showVideoFileInput" class="custom-file-input" accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-matroska" required onchange="updateShowFileName(this)">
                             <label class="custom-file-label" id="showVideoFileLabel" for="showVideoFileInput">Pilih file video (MP4, MKV, WEBM, MOV)...</label>
@@ -891,20 +899,20 @@
 
                     {{-- Group 2: Link Input --}}
                     <div class="form-group mb-3" id="showLinkInputGroup" style="display: none;">
-                        <label class="font-weight-bold text-dark">URL / Tautan Video <span class="text-danger">*</span></label>
+                        <label>URL / Tautan Video <span class="text-danger">*</span></label>
                         <input type="url" name="video_link" id="showVideoLinkInput" class="form-control" placeholder="https://www.youtube.com/watch?v=... atau https://drive.google.com/file/d/...">
                         <small class="text-muted">Mendukung link YouTube, Zoom Cloud Recording, atau Google Drive.</small>
                     </div>
 
                     {{-- Deskripsi Otomatis --}}
                     <div class="form-group mb-3">
-                        <label class="font-weight-bold text-dark">Deskripsi & Catatan Sesi (Opsional)</label>
+                        <label>Deskripsi & Catatan Sesi (Opsional)</label>
                         <textarea name="description" class="form-control" rows="3" placeholder="Rangkuman materi atau topik yang dibahas...">Rekaman video materi sesi pelatihan {{ $training->title }} yang dilaksanakan pada {{ \Carbon\Carbon::parse($training->training_date)->format('d F Y') }}.</textarea>
                     </div>
 
                     {{-- Thumbnail Cover (Opsional) --}}
                     <div class="form-group mb-0">
-                        <label class="font-weight-bold text-dark">Cover / Thumbnail Video (Opsional)</label>
+                        <label>Cover / Thumbnail Video (Opsional)</label>
                         <div class="custom-file">
                             <input type="file" name="thumbnail" id="showThumbInput" class="custom-file-input" accept="image/png,image/jpeg,image/webp" onchange="updateShowThumbLabel(this)">
                             <label class="custom-file-label" id="showThumbLabel" for="showThumbInput">Pilih gambar thumbnail (JPG, PNG, WEBP)...</label>
@@ -913,11 +921,11 @@
                     </div>
                 </div>
 
-                <div class="modal-footer bg-light py-3 border-top d-flex justify-content-between">
-                    <button type="button" class="btn btn-default px-3" data-dismiss="modal">
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">
                         Batal
                     </button>
-                    <button type="submit" class="btn btn-primary font-weight-bold px-4" id="btnSubmitVideo">
+                    <button type="submit" class="btn btn-primary" id="btnSubmitVideo">
                         Simpan ke Video Materi
                     </button>
                 </div>
@@ -929,18 +937,18 @@
 {{-- MODAL ATTACH DOKUMEN MATERI PELATIHAN --}}
 <div class="modal fade" id="attachDocumentModal" tabindex="-1" role="dialog" aria-labelledby="attachDocumentModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content shadow border-0" style="border-radius: 8px;">
-            <div class="modal-header bg-white border-bottom py-3">
-                <h5 class="modal-title font-weight-bold text-dark mb-0" id="attachDocumentModalLabel">Lampirkan Dokumen Materi</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="attachDocumentModalLabel">Lampirkan Dokumen Materi</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <form action="/training/{{ $training->id }}/attach-document" method="POST">
                 @csrf
-                <div class="modal-body p-4">
+                <div class="modal-body">
                     <div class="form-group mb-0">
-                        <label class="font-weight-bold text-dark mb-2">Pilih Dokumen <span class="text-danger">*</span></label>
+                        <label>Pilih Dokumen <span class="text-danger">*</span></label>
                         <select name="document_ids[]" id="modalDocSelect" class="form-control select2" multiple="multiple" style="width: 100%;" required data-placeholder="-- Pilih dokumen untuk dilampirkan --">
                             @foreach($allDocuments as $d)
                                 @php
@@ -953,11 +961,11 @@
                         </select>
                     </div>
                 </div>
-                <div class="modal-footer bg-light py-2 border-top d-flex justify-content-between">
+                <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">
                         Batal
                     </button>
-                    <button type="submit" class="btn btn-primary px-3">
+                    <button type="submit" class="btn btn-primary">
                         Simpan Lampiran
                     </button>
                 </div>
@@ -969,50 +977,50 @@
 {{-- MODAL SCAN PRESENSI ZOOM (DETEKSI OFF CAM) --}}
 <div class="modal fade" id="scanZoomModal" tabindex="-1" role="dialog" aria-labelledby="scanZoomModalLabel" aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
-        <div class="modal-content shadow border-0" style="border-radius: 12px; overflow: hidden;">
+        <div class="modal-content">
             {{-- MODAL HEADER --}}
-            <div class="modal-header bg-gradient-danger text-white py-3 px-4">
+            <div class="modal-header">
                 <div>
-                    <h5 class="modal-title font-weight-bold mb-1" id="scanZoomModalLabel">
-                        <i class="fas fa-camera-retro mr-2"></i> Pindai Presensi Zoom: Deteksi Off Cam
+                    <h5 class="modal-title" id="scanZoomModalLabel">
+                        <i class="fas fa-camera-retro text-muted mr-1"></i> Pindai Presensi Zoom: Deteksi Off Cam
                     </h5>
-                    <span class="small text-white-50">
+                    <small class="text-muted">
                         Menganalisis screenshot Zoom (hingga 10 file) dengan Vision AI untuk mendeteksi peserta yang mematikan kamera dan mencocokkan nama secara otomatis.
-                    </span>
+                    </small>
                 </div>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" style="opacity: 0.9;">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
 
-            <div class="modal-body p-4" style="background-color: #f8f9fa;">
+            <div class="modal-body">
                 {{-- TAHAP 1: UPLOAD & KOMPRESI (CLIENT-SIDE SOLUSI 1) --}}
                 <div id="zoomStepUpload">
-                    <div class="card border-0 shadow-sm mb-0">
-                        <div class="card-body p-4">
-                            <label for="zoomFileInput" class="d-block text-center p-4 border rounded m-0 w-100" id="zoomDropArea" style="border: 2px dashed #dc3545 !important; background-color: #fff9f9; cursor: pointer; border-radius: 10px; transition: all 0.2s;">
-                                <i class="fas fa-cloud-upload-alt text-danger mb-3" style="font-size: 3rem;"></i>
-                                <h6 class="font-weight-bold text-dark mb-1">
+                    <div class="card mb-0">
+                        <div class="card-body">
+                            <label for="zoomFileInput" class="zoom-drop-area d-block text-center p-4 m-0 w-100" id="zoomDropArea">
+                                <span class="stat-tile-icon mb-3"><i class="fas fa-cloud-upload-alt"></i></span>
+                                <span class="section-title d-block mb-1">
                                     Klik untuk Memilih atau Tarik Screenshot Zoom ke Sini
-                                </h6>
-                                <p class="text-muted small mb-2">
+                                </span>
+                                <p class="text-muted text-sm mb-2">
                                     Mendukung hingga <strong>10 screenshot</strong> sekaligus (Format: JPG, PNG, WEBP).
                                 </p>
-                                <span class="badge badge-light border text-danger px-3 py-1 font-weight-bold mb-2">
-                                    <i class="fas fa-bolt mr-1"></i> Solusi 1: Kompresi Otomatis di Browser (~200KB/file, proses super cepat & hemat kuota)
+                                <span class="badge badge-secondary mb-2">
+                                    <i class="fas fa-bolt"></i> Solusi 1: Kompresi Otomatis di Browser (~200KB/file, proses super cepat & hemat kuota)
                                 </span>
                                 <div class="mt-2">
-                                    <span class="btn btn-danger btn-sm font-weight-bold px-3 py-1 shadow-sm">
-                                        <i class="fas fa-folder-open mr-1"></i> Pilih Screenshot dari Komputer
+                                    <span class="btn btn-default btn-sm">
+                                        <i class="fas fa-folder-open"></i> Pilih Screenshot dari Komputer
                                     </span>
                                 </div>
                             </label>
                             <input type="file" id="zoomFileInput" multiple accept="image/png,image/jpeg,image/webp" style="display: none;">
 
                             <div class="mt-3 text-center p-2 rounded bg-light border">
-                                <span class="text-muted small">Tidak punya screenshot? Ingin mendata langsung?</span>
-                                <button type="button" class="btn btn-link text-danger font-weight-bold btn-sm p-0 ml-1" id="btnDirectManualInput">
-                                    <i class="fas fa-edit mr-1"></i> Catat Peserta Off Cam Secara Manual &rarr;
+                                <span class="text-muted text-sm">Tidak punya screenshot? Ingin mendata langsung?</span>
+                                <button type="button" class="btn btn-link btn-sm p-0 ml-1" id="btnDirectManualInput">
+                                    <i class="fas fa-edit"></i> Catat Peserta Off Cam Secara Manual &rarr;
                                 </button>
                             </div>
 
@@ -1022,21 +1030,21 @@
                             {{-- PREVIEW DAFTAR SCREENSHOT --}}
                             <div class="mt-4 d-none" id="zoomPreviewSection">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <strong class="text-dark text-sm">
+                                    <strong class="text-sm">
                                         Screenshot Terpilih (<span id="zoomFileCount">0</span>/10 file):
                                     </strong>
-                                    <button type="button" class="btn btn-outline-secondary btn-xs" id="btnClearFiles">
-                                        <i class="fas fa-trash-alt mr-1"></i> Hapus Semua
+                                    <button type="button" class="btn btn-default btn-xs text-danger" id="btnClearFiles">
+                                        <i class="fas fa-trash-alt"></i> Hapus Semua
                                     </button>
                                 </div>
                                 <div class="row" id="zoomThumbGrid" style="row-gap: 12px;"></div>
                             </div>
                         </div>
-                        <div class="card-footer bg-white border-top py-3 d-flex justify-content-between align-items-center">
+                        <div class="card-footer d-flex justify-content-between align-items-center">
                             <button type="button" class="btn btn-default" data-dismiss="modal">
                                 Batal
                             </button>
-                            <button type="button" class="btn btn-danger font-weight-bold px-4 shadow-sm" id="btnStartScan" disabled>
+                            <button type="button" class="btn btn-primary" id="btnStartScan" disabled>
                                 <i class="fas fa-magic mr-1"></i> Mulai Pindai dengan AI
                             </button>
                         </div>
@@ -1045,17 +1053,17 @@
 
                 {{-- TAHAP 2: PROSES LOADING --}}
                 <div id="zoomStepLoading" class="d-none text-center py-5">
-                    <div class="spinner-border text-danger mb-3" role="status" style="width: 3.5rem; height: 3.5rem;">
+                    <div class="spinner-border text-primary mb-3" role="status">
                         <span class="sr-only">Loading...</span>
                     </div>
-                    <h5 class="font-weight-bold text-dark mb-2" id="zoomLoadingTitle">
+                    <h5 class="section-title mb-2" id="zoomLoadingTitle">
                         Menganalisis Screenshot Zoom...
                     </h5>
-                    <p class="text-muted small mb-3" id="zoomLoadingSub">
+                    <p class="text-muted text-sm mb-3" id="zoomLoadingSub">
                         Memproses gambar dan mendeteksi kotak video peserta...
                     </p>
-                    <div class="progress mx-auto" style="height: 8px; max-width: 450px;">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-danger" style="width: 100%"></div>
+                    <div class="progress mx-auto" style="max-width: 450px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
                     </div>
                     <div class="mt-3 text-muted text-xs font-italic">
                         Mohon tunggu, AI Vision sedang memindai seluruh tile dan mencocokkan kemiripan nama dengan database peserta kelas ini.
@@ -1064,29 +1072,29 @@
 
                 {{-- TAHAP 3: REVIEW & VERIFIKASI MANUAL PENGAWAS --}}
                 <div id="zoomStepReview" class="d-none">
-                    <div class="alert alert-warning border-warning shadow-sm d-flex align-items-center mb-3 p-3">
-                        <i class="fas fa-user-clock text-warning mr-3" style="font-size: 2rem;"></i>
+                    <div class="alert alert-warning d-flex align-items-start mb-3">
+                        <i class="fas fa-user-clock mr-3 mt-1"></i>
                         <div>
-                            <strong class="text-dark d-block mb-1">
+                            <strong class="d-block mb-1">
                                 Verifikasi Hasil Pindaian AI (<span id="countReviewOffCam">0</span> Peserta Off Cam Terdeteksi)
                             </strong>
-                            <span class="text-muted text-sm">
+                            <span class="text-sm">
                                 Hanya peserta yang <strong>mematikan kamera (Off Cam)</strong> yang dicatat. Periksa dan sesuaikan data di bawah sebelum disimpan.
                             </span>
                         </div>
                     </div>
 
                     {{-- ACTION BAR KONTROL --}}
-                    <div class="card border shadow-none mb-3 bg-white">
-                        <div class="card-body p-3 d-flex justify-content-between align-items-center flex-wrap" style="gap: 10px;">
-                            <div class="d-flex align-items-center flex-wrap" style="gap: 12px;">
+                    <div class="card mb-3">
+                        <div class="card-body py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="d-flex align-items-center flex-wrap gap-3">
                                 <div class="custom-control custom-checkbox">
                                     <input type="checkbox" class="custom-control-input" id="checkSelectAll" checked>
-                                    <label class="custom-control-label font-weight-bold text-dark text-sm" for="checkSelectAll">
+                                    <label class="custom-control-label text-sm" for="checkSelectAll">
                                         Pilih Semua (<span id="textSelectedCount">0</span> terpilih)
                                     </label>
                                 </div>
-                                <div class="border-left pl-3 ml-2">
+                                <div class="border-left pl-3">
                                     <div class="custom-control custom-checkbox">
                                         <input type="checkbox" class="custom-control-input" id="checkMarkTidakHadir">
                                         <label class="custom-control-label text-muted text-sm" for="checkMarkTidakHadir">
@@ -1096,18 +1104,18 @@
                                 </div>
                             </div>
                             <div>
-                                <button type="button" class="btn btn-outline-primary btn-sm font-weight-bold" id="btnAddManualRow">
-                                    <i class="fas fa-plus mr-1"></i> Tambah Peserta Manual
+                                <button type="button" class="btn btn-default btn-sm" id="btnAddManualRow">
+                                    <i class="fas fa-plus"></i> Tambah Peserta Manual
                                 </button>
                             </div>
                         </div>
                     </div>
 
                     {{-- TABEL VERIFIKASI OFF CAM --}}
-                    <div class="card border shadow-sm mb-3">
-                        <div class="card-body p-0 table-responsive" style="max-height: 420px;">
+                    <div class="card mb-3">
+                        <div class="card-body table-responsive p-0" style="max-height: 420px;">
                             <table class="table table-hover mb-0 text-sm" id="zoomReviewTable">
-                                <thead class="bg-light text-muted">
+                                <thead>
                                     <tr>
                                         <th class="text-center" style="width: 45px;">Pilih</th>
                                         <th class="text-center" style="width: 40px;">No</th>
@@ -1125,28 +1133,23 @@
                     </div>
 
                     {{-- FOOTER REVIEW --}}
-                    <div class="d-flex justify-content-between align-items-center mt-3 pt-2">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3 pt-2">
                         <button type="button" class="btn btn-default" id="btnBackToUpload">
-                            <i class="fas fa-arrow-left mr-1"></i> Scan Ulang / Ganti Screenshot
+                            <i class="fas fa-arrow-left"></i> Scan Ulang / Ganti Screenshot
                         </button>
-                        <button type="button" class="btn btn-success font-weight-bold px-4 shadow-sm" id="btnConfirmSave">
+                        <button type="button" class="btn btn-primary" id="btnConfirmSave">
                             <i class="fas fa-check-circle mr-1"></i> Konfirmasi & Simpan Catatan Off Cam
                         </button>
                     </div>
                 </div>
 
                 {{-- TAHAP 4: SEMUA ON CAM --}}
-                <div id="zoomStepAllOnCam" class="d-none text-center py-5">
-                    <i class="fas fa-check-circle text-success mb-3" style="font-size: 4rem;"></i>
-                    <h5 class="font-weight-bold text-dark mb-1">
-                        Semua Peserta Terdeteksi ON CAM!
-                    </h5>
-                    <p class="text-muted small mb-4" style="max-width: 450px; margin: 0 auto;">
-                        Tidak ditemukan peserta yang mematikan kamera pada seluruh screenshot Zoom yang diunggah. Semua peserta tampak aktif menyalakan kamera.
-                    </p>
-                    <button type="button" class="btn btn-secondary px-4 font-weight-bold" data-dismiss="modal">
-                        Tutup
-                    </button>
+                <div id="zoomStepAllOnCam" class="d-none">
+                    <x-empty-state icon="fa-check-circle" title="Semua peserta terdeteksi On Cam" text="Tidak ditemukan peserta yang mematikan kamera pada seluruh screenshot Zoom yang diunggah. Semua peserta tampak aktif menyalakan kamera.">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">
+                            Tutup
+                        </button>
+                    </x-empty-state>
                 </div>
             </div>
         </div>
@@ -1156,36 +1159,36 @@
 {{-- MODAL QUICK OFF CAM UNTUK SATU PESERTA --}}
 <div class="modal fade text-left" id="singleQuickOffCamModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
-        <div class="modal-content shadow border-0" style="border-radius: 10px; overflow: hidden;">
-            <div class="modal-header py-3 bg-danger text-white">
-                <h6 class="modal-title font-weight-bold mb-0">
-                    <i class="fas fa-video-slash mr-1"></i> Tandai Off Cam (Manual)
-                </h6>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    Tandai Off Cam (Manual)
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body p-3">
+            <div class="modal-body">
                 <input type="hidden" id="quickParticipantId">
                 <div class="mb-3">
-                    <span class="text-muted small d-block">Nama Peserta:</span>
-                    <strong class="text-dark d-block" id="quickParticipantName">-</strong>
+                    <span class="text-muted text-xs d-block">Nama Peserta</span>
+                    <strong class="d-block" id="quickParticipantName">-</strong>
                 </div>
                 <div class="form-group mb-3">
-                    <label class="small font-weight-bold mb-1">Nama di Zoom / Catatan Sesi:</label>
+                    <label class="mb-1">Nama di Zoom / Catatan Sesi</label>
                     <input type="text" id="quickZoomName" class="form-control form-control-sm" placeholder="Contoh: M. Rizky (Off Cam sesi 1)">
                     <small class="text-muted text-xs">Kosongkan jika ingin otomatis memakai nama peserta.</small>
                 </div>
                 <div class="custom-control custom-checkbox mb-0">
                     <input type="checkbox" class="custom-control-input" id="quickMarkTidakHadir">
-                    <label class="custom-control-label small text-muted" for="quickMarkTidakHadir">
+                    <label class="custom-control-label text-sm text-muted" for="quickMarkTidakHadir">
                         Ubah status kehadiran menjadi <strong>"Tidak Hadir"</strong>
                     </label>
                 </div>
             </div>
-            <div class="modal-footer py-2 bg-light d-flex justify-content-between">
-                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Batal</button>
-                <button type="button" class="btn btn-danger btn-sm px-3 font-weight-bold" id="btnSaveQuickOffCam">
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary" id="btnSaveQuickOffCam">
                     Simpan Off Cam
                 </button>
             </div>
@@ -1291,7 +1294,7 @@ document.addEventListener('DOMContentLoaded', function() {
             el.textContent = value;
             el.style.transition = 'color 0.3s';
             const orig = el.style.color;
-            el.style.color = '#fd7e14';
+            el.style.color = 'var(--primary-600)';
             setTimeout(function() { el.style.color = orig; }, 600);
         }
     }
@@ -1423,8 +1426,7 @@ if (typeof $ !== 'undefined') {
             dropArea.addEventListener(eventName, e => {
                 e.preventDefault();
                 e.stopPropagation();
-                dropArea.style.backgroundColor = '#ffeef0';
-                dropArea.style.borderColor = '#bd2130';
+                dropArea.classList.add('is-dragover');
             }, false);
         });
 
@@ -1432,8 +1434,7 @@ if (typeof $ !== 'undefined') {
             dropArea.addEventListener(eventName, e => {
                 e.preventDefault();
                 e.stopPropagation();
-                dropArea.style.backgroundColor = '#fff9f9';
-                dropArea.style.borderColor = '#dc3545';
+                dropArea.classList.remove('is-dragover');
             }, false);
         });
 
@@ -1515,21 +1516,21 @@ if (typeof $ !== 'undefined') {
             const col = document.createElement('div');
             col.className = 'col-md-3 col-sm-6';
             col.innerHTML = `
-                <div class="card h-100 border shadow-none mb-0 overflow-hidden" style="border-radius: 8px;">
-                    <div class="position-relative" style="height: 110px; background: #222;">
+                <div class="card h-100 mb-0 overflow-hidden">
+                    <div class="position-relative bg-light" style="height: 110px;">
                         <img src="${item.base64}" alt="Screenshot ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover;">
-                        <span class="badge badge-dark position-absolute" style="top: 6px; left: 6px; background: rgba(0,0,0,0.7);">
+                        <span class="badge badge-dark position-absolute" style="top: 6px; left: 6px;">
                             #${idx + 1}
                         </span>
-                        <button type="button" class="btn btn-danger btn-xs position-absolute remove-thumb-btn" data-index="${idx}" style="top: 6px; right: 6px; border-radius: 50%; width: 22px; height: 22px; padding: 0; line-height: 20px;">
+                        <button type="button" class="btn btn-default btn-xs text-danger position-absolute remove-thumb-btn" data-index="${idx}" style="top: 6px; right: 6px;" title="Hapus screenshot">
                             &times;
                         </button>
                     </div>
-                    <div class="p-2 text-xs bg-light">
-                        <span class="d-block text-truncate font-weight-500 text-dark" title="${item.name}">${item.name}</span>
+                    <div class="p-2 text-xs">
+                        <span class="d-block text-truncate font-weight-bold" title="${item.name}">${item.name}</span>
                         <div class="d-flex justify-content-between align-items-center text-muted mt-1">
-                            <span><del>${formatBytes(item.origSize)}</del> &rarr; <strong class="text-success">${formatBytes(item.compSize)}</strong></span>
-                            <span class="badge badge-success text-xxs px-1">-${savingsPercent > 0 ? savingsPercent : 0}%</span>
+                            <span><del>${formatBytes(item.origSize)}</del> &rarr; <strong>${formatBytes(item.compSize)}</strong></span>
+                            <span class="badge badge-success">-${savingsPercent > 0 ? savingsPercent : 0}%</span>
                         </div>
                     </div>
                 </div>
@@ -1670,19 +1671,19 @@ if (typeof $ !== 'undefined') {
             scoreBadgeClass = 'badge-success';
             scoreLabel = 'Sangat Mirip';
         } else if (score >= 65) {
-            scoreBadgeClass = 'badge-warning text-dark';
+            scoreBadgeClass = 'badge-warning';
             scoreLabel = 'Mirip';
         }
 
         tr.innerHTML = `
             <td class="text-center align-middle">
-                <input type="checkbox" class="row-checkbox" ${isChecked ? 'checked' : ''} style="cursor: pointer; transform: scale(1.15);">
+                <input type="checkbox" class="row-checkbox" ${isChecked ? 'checked' : ''} style="cursor: pointer;">
             </td>
-            <td class="text-center align-middle text-muted row-number font-weight-bold">
+            <td class="text-center align-middle text-muted row-number">
                 ${rowNo}
             </td>
             <td class="align-middle">
-                <input type="text" class="form-control form-control-sm zoom-name-input font-weight-bold text-danger bg-white" value="${escapeHtml(item.zoom_name || '')}" placeholder="Nama di Zoom...">
+                <input type="text" class="form-control form-control-sm zoom-name-input" value="${escapeHtml(item.zoom_name || '')}" placeholder="Nama di Zoom...">
             </td>
             <td class="align-middle">
                 <select class="form-control form-control-sm participant-select">
@@ -1690,16 +1691,16 @@ if (typeof $ !== 'undefined') {
                 </select>
             </td>
             <td class="text-center align-middle">
-                <span class="badge ${scoreBadgeClass} px-2 py-1 similarity-badge" title="${escapeHtml(item.match_reason || '')}">
+                <span class="badge ${scoreBadgeClass} similarity-badge" title="${escapeHtml(item.match_reason || '')}">
                     ${score}% &bull; ${scoreLabel}
                 </span>
             </td>
             <td class="align-middle text-xs text-muted">
-                <div class="evidence-text font-weight-500 text-dark">${escapeHtml(item.visual_evidence || 'Layar mati/avatar')}</div>
+                <div class="evidence-text text-dark">${escapeHtml(item.visual_evidence || 'Layar mati/avatar')}</div>
                 <div class="reason-text text-muted">${escapeHtml(item.match_reason || '-')}</div>
             </td>
             <td class="text-center align-middle">
-                <button type="button" class="btn btn-outline-danger btn-xs btn-delete-row" title="Hapus baris">
+                <button type="button" class="btn btn-default btn-xs text-danger btn-delete-row" title="Hapus baris">
                     <i class="fas fa-trash-alt"></i>
                 </button>
             </td>
@@ -1714,7 +1715,7 @@ if (typeof $ !== 'undefined') {
             if (selectEl.value) {
                 checkEl.checked = true;
                 if (!item.participant_id || selectEl.value != item.participant_id) {
-                    badgeEl.className = 'badge badge-info px-2 py-1 similarity-badge';
+                    badgeEl.className = 'badge badge-primary similarity-badge';
                     badgeEl.innerHTML = '100% &bull; Manual';
                 }
             } else {
@@ -1931,8 +1932,8 @@ if (typeof $ !== 'undefined') {
                 banner.classList.add('d-flex');
             }
             if (btnToggle) {
-                btnToggle.className = 'btn btn-danger btn-sm font-weight-bold shadow-sm';
-                btnToggle.innerHTML = '<i class="fas fa-times mr-1"></i> Selesai Mode Manual';
+                btnToggle.className = 'btn btn-outline-danger btn-sm';
+                btnToggle.innerHTML = '<i class="fas fa-times"></i> Selesai Mode Manual';
             }
             if (thAction) {
                 thAction.textContent = 'Status Kamera (Klik)';
@@ -1946,8 +1947,8 @@ if (typeof $ !== 'undefined') {
                 banner.classList.remove('d-flex');
             }
             if (btnToggle) {
-                btnToggle.className = 'btn btn-outline-danger btn-sm font-weight-bold';
-                btnToggle.innerHTML = '<i class="fas fa-user-edit mr-1"></i> Input Off Cam Manual';
+                btnToggle.className = 'btn btn-default btn-sm';
+                btnToggle.innerHTML = '<i class="fas fa-user-edit"></i> Input Off Cam Manual';
             }
             if (thAction) {
                 thAction.textContent = 'Aksi';
@@ -2002,20 +2003,20 @@ if (typeof $ !== 'undefined') {
                     if (wrapper) {
                         if (count <= 0) {
                             wrapper.innerHTML = `
-                                <button type="button" class="btn btn-outline-danger btn-sm font-weight-bold px-2 py-1 btn-offcam-step shadow-sm" data-id="${partId}" data-action="increment" data-name="${partName}" style="border-radius: 6px; font-size: 0.8rem; white-space: nowrap;" title="Tandai peserta ini Off Cam">
-                                    <i class="fas fa-video-slash mr-1"></i> Tandai Off Cam
+                                <button type="button" class="btn btn-default btn-xs text-danger text-nowrap btn-offcam-step" data-id="${partId}" data-action="increment" data-name="${partName}" title="Tandai peserta ini Off Cam">
+                                    <i class="fas fa-video-slash"></i> Tandai Off Cam
                                 </button>
                             `;
                         } else {
                             wrapper.innerHTML = `
-                                <div class="btn-group btn-group-sm shadow-sm" role="group" style="border-radius: 6px; overflow: hidden;">
-                                    <button type="button" class="btn btn-outline-danger px-2 py-1 btn-offcam-step" data-id="${partId}" data-action="decrement" data-name="${partName}" title="Kurangi frekuensi (-1)">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" class="btn btn-default btn-offcam-step" data-id="${partId}" data-action="decrement" data-name="${partName}" title="Kurangi frekuensi (-1)">
                                         <i class="fas fa-minus"></i>
                                     </button>
-                                    <span class="btn btn-danger px-2 py-1 font-weight-bold text-white text-xs d-flex align-items-center" style="cursor: default; pointer-events: none; font-size: 0.8rem; white-space: nowrap;">
-                                        <i class="fas fa-video-slash mr-1"></i> <span id="offcamCountText_${partId}">${count}x</span> Off
+                                    <span class="btn btn-default text-danger text-nowrap" style="pointer-events: none;">
+                                        <i class="fas fa-video-slash"></i> <span id="offcamCountText_${partId}">${count}x</span> Off
                                     </span>
-                                    <button type="button" class="btn btn-danger px-2 py-1 btn-offcam-step" data-id="${partId}" data-action="increment" data-name="${partName}" title="Tambah frekuensi (+1)">
+                                    <button type="button" class="btn btn-default btn-offcam-step" data-id="${partId}" data-action="increment" data-name="${partName}" title="Tambah frekuensi (+1)">
                                         <i class="fas fa-plus"></i>
                                     </button>
                                 </div>
@@ -2028,9 +2029,9 @@ if (typeof $ !== 'undefined') {
                     if (badgeBox) {
                         if (count > 0) {
                             badgeBox.innerHTML = `
-                                <div class="mt-1 pt-1 border-top border-light">
-                                    <span class="badge badge-danger text-xs px-2 py-1 font-weight-bold" title="Terdeteksi Off Cam di Zoom (${count}x)">
-                                        <i class="fas fa-video-slash mr-1"></i> Off Cam (${count}x)
+                                <div class="mt-1 pt-1 border-top">
+                                    <span class="badge badge-danger" title="Terdeteksi Off Cam di Zoom (${count}x)">
+                                        <i class="fas fa-video-slash"></i> Off Cam (${count}x)
                                     </span>
                                 </div>
                             `;

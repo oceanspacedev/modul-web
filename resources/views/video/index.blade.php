@@ -1,145 +1,162 @@
 @extends('layout.main_template')
 
 @section('content')
+<style>
+.video-card { transition: border-color 0.15s ease; }
+.video-card:hover { border-color: var(--gray-300) !important; }
+.video-thumb {
+    position: relative;
+    display: block;
+    height: 190px;
+    background: var(--gray-900);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    overflow: hidden;
+}
+.video-thumb-empty {
+    background: var(--gray-100);
+    color: var(--gray-400);
+}
+.video-thumb-play {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.video-thumb-play span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--gray-950);
+    box-shadow: var(--shadow-xs);
+    transition: transform 0.15s ease;
+}
+.video-thumb:hover .video-thumb-play span { transform: scale(1.08); }
+.video-thumb-tag {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0.125rem 0.5rem;
+    border-radius: var(--radius-md);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    background: rgba(9, 9, 11, 0.7);
+    color: #ffffff;
+}
+.video-thumb-tag.is-top { top: 8px; left: 8px; background: #ffffff; color: var(--gray-950); box-shadow: 0 0 0 1px var(--ring); }
+.video-thumb-tag.is-bottom { bottom: 8px; right: 8px; }
+.video-card-title a { color: var(--gray-950); }
+.video-card-title a:hover { color: var(--primary-600); text-decoration: none; }
+</style>
+
 <section class="content-header">
     <div class="@auth container-fluid @else container @endauth">
-        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3" style="gap: 12px;">
-            <div>
-                <h1 class="m-0 font-weight-bold" style="font-size: 1.5rem;">
-                    Galeri Video Materi
-                </h1>
-                <p class="text-muted small mt-1 mb-0">Tonton dan pelajari video materi pembelajaran kapan saja.</p>
-            </div>
+        <x-page-header title="Galeri Video Materi" subtitle="Tonton dan pelajari video materi pembelajaran kapan saja." eyebrow="Konten">
             @auth
                 @can('create', App\Models\Video::class)
-                <a href="{{ route('video.create') }}" class="btn btn-sm btn-primary ml-auto">
-                    <i class="fas fa-plus mr-1"></i> Tambah Video Baru
-                </a>
+                    <x-slot:actions>
+                        <a href="{{ route('video.create') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Tambah Video
+                        </a>
+                    </x-slot:actions>
                 @endcan
             @endauth
-        </div>
+        </x-page-header>
     </div>
 </section>
 
 <section class="content">
     <div class="@auth container-fluid @else container @endauth">
-        {{-- Flash Alert Messages --}}
-        @if (session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="fas fa-check-circle mr-1"></i> {{ session('success') }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
+        <x-flash />
 
         {{-- Search & Filter Bar --}}
-        <div class="card shadow-sm mb-4 border">
-            <div class="card-body p-3">
-                <form action="{{ route('video.index') }}" method="GET" class="row g-2 align-items-center">
-                    <div class="col-md-9 col-sm-8 mb-2 mb-sm-0">
-                        <div class="input-group">
-                            <div class="input-group-prepend">
-                                <span class="input-group-text bg-white border-right-0"><i class="fas fa-search text-muted"></i></span>
-                            </div>
-                            <input type="text" name="search" class="form-control border-left-0"
-                                placeholder="Cari judul atau keterangan video..." value="{{ request('search') }}">
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-sm-4 d-flex">
-                        <button type="submit" class="btn btn-primary btn-block mr-2">
-                            <i class="fas fa-search mr-1"></i> Cari
-                        </button>
-                        @if(request('search'))
-                            <a href="{{ route('video.index') }}" class="btn btn-default" title="Reset Pencarian">
-                                <i class="fas fa-redo"></i>
-                            </a>
-                        @endif
-                    </div>
-                </form>
+        <form action="{{ route('video.index') }}" method="GET" class="d-flex flex-wrap align-items-center gap-2 mb-4">
+            <div class="input-group flex-grow-1" style="max-width: 520px;">
+                <div class="input-group-prepend">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                </div>
+                <input type="text" name="search" class="form-control"
+                    placeholder="Cari judul atau keterangan video..." value="{{ request('search') }}">
             </div>
-        </div>
+            <button type="submit" class="btn btn-default">Cari</button>
+            @if(request('search'))
+                <a href="{{ route('video.index') }}" class="btn btn-link" title="Reset Pencarian">Reset</a>
+            @endif
+        </form>
 
         {{-- Video Grid --}}
         @if ($videos->isEmpty())
-            <div class="card shadow-sm text-center py-5">
-                <div class="card-body">
-                    <i class="fas fa-film fa-4x text-muted mb-3" style="opacity: 0.5;"></i>
-                    <h4 class="font-weight-bold text-muted">Belum Ada Video</h4>
-                    <p class="text-muted">
-                        @if(request('search'))
-                            Tidak ada video yang cocok dengan kata kunci "{{ request('search') }}".
-                        @else
-                            Saat ini belum ada video materi yang diunggah.
-                        @endif
-                    </p>
+            <div class="card">
+                <x-empty-state icon="fa-film" title="Belum ada video"
+                    :text="request('search') ? 'Tidak ada video yang cocok dengan kata kunci “'.request('search').'”.' : 'Saat ini belum ada video materi yang diunggah.'">
                     @can('create', App\Models\Video::class)
-                        <a href="{{ route('video.create') }}" class="btn btn-primary mt-2">
-                            <i class="fas fa-plus mr-1"></i> Tambah Video Pertama
+                        <a href="{{ route('video.create') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Tambah Video Pertama
                         </a>
                     @endcan
-                </div>
+                </x-empty-state>
             </div>
         @else
             <div class="row">
                 @foreach ($videos as $v)
                     <div class="col-xl-4 col-md-6 col-12 mb-4 d-flex align-items-stretch">
-                        <div class="card shadow-sm h-100 w-100 border-0 rounded-lg overflow-hidden video-card" style="transition: transform 0.2s, box-shadow 0.2s;">
+                        <div class="card h-100 w-100 mb-0 video-card">
                             {{-- Video Poster / Preview Box --}}
-                            <a href="{{ route('video.show', $v->id) }}" class="position-relative bg-dark video-thumbnail-wrapper d-block text-decoration-none" style="height: 200px;">
+                            <a href="{{ route('video.show', $v->id) }}" class="video-thumb">
                                 @if($v->thumbnail_url)
                                     <img src="{{ $v->thumbnail_url }}" alt="{{ $v->title }}" class="w-100 h-100" style="object-fit: cover;">
                                 @elseif($v->isFile() && ! $v->activeQuiz())
-                                    <video src="{{ $v->video_url }}#t=1" preload="metadata" class="w-100 h-100" style="object-fit: cover; opacity: 0.75;"></video>
+                                    <video src="{{ $v->video_url }}#t=1" preload="metadata" class="w-100 h-100" style="object-fit: cover;"></video>
                                 @else
-                                    <div class="w-100 h-100 d-flex justify-content-center align-items-center bg-secondary">
-                                        <i class="fas fa-play-circle fa-4x text-white-50"></i>
-                                    </div>
+                                    <div class="w-100 h-100 video-thumb-empty"></div>
                                 @endif
-                                
+
                                 {{-- Play Button Overlay --}}
-                                <div class="position-absolute d-flex justify-content-center align-items-center w-100 h-100" style="top: 0; left: 0; background: rgba(17,24,39,0.25);">
-                                    <div class="rounded-circle d-flex justify-content-center align-items-center text-white play-btn-badge" style="background: rgba(255,255,255,0.22); border: 1.5px solid rgba(255,255,255,0.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); width: 54px; height: 54px; transition: transform 0.2s;">
-                                        <i class="fas fa-play ml-1" style="font-size: 20px;"></i>
-                                    </div>
+                                <div class="video-thumb-play">
+                                    <span><i class="fas fa-play ml-1"></i></span>
                                 </div>
 
                                 @if($quiz = $v->activeQuiz())
-                                    <span class="badge badge-primary position-absolute" style="top: 8px; left: 8px; font-size: 11px;">
-                                        <i class="fas fa-clipboard-check mr-1"></i>
+                                    <span class="video-thumb-tag is-top">
+                                        <i class="fas fa-clipboard-check"></i>
                                         {{ collect([$quiz->has_pretest ? 'Pretest' : null, $quiz->has_posttest ? 'Posttest' : null])->filter()->join(' & ') }}
                                     </span>
                                 @endif
 
                                 {{-- Type / size badge --}}
-                                <span class="badge position-absolute" style="bottom: 8px; right: 8px; font-size: 11px; background: rgba(17,24,39,0.75); color: #fff;">
+                                <span class="video-thumb-tag is-bottom">
                                     @if($v->isLink())
                                         @if(str_contains(strtolower($v->video_link), 'youtube') || str_contains(strtolower($v->video_link), 'youtu.be'))
-                                            <i class="fab fa-youtube mr-1"></i> YouTube
+                                            <i class="fab fa-youtube"></i> YouTube
                                         @elseif(str_contains(strtolower($v->video_link), 'drive.google.com'))
-                                            <i class="fab fa-google-drive mr-1"></i> Google Drive
+                                            <i class="fab fa-google-drive"></i> Google Drive
                                         @else
-                                            <i class="fas fa-link mr-1"></i> Link Video
+                                            <i class="fas fa-link"></i> Link Video
                                         @endif
                                     @else
-                                        <i class="fas fa-file-video mr-1"></i> {{ $v->file_size ?? 'File Video' }}
+                                        <i class="fas fa-file-video"></i> {{ $v->file_size ?? 'File Video' }}
                                     @endif
                                 </span>
                             </a>
 
                             {{-- Card Body --}}
                             <div class="card-body d-flex flex-column p-3">
-                                <h5 class="card-title font-weight-bold text-dark mb-2" title="{{ $v->title }}">
-                                    <a href="{{ route('video.show', $v->id) }}" class="text-dark text-decoration-none">
+                                <h3 class="video-card-title text-sm font-weight-bold mb-1" title="{{ $v->title }}">
+                                    <a href="{{ route('video.show', $v->id) }}">
                                         {{ Str::limit($v->title, 55) }}
                                     </a>
-                                </h5>
+                                </h3>
 
-                                <p class="card-text text-muted small flex-grow-1 mb-3">
+                                <p class="text-muted small flex-grow-1 mb-3">
                                     {{ Str::limit($v->description ?? 'Tidak ada deskripsi.', 90) }}
                                 </p>
 
-                                <div class="d-flex justify-content-between align-items-center text-muted small border-top pt-2 mt-auto">
+                                <div class="d-flex justify-content-between align-items-center text-muted text-xs mt-auto">
                                     <span>
                                         <i class="far fa-calendar-alt mr-1"></i> {{ $v->created_at->format('d M Y') }}
                                     </span>
@@ -151,16 +168,16 @@
 
                             {{-- Card Footer --}}
                             @can('update', $v)
-                            <div class="card-footer bg-white px-3 py-2 d-flex justify-content-end align-items-center border-top">
+                            <div class="card-footer d-flex justify-content-end align-items-center gap-1 px-3 py-2">
                                 @if($v->quizModule && ($v->quizModule->has_pretest || $v->quizModule->has_posttest))
-                                    <a href="{{ $v->quizModule->url('questions.index') }}" class="btn btn-default btn-xs mr-1" title="Soal pretest/posttest">
+                                    <a href="{{ $v->quizModule->url('questions.index') }}" class="btn btn-default btn-xs" title="Soal pretest/posttest">
                                         Soal Kuis
                                     </a>
                                 @endif
-                                <a href="{{ route('video.edit', $v->id) }}" class="btn btn-default btn-xs mr-1" title="Edit Video">
+                                <a href="{{ route('video.edit', $v->id) }}" class="btn btn-default btn-xs" title="Edit Video">
                                     Edit
                                 </a>
-                                <button type="button" class="btn btn-outline-danger btn-xs" title="Hapus Video" onclick="confirmDelete('{{ $v->id }}', '{{ addslashes($v->title) }}')">
+                                <button type="button" class="btn btn-default btn-xs text-danger" title="Hapus Video" onclick="confirmDelete('{{ $v->id }}', '{{ addslashes($v->title) }}')">
                                     Hapus
                                 </button>
                             </div>
@@ -181,14 +198,12 @@
 {{-- MODAL VIDEO PLAYER --}}
 <div class="modal fade" id="videoPlayerModal" tabindex="-1" role="dialog" aria-labelledby="videoModalLabel" aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-        <div class="modal-content shadow-lg border-0 bg-dark text-white">
-            <div class="modal-header border-secondary py-2">
-                <h5 class="modal-title font-weight-bold text-truncate pr-3" id="modalVideoTitle">Putar Video</h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" onclick="stopModalVideo()">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-truncate pr-3" id="modalVideoTitle">Putar Video</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup" onclick="stopModalVideo()">&times;</button>
             </div>
-            <div class="modal-body p-0 bg-black">
+            <div class="modal-body p-0">
                 {{-- HTML5 Video Player Container --}}
                 <div id="modalHtmlVideoContainer" class="embed-responsive embed-responsive-16by9 bg-black" style="display: none;">
                     <video id="activeModalVideo" class="embed-responsive-item" controls preload="auto" playsinline>
@@ -202,15 +217,15 @@
                     <iframe id="modalVideoIframe" class="embed-responsive-item" src="" frameborder="0" allowfullscreen allow="autoplay; encrypted-media"></iframe>
                 </div>
 
-                <div class="p-3 bg-dark">
-                    <p class="text-white-50 small mb-0" id="modalVideoDesc"></p>
+                <div class="p-3">
+                    <p class="text-muted small mb-0" id="modalVideoDesc"></p>
                 </div>
             </div>
-            <div class="modal-footer border-secondary py-2 justify-content-between">
-                <a href="#" id="modalWatchFullLink" class="btn btn-sm btn-outline-light">
-                    <i class="fas fa-external-link-alt mr-1"></i> Buka di Halaman Penuh
+            <div class="modal-footer justify-content-between">
+                <a href="#" id="modalWatchFullLink" class="btn btn-default">
+                    <i class="fas fa-external-link-alt"></i> Buka di Halaman Penuh
                 </a>
-                <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal" onclick="stopModalVideo()">
+                <button type="button" class="btn btn-default" data-dismiss="modal" onclick="stopModalVideo()">
                     Tutup
                 </button>
             </div>
@@ -225,17 +240,6 @@
     @method('DELETE')
 </form>
 @endauth
-
-<style>
-.video-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.12) !important;
-}
-.video-thumbnail-wrapper:hover .play-btn-badge {
-    transform: scale(1.15);
-    background-color: rgba(255,255,255,0.35) !important;
-}
-</style>
 
 <script>
 function openVideoPlayer(id, title, type, url, embedUrl, desc) {

@@ -7,11 +7,9 @@
     $dataAccessAreaIds = collect(old('data_access_areas', $isEdit ? $user->dataAccessAreas->pluck('id')->all() : []))->map(fn ($id) => (string) $id)->all();
 @endphp
 
-@include('layout.partials.validation-errors', ['class' => 'mb-3'])
-
-<div class="card border shadow-sm mb-3">
-    <div class="card-header bg-white">
-        <h3 class="card-title font-weight-bold">Identitas Pengguna</h3>
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Identitas Pengguna</h3>
     </div>
     <div class="card-body">
         <div class="row">
@@ -29,7 +27,7 @@
                 <label for="no_hp">No. HP</label>
                 <input type="tel" class="form-control" id="no_hp" name="no_hp" maxlength="20" placeholder="Contoh: 081234567890"
                     value="{{ old('no_hp', $user->no_hp) }}" @disabled(! $canChangePhone)>
-                <small class="text-muted">Dipakai sebagai nomor kontak sekaligus login WhatsApp melalui OTP.@unless ($canChangePhone) Hanya admin yang dapat mengubah No. HP.@endunless</small>
+                <small class="form-text text-muted">Dipakai sebagai nomor kontak sekaligus login WhatsApp melalui OTP.@unless ($canChangePhone) Hanya admin yang dapat mengubah No. HP.@endunless</small>
             </div>
             <div class="form-group col-lg-6">
                 <label for="email">Email</label>
@@ -53,7 +51,7 @@
                         <option value="{{ $divisi->id }}" @selected((string) old('divisi_id', $user->divisi_id) === (string) $divisi->id)>{{ $divisi->name }}</option>
                     @endforeach
                 </select>
-                <small class="text-muted">Divisi tidak harus sama dengan Area karyawan.</small>
+                <small class="form-text text-muted">Divisi tidak harus sama dengan Area karyawan.</small>
             </div>
             <div class="form-group col-lg-6">
                 <label for="role_id">Jabatan <span class="text-danger">*</span></label>
@@ -88,9 +86,9 @@
                 </select>
                 @if ($approvalLocked)
                     <input type="hidden" name="approval_id" value="{{ auth()->id() }}">
-                    <small class="text-muted">Karyawan baru yang Anda tambahkan otomatis menjadi anggota tim Anda.</small>
+                    <small class="form-text text-muted">Karyawan baru yang Anda tambahkan otomatis menjadi anggota tim Anda.</small>
                 @else
-                    <small class="text-muted" id="approvalHelp">Atasan yang menyetujui karyawan ini. Saran otomatis diambil dari Kepala Divisi.</small>
+                    <small class="form-text text-muted" id="approvalHelp">Atasan yang menyetujui karyawan ini. Saran otomatis diambil dari Kepala Divisi.</small>
                 @endif
             </div>
         </div>
@@ -98,19 +96,21 @@
 </div>
 
 @if ($canManageDataAccess)
-    <div class="card border shadow-sm mb-3 d-none" id="dataAccessCard">
-        <div class="card-header bg-white">
-            <h3 class="card-title font-weight-bold">Akses Data</h3>
-            <small class="text-muted d-block mt-1" style="clear: both;">Tentukan badan usaha yang datanya dapat dilihat dan dikelola admin ini.</small>
+    <div class="card d-none" id="dataAccessCard">
+        <div class="card-header">
+            <div class="min-w-0">
+                <h3 class="card-title">Akses Data</h3>
+                <p class="section-subtitle">Tentukan badan usaha yang datanya dapat dilihat dan dikelola admin ini.</p>
+            </div>
         </div>
         <div class="card-body">
             <div class="form-group">
                 <label class="d-block">Cakupan Badan Usaha <span class="text-danger">*</span></label>
-                <div class="btn-group btn-group-toggle" data-toggle="buttons">
-                    <label class="btn btn-outline-primary btn-sm {{ $dataAccess === 'all' ? 'active' : '' }}">
+                <div class="btn-group btn-group-toggle segmented" data-toggle="buttons">
+                    <label class="btn btn-sm {{ $dataAccess === 'all' ? 'active' : '' }}">
                         <input type="radio" name="data_access" value="all" autocomplete="off" @checked($dataAccess === 'all')> Semua Badan Usaha
                     </label>
-                    <label class="btn btn-outline-primary btn-sm {{ $dataAccess === 'selected' ? 'active' : '' }}">
+                    <label class="btn btn-sm {{ $dataAccess === 'selected' ? 'active' : '' }}">
                         <input type="radio" name="data_access" value="selected" autocomplete="off" @checked($dataAccess === 'selected')> Badan Usaha Tertentu
                     </label>
                 </div>
@@ -121,7 +121,7 @@
                         <input type="checkbox" class="custom-control-input" id="confirm_global_access" name="confirm_global_access" value="1" @checked(old('confirm_global_access'))>
                         <label class="custom-control-label" for="confirm_global_access">Saya yakin menjadikan karyawan ini super admin</label>
                     </div>
-                    <small class="text-muted">Super admin melihat dan mengelola data karyawan di semua badan usaha, dan dapat memberikan jabatan ADMIN kepada karyawan lain. Pilih Badan Usaha Tertentu bila admin cukup mengelola badan usaha tertentu.</small>
+                    <small class="form-text text-muted">Super admin melihat dan mengelola data karyawan di semua badan usaha, dan dapat memberikan jabatan ADMIN kepada karyawan lain. Pilih Badan Usaha Tertentu bila admin cukup mengelola badan usaha tertentu.</small>
                 </div>
             @endunless
             <div class="form-group mb-0" id="dataAccessAreasGroup">
@@ -131,7 +131,7 @@
                         <option value="{{ $area->id }}" @selected(in_array((string) $area->id, $dataAccessAreaIds, true))>{{ $area->name }}</option>
                     @endforeach
                 </select>
-                <small class="text-muted">Admin melihat karyawan di badan usaha ini, ditambah anggota timnya sendiri.</small>
+                <small class="form-text text-muted">Admin melihat karyawan di badan usaha ini, ditambah anggota timnya sendiri.</small>
             </div>
         </div>
     </div>
@@ -139,19 +139,19 @@
 
 <div class="row">
     <div class="col-lg-6">
-        <div class="card border shadow-sm mb-3">
-            <div class="card-header bg-white">
-                <h3 class="card-title font-weight-bold">Login</h3>
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Login</h3>
             </div>
             <div class="card-body">
                 @unless ($canChangeCredentials)
-                    <div class="alert alert-light border small">Data login karyawan ini hanya dapat diubah admin yang cakupannya meliputi seluruh tim karyawan tersebut.</div>
+                    <div class="alert alert-light">Data login karyawan ini hanya dapat diubah admin yang cakupannya meliputi seluruh tim karyawan tersebut.</div>
                 @endunless
                 <div class="form-group">
                     <label for="username">Username <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="username" name="username" maxlength="255" required
                         value="{{ old('username', $user->username) }}" @disabled(! $canChangeCredentials)>
-                    <small class="text-muted">Username tidak boleh mengandung spasi.</small>
+                    <small class="form-text text-muted">Username tidak boleh mengandung spasi.</small>
                 </div>
                 <div class="form-group mb-0">
                     <label for="password">Password @unless ($isEdit)<span class="text-danger">*</span>@endunless</label>
@@ -163,9 +163,9 @@
     </div>
     @if ($canManageTrainer)
         <div class="col-lg-6">
-            <div class="card border shadow-sm mb-3">
-                <div class="card-header bg-white">
-                    <h3 class="card-title font-weight-bold">Hak Akses Tambahan</h3>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Hak Akses Tambahan</h3>
                 </div>
                 <div class="card-body">
                     <input type="hidden" name="trainer" value="0">
@@ -173,7 +173,7 @@
                         <input type="checkbox" class="custom-control-input" id="trainer" name="trainer" value="1" @checked(old('trainer', $isEdit && $user->isTrainer()))>
                         <label class="custom-control-label" for="trainer">Trainer</label>
                     </div>
-                    <small class="text-muted">Memberi akses kelola training, video, dan dokumen di luar hak akses jabatannya.</small>
+                    <small class="form-text text-muted">Memberi akses kelola training, video, dan dokumen di luar hak akses jabatannya.</small>
                 </div>
             </div>
         </div>

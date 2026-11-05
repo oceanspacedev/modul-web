@@ -2,19 +2,24 @@
 
 @section('content')
     <section class="content-header">
-        <section class="content">
-            <div class="container-fluid">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h3 class="font-weight-bold text-dark m-0" style="font-size: 1.3rem;">Edit User &raquo; {{ $user->nama_lengkap }}</h3>
-                    <a href="{{ route('user.index') }}" class="btn btn-sm btn-default">Kembali</a>
+        <div class="container-fluid">
+            <x-page-header title="Edit User" :subtitle="$user->nama_lengkap" eyebrow="Pengaturan / User">
+                <x-slot:actions>
+                    <a href="{{ route('user.index') }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
+                </x-slot:actions>
+            </x-page-header>
+
+            <x-flash />
+
+            <form action="{{ route('user.update', $user) }}" method="POST">
+                @csrf
+                @method('PUT')
+                @include('setting.user._form')
+                <div class="d-flex justify-content-end gap-2 mb-4">
+                    <a href="{{ route('user.index') }}" class="btn btn-default">Batal</a>
+                    <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
                 </div>
-                <form action="{{ route('user.update', $user) }}" method="POST">
-                    @csrf
-                    @method('PUT')
-                    @include('setting.user._form')
-                    <button type="submit" class="btn btn-success font-weight-bold px-4 mb-4">Simpan Perubahan</button>
-                </form>
-            </div>
-        </section>
+            </form>
+        </div>
     </section>
 @endsection

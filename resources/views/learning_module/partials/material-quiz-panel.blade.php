@@ -8,15 +8,15 @@
     $limitLabel = fn (?int $remaining) => $remaining === null ? 'tanpa batas' : 'sisa '.$remaining.' kali';
 @endphp
 
-<div class="card mb-3 border-primary">
-    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap" style="gap: 8px;">
-        <h5 class="card-title font-weight-bold mb-0">
-            <i class="fas fa-clipboard-check text-primary mr-1"></i>
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="card-title">
+            <i class="fas fa-clipboard-check"></i>
             {{ collect([$quiz->has_pretest ? 'Pretest' : null, $quiz->has_posttest ? 'Posttest' : null])->filter()->join(' & ') }}
             <span class="text-muted small font-weight-normal ml-1">KKM {{ $quiz->passing_score }}</span>
-        </h5>
+        </h3>
         @if($canManage)
-            <div class="d-flex" style="gap: 6px;">
+            <div class="d-flex gap-1">
                 <a href="{{ $quiz->url('questions.index') }}" class="btn btn-default btn-xs">Kelola Soal</a>
                 <a href="{{ $quiz->url('results') }}" class="btn btn-default btn-xs">Rekap Nilai</a>
             </div>
@@ -24,11 +24,14 @@
     </div>
     <div class="card-body">
         @if(session('error'))
-            <div class="alert alert-danger py-2">{{ session('error') }}</div>
+            <div class="alert alert-danger flash" role="alert">
+                <i class="fas fa-exclamation-circle"></i>
+                <div class="flex-fill">{{ session('error') }}</div>
+            </div>
         @endif
 
         @if($quiz->has_pretest)
-            <div class="d-flex justify-content-between align-items-center flex-wrap mb-3" style="gap: 8px;">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                 <div>
                     <strong>Pretest</strong>
                     @if($progress->pretest)
@@ -38,7 +41,7 @@
                     @endif
                 </div>
                 @if($progress->canTakePretest())
-                    <a href="{{ $quiz->url('quiz', ['phase' => 'pretest']) }}" class="btn btn-outline-primary btn-sm">
+                    <a href="{{ $quiz->url('quiz', ['phase' => 'pretest']) }}" class="btn {{ $progress->hasDonePretest() ? 'btn-default' : 'btn-primary' }} btn-sm">
                         {{ $progress->hasDonePretest() ? 'Ulangi Pretest' : 'Kerjakan Pretest' }}
                     </a>
                 @endif
@@ -46,7 +49,7 @@
         @endif
 
         @if($quiz->has_posttest)
-            <div class="d-flex justify-content-between align-items-center flex-wrap" style="gap: 8px;">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
                     <strong>Posttest</strong>
                     @if($progress->bestPosttest())
@@ -72,8 +75,8 @@
 
         @if($attempts->isNotEmpty())
             <div class="table-responsive mt-3 border-top pt-2">
-                <table class="table table-sm mb-0" style="font-size: 0.88rem;">
-                    <thead class="text-muted">
+                <table class="table table-sm mb-0">
+                    <thead>
                         <tr><th>Percobaan</th><th>Waktu</th><th class="text-center">Benar</th><th class="text-center">Nilai</th><th></th></tr>
                     </thead>
                     <tbody>

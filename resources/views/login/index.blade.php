@@ -8,15 +8,30 @@
     <title>Login | Modul App</title>
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
 
-    <!-- Google Font: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="{{ asset('template') }}/plugins/fontawesome-free/css/all.min.css">
 
     <style>
+        :root {
+            --gray-50: #fafafa;
+            --gray-100: #f4f4f5;
+            --gray-200: #e4e4e7;
+            --gray-300: #d4d4d8;
+            --gray-400: #a1a1aa;
+            --gray-500: #71717a;
+            --gray-700: #3f3f46;
+            --gray-950: #09090b;
+            --primary-500: #3b82f6;
+            --primary-600: #2563eb;
+            --primary-700: #1d4ed8;
+            --ring-input: rgba(9, 9, 11, 0.1);
+            --focus-ring: 0 0 0 1px #2563eb, 0 0 0 4px rgba(37, 99, 235, 0.12);
+        }
+
         *, *::before, *::after {
             box-sizing: border-box;
             margin: 0;
@@ -24,14 +39,12 @@
         }
 
         body {
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #f8fafc;
-            background-image: radial-gradient(#e2e8f0 1.2px, transparent 1.2px);
-            background-size: 20px 20px;
-            color: #0f172a;
+            font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            font-size: 14px;
+            background: var(--gray-50);
+            color: var(--gray-950);
             min-height: 100vh;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             padding: 1.5rem;
@@ -41,367 +54,354 @@
 
         .login-wrapper {
             width: 100%;
-            max-width: 390px;
+            max-width: 400px;
         }
 
         .login-card {
             background: #ffffff;
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--gray-200);
             border-radius: 16px;
-            padding: 2rem 1.75rem;
-            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 10px -6px rgba(15, 23, 42, 0.02);
-            transition: all 0.2s ease;
+            padding: 2rem;
+            box-shadow: 0 1px 2px rgba(9, 9, 11, 0.04);
         }
 
-        /* Brand Header */
+        /* Brand */
         .brand-header {
-            text-align: center;
             margin-bottom: 1.5rem;
         }
 
         .brand-logo-badge {
-            width: 44px;
-            height: 44px;
-            margin: 0 auto 0.75rem;
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            border-radius: 12px;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
+            width: 40px;
+            height: 40px;
+            margin-bottom: 1rem;
+            border-radius: 10px;
+            background: var(--gray-950);
             color: #ffffff;
-            font-size: 1.2rem;
-            box-shadow: 0 4px 12px -2px rgba(37, 99, 235, 0.35);
+            font-size: 1rem;
         }
 
         .brand-logo-badge.badge-whatsapp {
-            background: linear-gradient(135deg, #16a34a, #15803d);
-            box-shadow: 0 4px 12px -2px rgba(22, 163, 74, 0.35);
+            background: #ffffff;
+            color: #16a34a;
+            box-shadow: inset 0 0 0 1px var(--gray-200);
+            font-size: 1.15rem;
         }
 
         .brand-title {
-            font-size: 1.35rem;
+            font-family: 'Figtree', 'Inter', sans-serif;
+            font-size: 1.375rem;
             font-weight: 700;
-            color: #0f172a;
             letter-spacing: -0.02em;
+            line-height: 1.3;
         }
 
-        /* Alert Notifications */
+        .brand-subtitle {
+            margin-top: 0.25rem;
+            font-size: 0.875rem;
+            color: var(--gray-500);
+        }
+
+        .brand-subtitle strong {
+            color: var(--gray-950);
+            font-weight: 600;
+        }
+
+        /* Alerts */
         .alert-box {
-            padding: 0.75rem 1rem;
-            border-radius: 10px;
-            font-size: 0.85rem;
             display: flex;
             align-items: flex-start;
-            gap: 0.625rem;
+            gap: 0.6rem;
             margin-bottom: 1.25rem;
-            line-height: 1.35;
+            padding: 0.7rem 0.875rem;
+            border-radius: 10px;
+            font-size: 0.8125rem;
+            line-height: 1.5;
+        }
+
+        .alert-box i {
+            margin-top: 2px;
         }
 
         .alert-box.alert-error {
-            background-color: #fef2f2;
-            border: 1px solid #fecaca;
-            color: #991b1b;
-        }
-
-        .alert-box.alert-error i {
-            color: #dc2626;
-            margin-top: 1px;
-            flex-shrink: 0;
+            background: #fef2f2;
+            color: #b91c1c;
+            box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.15);
         }
 
         .alert-box.alert-success {
-            background-color: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            color: #166534;
+            background: #ecfdf5;
+            color: #047857;
+            box-shadow: inset 0 0 0 1px rgba(5, 150, 105, 0.2);
         }
 
-        .alert-box.alert-success i {
-            color: #16a34a;
-            margin-top: 1px;
-            flex-shrink: 0;
-        }
-
-        /* Form Controls */
+        /* Fields */
         .form-group {
-            margin-bottom: 1.1rem;
+            margin-bottom: 1rem;
         }
 
         .form-label {
             display: block;
-            font-size: 0.835rem;
-            font-weight: 600;
-            color: #334155;
-            margin-bottom: 0.35rem;
+            margin-bottom: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--gray-950);
         }
 
         .input-container {
             position: relative;
-            display: flex;
-            align-items: center;
         }
 
         .input-icon-left {
             position: absolute;
-            left: 14px;
-            color: #94a3b8;
-            font-size: 0.95rem;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400);
+            font-size: 0.85rem;
             pointer-events: none;
-            transition: color 0.15s ease;
+            transition: color 0.1s ease;
         }
 
         .form-input {
             width: 100%;
-            height: 44px;
-            padding: 0 14px 0 40px;
-            font-size: 0.925rem;
+            height: 40px;
+            padding: 0 0.75rem 0 2.25rem;
             font-family: inherit;
-            color: #0f172a;
-            background-color: #ffffff;
-            border: 1px solid #cbd5e1;
-            border-radius: 10px;
-            transition: all 0.15s ease-in-out;
+            font-size: 0.875rem;
+            color: var(--gray-950);
+            background: #ffffff;
+            border: 1px solid var(--ring-input);
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(9, 9, 11, 0.05);
+            outline: none;
+            transition: border-color 0.1s ease, box-shadow 0.1s ease;
         }
 
         .form-input::placeholder {
-            color: #94a3b8;
-            font-size: 0.885rem;
+            color: var(--gray-400);
         }
 
         .form-input:focus {
-            outline: none;
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+            border-color: var(--primary-600);
+            box-shadow: var(--focus-ring);
         }
 
         .form-input:focus ~ .input-icon-left {
-            color: #2563eb;
+            color: var(--gray-700);
+        }
+
+        .has-toggle {
+            padding-right: 2.5rem;
         }
 
         .input-toggle-password {
             position: absolute;
-            right: 12px;
-            background: none;
-            border: none;
-            padding: 4px 6px;
-            color: #94a3b8;
-            cursor: pointer;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 32px;
+            border: 0;
             border-radius: 6px;
-            font-size: 0.95rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: color 0.15s ease;
+            background: transparent;
+            color: var(--gray-400);
+            cursor: pointer;
         }
 
         .input-toggle-password:hover {
-            color: #475569;
+            color: var(--gray-950);
+            background: var(--gray-100);
         }
 
-        .has-toggle {
-            padding-right: 42px;
-        }
-
-        /* 6-Digit OTP Field */
         .otp-input-box {
             width: 100%;
-            height: 50px;
+            height: 52px;
             text-align: center;
-            font-size: 1.6rem;
-            font-weight: 700;
-            letter-spacing: 0.45em;
-            color: #0f172a;
-            background-color: #f8fafc;
-            border: 2px solid #cbd5e1;
-            border-radius: 10px;
-            transition: all 0.15s ease;
             font-family: inherit;
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: 0.5em;
+            padding-left: 0.5em;
+            color: var(--gray-950);
+            background: #ffffff;
+            border: 1px solid var(--ring-input);
+            border-radius: 10px;
+            box-shadow: 0 1px 2px rgba(9, 9, 11, 0.05);
+            outline: none;
         }
 
         .otp-input-box:focus {
-            background-color: #ffffff;
-            border-color: #16a34a;
-            box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.15);
-            outline: none;
+            border-color: var(--primary-600);
+            box-shadow: var(--focus-ring);
+        }
+
+        .login-options {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.8125rem;
+            color: var(--gray-500);
+        }
+
+        .remember {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            user-select: none;
+            color: var(--gray-700);
+        }
+
+        .remember input {
+            width: 15px;
+            height: 15px;
+            accent-color: var(--primary-600);
+            cursor: pointer;
+        }
+
+        .login-options strong {
+            color: var(--gray-950);
+            font-weight: 600;
         }
 
         /* Buttons */
         .btn-primary-action {
-            width: 100%;
-            height: 44px;
-            background-color: #2563eb;
-            color: #ffffff;
-            border: none;
-            border-radius: 10px;
-            font-family: inherit;
-            font-size: 0.925rem;
-            font-weight: 600;
-            display: inline-flex;
+            display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
+            width: 100%;
+            height: 40px;
+            border: 1px solid var(--primary-600);
+            border-radius: 8px;
+            background: var(--primary-600) linear-gradient(to bottom, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0));
+            color: #ffffff;
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.15s ease;
-            box-shadow: 0 2px 5px rgba(37, 99, 235, 0.2);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(9, 9, 11, 0.12);
+            transition: background-color 0.1s ease;
+        }
+
+        .btn-primary-action i {
+            font-size: 0.8rem;
         }
 
         .btn-primary-action:hover:not(:disabled) {
-            background-color: #1d4ed8;
-            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
-            transform: translateY(-1px);
+            background-color: var(--primary-500);
+            border-color: var(--primary-500);
         }
 
         .btn-primary-action:active:not(:disabled) {
-            transform: translateY(0);
-            background-color: #1e40af;
+            background-color: var(--primary-700);
+            box-shadow: inset 0 1px 2px rgba(9, 9, 11, 0.2);
         }
 
         .btn-primary-action:disabled {
-            opacity: 0.65;
+            opacity: 0.6;
             cursor: not-allowed;
-            transform: none !important;
         }
 
-        .btn-wa-action {
-            background-color: #16a34a;
-            box-shadow: 0 2px 5px rgba(22, 163, 74, 0.22);
-        }
-
-        .btn-wa-action:hover:not(:disabled) {
-            background-color: #15803d;
-            box-shadow: 0 4px 10px rgba(22, 163, 74, 0.28);
-        }
-
-        /* Tombol Login WA di bawah Masuk Akun */
-        .btn-otp-trigger {
-            width: 100%;
-            height: 42px;
-            background-color: #ffffff;
-            color: #1e293b;
-            border: 1px solid #cbd5e1;
-            border-radius: 10px;
-            font-family: inherit;
-            font-size: 0.885rem;
-            font-weight: 600;
-            display: inline-flex;
+        .btn-otp-trigger,
+        .btn-secondary-link {
+            display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
+            width: 100%;
+            height: 40px;
+            border: 1px solid var(--ring-input);
+            border-radius: 8px;
+            background: #ffffff;
+            color: var(--gray-950);
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
             cursor: pointer;
-            transition: all 0.15s ease;
+            box-shadow: 0 1px 2px rgba(9, 9, 11, 0.05);
+            transition: background-color 0.1s ease;
         }
 
-        .btn-otp-trigger:hover {
-            background-color: #f8fafc;
-            border-color: #94a3b8;
-            color: #0f172a;
-            transform: translateY(-1px);
+        .btn-otp-trigger:hover,
+        .btn-secondary-link:hover {
+            background: var(--gray-50);
         }
 
         .btn-otp-trigger .icon-wa-green {
             color: #16a34a;
-            font-size: 1.15rem;
+            font-size: 1rem;
         }
 
-        /* Divider */
+        .btn-secondary-link i {
+            color: var(--gray-400);
+        }
+
+        .btn-secondary-link {
+            margin-top: 0.5rem;
+        }
+
         .divider {
             display: flex;
             align-items: center;
-            text-align: center;
-            margin: 1.1rem 0;
-            color: #94a3b8;
-            font-size: 0.775rem;
-            font-weight: 600;
+            gap: 0.75rem;
+            margin: 1.25rem 0;
+            font-size: 0.75rem;
+            color: var(--gray-400);
         }
 
         .divider::before,
         .divider::after {
             content: '';
             flex: 1;
-            border-bottom: 1px solid #e2e8f0;
+            height: 1px;
+            background: var(--gray-200);
         }
 
-        .divider span {
-            padding: 0 0.6rem;
-        }
-
-        /* Secondary Link */
-        .btn-secondary-link {
-            width: 100%;
-            height: 40px;
-            background-color: #f8fafc;
-            color: #475569;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            font-family: inherit;
-            font-size: 0.85rem;
-            font-weight: 600;
+        .btn-back-link,
+        .text-link-btn {
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            text-decoration: none;
-            transition: all 0.15s ease;
+            gap: 0.4rem;
+            border: 0;
+            background: transparent;
+            font-family: inherit;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--gray-500);
+            cursor: pointer;
         }
 
-        .btn-secondary-link:hover {
-            background-color: #f1f5f9;
-            border-color: #cbd5e1;
-            color: #0f172a;
-        }
-
-        .btn-secondary-link i {
-            color: #2563eb;
-            font-size: 0.9rem;
-        }
-
-        /* Back Link */
         .btn-back-link {
             width: 100%;
-            background: none;
-            border: none;
-            padding: 8px;
-            color: #64748b;
-            font-family: inherit;
-            font-size: 0.835rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
             justify-content: center;
-            gap: 6px;
-            transition: color 0.15s ease;
-            margin-top: 0.6rem;
+            margin-top: 1rem;
         }
 
-        .btn-back-link:hover {
-            color: #0f172a;
+        .btn-back-link:hover,
+        .text-link-btn:hover {
+            color: var(--gray-950);
         }
 
         .text-link-btn {
-            background: none;
-            border: none;
-            color: #2563eb;
-            font-family: inherit;
-            font-size: 0.825rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 2px 4px;
+            color: var(--primary-600);
         }
 
         .text-link-btn:hover {
-            color: #1d4ed8;
-            text-decoration: underline;
+            color: var(--primary-700);
         }
 
-        /* Footer */
         .footer-note {
-            text-align: center;
             margin-top: 1.5rem;
-            font-size: 0.775rem;
-            color: #94a3b8;
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--gray-400);
         }
 
         .hidden {
@@ -411,11 +411,12 @@
         @media (max-width: 480px) {
             body {
                 padding: 1rem;
+                align-items: flex-start;
+                padding-top: 3rem;
             }
 
             .login-card {
                 padding: 1.5rem 1.25rem;
-                border-radius: 14px;
             }
         }
     </style>
@@ -433,7 +434,8 @@
                     <div class="brand-logo-badge">
                         <i class="fas fa-layer-group"></i>
                     </div>
-                    <h1 class="brand-title">Modul App</h1>
+                    <h1 class="brand-title">Masuk ke Modul App</h1>
+                    <p class="brand-subtitle">Gunakan username dan password akun Anda.</p>
                 </div>
 
                 <!-- Alert Error -->
@@ -473,7 +475,7 @@
                         </div>
                     </div>
 
-                    <div class="form-group" style="margin-bottom: 0.85rem;">
+                    <div class="form-group">
                         <label for="password" class="form-label">Password</label>
                         <div class="input-container">
                             <input type="password"
@@ -492,16 +494,16 @@
                         </div>
                     </div>
 
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.15rem; font-size: 0.835rem; color: #64748b;">
-                        <label style="display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer; user-select: none;">
-                            <input type="checkbox" name="remember" style="accent-color: #2563eb; width: 15px; height: 15px; border-radius: 4px; cursor: pointer;">
+                    <div class="login-options">
+                        <label class="remember">
+                            <input type="checkbox" name="remember">
                             <span>Ingat Saya</span>
                         </label>
                     </div>
 
                     <button type="submit" class="btn-primary-action">
                         <span>Masuk ke Akun</span>
-                        <i class="fas fa-arrow-right" style="font-size: 0.85rem;"></i>
+                        <i class="fas fa-arrow-right"></i>
                     </button>
                 </form>
 
@@ -533,7 +535,8 @@
                     <div class="brand-logo-badge badge-whatsapp">
                         <i class="fab fa-whatsapp"></i>
                     </div>
-                    <h1 class="brand-title">Login WhatsApp</h1>
+                    <h1 class="brand-title">Login via WhatsApp</h1>
+                    <p class="brand-subtitle">Kami akan mengirim kode OTP ke nomor Anda.</p>
                 </div>
 
                 <!-- Alert Container -->
@@ -553,13 +556,13 @@
                                    placeholder="08xxxxxxxxxx"
                                    inputmode="numeric"
                                    required>
-                            <i class="fab fa-whatsapp input-icon-left" style="font-size: 1.15rem; color: #16a34a;"></i>
+                            <i class="fab fa-whatsapp input-icon-left"></i>
                         </div>
                     </div>
 
                     <button type="submit" class="btn-primary-action btn-wa-action" id="btnSubmitRequestOtp">
                         <span id="btnSubmitRequestOtpText">Kirim OTP</span>
-                        <i class="fas fa-arrow-right" style="font-size: 0.85rem;"></i>
+                        <i class="fas fa-arrow-right"></i>
                     </button>
 
                     <button type="button" class="btn-back-link" id="btnCancelOtp">
@@ -578,7 +581,7 @@
                         <i class="fas fa-shield-alt"></i>
                     </div>
                     <h1 class="brand-title">Verifikasi OTP</h1>
-                    <div style="margin-top: 0.35rem; font-size: 0.885rem; color: #0f172a; font-weight: 600;" id="maskedPhoneDisplay">-</div>
+                    <p class="brand-subtitle">Kode dikirim ke <strong id="maskedPhoneDisplay">-</strong></p>
                 </div>
 
                 <!-- Alert Container -->
@@ -588,8 +591,8 @@
                 </div>
 
                 <form id="formVerifyOtp">
-                    <div class="form-group" style="text-align: center;">
-                        <label for="otpCodeInput" class="form-label" style="text-align: center; margin-bottom: 0.5rem;">
+                    <div class="form-group">
+                        <label for="otpCodeInput" class="form-label">
                             Kode OTP
                         </label>
                         <input type="text"
@@ -604,14 +607,14 @@
                                required>
                     </div>
 
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.15rem; font-size: 0.825rem; color: #64748b;">
+                    <div class="login-options">
                         <button type="button" class="text-link-btn" id="btnChangeNumber">
                             <i class="fas fa-arrow-left"></i>
                             <span>Ganti Nomor</span>
                         </button>
                         <div>
                             <span id="cooldownLabel">Kirim ulang: </span>
-                            <strong id="cooldownSeconds" style="color: #0f172a;">60s</strong>
+                            <strong id="cooldownSeconds">60s</strong>
                             <button type="button" class="text-link-btn hidden" id="btnResendOtp">
                                 <i class="fas fa-redo-alt"></i> Kirim Ulang
                             </button>
@@ -620,7 +623,7 @@
 
                     <button type="submit" class="btn-primary-action btn-wa-action" id="btnSubmitVerifyOtp">
                         <span id="btnVerifyText">Verifikasi</span>
-                        <i class="fas fa-arrow-right" style="font-size: 0.85rem;"></i>
+                        <i class="fas fa-arrow-right"></i>
                     </button>
 
                     <button type="button" class="btn-back-link" id="btnBackToPasswordFromVerify">

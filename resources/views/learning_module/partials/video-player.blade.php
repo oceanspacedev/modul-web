@@ -6,7 +6,7 @@
 --}}
 @php $youtubeId = $video->youtubeId(); @endphp
 
-<div class="card border-0 rounded-lg overflow-hidden bg-black mb-3">
+<div class="card overflow-hidden mb-3">
     <div class="embed-responsive embed-responsive-16by9 bg-black">
         @if($video->isFile())
             <video id="materialVideo" class="embed-responsive-item" controls playsinline preload="metadata" poster="{{ $video->thumbnail_url ?? '' }}">
@@ -22,7 +22,7 @@
 </div>
 
 <div class="card mb-3">
-    <div class="card-body d-flex flex-wrap justify-content-between align-items-center py-3" style="gap: 12px;">
+    <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3 py-3">
         <div id="completionStatus">
             @if($done)
                 <span class="text-success font-weight-bold"><i class="fas fa-check-circle mr-1"></i> Video ini sudah selesai ditonton.</span>
@@ -32,9 +32,9 @@
                 <span class="text-muted"><i class="fas fa-info-circle mr-1"></i> Tonton video, lalu tandai selesai.</span>
             @endif
         </div>
-        <div class="d-flex flex-wrap" style="gap: 8px;">
+        <div class="d-flex flex-wrap gap-2">
             @if(! $done && ! $video->isFile() && ! $youtubeId)
-                <button type="button" class="btn btn-outline-success" id="btnMarkDone" disabled>Saya sudah menonton (<span id="markCountdown">30</span>)</button>
+                <button type="button" class="btn btn-primary" id="btnMarkDone" disabled>Saya sudah menonton (<span id="markCountdown">30</span>)</button>
             @endif
         </div>
     </div>

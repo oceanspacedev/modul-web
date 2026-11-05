@@ -2,69 +2,52 @@
 
 @section('content')
     <section class="content-header">
-        <!-- Main content -->
         <div class="container-fluid">
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                            <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.2rem;">
-                                Data Document Type
-                            </h3>
-                            <div class="card-tools m-0">
-                                <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#adddokumentype">
-                                    Tambah Document Type
-                                </button>
-                            </div>
-                        </div>
-                        @if ($message = Session::get('success'))
-                            <div class="alert alert-success alert-dismissible fade show mx-3 mt-3 mb-0" role="alert">
-                                <strong>{{ $message }}</strong>
-                            </div>
-                        @endif
-                        @if ($message = Session::get('error'))
-                            <div class="alert alert-danger alert-dismissible fade show mx-3 mt-3 mb-0" role="alert">
-                                <strong>{{ $message }}</strong>
-                            </div>
-                        @endif
-                        @include('layout.partials.validation-errors')
-                        <!-- /.card-header -->
-                        <div class="card-body table-responsive p-0" style="height: 520px;">
-                            <table class="table table-head-fixed text-nowrap">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 70px;">No</th>
-                                        <th>Nama Document Type</th>
-                                        <th style="width: 120px;">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($dokumentypes as $dokumentype)
-                                        <tr>
-                                            <td>{{ $loop->iteration }}</td>
-                                            <td><strong>{{ $dokumentype->name }}</strong></td>
-                                            <td>
-                                                <div class="d-flex align-items-center" style="gap: 4px;">
-                                                    <a href="{{ route('dokumentype.edit', $dokumentype) }}" class="btn btn-default btn-xs">
-                                                        Edit
-                                                    </a>
-                                                    <form action="{{ route('dokumentype.destroy', $dokumentype) }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Hapus type dokumen '.$dokumentype->name.'?'))">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="btn btn-default btn-xs text-danger">
-                                                            Hapus
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                        <!-- /.card-body -->
-                    </div>
-                    <!-- /.card -->
+            <x-page-header title="Tipe Dokumen" subtitle="Kategori yang dipakai untuk mengelompokkan dokumen." eyebrow="Pengaturan / Master Data">
+                <x-slot:actions>
+                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#adddokumentype">
+                        <i class="fas fa-plus"></i> Tambah Tipe Dokumen
+                    </button>
+                </x-slot:actions>
+            </x-page-header>
+
+            <x-flash />
+
+            <div class="card">
+                <div class="card-body table-responsive p-0" style="max-height: 560px;">
+                    <table class="table table-head-fixed text-nowrap">
+                        <thead>
+                            <tr>
+                                <th style="width: 70px;">No</th>
+                                <th>Nama Tipe Dokumen</th>
+                                <th style="width: 140px;" class="text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($dokumentypes as $dokumentype)
+                                <tr>
+                                    <td class="text-muted">{{ $loop->iteration }}</td>
+                                    <td><strong>{{ $dokumentype->name }}</strong></td>
+                                    <td class="text-right">
+                                        <div class="d-inline-flex align-items-center gap-1">
+                                            <a href="{{ route('dokumentype.edit', $dokumentype) }}" class="btn btn-default btn-xs">Edit</a>
+                                            <form action="{{ route('dokumentype.destroy', $dokumentype) }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Hapus type dokumen '.$dokumentype->name.'?'))">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-default btn-xs text-danger">Hapus</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3">
+                                        <x-empty-state icon="fa-folder" title="Belum ada tipe dokumen" text="Tambahkan tipe dokumen pertama untuk mengelompokkan dokumen." />
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -74,24 +57,24 @@
     <form action="{{ route('dokumentype.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="modal fade" id="adddokumentype" tabindex="-1" aria-labelledby="adddokumentypeLabel" aria-hidden="true">
-            <div class="modal-dialog">
+            <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="adddokumentypeLabel">Add Dokumen Type</h5>
+                        <h5 class="modal-title" id="adddokumentypeLabel">Tambah Tipe Dokumen</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">&times;</button>
                     </div>
                     <div class="modal-body">
-                        <div class="col-12 mt-3">
-                            <label for="name" class="form-label">Nama Dokumen Type</label>
+                        <div class="form-group mb-0">
+                            <label for="name">Nama Tipe Dokumen</label>
                             <input class="form-control" type="text" id="name" name="name">
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Add</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan</button>
                     </div>
                 </div>
             </div>
         </div>
     </form>
-    <!-- /.content -->
 @endsection

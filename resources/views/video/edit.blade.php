@@ -3,47 +3,34 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <div class="row mb-2 align-items-center">
-            <div class="col-sm-6">
-                <h1 class="m-0 font-weight-bold">
-                    <i class="fas fa-edit text-info mr-2"></i>Edit Video
-                </h1>
-            </div>
-            <div class="col-sm-6 text-sm-right mt-2 mt-sm-0">
-                <a href="{{ route('video.index') }}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-arrow-left mr-1"></i> Kembali ke Galeri
+        <x-page-header title="Edit Video" :subtitle="$video->title" eyebrow="Konten / Video">
+            <x-slot:actions>
+                <a href="{{ route('video.index') }}" class="btn btn-default">
+                    <i class="fas fa-arrow-left"></i> Kembali ke Galeri
                 </a>
-            </div>
-        </div>
+            </x-slot:actions>
+        </x-page-header>
     </div>
 </section>
 
 <section class="content">
     <div class="container-fluid">
-        <div class="row justify-content-center">
-                <div class="card shadow-sm border">
-                    <div class="card-header bg-white py-3">
-                        <h3 class="card-title font-weight-bold m-0" style="font-size: 1.15rem;">Ubah Informasi Video</h3>
+        <x-flash />
+
+        <div class="row">
+            <div class="col-xl-9">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Ubah Informasi Video</h3>
                     </div>
 
                     <form id="editVideoForm" action="{{ route('video.update', $video) }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
                         <div class="card-body">
-                            {{-- Errors summary --}}
-                            @if ($errors->any())
-                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                    <ul class="mb-0">
-                                        @foreach ($errors->all() as $error)
-                                            <li>{{ $error }}</li>
-                                        @endforeach
-                                    </ul>
-                                </div>
-                            @endif
-
                             {{-- Judul Video --}}
-                            <div class="form-group mb-3">
-                                <label for="title" class="font-weight-bold">Judul Video <span class="text-danger">*</span></label>
+                            <div class="form-group">
+                                <label for="title">Judul Video <span class="text-danger">*</span></label>
                                 <input type="text" name="title" id="title" class="form-control @error('title') is-invalid @enderror"
                                     value="{{ old('title', $video->title) }}" required autofocus>
                                 @error('title')
@@ -52,8 +39,8 @@
                             </div>
 
                             {{-- Deskripsi Video --}}
-                            <div class="form-group mb-3">
-                                <label for="description" class="font-weight-bold">Deskripsi / Keterangan Video</label>
+                            <div class="form-group">
+                                <label for="description">Deskripsi / Keterangan Video</label>
                                 <textarea name="description" id="description" rows="3" class="form-control @error('description') is-invalid @enderror">{{ old('description', $video->description) }}</textarea>
                                 @error('description')
                                     <span class="invalid-feedback">{{ $message }}</span>
@@ -61,16 +48,16 @@
                             </div>
 
                             {{-- Pilihan Sumber Video --}}
-                            <div class="form-group mb-3">
-                                <label class="font-weight-bold d-block">Sumber Video <span class="text-danger">*</span></label>
+                            <div class="form-group">
+                                <label class="d-block">Sumber Video <span class="text-danger">*</span></label>
                                 <div class="btn-group btn-group-toggle w-100" data-toggle="buttons">
-                                    <label class="btn btn-outline-info {{ $video->video_type === 'file' ? 'active' : '' }} w-50 py-2" id="labelOptionFile" onclick="switchVideoType('file')">
+                                    <label class="btn btn-default {{ $video->video_type === 'file' ? 'active' : '' }} w-50 py-2" id="labelOptionFile" onclick="switchVideoType('file')">
                                         <input type="radio" name="video_type" id="option_file" value="file" autocomplete="off" {{ $video->video_type === 'file' ? 'checked' : '' }}>
-                                        <i class="fas fa-file-upload mr-1"></i> <strong>File Video Komputer</strong>
+                                        <i class="fas fa-file-upload mr-1"></i> File Video Komputer
                                     </label>
-                                    <label class="btn btn-outline-info {{ $video->video_type === 'link' ? 'active' : '' }} w-50 py-2" id="labelOptionLink" onclick="switchVideoType('link')">
+                                    <label class="btn btn-default {{ $video->video_type === 'link' ? 'active' : '' }} w-50 py-2" id="labelOptionLink" onclick="switchVideoType('link')">
                                         <input type="radio" name="video_type" id="option_link" value="link" autocomplete="off" {{ $video->video_type === 'link' ? 'checked' : '' }}>
-                                        <i class="fas fa-link mr-1"></i> <strong>Link Video Eksternal</strong>
+                                        <i class="fas fa-link mr-1"></i> Link Video Eksternal
                                     </label>
                                 </div>
                             </div>
@@ -79,42 +66,42 @@
                             <div id="sectionFile" class="p-3 mb-3 bg-light rounded border" style="{{ $video->video_type === 'link' ? 'display: none;' : '' }}">
                                 @if($video->isFile() && $video->video_file)
                                     <div class="mb-3">
-                                        <label class="font-weight-bold d-block text-muted small">Video Saat Ini:</label>
-                                        <div class="embed-responsive embed-responsive-16by9 bg-dark rounded" style="max-height: 220px;">
+                                        <label class="d-block text-muted small">Video saat ini</label>
+                                        <div class="embed-responsive embed-responsive-16by9 bg-black rounded" style="max-height: 220px;">
                                             <video class="embed-responsive-item" controls preload="metadata">
                                                 <source src="{{ $video->video_url }}" type="video/mp4">
                                             </video>
                                         </div>
-                                        <small class="text-muted">Ukuran: {{ $video->file_size ?? 'N/A' }}</small>
+                                        <small class="form-text text-muted">Ukuran: {{ $video->file_size ?? 'N/A' }}</small>
                                     </div>
                                 @endif
 
-                                <label for="video_file" class="font-weight-bold">Ganti File Video <span class="text-muted font-weight-normal">(Kosongkan jika tidak ingin mengganti)</span></label>
+                                <label for="video_file">Ganti File Video <span class="text-muted">(Kosongkan jika tidak ingin mengganti)</span></label>
                                 <div class="custom-file">
                                     <input type="file" name="video_file" id="video_file" class="custom-file-input @error('video_file') is-invalid @enderror"
                                         accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-matroska" onchange="displayNewVideo(this)">
                                     <label class="custom-file-label" for="video_file" id="video_file_label">Pilih file video baru jika ingin mengganti...</label>
                                 </div>
-                                <small class="form-text text-muted mt-2">Maksimal 2 GB. Format: MP4, WebM, MOV, MKV.</small>
+                                <small class="form-text text-muted">Maksimal 2 GB. Format: MP4, WebM, MOV, MKV.</small>
                             </div>
 
                             {{-- SECTION LINK --}}
                             <div id="sectionLink" class="p-3 mb-3 bg-light rounded border" style="{{ $video->video_type === 'file' ? 'display: none;' : '' }}">
-                                <label for="video_link" class="font-weight-bold text-dark">Tautan / Link Video</label>
+                                <label for="video_link">Tautan / Link Video</label>
                                 <div class="input-group">
                                     <div class="input-group-prepend">
-                                        <span class="input-group-text bg-white"><i class="fas fa-link text-muted"></i></span>
+                                        <span class="input-group-text"><i class="fas fa-link"></i></span>
                                     </div>
                                     <input type="url" name="video_link" id="video_link" class="form-control @error('video_link') is-invalid @enderror"
                                         placeholder="https://www.youtube.com/watch?v=... atau Google Drive link"
                                         value="{{ old('video_link', $video->video_link) }}">
                                 </div>
-                                <small class="form-text text-muted mt-2">Mendukung YouTube, Google Drive, Vimeo, atau link video langsung.</small>
+                                <small class="form-text text-muted">Mendukung YouTube, Google Drive, Vimeo, atau link video langsung.</small>
                             </div>
 
                             {{-- Thumbnail Input (Opsional) --}}
-                            <div class="form-group mb-4">
-                                <label for="thumbnail" class="font-weight-bold">Cover / Thumbnail <span class="text-muted font-weight-normal">(Opsional)</span></label>
+                            <div class="form-group">
+                                <label for="thumbnail">Cover / Thumbnail <span class="text-muted">(Opsional)</span></label>
                                 @if($video->thumbnail_url)
                                     <div class="mb-2">
                                         <img src="{{ $video->thumbnail_url }}" alt="Thumbnail" class="img-thumbnail" style="max-height: 100px;">
@@ -127,9 +114,9 @@
                                 </div>
                                 @if($video->isFile() && $video->video_file)
                                     <button type="button" class="btn btn-default btn-sm mt-2" id="btnCaptureCover">
-                                        <i class="fas fa-camera mr-1"></i> Ambil cover dari video
+                                        <i class="fas fa-camera"></i> Ambil cover dari video
                                     </button>
-                                    <small class="text-muted d-block mt-1" id="captureCoverStatus">Mengambil frame di detik pertama video saat ini sebagai cover.</small>
+                                    <small class="form-text text-muted" id="captureCoverStatus">Mengambil frame di detik pertama video saat ini sebagai cover.</small>
                                 @endif
                                 <div id="thumbnailPreviewContainer" class="mt-2" style="display: none;">
                                     <span class="small text-muted d-block mb-1">Cover baru (tersimpan setelah klik Simpan):</span>
@@ -140,10 +127,10 @@
                             @include('learning_module.partials.material-quiz-fields', ['quiz' => $quiz])
                         </div>
 
-                        <div class="card-footer bg-light d-flex justify-content-between">
-                            <a href="{{ route('video.index') }}" class="btn btn-secondary">Batal</a>
-                            <button type="submit" class="btn btn-primary font-weight-bold px-4">
-                                <i class="fas fa-save mr-1"></i> Simpan Perubahan
+                        <div class="card-footer d-flex justify-content-end gap-2">
+                            <a href="{{ route('video.index') }}" class="btn btn-default">Batal</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Simpan Perubahan
                             </button>
                         </div>
                     </form>

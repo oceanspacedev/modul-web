@@ -8,17 +8,11 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <div class="mb-3 d-flex align-items-center">
-            <a href="{{ $backUrl }}" class="btn btn-default btn-sm mr-3">
-                <i class="fas fa-arrow-left"></i>
-            </a>
-            <div>
-                <h1 class="m-0 text-dark font-weight-bold" style="font-size: 1.5rem;">
-                    {{ $isPretest ? 'Pretest' : 'Posttest' }}{{ $maxAttempts === 1 ? '' : ' ke-'.$attemptNumber }}
-                </h1>
-                <span class="text-muted small">{{ $module->title }} &middot; {{ $questions->count() }} soal</span>
-            </div>
-        </div>
+        <x-page-header :title="($isPretest ? 'Pretest' : 'Posttest').($maxAttempts === 1 ? '' : ' ke-'.$attemptNumber)" :subtitle="$module->title.' · '.$questions->count().' soal'" eyebrow="Modul Saya / Kuis">
+            <x-slot:actions>
+                <a href="{{ $backUrl }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
+            </x-slot:actions>
+        </x-page-header>
     </div>
 </section>
 
@@ -30,25 +24,38 @@
             @include('learning_module.partials.manager-preview')
         @endif
 
-        <div class="alert {{ $isPretest ? 'alert-info' : 'alert-light border' }}">
-            @if($isPretest)
-                Pretest mengukur pemahaman awal Anda. Jawab sebisanya, materi akan terbuka setelah pretest dikirim.
-            @else
-                Nilai minimal lulus: <strong>{{ $module->passing_score }}</strong>. Setiap percobaan tetap tersimpan.
-            @endif
-            @if($maxAttempts === 1)
-                <strong>{{ $isPretest ? 'Pretest' : 'Posttest' }} hanya dapat dikerjakan satu kali.</strong>
-            @elseif($maxAttempts !== null)
-                Ini percobaan ke-{{ $attemptNumber }} dari maksimal {{ $maxAttempts }}.
-            @endif
+        <div class="alert alert-light flash">
+            <i class="fas fa-info-circle"></i>
+            <div class="flex-fill">
+                @if($isPretest)
+                    Pretest mengukur pemahaman awal Anda. Jawab sebisanya, materi akan terbuka setelah pretest dikirim.
+                @else
+                    Nilai minimal lulus: <strong>{{ $module->passing_score }}</strong>. Setiap percobaan tetap tersimpan.
+                @endif
+                @if($maxAttempts === 1)
+                    <strong>{{ $isPretest ? 'Pretest' : 'Posttest' }} hanya dapat dikerjakan satu kali.</strong>
+                @elseif($maxAttempts !== null)
+                    Ini percobaan ke-{{ $attemptNumber }} dari maksimal {{ $maxAttempts }}.
+                @endif
+            </div>
         </div>
 
         <form action="{{ $module->url('submit', ['phase' => $phase]) }}" method="POST" id="quizForm">
             @csrf
-            @foreach($questions as $index => $question)
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <p class="font-weight-600 text-dark mb-3" style="white-space: pre-line;">{{ $index + 1 }}. {{ $question->question }}</p>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title">Soal</h3>
+                    <div class="card-tools d-flex align-items-center gap-2 small text-muted">
+                        <span><span id="answeredCount">0</span>/{{ $questions->count() }} soal terjawab</span>
+                        <div class="progress" style="width: 120px;">
+                            <div class="progress-bar" id="answeredBar" role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                @foreach($questions as $index => $question)
+                    <div class="card-body {{ $loop->first ? '' : 'border-top' }}">
+                        <p class="font-weight-bold mb-3" style="white-space: pre-line;">{{ $index + 1 }}. {{ $question->question }}</p>
                         @foreach($question->options() as $letter => $text)
                             <div class="custom-control custom-radio mb-2">
                                 <input type="radio" class="custom-control-input" id="q{{ $question->id }}_{{ $letter }}"
@@ -60,12 +67,12 @@
                             </div>
                         @endforeach
                     </div>
-                </div>
-            @endforeach
+                @endforeach
 
-            <div class="d-flex justify-content-between align-items-center mb-5">
-                <span class="text-muted small"><span id="answeredCount">0</span>/{{ $questions->count() }} soal terjawab</span>
-                <button type="submit" class="btn btn-primary" id="btnSubmit">Kirim Jawaban</button>
+                <div class="card-footer d-flex justify-content-between align-items-center gap-2">
+                    <span class="text-muted small">Soal yang tidak dijawab dihitung salah.</span>
+                    <button type="submit" class="btn btn-primary" id="btnSubmit">Kirim Jawaban</button>
+                </div>
             </div>
         </form>
     </div>
@@ -82,10 +89,14 @@ $(function () {
         return $form.find('input[type=radio]:checked').length;
     }
 
-    $form.on('change', 'input[type=radio]', function () {
-        $('#answeredCount').text(answered());
-    });
-    $('#answeredCount').text(answered());
+    function updateCount() {
+        var count = answered();
+        $('#answeredCount').text(count);
+        $('#answeredBar').css('width', (total ? Math.round(count / total * 100) : 0) + '%');
+    }
+
+    $form.on('change', 'input[type=radio]', updateCount);
+    updateCount();
 
     $form.on('submit', function (e) {
         var missing = total - answered();

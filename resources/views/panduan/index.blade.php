@@ -3,32 +3,33 @@
 @section('content')
 <style>
     .pg-wrap { display: flex; gap: 24px; align-items: flex-start; }
-    .pg-toc { position: sticky; top: 76px; width: 250px; flex-shrink: 0; max-height: calc(100vh - 100px); overflow-y: auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 8px; }
-    .pg-toc .toc-title { font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: #94a3b8; font-weight: 700; padding: 6px 12px; }
-    .pg-toc a { display: block; padding: 6px 12px; border-radius: 8px; color: #334155; font-size: .86rem; }
-    .pg-toc a:hover { background: #f1f5f9; text-decoration: none; color: #1d4ed8; }
+    .pg-toc { position: sticky; top: 76px; width: 250px; flex-shrink: 0; max-height: calc(100vh - 100px); overflow-y: auto; background: #fff; border: 1px solid var(--ring); border-radius: var(--radius-xl); padding: 12px 8px; }
+    .pg-toc .toc-title { font-size: .75rem; color: var(--gray-500); font-weight: 500; padding: 6px 10px; }
+    .pg-toc a { display: block; padding: 5px 10px; border-radius: var(--radius-lg); color: var(--gray-700); font-size: .875rem; }
+    .pg-toc a:hover { background: var(--gray-50); text-decoration: none; color: var(--gray-950); }
     .pg-body { flex: 1; min-width: 0; }
-    .pg-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px 28px; margin-bottom: 20px; }
-    .pg-card h2 { font-size: 1.25rem; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
-    .pg-card h3 { font-size: 1rem; font-weight: 700; color: #1e293b; margin: 22px 0 8px; }
-    .pg-card p, .pg-card li { color: #334155; font-size: .93rem; line-height: 1.65; }
+    .pg-card { background: #fff; border: 1px solid var(--ring); border-radius: var(--radius-xl); padding: 24px 28px; margin-bottom: 20px; scroll-margin-top: 76px; }
+    .pg-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .pg-card h2 { font-family: var(--font-heading); font-size: 1.125rem; font-weight: 600; color: var(--gray-950); margin: 0; }
+    .pg-card h3 { font-family: var(--font-heading); font-size: 1rem; font-weight: 600; color: var(--gray-950); margin: 22px 0 8px; scroll-margin-top: 76px; }
+    .pg-card p, .pg-card li { color: var(--gray-700); font-size: .875rem; line-height: 1.65; }
     .pg-card ol, .pg-card ul { padding-left: 20px; }
     .pg-card li { margin-bottom: 4px; }
-    .pg-shot { margin: 14px 0; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; background: #f8fafc; }
+    .pg-card a:not(.btn) { color: var(--primary-600); }
+    .pg-shot { margin: 14px 0; border: 1px solid var(--ring); border-radius: var(--radius-lg); overflow: hidden; background: var(--gray-50); }
     .pg-shot img { width: 100%; display: block; }
-    .pg-shot figcaption { font-size: .78rem; color: #64748b; padding: 6px 12px; border-top: 1px solid #e2e8f0; background: #fff; }
-    .pg-note { border-left: 4px solid #3b82f6; background: #eff6ff; padding: 10px 14px; border-radius: 6px; margin: 12px 0; font-size: .88rem; color: #1e3a8a; }
-    .pg-warn { border-left-color: #f59e0b; background: #fffbeb; color: #78350f; }
-    .pg-card table { font-size: .86rem; }
-    .pg-card code { background: #f1f5f9; padding: 1px 6px; border-radius: 4px; color: #be123c; }
-    .pg-tabs .nav-link { font-weight: 600; }
+    .pg-shot figcaption { font-size: .75rem; color: var(--gray-500); padding: 6px 12px; border-top: 1px solid var(--ring); background: #fff; }
+    .pg-note { border: 1px solid var(--ring); background: var(--gray-50); padding: 10px 14px; border-radius: var(--radius-lg); margin: 12px 0; font-size: .875rem; color: var(--gray-700); }
+    .pg-warn { border-color: rgba(217, 119, 6, 0.2); background: var(--warning-50); color: var(--warning-700); }
+    .pg-card .pg-note li { color: inherit; }
+    .pg-card table { font-size: .875rem; }
+    .pg-card code { background: var(--gray-100); padding: 1px 6px; border-radius: 4px; color: var(--gray-800); font-size: .8125rem; }
     @media (max-width: 991px) { .pg-wrap { flex-direction: column; } .pg-toc { position: static; width: 100%; max-height: none; } }
 </style>
 
 <div class="content-header">
     <div class="container-fluid">
-        <h1 class="m-0 font-weight-bold" style="font-size: 1.5rem; color: #0f172a; letter-spacing: -0.02em;">Panduan Penggunaan</h1>
-        <p class="text-muted small mt-1 mb-0">Cara memakai sistem Modul App dari awal sampai akhir, untuk Admin/Pemateri dan Peserta.</p>
+        <x-page-header title="Panduan Penggunaan" subtitle="Cara memakai sistem Modul App dari awal sampai akhir, untuk Admin/Pemateri dan Peserta." eyebrow="Bantuan" />
     </div>
 </div>
 
@@ -67,7 +68,7 @@
 
                 {{-- 1 --}}
                 <div class="pg-card" id="pengenalan">
-                    <h2>1. Pengenalan sistem</h2>
+                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-info-circle"></i></span><h2>1. Pengenalan sistem</h2></div>
                     <p>Modul App adalah aplikasi untuk mengelola <b>pelatihan internal</b>: menjadwalkan sesi, mengundang peserta lewat WhatsApp, mencatat kehadiran, memberi kuis evaluasi, serta menyimpan dokumen dan video materi.</p>
                     <h3>Siapa yang memakai</h3>
                     <ul>
@@ -97,7 +98,7 @@
 
                 {{-- 2 --}}
                 <div class="pg-card" id="login">
-                    <h2>2. Masuk &amp; keluar</h2>
+                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-sign-in-alt"></i></span><h2>2. Masuk &amp; keluar</h2></div>
                     <figure class="pg-shot"><img src="/assets/panduan/login.png" alt="Halaman login" loading="lazy"><figcaption>Halaman login.</figcaption></figure>
                     <h3>Masuk dengan password</h3>
                     <figure class="pg-shot"><img src="/assets/panduan/login-password.gif" alt="Animasi: login dengan password" loading="lazy"><figcaption>Animasi: mengisi username dan password. Data pada animasi hanya contoh.</figcaption></figure>
@@ -127,7 +128,7 @@
 
                 {{-- 3 --}}
                 <div class="pg-card" id="dashboard">
-                    <h2>3. Dashboard</h2>
+                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-tachometer-alt"></i></span><h2>3. Dashboard</h2></div>
                     <p>Menu <b>Dashboard</b> menampilkan ringkasan seluruh modul. Setiap kartu bisa diklik untuk membuka halaman terkait.</p>
                     <figure class="pg-shot"><img src="/assets/panduan/dashboard.png" alt="Dashboard" loading="lazy"><figcaption>Dashboard dengan kartu ringkasan dan grafik.</figcaption></figure>
                     <figure class="pg-shot"><img src="/assets/panduan/sidebar-menu.gif" alt="Animasi: membuka menu samping" loading="lazy"><figcaption>Animasi: membuka submenu Pelatihan dan Settings di menu kiri.</figcaption></figure>
@@ -145,7 +146,7 @@
 
                 {{-- 4 --}}
                 <div class="pg-card" id="masterdata">
-                    <h2>4. Data master</h2>
+                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-database"></i></span><h2>4. Data master</h2></div>
                     <p>Menu <b>Settings</b> berisi data dasar yang dipakai di banyak tempat: <b>Area</b> (badan usaha), <b>Divisi</b>, <b>Posisi</b>, dan <b>Document Type</b>. Isi bagian ini lebih dulu sebelum membuat pengguna atau dokumen. Data master juga bisa terisi otomatis dari impor user atau <a href="#sync-dnd">Sinkronisasi DnD</a>.</p>
                     <figure class="pg-shot"><img src="/assets/panduan/divisi.png" alt="Data Divisi" loading="lazy"><figcaption>Halaman Data Divisi.</figcaption></figure>
                     <figure class="pg-shot"><img src="/assets/panduan/divisi-tambah.gif" alt="Animasi: menambah divisi" loading="lazy"><figcaption>Animasi: klik Tambah Divisi, isi nama dan Area, lalu simpan (pada contoh ini dibatalkan).</figcaption></figure>
@@ -168,7 +169,7 @@
 
                 {{-- 5 --}}
                 <div class="pg-card" id="user">
-                    <h2>5. Pengguna</h2>
+                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-users"></i></span><h2>5. Pengguna</h2></div>
                     <p>Menu <b>Settings → User</b> (halaman <i>Data User</i>) untuk mengelola akun.</p>
                     <figure class="pg-shot"><img src="/assets/panduan/user-create.gif" alt="Animasi: mengisi form tambah user" loading="lazy"><figcaption>Animasi: mengisi form tambah user (data contoh, tidak disimpan).</figcaption></figure>
                     <h3>Menambah user</h3>
@@ -259,7 +260,7 @@
 
                 {{-- 6 --}}
                 <div class="pg-card" id="role">
-                    <h2>6. Jabatan &amp; hak akses</h2>
+                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-user-shield"></i></span><h2>6. Jabatan &amp; hak akses</h2></div>
                     <p>Menu <b>Settings → Jabatan &amp; Hak Akses</b> menentukan fitur apa yang boleh dibuka tiap pengguna. Setiap pengguna memiliki tepat satu jabatan. Menu di sisi kiri hanya muncul bila jabatannya punya izin.</p>
                     <h3>Jabatan bawaan</h3>
                     <table class="table table-sm table-bordered">
@@ -292,7 +293,7 @@
 
                 {{-- 7 --}}
                 <div class="pg-card" id="pelatihan">
-                    <h2>7. Pelatihan</h2>
+                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-chalkboard-teacher"></i></span><h2>7. Pelatihan</h2></div>
                     <p>Menu <b>Pelatihan</b> berisi <b>Jadwal Pelatihan</b>, <b>Tambah Pelatihan</b>, dan <b>Pelatihan Saya</b>.</p>
                     <figure class="pg-shot"><img src="/assets/panduan/training-list.gif" alt="Animasi: memfilter dan mencari pelatihan" loading="lazy"><figcaption>Animasi: memfilter status <b>Dijadwalkan</b> lalu mencari topik di daftar Jadwal Pelatihan.</figcaption></figure>
                     <h3>7.1 Membuat jadwal pelatihan</h3>
@@ -359,7 +360,7 @@
 
                 {{-- 8 --}}
                 <div class="pg-card" id="soal">
-                    <h2>8. Soal kuis pelatihan</h2>
+                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-question-circle"></i></span><h2>8. Soal kuis pelatihan</h2></div>
                     <p>Buka dari detail pelatihan lewat tombol <b>Kelola Soal Kuis (n)</b>, atau dari menu <b>Aksi</b> di daftar pelatihan. Ada dua tipe soal: <b>Pilihan Ganda</b> (2–6 pilihan, A–F, satu kunci) dan <b>Essay / Uraian</b> (dinilai manual oleh Pemateri).</p>
                     <h3>Tambah manual</h3>
                     <figure class="pg-shot"><img src="/assets/panduan/training-questions.gif" alt="Animasi: menambah soal manual" loading="lazy"><figcaption>Animasi: Tambah Manual, mengisi pertanyaan dan pilihan jawaban (soal contoh tidak disimpan).</figcaption></figure>
@@ -392,7 +393,7 @@
 
                 {{-- 9 --}}
                 <div class="pg-card" id="zoomai">
-                    <h2>9. Scan Off Cam Zoom (AI)</h2>
+                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-video-slash"></i></span><h2>9. Scan Off Cam Zoom (AI)</h2></div>
                     <p>Fitur ini membantu mencatat peserta yang kameranya mati saat sesi Zoom, dari <b>screenshot tampilan galeri Zoom</b>.</p>
                     <ol>
                         <li>Di bagian atas detail pelatihan (di samping <b>Kelola Soal Kuis</b>) klik <b>Scan Off Cam Zoom (AI)</b>.</li>
@@ -406,7 +407,7 @@
 
                 {{-- 10 --}}
                 <div class="pg-card" id="dokumen">
-                    <h2>10. Dokumen</h2>
+                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-file-alt"></i></span><h2>10. Dokumen</h2></div>
                     <p>Menu <b>Document</b> menyimpan dokumen PDF modul, lengkap dengan riwayat versi.</p>
                     <figure class="pg-shot"><img src="/assets/panduan/document-create.png" alt="Tambah dokumen" loading="lazy"><figcaption>Form Tambah Dokumen Baru, termasuk bagian Pretest &amp; Posttest.</figcaption></figure>
                     <h3>Menambah dokumen</h3>
@@ -445,7 +446,7 @@
 
                 {{-- 11 --}}
                 <div class="pg-card" id="video">
-                    <h2>11. Video materi</h2>
+                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-play-circle"></i></span><h2>11. Video materi</h2></div>
                     <h3>Galeri (semua orang)</h3>
                     <p>Menu <b>Video Materi</b> (atau <b>Galeri Video Publik</b> di halaman login) menampilkan semua video. Cari lewat kolom pencarian, klik kartu untuk memutar atau membuka halaman tonton.</p>
                     <h3>Komentar &amp; diskusi</h3>
@@ -498,7 +499,7 @@
 
                 {{-- 12 --}}
                 <div class="pg-card" id="peserta">
-                    <h2>12. Portal peserta</h2>
+                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-user-graduate"></i></span><h2>12. Portal peserta</h2></div>
                     <p>Bagian ini untuk <b>peserta pelatihan</b>. Anda tidak perlu login.</p>
                     <h3>Membuka portal</h3>
                     <ol>
@@ -520,7 +521,7 @@
 
                 {{-- 13 --}}
                 <div class="pg-card" id="kuispeserta">
-                    <h2>13. Mengerjakan kuis</h2>
+                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-clipboard-check"></i></span><h2>13. Mengerjakan kuis</h2></div>
                     <ol>
                         <li>Tunggu hingga kuis dibuka pemateri. Jika belum, tampil pesan <i>"Kuis evaluasi saat ini belum dibuka"</i>.</li>
                         <li>Ketuk <b>Mulai Kerjakan Kuis</b> (atau <b>Mulai Game Kuis</b>).</li>
@@ -544,7 +545,7 @@
 
                 {{-- 14 --}}
                 <div class="pg-card" id="faq">
-                    <h2>14. FAQ &amp; masalah umum</h2>
+                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-life-ring"></i></span><h2>14. FAQ &amp; masalah umum</h2></div>
                     <table class="table table-sm table-bordered">
                         <tr><th style="width:38%">Masalah</th><th>Penyebab / solusi</th></tr>
                         <tr><td>"Username / Nomor WhatsApp atau Password salah."</td><td>Periksa username/nomor dan password. Akun yang diarsipkan tidak dapat login, hubungi admin.</td></tr>
@@ -572,7 +573,7 @@
 
                 {{-- 15 --}}
                 <div class="pg-card" id="akses">
-                    <h2>15. Hak akses per fitur</h2>
+                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-key"></i></span><h2>15. Hak akses per fitur</h2></div>
                     <table class="table table-sm table-bordered">
                         <tr><th>Izin</th><th>Membuka</th><th class="text-center">ADMIN</th><th class="text-center">Jabatan lain (default)</th><th class="text-center">+ Trainer</th></tr>
                         <tr><td><code>view-dashboard</code></td><td>Dashboard</td><td class="text-center">✔</td><td class="text-center">✔</td><td class="text-center">–</td></tr>
@@ -594,7 +595,7 @@
 
                 {{-- 16 --}}
                 <div class="pg-card" id="modulbelajar">
-                    <h2>16. Modul Belajar: pretest, materi &amp; posttest</h2>
+                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-book-open"></i></span><h2>16. Modul Belajar: pretest, materi &amp; posttest</h2></div>
                     <p>Modul Belajar adalah kuis mandiri (tanpa jadwal/Zoom) yang materinya diambil dari <b>Video Materi</b> dan <b>Dokumen</b>. Alurnya: peserta mengerjakan <b>pretest</b>, mempelajari semua materi, lalu mengerjakan <b>posttest</b>. Pretest dan posttest memakai soal yang sama dengan urutan diacak.</p>
                     <h3>Membuat modul (Admin/Pemateri)</h3>
                     <figure class="pg-shot"><img src="/assets/panduan/modul-buat.gif" alt="Animasi: membuat modul belajar" loading="lazy"><figcaption>Animasi: mengisi judul, deskripsi, dan KKM, lalu menambahkan video dan dokumen ke <b>Materi Modul</b> (contoh, tidak disimpan).</figcaption></figure>

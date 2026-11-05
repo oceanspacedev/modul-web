@@ -1,24 +1,19 @@
 @auth
- <!-- Main Sidebar Container -->
- <aside class="main-sidebar main-sidebar-custom sidebar-light-primary elevation-4">
-     <!-- Brand Logo -->
-     <a href="/dashboard" class="brand-link">
-         <span class="d-inline-flex align-items-center justify-content-center bg-primary rounded-circle mr-2" style="width: 34px; height: 34px;">
-             <i class="fas fa-layer-group text-white" style="font-size: 0.95rem;"></i>
-         </span>
-         <span class="brand-text">MODUL <span class="brand-badge ml-1">APP</span></span>
-     </a>
+<aside class="main-sidebar sidebar-light-primary">
+    <a href="/dashboard" class="brand-link">
+        <span class="brand-logo"><i class="fas fa-layer-group"></i></span>
+        <span class="brand-text">Modul <span class="brand-badge">APP</span></span>
+    </a>
 
-     <!-- Sidebar -->
-     <div class="sidebar">
-         <!-- Sidebar Menu -->
-         <nav class="mt-3">
-             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu"
-                 data-accordion="false">
+    <div class="sidebar">
+        <nav>
+            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                <li class="nav-header">Menu</li>
+
                 @can('view-dashboard')
                 <li class="nav-item">
                     <a href="/dashboard" class="nav-link {{ ($active ?? '') === 'dashboard' ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-tachometer-alt"></i>
+                        <i class="nav-icon fas fa-th-large"></i>
                         <p>Dashboard</p>
                     </a>
                 </li>
@@ -27,7 +22,7 @@
                 @can('view-videos')
                 <li class="nav-item">
                     <a href="/video" class="nav-link {{ ($active ?? '') === 'video' ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-play-circle"></i>
+                        <i class="nav-icon far fa-play-circle"></i>
                         <p>Video Materi</p>
                     </a>
                 </li>
@@ -102,97 +97,81 @@
                 @canany(['manage-documents', 'view-documents'])
                 <li class="nav-item">
                     <a href="/document" class="nav-link {{ ($active ?? '') === 'document' ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-file-alt"></i>
-                        <p>Document</p>
+                        <i class="nav-icon far fa-file-alt"></i>
+                        <p>Dokumen</p>
                     </a>
                 </li>
                 @endcanany
 
-
                 @canany(['manage-users', 'manage-roles', 'manage-master-data'])
-                 <li class="nav-item {{ (request()->is('user*') || request()->is('divisi*') || request()->is('area*') || request()->is('position*') || request()->is('dokumentype*') || request()->is('roles*')) ? 'menu-open' : '' }}">
-                     <a href="#" class="nav-link">
-                         <i class="nav-icon fas fa-sliders-h"></i>
-                         <p>
-                             Settings
-                             <i class="right fas fa-angle-left"></i>
-                         </p>
-                     </a>
-                     <ul class="nav nav-treeview">
-                        @can('manage-users')
+                <li class="nav-header">Pengaturan</li>
+
+                @can('manage-users')
+                <li class="nav-item">
+                    <a href="/user" class="nav-link {{ request()->is('user*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-users"></i>
+                        <p>User</p>
+                    </a>
+                </li>
+                @endcan
+
+                @can('manage-roles')
+                <li class="nav-item">
+                    <a href="/roles" class="nav-link {{ request()->is('roles*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-user-shield"></i>
+                        <p>Jabatan & Hak Akses</p>
+                    </a>
+                </li>
+                @endcan
+
+                @can('manage-master-data')
+                <li class="nav-item {{ (request()->is('area*') || request()->is('divisi*') || request()->is('position*') || request()->is('dokumentype*')) ? 'menu-open' : '' }}">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-database"></i>
+                        <p>
+                            Master Data
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
                         <li class="nav-item">
-                             <a href="/user" class="nav-link {{ request()->is('user*') ? 'active' : '' }}">
-                                 <i class="fas fa-users nav-icon"></i>
-                                 <p>User</p>
-                             </a>
-                         </li>
-                        @endcan
-
-                        @can('manage-master-data')
-                         <li class="nav-item">
-                             <a href="/area" class="nav-link {{ request()->is('area*') ? 'active' : '' }}">
-                                 <i class="fas fa-building nav-icon"></i>
-                                 <p>Area</p>
-                             </a>
-                         </li>
-                         <li class="nav-item">
-                             <a href="/divisi" class="nav-link {{ request()->is('divisi*') ? 'active' : '' }}">
-                                 <i class="fas fa-sitemap nav-icon"></i>
-                                 <p>Divisi</p>
-                             </a>
-                         </li>
-                         <li class="nav-item">
-                             <a href="/position" class="nav-link {{ request()->is('position*') ? 'active' : '' }}">
-                                 <i class="fas fa-briefcase nav-icon"></i>
-                                 <p>Posisi</p>
-                             </a>
-                         </li>
-                         <li class="nav-item">
-                             <a href="/dokumentype" class="nav-link {{ request()->is('dokumentype*') ? 'active' : '' }}">
-                                 <i class="fas fa-file-alt nav-icon"></i>
-                                 <p>Document Type</p>
-                             </a>
-                         </li>
-                        @endcan
-
-                        @can('manage-roles')
-                         <li class="nav-item">
-                             <a href="/roles" class="nav-link {{ request()->is('roles*') ? 'active' : '' }}">
-                                 <i class="fas fa-user-shield nav-icon"></i>
-                                 <p>Jabatan & Hak Akses</p>
-                             </a>
-                         </li>
-                        @endcan
-                     </ul>
-                 </li>
+                            <a href="/area" class="nav-link {{ request()->is('area*') ? 'active' : '' }}">
+                                <i class="fas fa-building nav-icon"></i>
+                                <p>Area</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/divisi" class="nav-link {{ request()->is('divisi*') ? 'active' : '' }}">
+                                <i class="fas fa-sitemap nav-icon"></i>
+                                <p>Divisi</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/position" class="nav-link {{ request()->is('position*') ? 'active' : '' }}">
+                                <i class="fas fa-briefcase nav-icon"></i>
+                                <p>Posisi</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/dokumentype" class="nav-link {{ request()->is('dokumentype*') ? 'active' : '' }}">
+                                <i class="fas fa-file-alt nav-icon"></i>
+                                <p>Tipe Dokumen</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                @endcan
                 @endcanany
 
+                <li class="nav-header">Bantuan</li>
                 <li class="nav-item">
                     <a href="/panduan" class="nav-link {{ ($active ?? '') === 'panduan' ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-book-open"></i>
+                        <i class="nav-icon far fa-question-circle"></i>
                         <p>Panduan Penggunaan</p>
                     </a>
                 </li>
-             </ul>
-         </nav>
-         <!-- /.sidebar-menu -->
-     </div>
-     <!-- /.sidebar -->
-
-     <div class="sidebar-custom mb-3 px-3">
-         @auth
-             <form action="/logout" method="POST">
-                 @csrf
-                 <button type="submit" class="btn btn-outline-danger btn-sm btn-block" style="border-radius: 8px;">
-                     <i class="fas fa-sign-out-alt mr-1"></i> Log Out
-                 </button>
-             </form>
-         @else
-             <a href="/login" class="btn btn-primary btn-sm btn-block text-white" style="border-radius: 8px;">
-                 <i class="fas fa-sign-in-alt mr-1"></i> Login Admin
-             </a>
-         @endauth
-     </div>
-     <!-- /.sidebar-custom -->
- </aside>
+            </ul>
+        </nav>
+    </div>
+</aside>
 @endauth

@@ -2,35 +2,36 @@
 
 @section('content')
     <section class="content-header">
-        <!-- Main content -->
-        <section class="content">
-            <div class="container-fluid">
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card border shadow-sm">
-                            <div class="card-header bg-white py-3">
-                                <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.15rem;">Edit Area &raquo; {{ $area->name }}</h3>
-                            </div>
+        <div class="container-fluid">
+            <x-page-header title="Edit Area" :subtitle="$area->name" eyebrow="Pengaturan / Master Data">
+                <x-slot:actions>
+                    <a href="{{ route('area.index') }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
+                </x-slot:actions>
+            </x-page-header>
+
+            <x-flash />
+
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="card">
+                        <form action="{{ route('area.update', $area) }}" method="POST">
+                            @csrf
+                            @method('PUT')
                             <div class="card-body">
-                                <form action="{{ route('area.update', $area) }}" method="POST">
-                                    @csrf
-                                    @method('PUT')
-                                    @include('layout.partials.validation-errors', ['class' => 'mb-3'])
-                                    <div class="mb-3 col-lg-4">
-                                        <label for="name" class="form-label font-weight-bold">Nama Area</label>
-                                        <input type="text" class="form-control" id="name" name="name"
-                                            value="{{ $area->name }}" required>
-                                    </div>
-                                    <a href="{{ route('area.index') }}" class="btn btn-secondary mt-3 mr-1">Kembali</a>
-                                    <button type="submit" class="btn btn-primary mt-3">Simpan Perubahan</button>
-                                </form>
+                                <div class="form-group mb-0">
+                                    <label for="name">Nama Area</label>
+                                    <input type="text" class="form-control" id="name" name="name"
+                                        value="{{ $area->name }}" required>
+                                </div>
                             </div>
-                        </div>
+                            <div class="card-footer d-flex justify-content-end gap-2">
+                                <a href="{{ route('area.index') }}" class="btn btn-default">Batal</a>
+                                <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                            </div>
+                        </form>
                     </div>
-                    <!-- /.card -->
                 </div>
             </div>
-        </section>
+        </div>
     </section>
-    <!-- /.content -->
 @endsection

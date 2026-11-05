@@ -10,15 +10,11 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <div class="mb-3 d-flex align-items-center">
-            <a href="{{ $module->url('show') }}" class="btn btn-default btn-sm mr-3">
-                <i class="fas fa-arrow-left"></i>
-            </a>
-            <div>
-                <h1 class="m-0 text-dark font-weight-bold" style="font-size: 1.5rem;">{{ $video->title }}</h1>
-                <span class="text-muted small">{{ $module->title }} &middot; materi {{ $position + 1 }} dari {{ $items->count() }}</span>
-            </div>
-        </div>
+        <x-page-header :title="$video->title" :subtitle="$module->title.' · materi '.($position + 1).' dari '.$items->count()" eyebrow="Modul Saya / Materi">
+            <x-slot:actions>
+                <a href="{{ $module->url('show') }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
+            </x-slot:actions>
+        </x-page-header>
     </div>
 </section>
 
@@ -30,16 +26,21 @@
             'done' => $done,
         ])
 
-        <div class="d-flex justify-content-end mb-3" style="gap: 8px;">
-            <span class="text-success font-weight-bold align-self-center d-none" id="posttestOpenNote">Semua materi selesai, posttest sudah terbuka.</span>
+        <div class="d-flex flex-wrap justify-content-end align-items-center gap-2 mb-4">
+            <span class="text-success small font-weight-bold mr-auto d-none" id="posttestOpenNote"><i class="fas fa-check-circle mr-1"></i> Semua materi selesai, posttest sudah terbuka.</span>
             @if($next)
-                <a href="{{ $next->isVideo() ? $module->url('items.show', ['item' => $next]) : $module->url('show') }}" class="btn btn-default">Materi berikutnya</a>
+                <a href="{{ $next->isVideo() ? $module->url('items.show', ['item' => $next]) : $module->url('show') }}" class="btn btn-default">Materi berikutnya <i class="fas fa-arrow-right"></i></a>
             @endif
             <a href="{{ $module->url('show') }}" class="btn btn-primary {{ $done ? '' : 'd-none' }}" id="btnBack">Kembali ke Modul</a>
         </div>
 
         @if($video->description)
-            <div class="card mb-5"><div class="card-body text-muted" style="white-space: pre-line;">{{ $video->description }}</div></div>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Deskripsi</h3>
+                </div>
+                <div class="card-body text-muted" style="white-space: pre-line;">{{ $video->description }}</div>
+            </div>
         @endif
     </div>
 </section>

@@ -3,56 +3,39 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <div class="row mb-2 align-items-center">
-            <div class="col-sm-6">
-                <h1 class="m-0 font-weight-bold">
-                    <i class="fas fa-plus-circle text-primary mr-2"></i>Tambah Jabatan Baru
-                </h1>
-                <small class="text-muted">Buat jabatan baru dan pilih hak akses fitur yang dapat dibuka oleh jabatan ini.</small>
-            </div>
-            <div class="col-sm-6 text-sm-right mt-2 mt-sm-0">
-                <a href="{{ route('roles.index') }}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-arrow-left mr-1"></i> Kembali ke Daftar Jabatan
+        <x-page-header title="Tambah Jabatan" subtitle="Buat jabatan baru dan pilih hak akses fitur yang dapat dibuka oleh jabatan ini." eyebrow="Pengaturan / Jabatan & Hak Akses">
+            <x-slot:actions>
+                <a href="{{ route('roles.index') }}" class="btn btn-default">
+                    <i class="fas fa-arrow-left"></i> Kembali
                 </a>
-            </div>
-        </div>
+            </x-slot:actions>
+        </x-page-header>
     </div>
 </section>
 
 <section class="content">
     <div class="container-fluid">
-        @if ($errors->any())
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <ul class="mb-0">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
+        <x-flash />
 
         <form action="{{ route('roles.store') }}" method="POST">
             @csrf
-            <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px;">
-                <div class="card-header bg-white py-3 border-bottom">
-                    <h5 class="card-title font-weight-bold text-dark mb-0">Informasi Jabatan</h5>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Informasi Jabatan</h3>
                 </div>
-                <div class="card-body p-4">
+                <div class="card-body">
                     <div class="form-group" style="max-width: 500px;">
-                        <label for="name" class="font-weight-bold text-dark">
+                        <label for="name">
                             Nama Jabatan <span class="text-danger">*</span>
                         </label>
                         <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror"
                                value="{{ old('name') }}" placeholder="Contoh: SUPERVISOR, AUDITOR..." required autofocus>
-                        <small class="text-muted">Gunakan nama yang sama dengan jabatan di DnD agar sinkronisasi cocok.</small>
+                        <small class="form-text text-muted">Gunakan nama yang sama dengan jabatan di DnD agar sinkronisasi cocok.</small>
                     </div>
                     <div class="form-group" style="max-width: 500px;">
-                        <label for="level" class="font-weight-bold text-dark">Level Grade</label>
+                        <label for="level">Level Grade</label>
                         <input type="number" min="0" name="level" id="level" class="form-control @error('level') is-invalid @enderror" value="{{ old('level') }}">
-                        <small class="text-muted">Label grade seperti DnD (Staff=10, Team Leader=20, Coordinator=30, Manager=40, Chief=50, BOD=60, Admin=100).</small>
+                        <small class="form-text text-muted">Label grade seperti DnD (Staff=10, Team Leader=20, Coordinator=30, Manager=40, Chief=50, BOD=60, Admin=100).</small>
                     </div>
                     <div class="custom-control custom-checkbox">
                         <input type="checkbox" class="custom-control-input" id="requires_approval" name="requires_approval" value="1" @checked(old('requires_approval'))>
@@ -61,34 +44,32 @@
                 </div>
             </div>
 
-            <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px;">
-                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="card-title font-weight-bold text-dark mb-0">
-                            Pilih Fitur yang Dapat Diakses (Permissions)
-                        </h5>
-                        <small class="text-muted d-block mt-1">Centang fitur yang ingin diberikan kepada role ini.</small>
+            <div class="card">
+                <div class="card-header">
+                    <div class="min-w-0">
+                        <h3 class="card-title">Fitur yang Dapat Diakses</h3>
+                        <p class="section-subtitle">Centang fitur yang ingin diberikan kepada role ini.</p>
                     </div>
                     <div>
-                        <button type="button" class="btn btn-outline-primary btn-sm font-weight-bold mr-1" id="btnSelectAll">
-                            <i class="fas fa-check-square mr-1"></i> Pilih Semua
+                        <button type="button" class="btn btn-default btn-sm mr-1" id="btnSelectAll">
+                            <i class="fas fa-check-square"></i> Pilih Semua
                         </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnUnselectAll">
-                            <i class="far fa-square mr-1"></i> Hapus Semua
+                        <button type="button" class="btn btn-default btn-sm" id="btnUnselectAll">
+                            <i class="far fa-square"></i> Hapus Semua
                         </button>
                     </div>
                 </div>
-                <div class="card-body p-4">
+                <div class="card-body">
                     <div class="row">
                         @foreach($permissionGroups as $groupName => $group)
                             <div class="col-lg-6 mb-4">
-                                <div class="border rounded p-3 h-100 bg-white shadow-none">
+                                <div class="border rounded p-3 h-100">
                                     <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
                                         <div class="d-flex align-items-center">
-                                            <i class="{{ $group['icon'] }} {{ $group['color'] }} mr-2 fa-lg"></i>
-                                            <strong class="text-dark">{{ $groupName }}</strong>
+                                            <i class="{{ $group['icon'] }} text-muted mr-2"></i>
+                                            <strong>{{ $groupName }}</strong>
                                         </div>
-                                        <button type="button" class="btn btn-link btn-xs text-primary p-0 select-group-btn" data-group="{{ Str::slug($groupName) }}">
+                                        <button type="button" class="btn btn-link btn-xs p-0 select-group-btn" data-group="{{ Str::slug($groupName) }}">
                                             Pilih Bagian Ini
                                         </button>
                                     </div>
@@ -99,8 +80,8 @@
                                                        class="custom-control-input perm-checkbox group-{{ Str::slug($groupName) }}" 
                                                        id="perm_{{ Str::slug($permName) }}"
                                                        {{ is_array(old('permissions')) && in_array($permName, old('permissions')) ? 'checked' : '' }}>
-                                                <label class="custom-control-label font-weight-normal text-dark" for="perm_{{ Str::slug($permName) }}" style="cursor: pointer;">
-                                                    <strong>{{ $permDesc }}</strong>
+                                                <label class="custom-control-label font-weight-normal" for="perm_{{ Str::slug($permName) }}">
+                                                    {{ $permDesc }}
                                                     <span class="d-block text-muted text-xs"><code>{{ $permName }}</code></span>
                                                 </label>
                                             </div>
@@ -111,10 +92,10 @@
                         @endforeach
                     </div>
                 </div>
-                <div class="card-footer bg-light py-3 border-top d-flex justify-content-between">
-                    <a href="{{ route('roles.index') }}" class="btn btn-secondary px-4">Batal</a>
-                    <button type="submit" class="btn btn-primary font-weight-bold px-4 shadow-sm">
-                        <i class="fas fa-save mr-1"></i> Simpan Jabatan Baru
+                <div class="card-footer d-flex justify-content-end gap-2">
+                    <a href="{{ route('roles.index') }}" class="btn btn-default">Batal</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Simpan Jabatan Baru
                     </button>
                 </div>
             </div>

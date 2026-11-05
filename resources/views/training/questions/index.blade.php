@@ -1,88 +1,71 @@
 @extends('layout.main_template')
 
 @section('content')
+<style>
+    /* Kunci jawaban yang ditandai pada kartu review soal AI */
+    .ai-q-card .input-group.is-key .input-group-text,
+    .ai-q-card .input-group.is-key .form-control {
+        border-color: var(--success-600) !important;
+        background-color: var(--success-50) !important;
+    }
+</style>
+
 <section class="content-header">
     <div class="container-fluid">
-        <div class="mb-3 d-flex flex-wrap justify-content-between align-items-center" style="gap: 12px;">
-            <div class="d-flex align-items-center">
-                <a href="/training/{{ $training->id }}" class="btn btn-default btn-sm mr-3">
-                    <i class="fas fa-arrow-left"></i>
+        <x-page-header title="Kelola Soal Kuis Pelatihan" :subtitle="$training->title" eyebrow="Pelatihan / Soal Kuis">
+            <x-slot:actions>
+                <a href="/training/{{ $training->id }}" class="btn btn-default">
+                    <i class="fas fa-arrow-left"></i> Kembali
                 </a>
-                <div>
-                    <h1 class="m-0 text-dark font-weight-bold" style="font-size: 1.5rem;">
-                        Kelola Soal Kuis Pelatihan
-                    </h1>
-                    <span class="text-muted small">{{ $training->title }}</span>
-                </div>
-            </div>
-
-            <!-- ACTION BUTTONS -->
-            <div class="d-flex align-items-center flex-wrap justify-content-lg-end ml-lg-auto" style="gap: 8px;">
-                <button type="button" class="btn btn-primary btn-sm font-weight-bold" data-toggle="modal" data-target="#aiGenerateModal">
-                    Buat Soal via AI
-                </button>
-                <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#addQuestionModal">
-                    Tambah Manual
-                </button>
-                <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#importTextModal">
-                    Import Teks Cepat
-                </button>
-                <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#importExcelModal">
-                    Import Excel / CSV
-                </button>
-                <a href="/training/{{ $training->id }}/questions/template" class="btn btn-default btn-sm">
-                    Download Template
-                </a>
-                @if($questions->count() > 0)
-                <form action="/training/{{ $training->id }}/questions/delete-all" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus SEMUA soal kuis ini?')">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-danger btn-sm">
-                        Hapus Semua Soal
+                <div class="dropdown">
+                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Import
                     </button>
-                </form>
-                @endif
-            </div>
-        </div>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a class="dropdown-item" href="javascript:void(0)" data-toggle="modal" data-target="#importTextModal">Import Teks Cepat</a>
+                        <a class="dropdown-item" href="javascript:void(0)" data-toggle="modal" data-target="#importExcelModal">Import Excel / CSV</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="/training/{{ $training->id }}/questions/template">Download Template</a>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-default" data-toggle="modal" data-target="#addQuestionModal">
+                    <i class="fas fa-plus"></i> Tambah Manual
+                </button>
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#aiGenerateModal">
+                    <i class="fas fa-magic"></i> Buat Soal via AI
+                </button>
+            </x-slot:actions>
+        </x-page-header>
     </div>
 </section>
 
 <section class="content">
     <div class="container-fluid">
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
-                <i class="fas fa-check-circle mr-1"></i> {{ session('success') }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
+        <x-flash />
 
-        @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
-                <i class="fas fa-exclamation-triangle mr-1"></i> {{ session('error') }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
-
-        <div class="card mb-4">
-            <div class="card-header py-3 d-flex align-items-center justify-content-between flex-wrap" style="gap: 10px;">
-                <div>
-                    <h3 class="card-title font-weight-bold m-0">
-                        Daftar Pertanyaan ({{ $questions->count() }} Soal)
-                    </h3>
-                </div>
-                <div>
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    Daftar Pertanyaan <span class="badge badge-secondary">{{ $questions->count() }} soal</span>
+                </h3>
+                <div class="card-tools d-flex align-items-center gap-2">
                     @if($training->is_quiz_active)
-                        <span class="badge badge-success px-2 py-1">Kuis Terbuka untuk Peserta</span>
+                        <span class="badge badge-success">Kuis terbuka untuk peserta</span>
                     @else
-                        <span class="badge badge-secondary px-2 py-1">Kuis Terkunci</span>
+                        <span class="badge badge-secondary">Kuis terkunci</span>
+                    @endif
+                    @if($questions->count() > 0)
+                    <form action="/training/{{ $training->id }}/questions/delete-all" method="POST" class="d-inline m-0" onsubmit="return confirm('Apakah Anda yakin ingin menghapus SEMUA soal kuis ini?')">
+                        @csrf
+                        <button type="submit" class="btn btn-default btn-xs text-danger">
+                            Hapus Semua Soal
+                        </button>
+                    </form>
                     @endif
                 </div>
             </div>
 
-            <div class="card-body p-4">
+            <div class="card-body">
                 @forelse($questions as $index => $q)
                 @php
                     $isEssay = ($q->type === 'essay');
@@ -95,48 +78,48 @@
                         }
                     }
                 @endphp
-                <div class="card mb-4 border">
-                    <div class="card-header py-2 bg-light d-flex align-items-center justify-content-between">
-                        <div>
-                            <strong class="text-sm mr-2">Pertanyaan #{{ $index + 1 }}</strong>
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <div class="d-flex align-items-center gap-2">
+                            <strong>Pertanyaan #{{ $index + 1 }}</strong>
                             @if($isEssay)
-                                <span class="badge badge-info">ESSAY / URAIAN</span>
+                                <span class="badge badge-secondary">Essay / Uraian</span>
                             @else
-                                <span class="badge badge-primary">PILIHAN GANDA ({{ count($activeOptions) }} Opsi: A-{{ strtoupper(array_key_last($activeOptions) ?? 'B') }})</span>
+                                <span class="badge badge-secondary">Pilihan Ganda &middot; {{ count($activeOptions) }} opsi (A-{{ strtoupper(array_key_last($activeOptions) ?? 'B') }})</span>
                             @endif
                         </div>
-                        <div>
-                            <button type="button" class="btn btn-default btn-xs mr-1" data-toggle="modal" data-target="#editModal_{{ $q->id }}">
+                        <div class="d-flex align-items-center gap-1">
+                            <button type="button" class="btn btn-default btn-xs" data-toggle="modal" data-target="#editModal_{{ $q->id }}">
                                 Edit
                             </button>
                             <form action="{{ route('training.questions.destroy', [$training, $q]) }}" method="POST" class="d-inline m-0" onsubmit="return confirm('Hapus soal ini?')">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-default btn-xs text-danger">
-                                Hapus
-                            </button>
+                                    Hapus
+                                </button>
                             </form>
                         </div>
                     </div>
-                    <div class="card-body p-3">
-                        <p class="font-weight-600 mb-3 text-dark" style="font-size: 1.05rem;">{{ $q->question }}</p>
+                    <div class="card-body">
+                        <p class="section-title mb-3">{{ $q->question }}</p>
 
                         @if($isEssay)
-                            <div class="p-3 border rounded bg-light mb-2 text-sm">
-                                <span class="text-muted d-block font-weight-bold mb-1">Pedoman / Kunci Acuan Jawaban:</span>
+                            <div class="p-3 border rounded bg-light small">
+                                <span class="text-muted d-block mb-1">Pedoman / kunci acuan jawaban</span>
                                 <div class="text-dark">{{ $q->correct_answer ?: '(Belum ada kunci acuan khusus. Penilaian bersifat deskriptif sesuai jawaban peserta)' }}</div>
                             </div>
                         @else
-                            <div class="row text-sm">
+                            <div class="row small">
                                 @foreach($activeOptions as $optKey => $optVal)
                                     @php
                                         $isKey = (strtolower((string)$q->correct_answer) === $optKey);
                                     @endphp
                                     <div class="col-md-6 mb-2">
-                                        <div class="p-2 border rounded {{ $isKey ? 'bg-success text-white font-weight-bold' : 'bg-light' }}">
-                                            {{ strtoupper($optKey) }}. {{ $optVal }}
+                                        <div class="d-flex align-items-start justify-content-between gap-2 px-3 py-2 border rounded {{ $isKey ? 'bg-soft-success' : '' }}">
+                                            <span><strong>{{ strtoupper($optKey) }}.</strong> {{ $optVal }}</span>
                                             @if($isKey)
-                                                <span class="float-right text-xs badge badge-light text-success font-weight-bold">Kunci Jawaban</span>
+                                                <span class="badge badge-success">Kunci jawaban</span>
                                             @endif
                                         </div>
                                     </div>
@@ -145,8 +128,8 @@
                         @endif
 
                         @if($q->explanation)
-                            <div class="text-xs text-muted mt-2 pt-2 border-top">
-                                <strong>Catatan Pembahasan:</strong> {{ $q->explanation }}
+                            <div class="small text-muted mt-3 pt-2 border-top">
+                                <strong>Catatan pembahasan:</strong> {{ $q->explanation }}
                             </div>
                         @endif
                     </div>
@@ -154,64 +137,58 @@
 
                 <!-- EDIT MODAL -->
                 <div class="modal fade" id="editModal_{{ $q->id }}" tabindex="-1" role="dialog" aria-hidden="true">
-                    <div class="modal-dialog modal-lg" role="document">
+                    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
                         <div class="modal-content">
                             <form action="{{ route('training.questions.update', [$training, $q]) }}" method="POST">
                                 @method('PUT')
                                 @csrf
-                                <div class="modal-header py-3">
-                                    <h5 class="modal-title font-weight-bold">Edit Soal #{{ $index + 1 }}</h5>
-                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                        <span aria-hidden="true">&times;</span>
-                                    </button>
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Edit Soal #{{ $index + 1 }}</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">&times;</button>
                                 </div>
-                                <div class="modal-body p-4">
-                                    <div class="form-group mb-3">
-                                        <label class="font-weight-600 mb-1">Tipe Soal</label>
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <label>Tipe Soal</label>
                                         <select name="type" class="form-control select-type" data-target="edit_opts_{{ $q->id }}">
                                             <option value="multiple_choice" {{ !$isEssay ? 'selected' : '' }}>Pilihan Ganda</option>
                                             <option value="essay" {{ $isEssay ? 'selected' : '' }}>Essay / Uraian</option>
                                         </select>
                                     </div>
-                                    <div class="form-group mb-3">
-                                        <label class="font-weight-600 mb-1">Pertanyaan</label>
+                                    <div class="form-group">
+                                        <label>Pertanyaan</label>
                                         <textarea name="question" class="form-control" rows="3" required>{{ $q->question }}</textarea>
                                     </div>
 
                                     <!-- OPTIONS CONTAINER -->
                                     <div id="edit_opts_{{ $q->id }}" class="opts-container" style="{{ $isEssay ? 'display: none;' : '' }}">
-                                        <div class="row mb-2">
-                                            <div class="col-md-6 mb-2">
-                                                <label class="font-weight-600 mb-1">Pilihan A <span class="text-danger">*</span></label>
+                                        <div class="form-row">
+                                            <div class="form-group col-md-6">
+                                                <label>Pilihan A <span class="text-danger">*</span></label>
                                                 <input type="text" name="option_a" class="form-control" value="{{ $q->option_a }}">
                                             </div>
-                                            <div class="col-md-6 mb-2">
-                                                <label class="font-weight-600 mb-1">Pilihan B <span class="text-danger">*</span></label>
+                                            <div class="form-group col-md-6">
+                                                <label>Pilihan B <span class="text-danger">*</span></label>
                                                 <input type="text" name="option_b" class="form-control" value="{{ $q->option_b }}">
                                             </div>
-                                        </div>
-                                        <div class="row mb-2">
-                                            <div class="col-md-6 mb-2">
-                                                <label class="font-weight-600 mb-1">Pilihan C (Opsional)</label>
+                                            <div class="form-group col-md-6">
+                                                <label>Pilihan C <span class="text-muted">(opsional)</span></label>
                                                 <input type="text" name="option_c" class="form-control" value="{{ $q->option_c }}">
                                             </div>
-                                            <div class="col-md-6 mb-2">
-                                                <label class="font-weight-600 mb-1">Pilihan D (Opsional)</label>
+                                            <div class="form-group col-md-6">
+                                                <label>Pilihan D <span class="text-muted">(opsional)</span></label>
                                                 <input type="text" name="option_d" class="form-control" value="{{ $q->option_d }}">
                                             </div>
-                                        </div>
-                                        <div class="row mb-3">
-                                            <div class="col-md-6 mb-2">
-                                                <label class="font-weight-600 mb-1">Pilihan E (Opsional)</label>
+                                            <div class="form-group col-md-6">
+                                                <label>Pilihan E <span class="text-muted">(opsional)</span></label>
                                                 <input type="text" name="option_e" class="form-control" value="{{ $q->option_e }}">
                                             </div>
-                                            <div class="col-md-6 mb-2">
-                                                <label class="font-weight-600 mb-1">Pilihan F (Opsional)</label>
+                                            <div class="form-group col-md-6">
+                                                <label>Pilihan F <span class="text-muted">(opsional)</span></label>
                                                 <input type="text" name="option_f" class="form-control" value="{{ $q->option_f }}">
                                             </div>
                                         </div>
-                                        <div class="form-group mb-3">
-                                            <label class="font-weight-600 mb-1">Kunci Jawaban Pilihan Ganda</label>
+                                        <div class="form-group">
+                                            <label>Kunci Jawaban Pilihan Ganda</label>
                                             <select name="correct_answer" class="form-control select-key">
                                                 <option value="a" {{ $q->correct_answer === 'a' ? 'selected' : '' }}>Pilihan A</option>
                                                 <option value="b" {{ $q->correct_answer === 'b' ? 'selected' : '' }}>Pilihan B</option>
@@ -225,43 +202,42 @@
 
                                     <!-- ESSAY KEY CONTAINER -->
                                     <div id="edit_essay_{{ $q->id }}" class="essay-key-container" style="{{ !$isEssay ? 'display: none;' : '' }}">
-                                        <div class="form-group mb-3">
-                                            <label class="font-weight-600 mb-1">Pedoman / Acuan Kunci Jawaban (Opsional)</label>
+                                        <div class="form-group">
+                                            <label>Pedoman / Acuan Kunci Jawaban <span class="text-muted">(opsional)</span></label>
                                             <textarea name="correct_answer" class="form-control essay-input" rows="2" placeholder="Catatan kunci acuan jawaban benar...">{{ $isEssay ? $q->correct_answer : '' }}</textarea>
                                         </div>
                                     </div>
 
                                     <div class="form-group mb-0">
-                                        <label class="font-weight-600 mb-1">Catatan Pembahasan (Opsional)</label>
+                                        <label>Catatan Pembahasan <span class="text-muted">(opsional)</span></label>
                                         <textarea name="explanation" class="form-control" rows="2">{{ $q->explanation }}</textarea>
                                     </div>
                                 </div>
-                                <div class="modal-footer py-2">
-                                    <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Batal</button>
-                                    <button type="submit" class="btn btn-primary btn-sm">Simpan Perubahan</button>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                                    <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
                                 </div>
                             </form>
                         </div>
                     </div>
                 </div>
                 @empty
-                <div class="text-center py-5 text-muted">
-                    <p class="mb-3 font-weight-bold text-dark">Belum ada soal kuis yang ditambahkan untuk pelatihan ini.</p>
-                    <div class="d-flex justify-content-center flex-wrap" style="gap: 8px;">
-                        <button type="button" class="btn btn-primary btn-sm font-weight-bold" data-toggle="modal" data-target="#aiGenerateModal">
-                            Buat Soal via AI
+                <x-empty-state icon="fa-question-circle" title="Belum ada soal kuis" text="Tambahkan soal untuk pelatihan ini secara manual, lewat AI, atau import dari teks maupun Excel.">
+                    <div class="d-flex justify-content-center flex-wrap gap-2">
+                        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#aiGenerateModal">
+                            <i class="fas fa-magic"></i> Buat Soal via AI
                         </button>
-                        <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#addQuestionModal">
+                        <button type="button" class="btn btn-default" data-toggle="modal" data-target="#addQuestionModal">
                             Tambah Manual
                         </button>
-                        <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#importTextModal">
+                        <button type="button" class="btn btn-default" data-toggle="modal" data-target="#importTextModal">
                             Import Teks
                         </button>
-                        <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#importExcelModal">
+                        <button type="button" class="btn btn-default" data-toggle="modal" data-target="#importExcelModal">
                             Import Excel / CSV
                         </button>
                     </div>
-                </div>
+                </x-empty-state>
                 @endforelse
             </div>
         </div>
@@ -271,19 +247,15 @@
 <!-- AI QUESTION GENERATOR MODAL (GEMINI) -->
 <div class="modal fade" id="aiGenerateModal" tabindex="-1" role="dialog" aria-labelledby="aiGenerateModalLabel" aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
-        <div class="modal-content shadow border-0" style="border-radius: 8px;">
+        <div class="modal-content">
             <!-- MODAL HEADER -->
-            <div class="modal-header bg-white text-dark py-3 px-4 border-bottom">
-                <h5 class="modal-title font-weight-bold mb-0 text-dark" id="aiGenerateModalLabel">
-                    Buat Soal via AI
-                </h5>
-                <button type="button" class="close text-dark" data-dismiss="modal" aria-label="Close" id="btnCloseAiModal">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+            <div class="modal-header">
+                <h5 class="modal-title" id="aiGenerateModalLabel">Buat Soal via AI</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup" id="btnCloseAiModal">&times;</button>
             </div>
 
             <!-- MODAL BODY -->
-            <div class="modal-body p-4" style="background-color: #f8fafc; min-height: 480px;">
+            <div class="modal-body bg-light" style="min-height: 480px;">
                 <!-- ALERT ERROR -->
                 <div id="aiAlertError" class="alert alert-danger alert-dismissible fade show d-none mb-3" role="alert">
                     <span id="aiAlertErrorText"></span>
@@ -294,28 +266,28 @@
                     <div class="row">
                         <!-- LEFT COLUMN: DOKUMEN & MATERI -->
                         <div class="col-lg-6 mb-3">
-                            <div class="card h-100 border shadow-none bg-white">
-                                <div class="card-header bg-white py-2 font-weight-bold d-flex justify-content-between align-items-center">
-                                    <span>Pilih Dokumen Materi <span class="text-danger">*</span></span>
-                                    <span class="badge badge-light border text-muted" id="docSelectedCount">0 Terpilih</span>
+                            <div class="card h-100 mb-0">
+                                <div class="card-header">
+                                    <h3 class="card-title">Dokumen Materi <span class="text-danger">*</span></h3>
+                                    <span class="badge badge-secondary" id="docSelectedCount">0 Terpilih</span>
                                 </div>
-                                <div class="card-body p-3">
+                                <div class="card-body">
                                     <!-- TRAINING LINKED DOCUMENTS -->
                                     <div class="mb-3">
-                                        <label class="text-xs font-weight-bold text-uppercase text-secondary mb-1 d-block">Dokumen Pelatihan Ini:</label>
+                                        <div class="eyebrow mb-2">Dokumen pelatihan ini</div>
                                         @if($documents->isEmpty())
-                                            <div class="p-2 border rounded bg-light text-muted text-xs mb-2">
+                                            <div class="p-2 border rounded bg-light text-muted small">
                                                 Belum ada dokumen yang dilampirkan langsung pada pelatihan ini. Silakan pilih dari dokumen sistem di bawah.
                                             </div>
                                         @else
-                                            <div class="list-group mb-2 border rounded" style="max-height: 180px; overflow-y: auto;">
+                                            <div class="list-group" style="max-height: 180px; overflow-y: auto;">
                                                 @foreach($documents as $doc)
-                                                <label class="list-group-item list-group-item-action d-flex align-items-center px-3 py-2 mb-0 border-0 border-bottom" style="cursor: pointer;">
+                                                <label class="list-group-item list-group-item-action d-flex align-items-center px-3 py-2 mb-0" style="cursor: pointer;">
                                                     <input type="checkbox" name="ai_document_ids[]" value="{{ $doc->id }}" class="mr-2 ai-doc-checkbox" checked>
-                                                    <div class="text-truncate flex-grow-1">
-                                                        <strong class="text-sm d-block text-dark text-truncate">{{ $doc->name }}</strong>
-                                                        <span class="text-xs text-muted">
-                                                            <span class="badge badge-light border">{{ $doc->dokumentype->name ?? 'Dokumen' }}</span>
+                                                    <div class="text-truncate flex-grow-1 min-w-0">
+                                                        <span class="d-block text-truncate">{{ $doc->name }}</span>
+                                                        <span class="small text-muted">
+                                                            <span class="badge badge-secondary">{{ $doc->dokumentype->name ?? 'Dokumen' }}</span>
                                                             v{{ $doc->version ?? 1 }}
                                                         </span>
                                                     </div>
@@ -327,9 +299,7 @@
 
                                     <!-- CHOOSE OTHER DOCUMENTS -->
                                     <div>
-                                        <label class="text-xs font-weight-bold text-uppercase text-secondary mb-1 d-flex justify-content-between align-items-center">
-                                            <span>Dokumen Lain dari Sistem:</span>
-                                        </label>
+                                        <div class="eyebrow mb-2">Dokumen lain dari sistem</div>
                                         <select id="aiSelectOtherDocs" class="form-control form-control-sm select2" multiple="multiple" style="width: 100%;" data-placeholder="Cari & pilih dokumen lain...">
                                             @foreach($allDocuments as $ad)
                                                 @if(!$documents->contains('id', $ad->id))
@@ -346,25 +316,25 @@
 
                         <!-- RIGHT COLUMN: PARAMETER GENERASI -->
                         <div class="col-lg-6 mb-3">
-                            <div class="card h-100 border shadow-none bg-white">
-                                <div class="card-header bg-white py-2 font-weight-bold">
-                                    Pengaturan Pembuatan Soal
+                            <div class="card h-100 mb-0">
+                                <div class="card-header">
+                                    <h3 class="card-title">Pengaturan Pembuatan Soal</h3>
                                 </div>
-                                <div class="card-body p-3">
+                                <div class="card-body">
                                     <!-- JUMLAH SOAL -->
-                                    <div class="form-group mb-3">
-                                        <label class="font-weight-600 text-sm mb-1 d-block">Jumlah Soal:</label>
-                                        <div class="btn-group btn-group-toggle w-100" data-toggle="buttons">
-                                            <label class="btn btn-outline-secondary btn-sm active" style="flex: 1;">
+                                    <div class="form-group">
+                                        <label class="d-block">Jumlah Soal</label>
+                                        <div class="btn-group btn-group-toggle segmented w-100" data-toggle="buttons">
+                                            <label class="btn btn-sm active" style="flex: 1;">
                                                 <input type="radio" name="ai_question_count" value="5" checked> 5 Soal
                                             </label>
-                                            <label class="btn btn-outline-secondary btn-sm" style="flex: 1;">
+                                            <label class="btn btn-sm" style="flex: 1;">
                                                 <input type="radio" name="ai_question_count" value="10"> 10 Soal
                                             </label>
-                                            <label class="btn btn-outline-secondary btn-sm" style="flex: 1;">
+                                            <label class="btn btn-sm" style="flex: 1;">
                                                 <input type="radio" name="ai_question_count" value="15"> 15 Soal
                                             </label>
-                                            <label class="btn btn-outline-secondary btn-sm" style="flex: 1;">
+                                            <label class="btn btn-sm" style="flex: 1;">
                                                 <input type="radio" name="ai_question_count" value="custom"> Kustom
                                             </label>
                                         </div>
@@ -379,31 +349,31 @@
                                     </div>
 
                                     <!-- TIPE SOAL -->
-                                    <div class="form-group mb-3">
-                                        <label class="font-weight-600 text-sm mb-1 d-block">Tipe Soal:</label>
+                                    <div class="form-group">
+                                        <label class="d-block">Tipe Soal</label>
                                         <div class="row">
                                             <div class="col-6">
-                                                <div class="custom-control custom-radio p-2 border rounded bg-light">
-                                                    <input type="radio" id="ai_type_mc" name="ai_question_type" value="multiple_choice" class="custom-control-input" checked>
-                                                    <label class="custom-control-label font-weight-bold text-sm text-dark d-block" for="ai_type_mc" style="cursor: pointer;">
-                                                        Pilihan Ganda
-                                                    </label>
+                                                <div class="border rounded px-3 py-2">
+                                                    <div class="custom-control custom-radio">
+                                                        <input type="radio" id="ai_type_mc" name="ai_question_type" value="multiple_choice" class="custom-control-input" checked>
+                                                        <label class="custom-control-label d-block" for="ai_type_mc">Pilihan Ganda</label>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div class="col-6">
-                                                <div class="custom-control custom-radio p-2 border rounded bg-light">
-                                                    <input type="radio" id="ai_type_essay" name="ai_question_type" value="essay" class="custom-control-input">
-                                                    <label class="custom-control-label font-weight-bold text-sm text-dark d-block" for="ai_type_essay" style="cursor: pointer;">
-                                                        Essay / Uraian
-                                                    </label>
+                                                <div class="border rounded px-3 py-2">
+                                                    <div class="custom-control custom-radio">
+                                                        <input type="radio" id="ai_type_essay" name="ai_question_type" value="essay" class="custom-control-input">
+                                                        <label class="custom-control-label d-block" for="ai_type_essay">Essay / Uraian</label>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
                                     <!-- TINGKAT KESULITAN -->
-                                    <div class="form-group mb-3">
-                                        <label class="font-weight-600 text-sm mb-1">Tingkat Kesulitan:</label>
+                                    <div class="form-group">
+                                        <label for="aiDifficulty">Tingkat Kesulitan</label>
                                         <select id="aiDifficulty" class="form-control form-control-sm">
                                             <option value="campuran" selected>Campuran</option>
                                             <option value="mudah">Mudah</option>
@@ -413,28 +383,26 @@
                                     </div>
 
                                     <!-- INSTRUKSI KHUSUS -->
-                                    <div class="form-group mb-3">
-                                        <label class="font-weight-600 text-sm mb-1">Instruksi Khusus (Opsional):</label>
+                                    <div class="form-group">
+                                        <label for="aiCustomPrompt">Instruksi Khusus <span class="text-muted">(opsional)</span></label>
                                         <textarea id="aiCustomPrompt" class="form-control form-control-sm" rows="2" placeholder="Tulis catatan atau instruksi tambahan jika ada..."></textarea>
                                     </div>
 
                                     <!-- GEMINI API KEY STATUS / OVERRIDE -->
-                                    <div class="form-group mb-0 p-2 rounded border bg-light">
+                                    <div class="p-3 rounded border bg-light">
                                         @if($isGeminiConfigured)
-                                            <div class="d-flex align-items-center justify-content-between">
-                                                <span class="text-xs text-success font-weight-bold">
-                                                    AI API Key Terhubung (.env)
+                                            <div class="d-flex align-items-center justify-content-between small">
+                                                <span class="text-success">
+                                                    <i class="fas fa-check-circle"></i> API key AI terhubung (.env)
                                                 </span>
-                                                <a href="javascript:void(0)" class="text-xs text-secondary" id="btnToggleApiKeyInput">Ubah Key</a>
+                                                <a href="javascript:void(0)" id="btnToggleApiKeyInput">Ubah key</a>
                                             </div>
                                             <div id="aiApiKeyWrapper" class="mt-2 d-none">
                                                 <input type="password" id="aiApiKeyOverride" class="form-control form-control-sm" placeholder="Masukkan API Key kustom...">
                                             </div>
                                         @else
                                             <div>
-                                                <label class="text-xs font-weight-bold text-danger mb-1 d-block">
-                                                    Masukkan API Key:
-                                                </label>
+                                                <label for="aiApiKeyOverride" class="d-block">API Key AI <span class="text-danger">*</span></label>
                                                 <input type="text" id="aiApiKeyOverride" class="form-control form-control-sm" placeholder="Masukkan API Key...">
                                             </div>
                                         @endif
@@ -445,10 +413,10 @@
                     </div>
 
                     <!-- TRIGGER BUTTON -->
-                    <div class="text-right mt-3">
-                        <button type="button" class="btn btn-default px-4 mr-2" data-dismiss="modal">Tutup</button>
-                        <button type="button" id="btnTriggerAiGenerate" class="btn btn-primary font-weight-bold px-4">
-                            Mulai Generate Soal
+                    <div class="d-flex justify-content-end gap-2 mt-3">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Tutup</button>
+                        <button type="button" id="btnTriggerAiGenerate" class="btn btn-primary">
+                            <i class="fas fa-magic"></i> Mulai Generate Soal
                         </button>
                     </div>
                 </div>
@@ -456,11 +424,11 @@
                 <!-- STEP 2: LOADING PROGRESS -->
                 <div id="aiStepLoading" class="text-center py-5 d-none">
                     <div class="mb-4">
-                        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                        <div class="spinner-border text-primary" role="status">
                             <span class="sr-only">Loading...</span>
                         </div>
                     </div>
-                    <h5 class="font-weight-bold text-dark mb-3" id="aiLoadingStatusTitle">
+                    <h5 class="section-title mb-3" id="aiLoadingStatusTitle">
                         Memproses Soal via AI...
                     </h5>
                     <div class="progress mx-auto" style="height: 6px; max-width: 320px;">
@@ -470,11 +438,9 @@
 
                 <!-- STEP 3: REVIEW & EDIT GENERATED QUESTIONS -->
                 <div id="aiStepReview" class="d-none">
-                    <div class="d-flex align-items-center justify-content-between mb-3 py-2 px-3 border rounded bg-light">
-                        <div>
-                            <strong class="text-dark">Hasil Soal AI (<span id="aiReviewCountText">0</span> Soal)</strong>
-                        </div>
-                        <div class="d-flex align-items-center" style="gap: 8px;">
+                    <div class="d-flex align-items-center justify-content-between mb-3 py-2 px-3 border rounded bg-white">
+                        <strong>Hasil Soal AI (<span id="aiReviewCountText">0</span> Soal)</strong>
+                        <div class="d-flex align-items-center gap-2">
                             <button type="button" class="btn btn-xs btn-default" id="btnAiSelectAll">Pilih Semua</button>
                             <button type="button" class="btn btn-xs btn-default" id="btnAiDeselectAll">Batal Semua</button>
                         </div>
@@ -486,13 +452,13 @@
                     </div>
 
                     <!-- FOOTER ACTIONS FOR REVIEW -->
-                    <div class="d-flex align-items-center justify-content-between mt-3 pt-3 border-top bg-white px-2">
-                        <button type="button" class="btn btn-default btn-sm" id="btnAiBackToConfig">
-                            Kembali
+                    <div class="d-flex align-items-center justify-content-between mt-3 pt-3 border-top">
+                        <button type="button" class="btn btn-default" id="btnAiBackToConfig">
+                            <i class="fas fa-arrow-left"></i> Kembali
                         </button>
-                        <div class="d-flex align-items-center" style="gap: 10px;">
-                            <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Batal</button>
-                            <button type="button" id="btnSaveAiBatch" class="btn btn-primary btn-sm font-weight-bold px-4">
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                            <button type="button" id="btnSaveAiBatch" class="btn btn-primary">
                                 Simpan <span id="aiSelectedToSaveCount">0</span> Soal
                             </button>
                         </div>
@@ -505,64 +471,58 @@
 
 <!-- 1. ADD QUESTION MODAL (MANUAL) -->
 <div class="modal fade" id="addQuestionModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content shadow border-0" style="border-radius: 8px;">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
             <form action="/training/{{ $training->id }}/questions" method="POST">
                 @csrf
-                <div class="modal-header bg-white border-bottom py-3">
-                    <h5 class="modal-title font-weight-bold text-dark">Tambah Pertanyaan Manual</h5>
-                    <button type="button" class="close text-dark" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                <div class="modal-header">
+                    <h5 class="modal-title">Tambah Pertanyaan Manual</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">&times;</button>
                 </div>
-                <div class="modal-body p-4">
-                    <div class="form-group mb-3">
-                        <label class="font-weight-600 mb-1">Tipe Soal <span class="text-danger">*</span></label>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="add_type_select">Tipe Soal <span class="text-danger">*</span></label>
                         <select name="type" id="add_type_select" class="form-control select-type" data-target="add_opts_container">
                             <option value="multiple_choice">Pilihan Ganda (A-B s/d A-F)</option>
                             <option value="essay">Essay / Uraian</option>
                         </select>
                     </div>
 
-                    <div class="form-group mb-3">
-                        <label class="font-weight-600 mb-1">Pertanyaan Soal <span class="text-danger">*</span></label>
+                    <div class="form-group">
+                        <label>Pertanyaan Soal <span class="text-danger">*</span></label>
                         <textarea name="question" class="form-control" rows="3" placeholder="Tuliskan pertanyaan di sini..." required></textarea>
                     </div>
 
                     <!-- OPTIONS CONTAINER -->
                     <div id="add_opts_container" class="opts-container">
-                        <div class="row mb-2">
-                            <div class="col-md-6 mb-2">
-                                <label class="font-weight-600 mb-1">Pilihan A <span class="text-danger">*</span></label>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label>Pilihan A <span class="text-danger">*</span></label>
                                 <input type="text" name="option_a" class="form-control" placeholder="Teks opsi A">
                             </div>
-                            <div class="col-md-6 mb-2">
-                                <label class="font-weight-600 mb-1">Pilihan B <span class="text-danger">*</span></label>
+                            <div class="form-group col-md-6">
+                                <label>Pilihan B <span class="text-danger">*</span></label>
                                 <input type="text" name="option_b" class="form-control" placeholder="Teks opsi B">
                             </div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-md-6 mb-2">
-                                <label class="font-weight-600 mb-1">Pilihan C (Opsional)</label>
+                            <div class="form-group col-md-6">
+                                <label>Pilihan C <span class="text-muted">(opsional)</span></label>
                                 <input type="text" name="option_c" class="form-control" placeholder="Teks opsi C">
                             </div>
-                            <div class="col-md-6 mb-2">
-                                <label class="font-weight-600 mb-1">Pilihan D (Opsional)</label>
+                            <div class="form-group col-md-6">
+                                <label>Pilihan D <span class="text-muted">(opsional)</span></label>
                                 <input type="text" name="option_d" class="form-control" placeholder="Teks opsi D">
                             </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6 mb-2">
-                                <label class="font-weight-600 mb-1">Pilihan E (Opsional)</label>
+                            <div class="form-group col-md-6">
+                                <label>Pilihan E <span class="text-muted">(opsional)</span></label>
                                 <input type="text" name="option_e" class="form-control" placeholder="Teks opsi E">
                             </div>
-                            <div class="col-md-6 mb-2">
-                                <label class="font-weight-600 mb-1">Pilihan F (Opsional)</label>
+                            <div class="form-group col-md-6">
+                                <label>Pilihan F <span class="text-muted">(opsional)</span></label>
                                 <input type="text" name="option_f" class="form-control" placeholder="Teks opsi F">
                             </div>
                         </div>
-                        <div class="form-group mb-3">
-                            <label class="font-weight-600 mb-1">Kunci Jawaban Benar <span class="text-danger">*</span></label>
+                        <div class="form-group">
+                            <label>Kunci Jawaban Benar <span class="text-danger">*</span></label>
                             <select name="correct_answer" class="form-control select-key">
                                 <option value="a">Pilihan A</option>
                                 <option value="b">Pilihan B</option>
@@ -576,20 +536,20 @@
 
                     <!-- ESSAY KEY CONTAINER -->
                     <div id="add_essay_container" class="essay-key-container" style="display: none;">
-                        <div class="form-group mb-3">
-                            <label class="font-weight-600 mb-1">Pedoman Kunci Jawaban (Opsional)</label>
+                        <div class="form-group">
+                            <label>Pedoman Kunci Jawaban <span class="text-muted">(opsional)</span></label>
                             <textarea name="correct_answer" class="form-control essay-input" rows="2" placeholder="Catatan acuan jawaban benar..."></textarea>
                         </div>
                     </div>
 
                     <div class="form-group mb-0">
-                        <label class="font-weight-600 mb-1">Catatan Pembahasan (Opsional)</label>
+                        <label>Catatan Pembahasan <span class="text-muted">(opsional)</span></label>
                         <textarea name="explanation" class="form-control" rows="2" placeholder="Catatan penjelasan jawaban..."></textarea>
                     </div>
                 </div>
-                <div class="modal-footer bg-light border-top py-2">
-                    <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary btn-sm px-3">Simpan Soal</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan Soal</button>
                 </div>
             </form>
         </div>
@@ -599,41 +559,35 @@
 <!-- 2. IMPORT TEXT MODAL (COPY-PASTE CEPAT) -->
 <div class="modal fade" id="importTextModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
-        <div class="modal-content shadow border-0" style="border-radius: 8px;">
+        <div class="modal-content">
             <form action="/training/{{ $training->id }}/questions/import-text" method="POST">
                 @csrf
-                <div class="modal-header bg-white border-bottom py-3">
-                    <h5 class="modal-title font-weight-bold text-dark">
-                        Import Soal via Teks
-                    </h5>
-                    <button type="button" class="close text-dark" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                <div class="modal-header">
+                    <h5 class="modal-title">Import Soal via Teks</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">&times;</button>
                 </div>
-                <div class="modal-body p-4">
+                <div class="modal-body">
                     <div class="row">
                         <!-- KOLOM KIRI: TEXTAREA -->
                         <div class="col-lg-8 mb-3 mb-lg-0">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <label class="font-weight-bold m-0 text-dark">
-                                    Area Teks Soal:
-                                </label>
+                                <label for="pasteTextarea" class="mb-0">Teks Soal</label>
                                 <button type="button" class="btn btn-default btn-xs" id="btnInsertSample">
                                     Isi Contoh
                                 </button>
                             </div>
-                            <textarea name="raw_text" id="pasteTextarea" class="form-control" style="height: 480px !important; min-height: 440px !important; resize: vertical; font-size: 14px; line-height: 1.6; font-family: 'Courier New', Courier, monospace; border: 1px solid #ced4da; border-radius: 6px; padding: 12px;" placeholder="Tempelkan teks soal kuis Anda di sini..." required></textarea>
+                            <textarea name="raw_text" id="pasteTextarea" class="form-control text-monospace" style="height: 480px !important; min-height: 440px !important; resize: vertical;" placeholder="Tempelkan teks soal kuis Anda di sini..." required></textarea>
                         </div>
 
                         <!-- KOLOM KANAN: PANDUAN FORMAT -->
                         <div class="col-lg-4">
-                            <div class="card h-100 border bg-light mb-0 shadow-none">
-                                <div class="card-header bg-white py-2 font-weight-bold text-dark text-sm">
-                                    Panduan Format Penulisan
+                            <div class="card h-100 mb-0">
+                                <div class="card-header">
+                                    <h3 class="card-title">Panduan Format Penulisan</h3>
                                 </div>
-                                <div class="card-body p-3 text-xs" style="overflow-y: auto; max-height: 480px;">
-                                    <p class="mb-1 text-dark font-weight-bold">1. Pilihan Ganda (A-D):</p>
-                                    <div class="p-2 bg-white rounded border mb-3 font-monospace" style="font-size: 11px;">
+                                <div class="card-body small" style="overflow-y: auto; max-height: 480px;">
+                                    <p class="mb-1 text-dark"><strong>1. Pilihan Ganda (A-D)</strong></p>
+                                    <div class="p-2 bg-light rounded border mb-3 text-monospace">
 1. Pertanyaan soal...<br>
 A. Opsi A<br>
 B. Opsi B<br>
@@ -643,16 +597,16 @@ KUNCI: A<br>
 PENJELASAN: Catatan pembahasan (opsional)
                                     </div>
 
-                                    <p class="mb-1 text-dark font-weight-bold">2. True / False (Hanya A & B):</p>
-                                    <div class="p-2 bg-white rounded border mb-3 font-monospace" style="font-size: 11px;">
+                                    <p class="mb-1 text-dark"><strong>2. True / False (Hanya A & B)</strong></p>
+                                    <div class="p-2 bg-light rounded border mb-3 text-monospace">
 2. Apakah kehadiran wajib diisi?<br>
 A. Ya<br>
 B. Tidak<br>
 KUNCI: A
                                     </div>
 
-                                    <p class="mb-1 text-dark font-weight-bold">3. Opsi Panjang (A s/d F):</p>
-                                    <div class="p-2 bg-white rounded border mb-3 font-monospace" style="font-size: 11px;">
+                                    <p class="mb-1 text-dark"><strong>3. Opsi Panjang (A s/d F)</strong></p>
+                                    <div class="p-2 bg-light rounded border mb-3 text-monospace">
 3. Pertanyaan soal opsi banyak...<br>
 A. Opsi 1<br>
 B. Opsi 2<br>
@@ -663,8 +617,8 @@ F. Opsi 6<br>
 KUNCI: E
                                     </div>
 
-                                    <p class="mb-1 text-dark font-weight-bold">4. Soal Essay / Uraian:</p>
-                                    <div class="p-2 bg-white rounded border mb-0 font-monospace" style="font-size: 11px;">
+                                    <p class="mb-1 text-dark"><strong>4. Soal Essay / Uraian</strong></p>
+                                    <div class="p-2 bg-light rounded border mb-0 text-monospace">
 4. Jelaskan materi setelah zoom!<br>
 TIPE: ESSAY<br>
 KUNCI: Acuan poin jawaban peserta
@@ -674,11 +628,9 @@ KUNCI: Acuan poin jawaban peserta
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-light border-top py-2">
-                    <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary btn-sm px-4">
-                        Simpan Semua Soal
-                    </button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan Semua Soal</button>
                 </div>
             </form>
         </div>
@@ -688,34 +640,26 @@ KUNCI: Acuan poin jawaban peserta
 <!-- 3. IMPORT EXCEL / CSV MODAL -->
 <div class="modal fade" id="importExcelModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content shadow border-0" style="border-radius: 8px;">
+        <div class="modal-content">
             <form action="/training/{{ $training->id }}/questions/import-excel" method="POST" enctype="multipart/form-data">
                 @csrf
-                <div class="modal-header bg-white border-bottom py-3">
-                    <h5 class="modal-title font-weight-bold text-dark">
-                        Import Soal via Excel / CSV
-                    </h5>
-                    <button type="button" class="close text-dark" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                <div class="modal-header">
+                    <h5 class="modal-title">Import Soal via Excel / CSV</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">&times;</button>
                 </div>
-                <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <a href="/training/{{ $training->id }}/questions/template" class="btn btn-default btn-sm btn-block">
-                            Unduh Template Excel (.xlsx)
-                        </a>
-                    </div>
+                <div class="modal-body">
+                    <a href="/training/{{ $training->id }}/questions/template" class="btn btn-default btn-block mb-3">
+                        <i class="fas fa-download"></i> Unduh Template Excel (.xlsx)
+                    </a>
 
                     <div class="form-group mb-0">
-                        <label class="font-weight-600 mb-1">Pilih File Spreadsheet (.xlsx, .xls, .csv)</label>
-                        <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.csv" required>
+                        <label for="importExcelFile">File Spreadsheet (.xlsx, .xls, .csv)</label>
+                        <input type="file" name="file" id="importExcelFile" class="form-control" accept=".xlsx,.xls,.csv" required>
                     </div>
                 </div>
-                <div class="modal-footer bg-light border-top py-2">
-                    <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary btn-sm px-4">
-                        Import File
-                    </button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Import File</button>
                 </div>
             </form>
         </div>
@@ -831,7 +775,7 @@ document.addEventListener('DOMContentLoaded', function () {
         count += otherSelected.length;
         if (docSelectedCount) {
             docSelectedCount.textContent = count + ' Terpilih';
-            docSelectedCount.className = count > 0 ? 'badge badge-success' : 'badge badge-light border text-muted';
+            docSelectedCount.className = count > 0 ? 'badge badge-success' : 'badge badge-secondary';
         }
     }
 
@@ -995,62 +939,62 @@ document.addEventListener('DOMContentLoaded', function () {
 
         questions.forEach(function(q, index) {
             var card = document.createElement('div');
-            card.className = 'card mb-3 border shadow-sm ai-q-card';
+            card.className = 'card mb-3 ai-q-card';
             card.setAttribute('data-index', index);
 
             var isEssay = (q.type === 'essay');
 
-            var cardHtml = '<div class="card-header py-2 bg-light d-flex align-items-center justify-content-between">' +
-                '<div class="d-flex align-items-center">' +
-                    '<div class="custom-control custom-checkbox mr-2">' +
+            var cardHtml = '<div class="card-header">' +
+                '<div class="d-flex align-items-center gap-2">' +
+                    '<div class="custom-control custom-checkbox">' +
                         '<input type="checkbox" class="custom-control-input ai-include-cb" id="ai_inc_' + index + '" checked>' +
-                        '<label class="custom-control-label font-weight-bold text-dark" for="ai_inc_' + index + '">Soal #' + (index + 1) + '</label>' +
+                        '<label class="custom-control-label text-dark" for="ai_inc_' + index + '">Soal #' + (index + 1) + '</label>' +
                     '</div>' +
-                    '<span class="badge ' + (isEssay ? 'badge-info' : 'badge-primary') + ' ml-1">' +
-                        (isEssay ? 'ESSAY' : 'PILIHAN GANDA') +
+                    '<span class="badge badge-secondary">' +
+                        (isEssay ? 'Essay' : 'Pilihan Ganda') +
                     '</span>' +
                 '</div>' +
                 '<small class="text-muted">AI</small>' +
             '</div>';
 
-            cardHtml += '<div class="card-body p-4">' +
-                '<div class="form-group mb-3">' +
-                    '<label class="font-weight-bold text-dark text-sm mb-1">Pertanyaan:</label>' +
-                    '<textarea class="form-control ai-q-text" rows="3" style="font-size: 0.95rem; font-weight: 500; line-height: 1.6; min-height: 90px; border-radius: 8px; resize: vertical; border-color: #cbd5e1; padding: 10px 12px;">' + escapeHtml(q.question) + '</textarea>' +
+            cardHtml += '<div class="card-body">' +
+                '<div class="form-group">' +
+                    '<label>Pertanyaan</label>' +
+                    '<textarea class="form-control ai-q-text" rows="3">' + escapeHtml(q.question) + '</textarea>' +
                 '</div>';
 
             if (!isEssay) {
-                cardHtml += '<div class="mb-3">' +
-                    '<label class="font-weight-bold text-dark text-sm mb-2">Pilihan Jawaban (Tandai kunci jawaban):</label>' +
+                cardHtml += '<div class="form-group">' +
+                    '<label>Pilihan Jawaban <span class="text-muted">(tandai kunci jawaban)</span></label>' +
                     '<div class="row">' +
                     ['a', 'b', 'c', 'd', 'e'].map(function(opt) {
                         var optVal = q['option_' + opt] || '';
                         var isChecked = (q.correct_answer === opt) ? 'checked' : '';
-                        var highlightStyle = (q.correct_answer === opt) ? 'border-color: #3b82f6; background-color: #eff6ff;' : '';
+                        var keyClass = (q.correct_answer === opt) ? ' is-key' : '';
                         return '<div class="col-md-6 mb-2">' +
-                            '<div class="input-group" style="border-radius: 8px; ' + highlightStyle + '">' +
+                            '<div class="input-group' + keyClass + '">' +
                                 '<div class="input-group-prepend">' +
-                                    '<span class="input-group-text bg-light font-weight-bold" style="cursor: pointer;" title="Tandai sebagai kunci">' +
+                                    '<span class="input-group-text" style="cursor: pointer;" title="Tandai sebagai kunci">' +
                                         '<input type="radio" name="ai_correct_' + index + '" value="' + opt + '" ' + isChecked + ' class="mr-1 ai-radio-key" style="cursor: pointer;">' +
-                                        '<span class="text-uppercase text-dark font-weight-bold">' + opt + '</span>' +
+                                        '<span class="text-dark">' + opt.toUpperCase() + '</span>' +
                                     '</span>' +
                                 '</div>' +
-                                '<input type="text" class="form-control ai-opt-' + opt + '" value="' + escapeHtml(optVal) + '" placeholder="Opsi ' + opt.toUpperCase() + '" style="font-size: 0.9rem;">' +
+                                '<input type="text" class="form-control ai-opt-' + opt + '" value="' + escapeHtml(optVal) + '" placeholder="Opsi ' + opt.toUpperCase() + '">' +
                             '</div>' +
                         '</div>';
                     }).join('') +
                     '</div>' +
                 '</div>';
             } else {
-                cardHtml += '<div class="form-group mb-3">' +
-                    '<label class="font-weight-bold text-dark text-sm mb-1">Pedoman Kunci Jawaban:</label>' +
-                    '<textarea class="form-control ai-essay-key" rows="3" style="font-size: 0.9rem; line-height: 1.5; min-height: 85px; border-radius: 8px; resize: vertical; padding: 10px 12px;">' + escapeHtml(q.correct_answer || '') + '</textarea>' +
+                cardHtml += '<div class="form-group">' +
+                    '<label>Pedoman Kunci Jawaban</label>' +
+                    '<textarea class="form-control ai-essay-key" rows="3">' + escapeHtml(q.correct_answer || '') + '</textarea>' +
                 '</div>';
             }
 
             cardHtml += '<div class="form-group mb-0">' +
-                '<label class="font-weight-bold text-dark text-sm mb-1">Pembahasan / Penjelasan:</label>' +
-                '<textarea class="form-control ai-q-explanation" rows="3" placeholder="Penjelasan rujukan dokumen mengapa jawaban ini benar..." style="font-size: 0.9rem; line-height: 1.5; min-height: 85px; border-radius: 8px; resize: vertical; background-color: #f8fafc; border-color: #e2e8f0; padding: 10px 12px;">' + escapeHtml(q.explanation || '') + '</textarea>' +
+                '<label>Pembahasan / Penjelasan</label>' +
+                '<textarea class="form-control ai-q-explanation" rows="3" placeholder="Penjelasan rujukan dokumen mengapa jawaban ini benar...">' + escapeHtml(q.explanation || '') + '</textarea>' +
             '</div>' +
             '</div>';
 
@@ -1079,13 +1023,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 var card = this.closest('.ai-q-card');
                 if (card) {
                     card.querySelectorAll('.input-group').forEach(function(ig) {
-                        ig.style.borderColor = '';
-                        ig.style.backgroundColor = '';
+                        ig.classList.remove('is-key');
                     });
                     var parentGroup = this.closest('.input-group');
                     if (parentGroup) {
-                        parentGroup.style.borderColor = '#3b82f6';
-                        parentGroup.style.backgroundColor = '#eff6ff';
+                        parentGroup.classList.add('is-key');
                     }
                 }
             });

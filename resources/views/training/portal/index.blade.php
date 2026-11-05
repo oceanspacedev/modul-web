@@ -4,53 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $training->title }} - Portal Pelatihan</title>
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <style>
-        body {
-            background-color: #f8f9fa;
-            color: #212529;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
-        .portal-header {
-            background-color: #ffffff;
-            border-bottom: 1px solid #e9ecef;
-            padding: 16px 0;
-            margin-bottom: 24px;
-        }
-        .content-card {
-            background: #ffffff;
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
-            padding: 24px;
-            margin-bottom: 24px;
-        }
-        .content-card-header {
-            font-weight: 600;
-            font-size: 1.1rem;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #f1f3f5;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        @keyframes livePulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50%       { opacity: 0.4; transform: scale(1.3); }
-        }
-    </style>
+    @include('layout.partials.portal-head')
 </head>
 <body>
 
     <header class="portal-header">
-        <div class="container" style="max-width: 760px;">
+        <div class="container portal-container">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <strong class="text-primary font-weight-bold" style="font-size: 1.1rem;">MODUL WEB</strong>
-                    <span class="text-muted ml-2">| Portal Pelatihan</span>
+                    <span class="portal-brand"><span class="brand-logo"><i class="fas fa-layer-group"></i></span> Modul App <span class="portal-brand-sub">Portal Pelatihan</span></span>
                 </div>
                 <div class="text-muted small">
                     {{ $user->nama_lengkap }}
@@ -59,7 +21,7 @@
         </div>
     </header>
 
-    <main class="container mb-5" style="max-width: 760px;">
+    <main class="container portal-container mb-5">
         @if(session('success'))
             <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
                 {{ session('success') }}
@@ -99,18 +61,18 @@
                 <x-training-status-badge :status="$training->status" />
             </div>
 
-            <h3 class="font-weight-bold mb-3" style="font-size: 1.4rem;">
+            <h1 class="page-title mb-3" style="font-size: 1.375rem;">
                 {{ $training->title }}
-            </h3>
+            </h1>
 
-            <div class="row mb-3 text-muted" style="font-size: 0.95rem;">
+            <div class="row mb-3">
                 <div class="col-sm-6 mb-2">
-                    <span class="text-secondary small d-block">Pemateri:</span>
-                    <strong class="text-dark">{{ $training->trainer->nama_lengkap ?? '-' }}</strong>
+                    <span class="text-muted small d-block">Pemateri</span>
+                    <strong>{{ $training->trainer->nama_lengkap ?? '-' }}</strong>
                 </div>
                 <div class="col-sm-6 mb-2">
-                    <span class="text-secondary small d-block">Jadwal:</span>
-                    <strong class="text-dark">{{ \Carbon\Carbon::parse($training->training_date)->format('d F Y') }}</strong>
+                    <span class="text-muted small d-block">Jadwal</span>
+                    <strong>{{ \Carbon\Carbon::parse($training->training_date)->format('d F Y') }}</strong>
                     <span class="small d-block text-muted">{{ substr($training->start_time, 0, 5) }} - {{ substr($training->end_time, 0, 5) }} WIB</span>
                 </div>
             </div>
@@ -128,7 +90,7 @@
                 </div>
             @else
                 <div>
-                    <a href="{{ $training->zoom_link }}" target="_blank" rel="noopener" class="btn btn-primary btn-block py-2 font-weight-bold">
+                    <a href="{{ $training->zoom_link }}" target="_blank" rel="noopener" class="btn btn-primary btn-block">
                         <i class="fas fa-video mr-1"></i> Buka Tautan Zoom
                     </a>
                 </div>
@@ -150,7 +112,7 @@
                                     <span class="font-weight-bold text-dark small text-truncate d-block">{{ $pdoc->name }}</span>
                                     <span class="text-xs text-muted">{{ $pdoc->dokumentype->name ?? 'Dokumen' }} &bull; Versi {{ $pdoc->version ?? 1 }}</span>
                                 </div>
-                                <span class="badge badge-light border text-secondary font-weight-bold">Buka</span>
+                                <span class="badge badge-secondary">Buka</span>
                             </a>
                         @endforeach
                     </div>
@@ -162,17 +124,17 @@
         <div class="content-card" id="attendanceCard">
             <div class="content-card-header">
                 <span>Presensi Kehadiran</span>
-                <div class="d-flex align-items-center" style="gap: 8px;">
+                <div class="d-flex align-items-center gap-2">
                     @if($participant->attendance_status === 'hadir')
-                        <span class="badge badge-success px-2 py-1" id="attendanceBadge">Hadir</span>
+                        <span class="badge badge-success" id="attendanceBadge">Hadir</span>
                     @elseif($participant->attendance_status === 'tidak_hadir')
-                        <span class="badge badge-danger px-2 py-1" id="attendanceBadge">Tidak Hadir</span>
+                        <span class="badge badge-danger" id="attendanceBadge">Tidak Hadir</span>
                     @else
-                        <span class="badge badge-warning text-white px-2 py-1" id="attendanceBadge">Belum Konfirmasi</span>
+                        <span class="badge badge-warning" id="attendanceBadge">Belum Konfirmasi</span>
                     @endif
-                    <span id="liveIndicator" class="d-flex align-items-center" style="gap: 4px;" title="Halaman ini memperbarui status secara otomatis">
-                        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#28a745;animation:livePulse 1.5s infinite;"></span>
-                        <span class="text-muted" style="font-size:0.75rem;">Live</span>
+                    <span id="liveIndicator" class="d-flex align-items-center gap-1" title="Halaman ini memperbarui status secara otomatis">
+                        <span class="live-dot"></span>
+                        <span class="text-muted text-xs">Live</span>
                     </span>
                 </div>
             </div>
@@ -217,10 +179,8 @@
                 {{-- BELUM ABSEN (STATUS: PENDING) --}}
                 @if(!$training->is_attendance_active)
                     <div class="text-center py-4" id="attendanceBody" data-state="locked">
-                        <div class="mb-2 text-warning" style="font-size: 2.2rem;">
-                            <i class="fas fa-user-clock"></i>
-                        </div>
-                        <h6 class="font-weight-bold text-dark mb-1">Presensi Kehadiran Belum Dibuka</h6>
+                        <span class="empty-state-icon"><i class="fas fa-user-clock"></i></span>
+                        <h6 class="mb-1">Presensi Kehadiran Belum Dibuka</h6>
                         <p class="text-muted small mb-0" style="max-width: 480px; margin: 0 auto;">
                             Sesi presensi kehadiran saat ini belum dibuka oleh Pemateri / Admin. Silakan tunggu instruksi dari pemateri saat sesi pelatihan berlangsung.
                         </p>
@@ -267,12 +227,12 @@
                             </div>
                         </div>
 
-                        <div class="d-flex" style="gap: 12px;">
-                            <button type="submit" class="btn btn-success flex-grow-1 py-2 font-weight-bold">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary flex-grow-1">
                                 <i class="fas fa-check-circle mr-1"></i> Saya Hadir
                             </button>
 
-                            <button type="button" class="btn btn-outline-secondary px-4 py-2" data-toggle="collapse" data-target="#notAttendBox">
+                            <button type="button" class="btn btn-default px-4" data-toggle="collapse" data-target="#notAttendBox">
                                 Tidak Hadir
                             </button>
                         </div>
@@ -305,15 +265,15 @@
 
             @if($participant->quizResult)
                 <div class="p-4 bg-light rounded text-center border mb-3">
-                    <span class="text-muted small text-uppercase font-weight-bold d-block mb-1">Nilai Akhir Anda</span>
-                    <h2 class="display-4 font-weight-bold text-primary mb-2">{{ $participant->quizResult->score }}</h2>
+                    <span class="text-muted small d-block mb-1">Nilai akhir Anda</span>
+                    <div class="score-display mb-2">{{ $participant->quizResult->score }}</div>
                     <span class="text-muted small">
                         Jawaban Benar: {{ $participant->quizResult->correct_answers }} dari {{ $participant->quizResult->total_questions }} Soal
                     </span>
                 </div>
 
-                <div class="d-flex justify-content-center" style="gap: 10px;">
-                    <a href="/training/portal/{{ $participant->token }}/result" class="btn btn-outline-primary btn-sm px-4 py-2 font-weight-bold">
+                <div class="d-flex justify-content-center gap-2">
+                    <a href="/training/portal/{{ $participant->token }}/result" class="btn btn-default">
                         Lihat Pembahasan
                     </a>
                 </div>
@@ -323,7 +283,7 @@
                     <p class="text-muted small mb-3">
                         Kuis evaluasi telah dibuka oleh pemateri. Silakan klik tombol di bawah untuk mulai mengerjakan:
                     </p>
-                    <a href="/training/portal/{{ $participant->token }}/quiz" class="btn btn-primary btn-block py-2 font-weight-bold">
+                    <a href="/training/portal/{{ $participant->token }}/quiz" class="btn btn-primary btn-block">
                         Mulai Kerjakan Kuis
                     </a>
                 @else
@@ -436,11 +396,11 @@
                           enctype="multipart/form-data" id="attendanceForm">
                         <input type="hidden" name="_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="status" value="hadir">
-                        <div class="d-flex" style="gap: 12px;">
-                            <button type="submit" class="btn btn-success flex-grow-1 py-2 font-weight-bold">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary flex-grow-1">
                                 <i class="fas fa-check-circle mr-1"></i> Saya Hadir
                             </button>
-                            <button type="button" class="btn btn-outline-secondary px-4 py-2"
+                            <button type="button" class="btn btn-default px-4"
                                     data-toggle="collapse" data-target="#notAttendBox">
                                 Tidak Hadir
                             </button>
@@ -466,10 +426,8 @@
             function buildAttendanceLockedHTML() {
                 return `
                     <div class="text-center py-4">
-                        <div class="mb-2 text-warning" style="font-size: 2.2rem;">
-                            <i class="fas fa-user-clock"></i>
-                        </div>
-                        <h6 class="font-weight-bold text-dark mb-1">Presensi Kehadiran Belum Dibuka</h6>
+                        <span class="empty-state-icon"><i class="fas fa-user-clock"></i></span>
+                        <h6 class="mb-1">Presensi Kehadiran Belum Dibuka</h6>
                         <p class="text-muted small mb-0" style="max-width: 480px; margin: 0 auto;">
                             Sesi presensi kehadiran saat ini belum dibuka oleh Pemateri / Admin.
                             Halaman ini memperbarui otomatis — Anda tidak perlu me-refresh.
@@ -482,7 +440,7 @@
                     <p class="text-muted small mb-3">
                         Kuis evaluasi telah dibuka oleh pemateri. Silakan klik tombol di bawah untuk mulai mengerjakan:
                     </p>
-                    <a href="${QUIZ_URL}" class="btn btn-primary btn-block py-2 font-weight-bold">
+                    <a href="${QUIZ_URL}" class="btn btn-primary btn-block">
                         Mulai Kerjakan Kuis
                     </a>`;
             }
@@ -564,7 +522,7 @@
                                     attendanceBody.setAttribute('data-state', 'open');
                                 }
                                 if (attendanceBadge) {
-                                    attendanceBadge.className   = 'badge badge-warning text-white px-2 py-1';
+                                    attendanceBadge.className   = 'badge badge-warning';
                                     attendanceBadge.textContent = 'Belum Konfirmasi';
                                 }
                             } else if (!attendanceOpen && currentAttendanceActive) {

@@ -249,7 +249,7 @@ class RolePermissionTest extends TestCase
         $this->assertStringContainsString('/divisi', $sidebarAdmin);
         $this->assertStringContainsString('/position', $sidebarAdmin);
         $this->assertStringContainsString('/dokumentype', $sidebarAdmin);
-        $this->assertStringContainsString('Settings', $sidebarAdmin);
+        $this->assertStringContainsString('Pengaturan', $sidebarAdmin);
         $this->assertStringNotContainsString('/subdivisi', $sidebarAdmin);
         $this->assertStringNotContainsString('/joblevel', $sidebarAdmin);
     }

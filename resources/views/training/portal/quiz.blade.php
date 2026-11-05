@@ -4,73 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pengerjaan Kuis - {{ $training->title }}</title>
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
-    <!-- FontAwesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <style>
-        body {
-            background-color: #f8f9fa;
-            color: #212529;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
-        .quiz-header {
-            background-color: #ffffff;
-            border-bottom: 1px solid #dee2e6;
-            padding: 16px 0;
-            margin-bottom: 24px;
-            position: sticky;
-            top: 0;
-            z-index: 1020;
-        }
-        .question-card {
-            background: #ffffff;
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
-            padding: 24px;
-            margin-bottom: 20px;
-        }
-        .option-label {
-            display: flex;
-            align-items: flex-start;
-            padding: 12px 16px;
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            background-color: #ffffff;
-            transition: all 0.15s ease-in-out;
-        }
-        .option-label:hover {
-            background-color: #f8f9fa;
-            border-color: #ced4da;
-        }
-        .option-label input[type="radio"] {
-            margin-top: 4px;
-            margin-right: 12px;
-        }
-        .prevent-select {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-        }
-    </style>
+    @include('layout.partials.portal-head')
 </head>
 <body class="prevent-select">
 
     <header class="quiz-header">
-        <div class="container" style="max-width: 760px;">
+        <div class="container portal-container">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h5 class="font-weight-bold mb-0 text-dark">{{ $training->title }}</h5>
+                    <h1 class="h6 mb-0">{{ $training->title }}</h1>
                     <span class="text-muted small">Kuis Evaluasi Pelatihan</span>
                 </div>
-                <div class="d-flex align-items-center" style="gap: 8px;">
-                    <span class="badge badge-light border text-muted px-2 py-1 small" title="Maksimal 3 kali keluar halaman">
-                        <i class="fas fa-shield-alt text-danger mr-1"></i> Toleransi Keluar: 3x
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge badge-secondary" title="Maksimal 3 kali keluar halaman">
+                        <i class="fas fa-shield-alt"></i> Toleransi Keluar: 3x
                     </span>
-                    <span class="badge badge-secondary px-3 py-1 font-weight-bold">
+                    <span class="badge badge-primary">
                         {{ $questions->count() }} Soal
                     </span>
                 </div>
@@ -78,9 +27,8 @@
         </div>
     </header>
 
-    <main class="container mb-5" style="max-width: 760px;">
-        <div class="alert alert-light border mb-4 text-muted small">
-            <i class="fas fa-exclamation-circle text-danger mr-1"></i>
+    <main class="container portal-container mb-5">
+        <div class="alert alert-warning mb-4">
             <strong>Perhatian:</strong> Dilarang berpindah tab atau membuka aplikasi lain selama kuis berlangsung (toleransi maksimal 3 kali sebelum kuis otomatis dikumpulkan).
         </div>
 
@@ -94,18 +42,18 @@
 
             @foreach($questions as $index => $q)
             <div class="question-card">
-                <div class="mb-3 d-flex align-items-baseline">
-                    <span class="badge badge-dark mr-2">Soal {{ $index + 1 }}</span>
+                <div class="mb-3">
+                    <span class="badge badge-secondary mr-2">Soal {{ $index + 1 }}</span>
                     @if($q->type === 'essay')
-                        <span class="badge badge-info mr-2">Essay / Uraian</span>
+                        <span class="badge badge-primary mr-2">Essay / Uraian</span>
                     @endif
-                    <strong class="text-dark" style="font-size: 1.05rem;">{{ $q->question }}</strong>
+                    <strong class="d-block mt-2" style="font-size: 0.9375rem;">{{ $q->question }}</strong>
                 </div>
 
                 @if($q->type === 'essay')
                     <div class="mt-3">
-                        <label class="text-muted small font-weight-bold d-block mb-1">Jawaban Anda:</label>
-                        <textarea name="answers[{{ $q->id }}]" class="form-control" rows="4" placeholder="Ketikkan penjelasan atau jawaban Anda secara lengkap..." required style="border-radius: 6px;"></textarea>
+                        <label class="d-block mb-1">Jawaban Anda</label>
+                        <textarea name="answers[{{ $q->id }}]" class="form-control" rows="4" placeholder="Ketikkan penjelasan atau jawaban Anda secara lengkap..." required></textarea>
                     </div>
                 @else
                     <div class="mt-3">
@@ -131,11 +79,11 @@
             </div>
             @endforeach
 
-            <div class="card p-4 text-center border bg-white mb-5">
+            <div class="card p-4 text-center mb-5">
                 <p class="text-muted small mb-3">Pastikan Anda telah memeriksa kembali seluruh jawaban.</p>
-                <div class="d-flex justify-content-center" style="gap: 12px;">
+                <div class="d-flex justify-content-center gap-2">
                     <a href="/training/portal/{{ $participant->token }}" class="btn btn-default px-4">Batal</a>
-                    <button type="submit" id="btnSubmitQuiz" class="btn btn-primary px-5 font-weight-bold" onclick="return confirm('Kirimkan seluruh jawaban kuis ini?')">
+                    <button type="submit" id="btnSubmitQuiz" class="btn btn-primary px-4" onclick="return confirm('Kirimkan seluruh jawaban kuis ini?')">
                         Kirim Jawaban
                     </button>
                 </div>
@@ -146,13 +94,13 @@
     <!-- MODAL PERINGATAN (SIMPLE & TEGAS) -->
     <div class="modal fade" id="antiCheatModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="false">
         <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
-            <div class="modal-content border-danger shadow">
-                <div class="modal-header bg-danger text-white py-2 px-3">
-                    <h6 class="modal-title font-weight-bold mb-0" id="cheatModalHeading">
-                        <i class="fas fa-exclamation-triangle mr-1"></i> Peringatan Pindah Layar
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title" id="cheatModalHeading">
+                        <i class="fas fa-exclamation-triangle text-danger mr-1"></i> Peringatan Pindah Layar
                     </h6>
                 </div>
-                <div class="modal-body text-center p-3" id="antiCheatBody">
+                <div class="modal-body text-center" id="antiCheatBody">
                     <p class="text-dark font-weight-bold mb-2">
                         Anda terdeteksi meninggalkan halaman kuis!
                     </p>

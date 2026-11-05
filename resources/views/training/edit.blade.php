@@ -3,66 +3,47 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <div class="row mb-3">
-            <div class="col-sm-6">
-                <h1 class="m-0 text-dark font-weight-bold" style="font-size: 1.5rem;">
-                    Edit Pelatihan
-                </h1>
-            </div>
-            <div class="col-sm-6 text-right">
-                <a href="/training/{{ $training->id }}" class="btn btn-default btn-sm">
-                    Kembali ke Detail
+        <x-page-header title="Edit Pelatihan" :subtitle="$training->title" eyebrow="Pelatihan / Jadwal">
+            <x-slot:actions>
+                <a href="/training/{{ $training->id }}" class="btn btn-default">
+                    <i class="fas fa-arrow-left"></i> Kembali ke Detail
                 </a>
-            </div>
-        </div>
+            </x-slot:actions>
+        </x-page-header>
     </div>
 </section>
 
 <section class="content">
     <div class="container-fluid">
-        @if ($errors->any())
-            <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
-                <strong>Terdapat kesalahan pengisian:</strong>
-                <ul class="mb-0 pl-3 mt-1">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
+        <x-flash />
 
         <form action="{{ route('training.update', $training) }}" method="POST" id="trainingEditForm">
             @csrf
             @method('PUT')
             <div class="row">
-                <!-- FORM DETAIL -->
-                <div class="col-lg-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-header py-3">
-                            <h3 class="card-title font-weight-bold">
-                                Informasi Pelatihan
-                            </h3>
+                <div class="col-lg-7">
+                    {{-- INFORMASI PELATIHAN --}}
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Informasi Pelatihan</h3>
                         </div>
-                        <div class="card-body p-4">
-                            <div class="form-group mb-4">
-                                <label for="title" class="font-weight-600 mb-2">Judul / Topik Pelatihan <span class="text-danger">*</span></label>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="title">Judul / Topik Pelatihan <span class="text-danger">*</span></label>
                                 <input type="text" id="title" name="title" class="form-control" value="{{ old('title', $training->title) }}" required>
                             </div>
 
-                            <div class="row mb-4">
-                                <div class="col-md-6 mb-3 mb-md-0">
-                                    <label for="status" class="font-weight-600 mb-2">Status Pelatihan <span class="text-danger">*</span></label>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label for="status">Status Pelatihan <span class="text-danger">*</span></label>
                                     <select id="status" name="status" class="form-control" required>
                                         @foreach (App\Enums\TrainingStatus::cases() as $status)
                                             <option value="{{ $status->value }}" @selected(old('status', $training->status->value) === $status->value)>{{ $status->label() }}</option>
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="col-md-6">
-                                    <label for="trainer_id" class="font-weight-600 mb-2">Pemateri (Trainer) <span class="text-danger">*</span></label>
+                                <div class="form-group col-md-6">
+                                    <label for="trainer_id">Pemateri (Trainer) <span class="text-danger">*</span></label>
                                     <select id="trainer_id" name="trainer_id" class="form-control" required>
                                         @foreach($users as $u)
                                             <option value="{{ $u->id }}" {{ (old('trainer_id', $training->trainer_id) == $u->id) ? 'selected' : '' }}>
@@ -73,39 +54,47 @@
                                 </div>
                             </div>
 
-                            <div class="row mb-4">
-                                <div class="col-md-6 mb-3 mb-md-0">
-                                    <label for="training_date" class="font-weight-600 mb-2">Tanggal Pelaksanaan <span class="text-danger">*</span></label>
-                                    <input type="date" id="training_date" name="training_date" class="form-control" 
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label for="training_date">Tanggal Pelaksanaan <span class="text-danger">*</span></label>
+                                    <input type="date" id="training_date" name="training_date" class="form-control"
                                            value="{{ old('training_date', \Carbon\Carbon::parse($training->training_date)->format('Y-m-d')) }}" required>
                                 </div>
-                                <div class="col-md-3 col-6">
-                                    <label for="start_time" class="font-weight-600 mb-2">Jam Mulai <span class="text-danger">*</span></label>
-                                    <input type="time" id="start_time" name="start_time" class="form-control" 
+                                <div class="form-group col-md-3 col-6">
+                                    <label for="start_time">Jam Mulai <span class="text-danger">*</span></label>
+                                    <input type="time" id="start_time" name="start_time" class="form-control"
                                            value="{{ old('start_time', substr($training->start_time, 0, 5)) }}" required>
                                 </div>
-                                <div class="col-md-3 col-6">
-                                    <label for="end_time" class="font-weight-600 mb-2">Jam Selesai <span class="text-danger">*</span></label>
-                                    <input type="time" id="end_time" name="end_time" class="form-control" 
+                                <div class="form-group col-md-3 col-6">
+                                    <label for="end_time">Jam Selesai <span class="text-danger">*</span></label>
+                                    <input type="time" id="end_time" name="end_time" class="form-control"
                                            value="{{ old('end_time', substr($training->end_time, 0, 5)) }}" required>
                                 </div>
                             </div>
 
-                            <div class="form-group mb-4">
-                                <label for="zoom_link" class="font-weight-600 mb-2">Tautan Zoom / Google Meet <span class="text-danger">*</span></label>
-                                <input type="url" id="zoom_link" name="zoom_link" class="form-control" 
+                            <div class="form-group">
+                                <label for="zoom_link">Tautan Zoom / Google Meet <span class="text-danger">*</span></label>
+                                <input type="url" id="zoom_link" name="zoom_link" class="form-control"
                                        value="{{ old('zoom_link', $training->zoom_link) }}" required>
                             </div>
 
-                            <div class="form-group mb-4">
-                                <label for="description" class="font-weight-600 mb-2">Deskripsi / Silabus Materi</label>
+                            <div class="form-group mb-0">
+                                <label for="description">Deskripsi / Silabus Materi</label>
                                 <textarea id="description" name="description" class="form-control" rows="3">{{ old('description', $training->description) }}</textarea>
                             </div>
+                        </div>
+                    </div>
 
-                            <div class="form-group mb-4">
-                                <label for="documents" class="font-weight-600 mb-2 d-flex justify-content-between align-items-center">
+                    {{-- MATERI & MODE KUIS --}}
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Materi & Mode Kuis</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="documents" class="d-flex justify-content-between align-items-center">
                                     <span>Dokumen Materi (SOP / Modul)</span>
-                                    <span class="badge badge-light border text-muted font-weight-normal">{{ count($selectedDocuments) }} Terpilih</span>
+                                    <span class="badge badge-secondary">{{ count($selectedDocuments) }} Terpilih</span>
                                 </label>
                                 <select id="documents" name="documents[]" class="form-control select2" multiple="multiple" data-placeholder="-- Pilih dokumen materi acuan --">
                                     @foreach($documents as $doc)
@@ -116,70 +105,80 @@
                                 </select>
                             </div>
 
-                            <div class="form-group mb-0 pt-3 border-top">
-                                <label class="font-weight-600 mb-2 d-block">Tampilan / Mode Kuis Peserta</label>
+                            <div class="form-group mb-0">
+                                <label class="d-block">Tampilan / Mode Kuis Peserta</label>
                                 <div class="row">
                                     <div class="col-md-6 mb-2 mb-md-0">
-                                        <div class="custom-control custom-radio p-3 border rounded h-100 bg-light">
-                                            <input type="radio" id="mode_formal" name="quiz_mode" value="formal" class="custom-control-input" {{ old('quiz_mode', $training->quiz_mode ?? 'formal') === 'formal' ? 'checked' : '' }}>
-                                            <label class="custom-control-label font-weight-bold text-dark d-block" for="mode_formal" style="cursor: pointer;">
-                                                <i class="fas fa-file-alt text-primary mr-1"></i> Mode Formal (Ujian)
-                                                <span class="d-block text-muted text-xs font-weight-normal mt-1">
-                                                    Formulir ujian lengkap, anti-cheat ketat, dan cocok untuk evaluasi akademik/essay.
-                                                </span>
-                                            </label>
+                                        <div class="border rounded p-3 h-100">
+                                            <div class="custom-control custom-radio">
+                                                <input type="radio" id="mode_formal" name="quiz_mode" value="formal" class="custom-control-input" {{ old('quiz_mode', $training->quiz_mode ?? 'formal') === 'formal' ? 'checked' : '' }}>
+                                                <label class="custom-control-label d-block" for="mode_formal">
+                                                    <strong class="d-block">Mode Formal (Ujian)</strong>
+                                                    <span class="d-block text-muted small mt-1">
+                                                        Formulir ujian lengkap, anti-cheat ketat, dan cocok untuk evaluasi akademik/essay.
+                                                    </span>
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
-                                        <div class="custom-control custom-radio p-3 border rounded h-100 bg-light">
-                                            <input type="radio" id="mode_game" name="quiz_mode" value="game" class="custom-control-input" {{ old('quiz_mode', $training->quiz_mode ?? 'formal') === 'game' ? 'checked' : '' }}>
-                                            <label class="custom-control-label font-weight-bold text-dark d-block" for="mode_game" style="cursor: pointer;">
-                                                <i class="fas fa-gamepad text-success mr-1"></i> Mode Game (Quizizz)
-                                                <span class="d-block text-muted text-xs font-weight-normal mt-1">
-                                                    1 soal per layar, tombol warna-warni, timer per soal, sound effect, dan podium juara.
-                                                </span>
-                                            </label>
+                                        <div class="border rounded p-3 h-100">
+                                            <div class="custom-control custom-radio">
+                                                <input type="radio" id="mode_game" name="quiz_mode" value="game" class="custom-control-input" {{ old('quiz_mode', $training->quiz_mode ?? 'formal') === 'game' ? 'checked' : '' }}>
+                                                <label class="custom-control-label d-block" for="mode_game">
+                                                    <strong class="d-block">Mode Game (Quizizz)</strong>
+                                                    <span class="d-block text-muted small mt-1">
+                                                        1 soal per layar, tombol warna-warni, timer per soal, sound effect, dan podium juara.
+                                                    </span>
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
 
-                            <div class="form-group mb-0 pt-3 border-top">
-                                <div class="custom-control custom-checkbox mb-2">
-                                    <input type="checkbox" class="custom-control-input" id="is_attendance_active" name="is_attendance_active" value="1" {{ old('is_attendance_active', $training->is_attendance_active) ? 'checked' : '' }}>
-                                    <label class="custom-control-label font-weight-bold" for="is_attendance_active">
-                                        Buka akses presensi kehadiran peserta
-                                    </label>
-                                    <small class="form-text text-muted mt-0">Bisa dibuka/ditutup cepat dari halaman detail pelatihan.</small>
-                                </div>
-                                <div class="custom-control custom-checkbox">
-                                    <input type="checkbox" class="custom-control-input" id="require_attendance_proof" name="require_attendance_proof" value="1" {{ old('require_attendance_proof', $training->require_attendance_proof) ? 'checked' : '' }}>
-                                    <label class="custom-control-label font-weight-bold" for="require_attendance_proof">
-                                        Wajibkan peserta unggah screenshot bukti Zoom/Pelatihan
-                                    </label>
-                                    <small class="form-text text-muted mt-0">Peserta harus melampirkan screenshot layar Zoom saat konfirmasi kehadiran.</small>
-                                </div>
+                    {{-- PRESENSI --}}
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Presensi</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="custom-control custom-checkbox mb-3">
+                                <input type="checkbox" class="custom-control-input" id="is_attendance_active" name="is_attendance_active" value="1" {{ old('is_attendance_active', $training->is_attendance_active) ? 'checked' : '' }}>
+                                <label class="custom-control-label" for="is_attendance_active">
+                                    Buka akses presensi kehadiran peserta
+                                </label>
+                                <small class="form-text text-muted mt-0">Bisa dibuka/ditutup cepat dari halaman detail pelatihan.</small>
+                            </div>
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="require_attendance_proof" name="require_attendance_proof" value="1" {{ old('require_attendance_proof', $training->require_attendance_proof) ? 'checked' : '' }}>
+                                <label class="custom-control-label" for="require_attendance_proof">
+                                    Wajibkan peserta unggah screenshot bukti Zoom/Pelatihan
+                                </label>
+                                <small class="form-text text-muted mt-0">Peserta harus melampirkan screenshot layar Zoom saat konfirmasi kehadiran.</small>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- FORM PESERTA -->
-                <div class="col-lg-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-header py-3 d-flex align-items-center justify-content-between">
-                            <h3 class="card-title font-weight-bold">
-                                Kelola Peserta (<span id="selectedCountBadge">0</span> dipilih)
+                {{-- PESERTA --}}
+                <div class="col-lg-5">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                Peserta <span class="badge badge-secondary"><span id="selectedCountBadge">0</span> dipilih</span>
                             </h3>
-                            <div>
-                                <button type="button" id="btnSelectAll" class="btn btn-xs btn-default mr-1">Pilih Semua</button>
+                            <div class="card-tools d-flex gap-1">
+                                <button type="button" id="btnSelectAll" class="btn btn-xs btn-default">Pilih Semua</button>
                                 <button type="button" id="btnDeselectAll" class="btn btn-xs btn-default">Batal Semua</button>
                             </div>
                         </div>
 
-                        <div class="card-body p-4">
-                            <div class="row mb-3">
-                                <div class="col-sm-6 mb-2 mb-sm-0">
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="form-group col-sm-6">
                                     <select id="filterDivisi" class="form-control form-control-sm">
                                         <option value="">Semua Divisi</option>
                                         @foreach($divisis as $div)
@@ -187,49 +186,47 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="col-sm-6">
-                                    <input type="text" id="searchParticipant" class="form-control form-control-sm" placeholder="Cari nama, username, atau ID karyawan...">
+                                <div class="form-group col-sm-6">
+                                    <input type="text" id="searchParticipant" class="form-control form-control-sm" placeholder="Cari nama, username, atau ID...">
                                 </div>
                             </div>
 
-                            <div class="border rounded p-2" style="height: 380px; overflow-y: auto; background-color: #fafbfc;">
+                            <div class="border rounded" style="max-height: 420px; overflow-y: auto;">
                                 @foreach($users as $user)
-                                <div class="participant-item d-flex align-items-center justify-content-between p-3 mb-2 bg-white border rounded"
+                                <div class="participant-item d-flex align-items-center justify-content-between px-3 py-2 border-bottom"
                                      data-name="{{ strtolower($user->nama_lengkap) }}"
                                      data-idk="{{ strtolower($user->employee_id ?? '') }}"
                                      data-username="{{ strtolower($user->username ?? '') }}"
                                      data-divisi="{{ $user->divisi_id }}">
-                                    <div class="custom-control custom-checkbox">
+                                    <div class="custom-control custom-checkbox min-w-0">
                                         <input type="checkbox" name="participants[]" value="{{ $user->id }}"
                                                class="custom-control-input participant-checkbox" id="user_{{ $user->id }}"
                                                {{ in_array($user->id, old('participants', $selectedParticipants)) ? 'checked' : '' }}>
-                                        <label class="custom-control-label font-weight-normal text-dark ml-2" for="user_{{ $user->id }}" style="cursor: pointer;">
-                                            <strong class="d-block">{{ $user->nama_lengkap }}</strong>
+                                        <label class="custom-control-label" for="user_{{ $user->id }}">
+                                            <strong class="d-block text-dark">{{ $user->nama_lengkap }}</strong>
                                             <span class="text-muted small">
                                                 {{ $user->employee_id ?? '-' }} &bull; {{ $user->username }} &bull; {{ $user->divisi->name ?? 'Divisi Umum' }}
                                             </span>
                                         </label>
                                     </div>
-                                    <div class="text-right">
+                                    <div class="text-right pl-2">
                                         @if($user->no_hp)
                                             <span class="text-muted small">{{ $user->no_hp }}</span>
                                         @else
-                                            <span class="text-muted small font-italic">No WA -</span>
+                                            <span class="text-muted small">No WA -</span>
                                         @endif
                                     </div>
                                 </div>
                                 @endforeach
                             </div>
                         </div>
-
-                        <div class="card-footer bg-white border-top py-3 text-right">
-                            <a href="/training/{{ $training->id }}" class="btn btn-default mr-2">Batal</a>
-                            <button type="submit" class="btn btn-primary px-4 font-weight-bold">
-                                Simpan Perubahan
-                            </button>
-                        </div>
                     </div>
                 </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mb-4">
+                <a href="/training/{{ $training->id }}" class="btn btn-default">Batal</a>
+                <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
             </div>
         </form>
     </div>

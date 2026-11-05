@@ -11,8 +11,8 @@
         <div class="col-md-6 mb-2">
             <div class="custom-control custom-radio p-2 pl-4 border rounded h-100 bg-white">
                 <input type="radio" id="{{ $idPrefix }}_mode_formal" name="{{ $modeName }}" value="formal" class="custom-control-input quiz-mode-radio" {{ $isGame ? '' : 'checked' }}>
-                <label class="custom-control-label font-weight-bold text-dark d-block" for="{{ $idPrefix }}_mode_formal" style="cursor: pointer;">
-                    <i class="fas fa-file-alt text-primary mr-1"></i> Mode Formal (Ujian)
+                <label class="custom-control-label font-weight-bold d-block" for="{{ $idPrefix }}_mode_formal" style="cursor: pointer;">
+                    <i class="fas fa-file-alt text-muted mr-1"></i> Mode Formal (Ujian)
                     <span class="d-block text-muted small font-weight-normal mt-1">Semua soal dalam satu halaman, dikirim sekaligus.</span>
                 </label>
             </div>
@@ -20,8 +20,8 @@
         <div class="col-md-6 mb-2">
             <div class="custom-control custom-radio p-2 pl-4 border rounded h-100 bg-white">
                 <input type="radio" id="{{ $idPrefix }}_mode_game" name="{{ $modeName }}" value="game" class="custom-control-input quiz-mode-radio" {{ $isGame ? 'checked' : '' }}>
-                <label class="custom-control-label font-weight-bold text-dark d-block" for="{{ $idPrefix }}_mode_game" style="cursor: pointer;">
-                    <i class="fas fa-gamepad text-success mr-1"></i> Mode Quizizz (Game)
+                <label class="custom-control-label font-weight-bold d-block" for="{{ $idPrefix }}_mode_game" style="cursor: pointer;">
+                    <i class="fas fa-gamepad text-muted mr-1"></i> Mode Quizizz (Game)
                     <span class="d-block text-muted small font-weight-normal mt-1">1 soal per layar, timer, poin &amp; streak. Peserta hanya melihat Benar/Salah, kunci tidak ditampilkan.</span>
                 </label>
             </div>

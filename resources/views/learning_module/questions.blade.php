@@ -1,45 +1,44 @@
 @extends('layout.main_template')
 
+@php
+    $subtitle = ($module->isOwned() ? ($module->isOwnedByVideo() ? 'Video' : 'Dokumen').': ' : '').$module->title.' · soal yang sama dipakai untuk pretest dan posttest';
+@endphp
+
 @section('content')
+<style>
+    /* Pilihan jawaban hasil AI: kotak huruf dan kolom teks setinggi, kunci jawaban ditandai hijau. */
+    .ai-option { display: flex; align-items: stretch; }
+    .ai-option-key {
+        display: flex; align-items: center; gap: 6px; flex: 0 0 56px; justify-content: center;
+        margin: 0; padding: 0 10px; border: 1px solid var(--gray-200); border-right: 0;
+        border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+        background: var(--gray-50); color: var(--gray-700); font-weight: 600; cursor: pointer;
+    }
+    .ai-option-key input { margin: 0; cursor: pointer; }
+    .ai-option .ai-opt { height: 38px; border-radius: 0 var(--radius-lg) var(--radius-lg) 0; }
+    .ai-option.is-key .ai-option-key { background: var(--success-50); border-color: var(--success-600); color: var(--success-700); }
+    .ai-option.is-key .ai-opt { border-color: var(--success-600); }
+</style>
+
 <section class="content-header">
     <div class="container-fluid">
-        <div class="mb-3 d-flex flex-wrap justify-content-between align-items-center" style="gap: 12px;">
-            <div class="d-flex align-items-center">
-                <a href="{{ $module->managementUrl() }}" class="btn btn-default btn-sm mr-3">
-                    <i class="fas fa-arrow-left"></i>
+        <x-page-header title="Soal Pretest & Posttest" :subtitle="$subtitle" eyebrow="Modul Belajar / Kelola Soal">
+            <x-slot:actions>
+                <a href="{{ $module->managementUrl() }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
+                <a href="{{ $module->url('questions.template') }}" class="btn btn-default">
+                    <i class="fas fa-download"></i> Template
                 </a>
-                <div>
-                    <h1 class="m-0 text-dark font-weight-bold" style="font-size: 1.5rem;">Soal Pretest & Posttest</h1>
-                    <span class="text-muted small">
-                        @if($module->isOwned())
-                            {{ $module->isOwnedByVideo() ? 'Video' : 'Dokumen' }}:
-                        @endif
-                        {{ $module->title }} &middot; soal yang sama dipakai untuk pretest dan posttest
-                    </span>
-                </div>
-            </div>
-
-            <div class="d-flex align-items-center flex-wrap justify-content-lg-end ml-lg-auto" style="gap: 8px;">
-                <button type="button" class="btn btn-primary btn-sm font-weight-bold" data-toggle="modal" data-target="#aiGenerateModal">
-                    Buat Soal via AI
+                <button type="button" class="btn btn-default" data-toggle="modal" data-target="#importExcelModal">
+                    <i class="fas fa-file-import"></i> Import Excel / CSV
                 </button>
-                <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#addQuestionModal">
-                    Tambah Manual
+                <button type="button" class="btn btn-default" data-toggle="modal" data-target="#addQuestionModal">
+                    <i class="fas fa-plus"></i> Tambah Manual
                 </button>
-                <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#importExcelModal">
-                    Import Excel / CSV
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#aiGenerateModal">
+                    <i class="fas fa-magic"></i> Buat Soal via AI
                 </button>
-                <a href="{{ $module->url('questions.template') }}" class="btn btn-default btn-sm">
-                    Download Template
-                </a>
-                @if($questions->isNotEmpty())
-                <form action="{{ $module->url('questions.delete-all') }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus SEMUA soal modul ini? Riwayat nilai peserta tetap tersimpan.')">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-danger btn-sm">Hapus Semua Soal</button>
-                </form>
-                @endif
-            </div>
-        </div>
+            </x-slot:actions>
+        </x-page-header>
     </div>
 </section>
 
@@ -47,41 +46,47 @@
     <div class="container-fluid">
         @include('learning_module.partials.alerts')
 
-        <div class="card mb-4">
-            <div class="card-header py-3 d-flex align-items-center justify-content-between flex-wrap" style="gap: 10px;">
-                <h3 class="card-title font-weight-bold m-0">Daftar Pertanyaan ({{ $questions->count() }} Soal)</h3>
-                <div class="d-flex align-items-center" style="gap: 8px;">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Daftar Pertanyaan <span class="text-muted font-weight-normal">({{ $questions->count() }} soal)</span></h3>
+                <div class="card-tools d-flex align-items-center flex-wrap gap-2">
                     @if($module->isOwned())
                         {{-- Kuis milik video/dokumen aktif otomatis saat pretest/posttest nyala dan sudah ada soal. --}}
                         @if($module->is_published)
-                            <span class="badge badge-success px-2 py-1">Kuis aktif</span>
+                            <span class="badge badge-success">Kuis aktif</span>
                         @else
-                            <span class="badge badge-secondary px-2 py-1">Kuis belum aktif</span>
+                            <span class="badge badge-secondary">Kuis belum aktif</span>
                         @endif
                         <a href="{{ $module->url('results') }}" class="btn btn-xs btn-default">Rekap Nilai</a>
                     @else
                         @if($module->is_published)
-                            <span class="badge badge-success px-2 py-1">Dipublikasikan</span>
+                            <span class="badge badge-success">Dipublikasikan</span>
                         @else
-                            <span class="badge badge-secondary px-2 py-1">Draft</span>
+                            <span class="badge badge-secondary">Draft</span>
                         @endif
                         <form action="{{ route('learning-module.publish', $module) }}" method="POST" class="m-0">
                             @csrf
-                            <button type="submit" class="btn btn-xs {{ $module->is_published ? 'btn-outline-secondary' : 'btn-success' }}">
+                            <button type="submit" class="btn btn-xs btn-default">
                                 {{ $module->is_published ? 'Tarik Publikasi' : 'Publikasikan Modul' }}
                             </button>
+                        </form>
+                    @endif
+                    @if($questions->isNotEmpty())
+                        <form action="{{ $module->url('questions.delete-all') }}" method="POST" class="m-0" onsubmit="return confirm('Hapus SEMUA soal modul ini? Riwayat nilai peserta tetap tersimpan.')">
+                            @csrf
+                            <button type="submit" class="btn btn-xs btn-default text-danger">Hapus Semua Soal</button>
                         </form>
                     @endif
                 </div>
             </div>
 
-            <div class="card-body p-4">
+            <div class="card-body">
                 @forelse($questions as $index => $q)
-                <div class="card mb-4 border">
-                    <div class="card-header py-2 bg-light d-flex align-items-center justify-content-between">
-                        <strong class="text-sm">Pertanyaan #{{ $index + 1 }}</strong>
-                        <div>
-                            <button type="button" class="btn btn-default btn-xs mr-1" data-toggle="modal" data-target="#editModal_{{ $q->id }}">Edit</button>
+                <div class="border rounded mb-3">
+                    <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom bg-light">
+                        <strong class="small">Pertanyaan #{{ $index + 1 }}</strong>
+                        <div class="d-flex align-items-center gap-1">
+                            <button type="button" class="btn btn-default btn-xs" data-toggle="modal" data-target="#editModal_{{ $q->id }}">Edit</button>
                             <form action="{{ $module->url('questions.destroy', ['question' => $q]) }}" method="POST" class="d-inline m-0" onsubmit="return confirm('Hapus soal ini?')">
                                 @csrf
                                 @method('DELETE')
@@ -89,23 +94,23 @@
                             </form>
                         </div>
                     </div>
-                    <div class="card-body p-3">
-                        <p class="font-weight-600 mb-3 text-dark" style="font-size: 1.05rem; white-space: pre-line;">{{ $q->question }}</p>
+                    <div class="p-3">
+                        <p class="font-weight-bold mb-3" style="white-space: pre-line;">{{ $q->question }}</p>
                         <div class="row text-sm">
                             @foreach($q->options() as $letter => $text)
                                 @php $isKey = $q->correct_answer === $letter; @endphp
                                 <div class="col-md-6 mb-2">
-                                    <div class="p-2 border rounded {{ $isKey ? 'bg-success text-white font-weight-bold' : 'bg-light' }}">
-                                        {{ strtoupper($letter) }}. {{ $text }}
+                                    <div class="d-flex align-items-start justify-content-between gap-2 px-2 py-1 border rounded {{ $isKey ? 'bg-soft-success font-weight-bold' : '' }}">
+                                        <span>{{ strtoupper($letter) }}. {{ $text }}</span>
                                         @if($isKey)
-                                            <span class="float-right text-xs badge badge-light text-success font-weight-bold">Kunci Jawaban</span>
+                                            <span class="badge badge-success">Kunci</span>
                                         @endif
                                     </div>
                                 </div>
                             @endforeach
                         </div>
                         @if($q->explanation)
-                            <div class="text-xs text-muted mt-2 pt-2 border-top">
+                            <div class="small text-muted mt-2 pt-2 border-top">
                                 <strong>Pembahasan:</strong> {{ $q->explanation }}
                             </div>
                         @endif
@@ -113,31 +118,31 @@
                 </div>
 
                 <div class="modal fade" id="editModal_{{ $q->id }}" tabindex="-1" role="dialog" aria-hidden="true">
-                    <div class="modal-dialog modal-lg" role="document">
+                    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
                         <div class="modal-content">
                             <form action="{{ $module->url('questions.update', ['question' => $q]) }}" method="POST">
                                 @csrf
                                 @method('PUT')
-                                <div class="modal-header py-3">
-                                    <h5 class="modal-title font-weight-bold">Edit Soal #{{ $index + 1 }}</h5>
-                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Edit Soal #{{ $index + 1 }}</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">&times;</button>
                                 </div>
-                                <div class="modal-body p-4">
+                                <div class="modal-body">
                                     @include('learning_module.partials.question-fields', ['question' => $q])
                                 </div>
-                                <div class="modal-footer py-2">
-                                    <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Batal</button>
-                                    <button type="submit" class="btn btn-primary btn-sm">Simpan Perubahan</button>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                                    <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
                                 </div>
                             </form>
                         </div>
                     </div>
                 </div>
                 @empty
-                <div class="text-center py-5 text-muted">
-                    <p class="mb-3 font-weight-bold text-dark">Belum ada soal untuk modul ini.</p>
-                    <p class="small mb-0">Buat soal dengan AI dari materi modul, tambah manual, atau import dari Excel.</p>
-                </div>
+                <x-empty-state icon="fa-question-circle" title="Belum ada soal untuk modul ini" text="Buat soal dengan AI dari materi modul, tambah manual, atau import dari Excel.">
+                    <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#aiGenerateModal">Buat Soal via AI</button>
+                    <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#addQuestionModal">Tambah Manual</button>
+                </x-empty-state>
                 @endforelse
             </div>
         </div>
@@ -146,20 +151,20 @@
 
 {{-- TAMBAH MANUAL --}}
 <div class="modal fade" id="addQuestionModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content">
             <form action="{{ $module->url('questions.store') }}" method="POST">
                 @csrf
-                <div class="modal-header py-3">
-                    <h5 class="modal-title font-weight-bold">Tambah Soal Pilihan Ganda</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <div class="modal-header">
+                    <h5 class="modal-title">Tambah Soal Pilihan Ganda</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">&times;</button>
                 </div>
-                <div class="modal-body p-4">
+                <div class="modal-body">
                     @include('learning_module.partials.question-fields', ['question' => null])
                 </div>
-                <div class="modal-footer py-2">
-                    <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary btn-sm">Simpan Soal</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan Soal</button>
                 </div>
             </form>
         </div>
@@ -168,24 +173,24 @@
 
 {{-- IMPORT EXCEL --}}
 <div class="modal fade" id="importExcelModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
             <form action="{{ $module->url('questions.import-excel') }}" method="POST" enctype="multipart/form-data">
                 @csrf
-                <div class="modal-header py-3">
-                    <h5 class="modal-title font-weight-bold">Import Soal dari Excel / CSV</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <div class="modal-header">
+                    <h5 class="modal-title">Import Soal dari Excel / CSV</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">&times;</button>
                 </div>
-                <div class="modal-body p-4">
+                <div class="modal-body">
                     <p class="text-muted small">
                         Gunakan <a href="{{ $module->url('questions.template') }}">template Excel</a>.
                         Kolom: pertanyaan, kunci_jawaban (A-E), pilihan_a s/d pilihan_e, penjelasan. Minimal isi pilihan A dan B.
                     </p>
                     <input type="file" name="file" class="form-control-file" accept=".xlsx,.xls,.csv" required>
                 </div>
-                <div class="modal-footer py-2">
-                    <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary btn-sm">Import</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Import</button>
                 </div>
             </form>
         </div>
@@ -196,11 +201,11 @@
 <div class="modal fade" id="aiGenerateModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
-            <div class="modal-header py-3">
-                <h5 class="modal-title font-weight-bold">Buat Soal dengan AI dari Materi Modul</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <div class="modal-header">
+                <h5 class="modal-title">Buat Soal dengan AI dari Materi Modul</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">&times;</button>
             </div>
-            <div class="modal-body p-4">
+            <div class="modal-body">
                 <div class="alert alert-danger d-none" id="aiError"></div>
 
                 {{-- STEP 1: CONFIG --}}
@@ -209,12 +214,12 @@
                         <div class="alert alert-warning">GEMINI_API_KEY belum dikonfigurasi di server, fitur AI belum bisa dipakai.</div>
                     @endunless
 
-                    <label class="font-weight-600 mb-2">Materi acuan</label>
+                    <label class="mb-2">Materi acuan</label>
                     @forelse($aiItems as $item)
                         <div class="custom-control custom-checkbox mb-1">
                             <input type="checkbox" class="custom-control-input ai-item" id="ai_item_{{ $item->id }}" value="{{ $item->id }}" checked>
                             <label class="custom-control-label" for="ai_item_{{ $item->id }}">
-                                <i class="fas {{ $item->isVideo() ? 'fa-play-circle text-danger' : 'fa-file-alt text-warning' }} mr-1"></i>
+                                <i class="fas {{ $item->isVideo() ? 'fa-play-circle' : 'fa-file-alt' }} text-muted mr-1"></i>
                                 {{ $item->title() }}
                             </label>
                         </div>
@@ -236,11 +241,11 @@
 
                     <div class="row">
                         <div class="col-md-4 form-group">
-                            <label class="font-weight-600 mb-1">Jumlah soal</label>
+                            <label for="aiCount">Jumlah soal</label>
                             <input type="number" id="aiCount" class="form-control" min="1" max="100" value="10">
                         </div>
                         <div class="col-md-4 form-group">
-                            <label class="font-weight-600 mb-1">Tingkat kesulitan</label>
+                            <label for="aiDifficulty">Tingkat kesulitan</label>
                             <select id="aiDifficulty" class="form-control">
                                 <option value="campuran">Campuran</option>
                                 <option value="mudah">Mudah</option>
@@ -249,7 +254,7 @@
                             </select>
                         </div>
                         <div class="col-md-12 form-group mb-0">
-                            <label class="font-weight-600 mb-1">Instruksi tambahan (opsional)</label>
+                            <label for="aiPrompt">Instruksi tambahan (opsional)</label>
                             <textarea id="aiPrompt" class="form-control" rows="2" maxlength="1000" placeholder="Contoh: fokus pada prosedur darurat"></textarea>
                         </div>
                     </div>
@@ -264,9 +269,9 @@
 
                 {{-- STEP 3: REVIEW --}}
                 <div id="aiStepReview" class="d-none">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                         <span class="font-weight-bold"><span id="aiReviewCount">0</span> soal dihasilkan. Periksa dan sunting sebelum disimpan.</span>
-                        <div>
+                        <div class="d-flex gap-1">
                             <button type="button" class="btn btn-default btn-xs" id="btnAiSelectAll">Pilih semua</button>
                             <button type="button" class="btn btn-default btn-xs" id="btnAiDeselectAll">Kosongkan</button>
                         </div>
@@ -274,10 +279,10 @@
                     <div id="aiQuestions"></div>
                 </div>
             </div>
-            <div class="modal-footer py-2">
-                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Tutup</button>
-                <button type="button" class="btn btn-primary btn-sm" id="btnAiGenerate" {{ $isGeminiConfigured && $aiItems->isNotEmpty() ? '' : 'disabled' }}>Buat Soal</button>
-                <button type="button" class="btn btn-success btn-sm d-none" id="btnAiSave">Simpan <span id="aiSaveCount">0</span> Soal</button>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-primary" id="btnAiGenerate" {{ $isGeminiConfigured && $aiItems->isNotEmpty() ? '' : 'disabled' }}>Buat Soal</button>
+                <button type="button" class="btn btn-primary d-none" id="btnAiSave">Simpan <span id="aiSaveCount">0</span> Soal</button>
             </div>
         </div>
     </div>
@@ -285,19 +290,6 @@
 @endsection
 
 @section('footer')
-<style>
-    /* Pilihan jawaban hasil AI: kotak huruf dan kolom teks setinggi, kunci jawaban ditandai hijau. */
-    .ai-option { display: flex; align-items: stretch; }
-    .ai-option-key {
-        display: flex; align-items: center; gap: 6px; flex: 0 0 56px; justify-content: center;
-        margin: 0; padding: 0 10px; border: 1px solid #ced4da; border-right: 0; border-radius: 6px 0 0 6px;
-        background: #f8f9fa; font-weight: 600; cursor: pointer;
-    }
-    .ai-option-key input { margin: 0; cursor: pointer; }
-    .ai-option .ai-opt { height: 38px; border-radius: 0 6px 6px 0; }
-    .ai-option.is-key .ai-option-key { background: #e7f6ec; border-color: #28a745; color: #1e7e34; }
-    .ai-option.is-key .ai-opt { border-color: #28a745; }
-</style>
 <script>
 $(function () {
     var csrf = '{{ csrf_token() }}';
@@ -410,8 +402,8 @@ $(function () {
             }).join('');
 
             $container.append(
-                '<div class="card mb-3 border ai-card">' +
-                    '<div class="card-header py-2 bg-light">' +
+                '<div class="card mb-3 ai-card">' +
+                    '<div class="card-header">' +
                         '<div class="custom-control custom-checkbox">' +
                             '<input type="checkbox" class="custom-control-input ai-include" id="ai_inc_' + index + '" checked>' +
                             '<label class="custom-control-label font-weight-bold" for="ai_inc_' + index + '">Soal #' + (index + 1) + '</label>' +

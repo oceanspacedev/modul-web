@@ -1,35 +1,26 @@
 @extends('layout.main_template')
 
+@php
+    $subtitle = $module->isOwned()
+        ? 'Kuis '.($module->isOwnedByVideo() ? 'video' : 'dokumen').' · '.(collect([$module->has_pretest ? 'pretest' : null, $module->has_posttest ? 'posttest' : null])->filter()->join(' & ') ?: 'pretest & posttest dimatikan')
+        : $module->targetLabel();
+@endphp
+
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <div class="mb-3 d-flex flex-wrap justify-content-between align-items-center" style="gap: 12px;">
-            <div class="d-flex align-items-center">
-                <a href="{{ $module->managementUrl() }}" class="btn btn-default btn-sm mr-3">
-                    <i class="fas fa-arrow-left"></i>
-                </a>
-                <div>
-                    <h1 class="m-0 text-dark font-weight-bold" style="font-size: 1.5rem;">{{ $module->title }}</h1>
-                    <span class="text-muted small">
-                        @if($module->isOwned())
-                            Kuis {{ $module->isOwnedByVideo() ? 'video' : 'dokumen' }}
-                            &middot; {{ collect([$module->has_pretest ? 'pretest' : null, $module->has_posttest ? 'posttest' : null])->filter()->join(' & ') ?: 'pretest & posttest dimatikan' }}
-                        @else
-                            {{ $module->targetLabel() }}
-                        @endif
-                    </span>
-                </div>
-            </div>
-            <div class="d-flex flex-wrap" style="gap: 8px;">
-                <a href="{{ $module->url('questions.index') }}" class="btn btn-default btn-sm">Kelola Soal ({{ $module->questions_count }})</a>
+        <x-page-header :title="$module->title" :subtitle="$subtitle" eyebrow="Modul Belajar / Rekap Nilai">
+            <x-slot:actions>
+                <a href="{{ $module->managementUrl() }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
+                <a href="{{ $module->url('questions.index') }}" class="btn btn-default">Kelola Soal ({{ $module->questions_count }})</a>
                 @unless($module->isOwned())
-                    <a href="{{ route('learning-module.edit', $module) }}" class="btn btn-default btn-sm">Edit Modul & Materi</a>
+                    <a href="{{ route('learning-module.edit', $module) }}" class="btn btn-default">Edit Modul & Materi</a>
                 @endunless
-                <a href="{{ $module->url('export') }}" class="btn btn-success btn-sm">
-                    <i class="fas fa-file-excel mr-1"></i> Export Excel
+                <a href="{{ $module->url('export') }}" class="btn btn-primary">
+                    <i class="fas fa-file-excel"></i> Export Excel
                 </a>
-            </div>
-        </div>
+            </x-slot:actions>
+        </x-page-header>
     </div>
 </section>
 
@@ -38,55 +29,69 @@
         @include('learning_module.partials.alerts')
 
         <div class="row">
-            <div class="col-md-3 col-6 mb-3">
-                <div class="card h-100 mb-0"><div class="card-body py-3">
-                    <span class="text-muted small d-block">Peserta mulai</span>
-                    <strong style="font-size: 1.4rem;">{{ $participants->count() }}</strong>
-                </div></div>
+            <div class="col-md-3 col-6 mb-4">
+                <div class="stat-tile">
+                    <span class="stat-tile-icon"><i class="fas fa-users"></i></span>
+                    <div class="min-w-0">
+                        <p class="stat-tile-label">Peserta mulai</p>
+                        <p class="stat-tile-value">{{ $participants->count() }}</p>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-3 col-6 mb-3">
-                <div class="card h-100 mb-0"><div class="card-body py-3">
-                    <span class="text-muted small d-block">Sudah lulus (KKM {{ $module->passing_score }})</span>
-                    <strong style="font-size: 1.4rem;">{{ $participants->filter->hasPassed()->count() }}</strong>
-                </div></div>
+            <div class="col-md-3 col-6 mb-4">
+                <div class="stat-tile">
+                    <span class="stat-tile-icon"><i class="fas fa-check"></i></span>
+                    <div class="min-w-0">
+                        <p class="stat-tile-label">Sudah lulus (KKM {{ $module->passing_score }})</p>
+                        <p class="stat-tile-value">{{ $participants->filter->hasPassed()->count() }}</p>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-3 col-6 mb-3">
-                <div class="card h-100 mb-0"><div class="card-body py-3">
-                    <span class="text-muted small d-block">Rata-rata pretest</span>
-                    <strong style="font-size: 1.4rem;">{{ round($participants->pluck('pretest')->filter()->avg('score') ?? 0, 1) }}</strong>
-                </div></div>
+            <div class="col-md-3 col-6 mb-4">
+                <div class="stat-tile">
+                    <span class="stat-tile-icon"><i class="fas fa-clipboard-list"></i></span>
+                    <div class="min-w-0">
+                        <p class="stat-tile-label">Rata-rata pretest</p>
+                        <p class="stat-tile-value">{{ round($participants->pluck('pretest')->filter()->avg('score') ?? 0, 1) }}</p>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-3 col-6 mb-3">
-                <div class="card h-100 mb-0"><div class="card-body py-3">
-                    <span class="text-muted small d-block">Rata-rata posttest terbaik</span>
-                    <strong style="font-size: 1.4rem;">{{ round($participants->map->bestPosttest()->filter()->avg('score') ?? 0, 1) }}</strong>
-                </div></div>
+            <div class="col-md-3 col-6 mb-4">
+                <div class="stat-tile">
+                    <span class="stat-tile-icon"><i class="fas fa-chart-line"></i></span>
+                    <div class="min-w-0">
+                        <p class="stat-tile-label">Rata-rata posttest terbaik</p>
+                        <p class="stat-tile-value">{{ round($participants->map->bestPosttest()->filter()->avg('score') ?? 0, 1) }}</p>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h3 class="card-title font-weight-bold m-0">Rekap Nilai Peserta</h3>
-                @if($module->is_published)
-                    <span class="badge badge-success px-2 py-1">Dipublikasikan</span>
-                @else
-                    <span class="badge badge-secondary px-2 py-1">Draft</span>
-                @endif
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Rekap Nilai Peserta</h3>
+                <div class="card-tools">
+                    @if($module->is_published)
+                        <span class="badge badge-success">Dipublikasikan</span>
+                    @else
+                        <span class="badge badge-secondary">Draft</span>
+                    @endif
+                </div>
             </div>
-            <div class="card-body p-0 table-responsive">
-                <table class="table table-hover mb-0" style="font-size: 0.9rem;">
-                    <thead class="bg-light text-muted">
+            <div class="card-body table-responsive p-0">
+                <table class="table table-hover mb-0">
+                    <thead>
                         <tr>
-                            <th class="text-center" style="width: 50px; padding: 12px;">No</th>
-                            <th style="padding: 12px;">Peserta</th>
-                            <th class="text-center" style="padding: 12px;">Materi</th>
-                            <th class="text-center" style="padding: 12px;">Pretest</th>
-                            <th class="text-center" style="padding: 12px;">Jumlah Posttest</th>
-                            <th class="text-center" style="padding: 12px;">Posttest Terbaik</th>
-                            <th class="text-center" style="padding: 12px;">Posttest Terakhir</th>
-                            <th class="text-center" style="padding: 12px;">Kenaikan</th>
-                            <th class="text-center" style="padding: 12px;">Status</th>
-                            <th class="text-center" style="padding: 12px;">Aksi</th>
+                            <th class="text-center" style="width: 50px;">No</th>
+                            <th>Peserta</th>
+                            <th class="text-center">Materi</th>
+                            <th class="text-center">Pretest</th>
+                            <th class="text-center">Jumlah Posttest</th>
+                            <th class="text-center">Posttest Terbaik</th>
+                            <th class="text-center">Posttest Terakhir</th>
+                            <th class="text-center">Kenaikan</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-right">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -98,7 +103,7 @@
                         <tr>
                             <td class="text-center align-middle text-muted">{{ $index + 1 }}</td>
                             <td class="align-middle">
-                                <strong class="d-block text-dark">{{ $p->user->nama_lengkap }}</strong>
+                                <strong class="d-block">{{ $p->user->nama_lengkap }}</strong>
                                 <span class="text-muted small">{{ $p->user->divisi->name ?? '-' }} &middot; {{ $p->user->jabatan->name ?? '-' }}</span>
                             </td>
                             <td class="text-center align-middle">{{ $p->completedItemCount() }}/{{ $p->totalItemCount() }}</td>
@@ -116,20 +121,22 @@
                                 @endif
                             </td>
                             <td class="text-center align-middle">
-                                <span class="badge px-2 py-1 {{ match ($status) {
+                                <span class="badge {{ match ($status) {
                                     'Lulus' => 'badge-success',
                                     'Belum Lulus' => 'badge-danger',
-                                    'Belum Posttest' => 'badge-info',
+                                    'Belum Posttest' => 'badge-primary',
                                     default => 'badge-secondary',
                                 } }}">{{ $status }}</span>
                             </td>
-                            <td class="text-center align-middle">
+                            <td class="text-right align-middle">
                                 <a href="{{ $module->url('participant', ['user' => $p->user]) }}" class="btn btn-default btn-xs">Riwayat</a>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="10" class="text-center py-5 text-muted">Belum ada peserta yang mengerjakan modul ini.</td>
+                            <td colspan="10">
+                                <x-empty-state icon="fa-user-graduate" title="Belum ada peserta" text="Belum ada peserta yang mengerjakan modul ini." />
+                            </td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -137,15 +144,15 @@
             </div>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-header py-3">
-                <h3 class="card-title font-weight-bold m-0">Materi ({{ $module->availableItems()->count() }})</h3>
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Materi ({{ $module->availableItems()->count() }})</h3>
             </div>
             <ul class="list-group list-group-flush">
                 @forelse($module->items as $index => $item)
                     <li class="list-group-item d-flex align-items-center">
                         <span class="text-muted mr-2">{{ $index + 1 }}.</span>
-                        <i class="fas {{ $item->isVideo() ? 'fa-play-circle text-danger' : 'fa-file-alt text-warning' }} mr-2"></i>
+                        <i class="fas {{ $item->isVideo() ? 'fa-play-circle' : 'fa-file-alt' }} text-muted mr-2"></i>
                         @if($item->materialable)
                             {{ $item->title() }}
                         @else
@@ -153,7 +160,9 @@
                         @endif
                     </li>
                 @empty
-                    <li class="list-group-item text-muted">Belum ada materi.</li>
+                    <li class="list-group-item p-0">
+                        <x-empty-state icon="fa-photo-video" title="Belum ada materi" class="py-4" />
+                    </li>
                 @endforelse
             </ul>
         </div>

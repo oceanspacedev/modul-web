@@ -9,9 +9,9 @@
     $quizPosttestMax = old('quiz.posttest_max_attempts', $quiz?->posttest_max_attempts);
     $quizPassing = old('quiz.passing_score', $quiz?->passing_score ?? 70);
 @endphp
-<div class="border rounded p-3 mb-3 material-quiz-fields" style="background: #f8fafc;">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <label class="font-weight-bold mb-0">Pretest &amp; Posttest</label>
+<div class="border rounded p-3 mb-3 bg-light material-quiz-fields">
+    <div class="d-flex justify-content-between align-items-center mb-1">
+        <h4 class="section-title">Pretest &amp; Posttest</h4>
         @if($quiz && ($quiz->has_pretest || $quiz->has_posttest))
             <a href="{{ $quiz->url('questions.index') }}" class="small">Kelola soal ({{ $quiz->questions()->count() }})</a>
         @endif

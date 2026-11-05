@@ -2,71 +2,54 @@
 
 @section('content')
     <section class="content-header">
-        <!-- Main content -->
         <div class="container-fluid">
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                            <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.2rem;">
-                                Data Area (Badan Usaha)
-                            </h3>
-                            <div class="card-tools m-0">
-                                <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#addArea">
-                                    Tambah Area
-                                </button>
-                            </div>
-                        </div>
-                        @if ($message = Session::get('success'))
-                            <div class="alert alert-success alert-dismissible fade show mx-3 mt-3 mb-0" role="alert">
-                                <strong>{{ $message }}</strong>
-                            </div>
-                        @endif
-                        @if ($message = Session::get('error'))
-                            <div class="alert alert-danger alert-dismissible fade show mx-3 mt-3 mb-0" role="alert">
-                                <strong>{{ $message }}</strong>
-                            </div>
-                        @endif
-                        @include('layout.partials.validation-errors')
-                        <!-- /.card-header -->
-                        <div class="card-body table-responsive p-0" style="height: 520px;">
-                            <table class="table table-head-fixed text-nowrap">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 70px;">No</th>
-                                        <th>Nama Area</th>
-                                        <th style="width: 160px;">Jumlah Karyawan</th>
-                                        <th style="width: 120px;">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($areas as $area)
-                                        <tr>
-                                            <td>{{ $loop->iteration }}</td>
-                                            <td><strong>{{ $area->name }}</strong></td>
-                                            <td>{{ $area->users_count }}</td>
-                                            <td>
-                                                <div class="d-flex align-items-center" style="gap: 4px;">
-                                                    <a href="{{ route('area.edit', $area) }}" class="btn btn-default btn-xs">
-                                                        Edit
-                                                    </a>
-                                                    <form action="{{ route('area.destroy', $area) }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Hapus area '.$area->name.'?'))">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="btn btn-default btn-xs text-danger">
-                                                            Hapus
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                        <!-- /.card-body -->
-                    </div>
-                    <!-- /.card -->
+            <x-page-header title="Area" subtitle="Badan usaha yang terdaftar beserta jumlah karyawannya." eyebrow="Pengaturan / Master Data">
+                <x-slot:actions>
+                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addArea">
+                        <i class="fas fa-plus"></i> Tambah Area
+                    </button>
+                </x-slot:actions>
+            </x-page-header>
+
+            <x-flash />
+
+            <div class="card">
+                <div class="card-body table-responsive p-0" style="max-height: 560px;">
+                    <table class="table table-head-fixed text-nowrap">
+                        <thead>
+                            <tr>
+                                <th style="width: 70px;">No</th>
+                                <th>Nama Area</th>
+                                <th style="width: 160px;">Jumlah Karyawan</th>
+                                <th style="width: 140px;" class="text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($areas as $area)
+                                <tr>
+                                    <td class="text-muted">{{ $loop->iteration }}</td>
+                                    <td><strong>{{ $area->name }}</strong></td>
+                                    <td>{{ $area->users_count }}</td>
+                                    <td class="text-right">
+                                        <div class="d-inline-flex align-items-center gap-1">
+                                            <a href="{{ route('area.edit', $area) }}" class="btn btn-default btn-xs">Edit</a>
+                                            <form action="{{ route('area.destroy', $area) }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Hapus area '.$area->name.'?'))">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-default btn-xs text-danger">Hapus</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4">
+                                        <x-empty-state icon="fa-building" title="Belum ada area" text="Tambahkan badan usaha pertama untuk mulai mengelompokkan karyawan." />
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -76,24 +59,24 @@
     <form action="{{ route('area.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="modal fade" id="addArea" tabindex="-1" aria-labelledby="addAreaLabel" aria-hidden="true">
-            <div class="modal-dialog">
+            <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title" id="addAreaLabel">Tambah Area</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">&times;</button>
                     </div>
                     <div class="modal-body">
-                        <div class="col-12 mt-3">
-                            <label for="name" class="form-label">Nama Area</label>
-                            <input class="form-control" type="text" id="name" name="name">
+                        <div class="form-group mb-0">
+                            <label for="name">Nama Area</label>
+                            <input class="form-control" type="text" id="name" name="name" placeholder="Contoh: PT Maju Bersama">
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Add</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan</button>
                     </div>
                 </div>
             </div>
         </div>
     </form>
-    <!-- /.content -->
 @endsection
