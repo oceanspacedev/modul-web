@@ -317,15 +317,9 @@ body.layout-top-nav .main-header.navbar {
 }
 
 .brand-logo {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    display: inline-block;
     width: 28px;
     height: 28px;
-    border-radius: var(--radius-lg);
-    background: var(--gray-950);
-    color: #ffffff;
-    font-size: 0.8rem;
     flex-shrink: 0;
 }
 

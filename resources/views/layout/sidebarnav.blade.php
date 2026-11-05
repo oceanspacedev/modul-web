@@ -1,7 +1,7 @@
 @auth
 <aside class="main-sidebar sidebar-light-primary">
     <a href="/dashboard" class="brand-link">
-        <span class="brand-logo"><i class="fas fa-layer-group"></i></span>
+        <img src="{{ asset('images/logo.svg') }}" alt="" class="brand-logo">
         <span class="brand-text">Modul <span class="brand-badge">APP</span></span>
     </a>
 

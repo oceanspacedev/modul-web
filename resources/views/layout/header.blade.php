@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>MODUL | APP</title>
+    @include('layout.partials.favicon')
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="{{ asset('template') }}/plugins/fontawesome-free/css/all.min.css">
@@ -79,7 +80,7 @@
         <nav class="main-header navbar navbar-expand navbar-light">
             <div class="container">
                 <a href="/video" class="navbar-brand d-flex align-items-center" style="gap: 10px;">
-                    <span class="brand-logo"><i class="fas fa-layer-group"></i></span>
+                    <img src="{{ asset('images/logo.svg') }}" alt="" class="brand-logo">
                     <span class="text-heading font-weight-bold text-dark" style="font-size: 0.9375rem;">Modul App</span>
                 </a>
 

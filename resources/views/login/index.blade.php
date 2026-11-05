@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Login | Modul App</title>
-    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    @include('layout.partials.favicon')
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,6 +28,7 @@
             --primary-500: #3b82f6;
             --primary-600: #2563eb;
             --primary-700: #1d4ed8;
+            --danger-600: #dc2626;
             --ring-input: rgba(9, 9, 11, 0.1);
             --focus-ring: 0 0 0 1px #2563eb, 0 0 0 4px rgba(37, 99, 235, 0.12);
         }
@@ -45,66 +46,80 @@
             color: var(--gray-950);
             min-height: 100vh;
             display: flex;
-            align-items: center;
             justify-content: center;
-            padding: 1.5rem;
+            padding: 3.5rem 1.5rem 2rem;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
 
         .login-wrapper {
             width: 100%;
-            max-width: 400px;
+            max-width: 480px;
+        }
+
+        /* Brand mark above the card */
+        .login-logo {
+            display: block;
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 3rem;
+        }
+
+        /* Double frame: soft gray shell around the white card */
+        .login-frame {
+            padding: 7px;
+            border-radius: 18px;
+            background: var(--gray-100);
+            box-shadow: inset 0 0 0 1px var(--gray-200);
         }
 
         .login-card {
             background: #ffffff;
-            border: 1px solid var(--gray-200);
-            border-radius: 16px;
-            padding: 2rem;
-            box-shadow: 0 1px 2px rgba(9, 9, 11, 0.04);
+            border-radius: 12px;
+            padding: 2rem 1.25rem 1.25rem;
+            box-shadow: 0 0 0 1px rgba(9, 9, 11, 0.05), 0 1px 2px rgba(9, 9, 11, 0.05);
         }
 
-        /* Brand */
-        .brand-header {
-            margin-bottom: 1.5rem;
+        /* Card heading */
+        .card-heading {
+            text-align: center;
+            margin-bottom: 2rem;
         }
 
-        .brand-logo-badge {
+        .heading-icon {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 40px;
-            height: 40px;
-            margin-bottom: 1rem;
+            width: 46px;
+            height: 46px;
+            margin-bottom: 1.125rem;
             border-radius: 10px;
-            background: var(--gray-950);
-            color: #ffffff;
-            font-size: 1rem;
-        }
-
-        .brand-logo-badge.badge-whatsapp {
             background: #ffffff;
-            color: #16a34a;
-            box-shadow: inset 0 0 0 1px var(--gray-200);
-            font-size: 1.15rem;
+            color: var(--gray-950);
+            font-size: 1.05rem;
+            box-shadow: 0 0 0 1px var(--gray-200), 0 1px 2px rgba(9, 9, 11, 0.05);
         }
 
-        .brand-title {
+        .heading-icon.is-whatsapp {
+            color: #16a34a;
+            font-size: 1.25rem;
+        }
+
+        .heading-title {
             font-family: 'Figtree', 'Inter', sans-serif;
-            font-size: 1.375rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
+            font-size: 1.3125rem;
+            font-weight: 500;
+            letter-spacing: -0.01em;
             line-height: 1.3;
         }
 
-        .brand-subtitle {
-            margin-top: 0.25rem;
+        .heading-subtitle {
+            margin-top: 0.375rem;
             font-size: 0.875rem;
             color: var(--gray-500);
         }
 
-        .brand-subtitle strong {
+        .heading-subtitle strong {
             color: var(--gray-950);
             font-weight: 600;
         }
@@ -115,7 +130,7 @@
             align-items: flex-start;
             gap: 0.6rem;
             margin-bottom: 1.25rem;
-            padding: 0.7rem 0.875rem;
+            padding: 0.75rem 0.875rem;
             border-radius: 10px;
             font-size: 0.8125rem;
             line-height: 1.5;
@@ -139,42 +154,34 @@
 
         /* Fields */
         .form-group {
-            margin-bottom: 1rem;
+            margin-bottom: 1.375rem;
         }
 
         .form-label {
             display: block;
-            margin-bottom: 0.375rem;
-            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.9375rem;
             font-weight: 500;
             color: var(--gray-950);
         }
 
-        .input-container {
-            position: relative;
-        }
-
-        .input-icon-left {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--gray-400);
-            font-size: 0.85rem;
-            pointer-events: none;
-            transition: color 0.1s ease;
+        .form-label .req {
+            color: var(--danger-600);
+            font-size: 0.75em;
+            vertical-align: super;
+            margin-left: 1px;
         }
 
         .form-input {
             width: 100%;
-            height: 40px;
-            padding: 0 0.75rem 0 2.25rem;
+            height: 46px;
+            padding: 0 0.875rem;
             font-family: inherit;
-            font-size: 0.875rem;
+            font-size: 0.9375rem;
             color: var(--gray-950);
             background: #ffffff;
-            border: 1px solid var(--ring-input);
-            border-radius: 8px;
+            border: 1px solid var(--gray-300);
+            border-radius: 10px;
             box-shadow: 0 1px 2px rgba(9, 9, 11, 0.05);
             outline: none;
             transition: border-color 0.1s ease, box-shadow 0.1s ease;
@@ -189,36 +196,56 @@
             box-shadow: var(--focus-ring);
         }
 
-        .form-input:focus ~ .input-icon-left {
-            color: var(--gray-700);
+        /* Input with a joined button on the right (password eye) */
+        .input-joined {
+            display: flex;
+            align-items: stretch;
+            height: 46px;
+            background: #ffffff;
+            border: 1px solid var(--gray-300);
+            border-radius: 10px;
+            box-shadow: 0 1px 2px rgba(9, 9, 11, 0.05);
+            overflow: hidden;
+            transition: border-color 0.1s ease, box-shadow 0.1s ease;
         }
 
-        .has-toggle {
-            padding-right: 2.5rem;
+        .input-joined:focus-within {
+            border-color: var(--primary-600);
+            box-shadow: var(--focus-ring);
+        }
+
+        .input-joined .form-input {
+            flex: 1;
+            min-width: 0;
+            height: 100%;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        .input-joined .form-input:focus {
+            box-shadow: none;
         }
 
         .input-toggle-password {
-            position: absolute;
-            right: 4px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 32px;
-            height: 32px;
+            flex-shrink: 0;
+            width: 56px;
             border: 0;
-            border-radius: 6px;
-            background: transparent;
-            color: var(--gray-400);
+            border-left: 1px solid var(--gray-200);
+            background: #ffffff;
+            color: var(--gray-500);
+            font-size: 1rem;
             cursor: pointer;
         }
 
         .input-toggle-password:hover {
             color: var(--gray-950);
-            background: var(--gray-100);
+            background: var(--gray-50);
         }
 
         .otp-input-box {
             width: 100%;
-            height: 52px;
+            height: 54px;
             text-align: center;
             font-family: inherit;
             font-size: 1.5rem;
@@ -227,7 +254,7 @@
             padding-left: 0.5em;
             color: var(--gray-950);
             background: #ffffff;
-            border: 1px solid var(--ring-input);
+            border: 1px solid var(--gray-300);
             border-radius: 10px;
             box-shadow: 0 1px 2px rgba(9, 9, 11, 0.05);
             outline: none;
@@ -243,7 +270,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 0.75rem;
-            margin-bottom: 1.25rem;
+            margin-bottom: 1.5rem;
             font-size: 0.8125rem;
             color: var(--gray-500);
         }
@@ -251,17 +278,51 @@
         .remember {
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.75rem;
             cursor: pointer;
             user-select: none;
-            color: var(--gray-700);
+            font-size: 0.9375rem;
+            font-weight: 500;
+            color: var(--gray-950);
         }
 
         .remember input {
-            width: 15px;
-            height: 15px;
-            accent-color: var(--primary-600);
+            appearance: none;
+            -webkit-appearance: none;
+            display: inline-grid;
+            place-content: center;
+            width: 20px;
+            height: 20px;
+            border: 1px solid var(--gray-300);
+            border-radius: 5px;
+            background: #ffffff;
+            box-shadow: 0 1px 2px rgba(9, 9, 11, 0.05);
             cursor: pointer;
+        }
+
+        .remember input::after {
+            content: '';
+            width: 10px;
+            height: 6px;
+            margin-top: -2px;
+            border-left: 2px solid #ffffff;
+            border-bottom: 2px solid #ffffff;
+            transform: rotate(-45deg) scale(0);
+            transition: transform 0.1s ease;
+        }
+
+        .remember input:checked {
+            background: var(--primary-600);
+            border-color: var(--primary-600);
+        }
+
+        .remember input:checked::after {
+            transform: rotate(-45deg) scale(1);
+        }
+
+        .remember input:focus-visible {
+            box-shadow: var(--focus-ring);
+            outline: none;
         }
 
         .login-options strong {
@@ -276,30 +337,25 @@
             justify-content: center;
             gap: 0.5rem;
             width: 100%;
-            height: 40px;
+            height: 46px;
             border: 1px solid var(--primary-600);
-            border-radius: 8px;
-            background: var(--primary-600) linear-gradient(to bottom, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0));
+            border-radius: 10px;
+            background: linear-gradient(to bottom, var(--primary-500), var(--primary-600));
             color: #ffffff;
             font-family: inherit;
-            font-size: 0.875rem;
-            font-weight: 500;
+            font-size: 0.9375rem;
+            font-weight: 600;
             cursor: pointer;
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(9, 9, 11, 0.12);
-            transition: background-color 0.1s ease;
-        }
-
-        .btn-primary-action i {
-            font-size: 0.8rem;
+            transition: filter 0.1s ease;
         }
 
         .btn-primary-action:hover:not(:disabled) {
-            background-color: var(--primary-500);
-            border-color: var(--primary-500);
+            filter: brightness(1.05);
         }
 
         .btn-primary-action:active:not(:disabled) {
-            background-color: var(--primary-700);
+            background: var(--primary-700);
             box-shadow: inset 0 1px 2px rgba(9, 9, 11, 0.2);
         }
 
@@ -308,51 +364,15 @@
             cursor: not-allowed;
         }
 
-        .btn-otp-trigger,
-        .btn-secondary-link {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            width: 100%;
-            height: 40px;
-            border: 1px solid var(--ring-input);
-            border-radius: 8px;
-            background: #ffffff;
-            color: var(--gray-950);
-            font-family: inherit;
-            font-size: 0.875rem;
-            font-weight: 500;
-            text-decoration: none;
-            cursor: pointer;
-            box-shadow: 0 1px 2px rgba(9, 9, 11, 0.05);
-            transition: background-color 0.1s ease;
-        }
-
-        .btn-otp-trigger:hover,
-        .btn-secondary-link:hover {
-            background: var(--gray-50);
-        }
-
-        .btn-otp-trigger .icon-wa-green {
-            color: #16a34a;
-            font-size: 1rem;
-        }
-
-        .btn-secondary-link i {
-            color: var(--gray-400);
-        }
-
-        .btn-secondary-link {
-            margin-top: 0.5rem;
-        }
-
         .divider {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            margin: 1.25rem 0;
+            gap: 1.25rem;
+            margin: 1.5rem 0;
             font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
             color: var(--gray-400);
         }
 
@@ -362,6 +382,45 @@
             flex: 1;
             height: 1px;
             background: var(--gray-200);
+        }
+
+        .social-row {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn-social {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            height: 46px;
+            border: 1px solid var(--gray-300);
+            border-radius: 10px;
+            background: #ffffff;
+            color: var(--gray-950);
+            font-family: inherit;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(9, 9, 11, 0.05);
+            transition: background-color 0.1s ease;
+        }
+
+        .btn-social:hover {
+            background: var(--gray-50);
+        }
+
+        .btn-social .icon-whatsapp {
+            color: #16a34a;
+            font-size: 1.3rem;
+        }
+
+        .btn-social .icon-gallery {
+            color: var(--primary-600);
+            font-size: 1.1rem;
         }
 
         .btn-back-link,
@@ -410,13 +469,15 @@
 
         @media (max-width: 480px) {
             body {
-                padding: 1rem;
-                align-items: flex-start;
-                padding-top: 3rem;
+                padding: 2rem 1rem;
             }
 
-            .login-card {
-                padding: 1.5rem 1.25rem;
+            .login-logo {
+                margin-bottom: 2rem;
+            }
+
+            .social-row {
+                flex-direction: column;
             }
         }
     </style>
@@ -424,18 +485,18 @@
 
 <body>
     <div class="login-wrapper">
+        <img src="{{ asset('images/logo.svg') }}" alt="Modul App" class="login-logo">
+
+        <div class="login-frame">
         <div class="login-card">
 
             <!-- ============================================== -->
             <!-- 1. SCREEN UTAMA: LOGIN USERNAME & PASSWORD -->
             <!-- ============================================== -->
             <div id="screenLoginPassword">
-                <div class="brand-header">
-                    <div class="brand-logo-badge">
-                        <i class="fas fa-layer-group"></i>
-                    </div>
-                    <h1 class="brand-title">Masuk ke Modul App</h1>
-                    <p class="brand-subtitle">Gunakan username dan password akun Anda.</p>
+                <div class="card-heading">
+                    <span class="heading-icon"><i class="fas fa-sign-in-alt"></i></span>
+                    <h1 class="heading-title">Masuk ke akun Anda</h1>
                 </div>
 
                 <!-- Alert Error -->
@@ -461,30 +522,24 @@
                 <form action="/login" method="POST" autocomplete="off">
                     @csrf
                     <div class="form-group">
-                        <label for="pwdUsername" class="form-label">Username</label>
-                        <div class="input-container">
-                            <input type="text"
-                                   id="pwdUsername"
-                                   name="username"
-                                   class="form-input"
-                                   placeholder="Username"
-                                   value="{{ old('username') }}"
-                                   required
-                                   autofocus>
-                            <i class="fas fa-user input-icon-left"></i>
-                        </div>
+                        <label for="pwdUsername" class="form-label">Username<span class="req">*</span></label>
+                        <input type="text"
+                               id="pwdUsername"
+                               name="username"
+                               class="form-input"
+                               value="{{ old('username') }}"
+                               required
+                               autofocus>
                     </div>
 
                     <div class="form-group">
-                        <label for="password" class="form-label">Password</label>
-                        <div class="input-container">
+                        <label for="password" class="form-label">Kata sandi<span class="req">*</span></label>
+                        <div class="input-joined">
                             <input type="password"
                                    id="password"
                                    name="password"
-                                   class="form-input has-toggle"
-                                   placeholder="Password"
+                                   class="form-input"
                                    required>
-                            <i class="fas fa-lock input-icon-left"></i>
                             <button type="button"
                                     id="togglePasswordBtn"
                                     class="input-toggle-password"
@@ -497,46 +552,37 @@
                     <div class="login-options">
                         <label class="remember">
                             <input type="checkbox" name="remember">
-                            <span>Ingat Saya</span>
+                            <span>Ingat saya</span>
                         </label>
                     </div>
 
-                    <button type="submit" class="btn-primary-action">
-                        <span>Masuk ke Akun</span>
-                        <i class="fas fa-arrow-right"></i>
-                    </button>
+                    <button type="submit" class="btn-primary-action">Masuk</button>
                 </form>
 
                 <div class="divider">
-                    <span>atau</span>
+                    <span>Atau</span>
                 </div>
 
-                <!-- Tombol Masuk WA di bawah Masuk Akun -->
-                <button type="button" class="btn-otp-trigger" id="btnGoToOtp">
-                    <i class="fab fa-whatsapp icon-wa-green"></i>
-                    <span>Login via WhatsApp</span>
-                </button>
-
-                <div class="divider">
-                    <span>atau</span>
+                <div class="social-row">
+                    <button type="button" class="btn-social" id="btnGoToOtp">
+                        <i class="fab fa-whatsapp icon-whatsapp"></i>
+                        <span>WhatsApp</span>
+                    </button>
+                    <a href="/video" class="btn-social">
+                        <i class="fas fa-play-circle icon-gallery"></i>
+                        <span>Galeri Video</span>
+                    </a>
                 </div>
-
-                <a href="/video" class="btn-secondary-link">
-                    <i class="fas fa-play-circle"></i>
-                    <span>Galeri Video Publik</span>
-                </a>
             </div>
 
             <!-- ============================================== -->
             <!-- 2. SCREEN OTP: INPUT NOMOR WHATSAPP -->
             <!-- ============================================== -->
             <div id="screenOtpRequest" class="hidden">
-                <div class="brand-header">
-                    <div class="brand-logo-badge badge-whatsapp">
-                        <i class="fab fa-whatsapp"></i>
-                    </div>
-                    <h1 class="brand-title">Login via WhatsApp</h1>
-                    <p class="brand-subtitle">Kami akan mengirim kode OTP ke nomor Anda.</p>
+                <div class="card-heading">
+                    <span class="heading-icon is-whatsapp"><i class="fab fa-whatsapp"></i></span>
+                    <h1 class="heading-title">Masuk dengan WhatsApp</h1>
+                    <p class="heading-subtitle">Kode OTP akan dikirim ke nomor Anda.</p>
                 </div>
 
                 <!-- Alert Container -->
@@ -547,22 +593,18 @@
 
                 <form id="formRequestOtp">
                     <div class="form-group">
-                        <label for="otpUsernameInput" class="form-label">Nomor WhatsApp</label>
-                        <div class="input-container">
-                            <input type="text"
-                                   id="otpUsernameInput"
-                                   name="username"
-                                   class="form-input"
-                                   placeholder="08xxxxxxxxxx"
-                                   inputmode="numeric"
-                                   required>
-                            <i class="fab fa-whatsapp input-icon-left"></i>
-                        </div>
+                        <label for="otpUsernameInput" class="form-label">Nomor WhatsApp<span class="req">*</span></label>
+                        <input type="text"
+                               id="otpUsernameInput"
+                               name="username"
+                               class="form-input"
+                               placeholder="08xxxxxxxxxx"
+                               inputmode="numeric"
+                               required>
                     </div>
 
                     <button type="submit" class="btn-primary-action btn-wa-action" id="btnSubmitRequestOtp">
                         <span id="btnSubmitRequestOtpText">Kirim OTP</span>
-                        <i class="fas fa-arrow-right"></i>
                     </button>
 
                     <button type="button" class="btn-back-link" id="btnCancelOtp">
@@ -576,12 +618,10 @@
             <!-- 3. SCREEN OTP: MASUKKAN KODE OTP -->
             <!-- ============================================== -->
             <div id="screenOtpVerify" class="hidden">
-                <div class="brand-header">
-                    <div class="brand-logo-badge badge-whatsapp">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <h1 class="brand-title">Verifikasi OTP</h1>
-                    <p class="brand-subtitle">Kode dikirim ke <strong id="maskedPhoneDisplay">-</strong></p>
+                <div class="card-heading">
+                    <span class="heading-icon"><i class="fas fa-shield-alt"></i></span>
+                    <h1 class="heading-title">Verifikasi OTP</h1>
+                    <p class="heading-subtitle">Kode dikirim ke <strong id="maskedPhoneDisplay">-</strong></p>
                 </div>
 
                 <!-- Alert Container -->
@@ -592,9 +632,7 @@
 
                 <form id="formVerifyOtp">
                     <div class="form-group">
-                        <label for="otpCodeInput" class="form-label">
-                            Kode OTP
-                        </label>
+                        <label for="otpCodeInput" class="form-label">Kode OTP<span class="req">*</span></label>
                         <input type="text"
                                id="otpCodeInput"
                                name="otp"
@@ -623,7 +661,6 @@
 
                     <button type="submit" class="btn-primary-action btn-wa-action" id="btnSubmitVerifyOtp">
                         <span id="btnVerifyText">Verifikasi</span>
-                        <i class="fas fa-arrow-right"></i>
                     </button>
 
                     <button type="button" class="btn-back-link" id="btnBackToPasswordFromVerify">
@@ -633,6 +670,7 @@
                 </form>
             </div>
 
+        </div>
         </div>
 
         <p class="footer-note">
