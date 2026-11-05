@@ -114,6 +114,15 @@ class SecurityHardeningTest extends TestCase
         $this->assertNull(Document::withInactive()->find($document->id), 'Dokumen terhapus tidak boleh tampil di daftar dokumen.');
         $this->actingAs($trainer)->get("/document/{$document->id}/edit")->assertNotFound();
         $this->actingAs($trainer)->patch("/document/{$document->id}/activate")->assertNotFound();
+
+        $this->actingAs($trainer)->get('/document?tab=terhapus')->assertOk()->assertSee('SOP PENJUALAN')->assertSee('Pulihkan');
+
+        $this->actingAs($trainer)->patch("/document/{$document->id}/restore")->assertRedirect('/document?tab=terhapus');
+
+        $this->assertNotSoftDeleted($document);
+        $this->assertNotSoftDeleted($quiz);
+        $this->assertTrue($document->fresh()->is_active);
+        $this->actingAs($trainer)->get('/document?tab=terhapus')->assertOk()->assertSee('Tidak ada dokumen yang dihapus.');
     }
 
     public function test_staff_cannot_deactivate_or_delete_documents(): void
@@ -121,9 +130,14 @@ class SecurityHardeningTest extends TestCase
         $staff = $this->staff();
         $document = $this->makeDocument();
 
-        $this->actingAs($staff)->get('/document')->assertOk()->assertDontSee('Hapus Dokumen');
+        $this->actingAs($staff)->get('/document')->assertOk()->assertDontSee('Hapus Dokumen')->assertDontSee('Terhapus');
         $this->actingAs($staff)->from('/document')->patch("/document/{$document->id}/deactivate")->assertSessionHas('error');
         $this->assertTrue($document->fresh()->is_active);
+
+        $document->delete();
+        $this->actingAs($staff)->get('/document?tab=terhapus')->assertOk()->assertDontSee('SOP PENJUALAN');
+        $this->actingAs($staff)->from('/document')->patch("/document/{$document->id}/restore")->assertSessionHas('error');
+        $this->assertSoftDeleted($document);
     }
 
     public function test_destructive_actions_are_no_longer_reachable_with_get_requests(): void

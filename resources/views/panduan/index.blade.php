@@ -422,7 +422,8 @@
                         <li>Tombol versi (mis. <code>v2</code>) atau <b>Riwayat Versi</b> menampilkan daftar versi, siapa yang mengubah, dan kapan.</li>
                         <li><b>Buka</b> membuka PDF di tab baru.</li>
                         <li><b>Nonaktifkan Dokumen</b> menyembunyikan dokumen dari peserta, pelatihan, dan Modul Belajar tanpa menghapus; dokumen tetap tampil di daftar dengan status <b>NONAKTIF</b>, dan <b>Aktifkan Dokumen</b> mengembalikannya.</li>
-                        <li><b>Hapus Dokumen</b> menghilangkan dokumen dari daftar beserta kuis pretest/posttest-nya. Data, file, dan riwayat nilainya tetap tersimpan di sistem (soft delete), sehingga masih bisa dipulihkan oleh admin sistem bila perlu.</li>
+                        <li><b>Hapus Dokumen</b> menghilangkan dokumen dari daftar beserta kuis pretest/posttest-nya. Data, file, dan riwayat nilainya tetap tersimpan di sistem (soft delete).</li>
+                        <li>Dokumen yang terhapus ada di tab <b>Terhapus</b>. Klik <b>Pulihkan</b> untuk mengembalikannya ke daftar beserta kuis pretest/posttest-nya; status aktif/nonaktifnya sama seperti sebelum dihapus.</li>
                         <li>Gunakan filter <b>Divisi</b>, <b>Type</b>, dan pencarian untuk menemukan dokumen.</li>
                     </ul>
                     <h3 id="dokumen-kuis">Membuat dokumen dengan pretest &amp; posttest</h3>

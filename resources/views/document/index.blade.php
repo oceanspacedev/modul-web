@@ -21,9 +21,25 @@
                                 </div>
                             </div>
 
+                            @can('restore', App\Models\Document::class)
+                                <ul class="nav nav-tabs px-3 pt-2">
+                                    <li class="nav-item">
+                                        <a class="nav-link {{ $trashed ? '' : 'active' }}" href="{{ route('document.index', request()->except('tab')) }}">Dokumen</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {{ $trashed ? 'active text-danger' : '' }}" href="{{ route('document.index', [...request()->except('tab'), 'tab' => 'terhapus']) }}">
+                                            <i class="fas fa-trash-restore mr-1"></i> Terhapus
+                                        </a>
+                                    </li>
+                                </ul>
+                            @endcan
+
                             <!-- Dedicated Filter & Search Bar -->
                             <div class="filter-toolbar">
                                 <form action="{{ route('document.index') }}" method="GET" class="d-flex flex-wrap align-items-center justify-content-end" style="gap: 12px;">
+                                    @if ($trashed)
+                                        <input type="hidden" name="tab" value="terhapus">
+                                    @endif
                                     <div class="filter-group">
                                         <div class="filter-group-icon">
                                             <i class="fas fa-building text-muted"></i>
@@ -54,7 +70,7 @@
                                     </div>
                                     @if (request('divisi_id') || request('doctype_id') || request('search'))
                                         <div>
-                                            <a href="{{ route('document.index') }}" class="btn btn-sm btn-outline-secondary" title="Reset Filter" style="height: 38px; display: inline-flex; align-items: center; border-radius: 10px;">
+                                            <a href="{{ route('document.index', $trashed ? ['tab' => 'terhapus'] : []) }}" class="btn btn-sm btn-outline-secondary" title="Reset Filter" style="height: 38px; display: inline-flex; align-items: center; border-radius: 10px;">
                                                 <i class="fas fa-undo mr-1"></i> Reset
                                             </a>
                                         </div>
@@ -89,7 +105,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach ($documents as $document)
+                                    @forelse ($documents as $document)
                                         <tr>
                                             <td>{{ $loop->iteration }}</td>
                                             @php
@@ -119,7 +135,10 @@
                                                 </button>
                                             </td>
                                             <td>
-                                                @if ($document->is_active)
+                                                @if ($document->trashed())
+                                                    <span class="badge badge-danger">TERHAPUS</span>
+                                                    <div class="small text-muted mt-1">{{ $document->deleted_at->format('d M Y, H:i') }}</div>
+                                                @elseif ($document->is_active)
                                                     <span class="badge badge-success">AKTIF</span>
                                                 @else
                                                     <span class="badge badge-secondary">NONAKTIF</span>
@@ -137,54 +156,68 @@
                                                             Buka
                                                         </a>
                                                     @endif
-                                                    <div class="dropdown">
-                                                        <button class="btn btn-default btn-xs dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                                            Aksi
-                                                        </button>
-                                                        <div class="dropdown-menu dropdown-menu-right shadow-sm border text-sm" style="font-size: 0.85rem;">
-                                                            <a class="dropdown-item py-1" href="javascript:void(0)" onclick="openDocumentHistory('{{ $document->id }}')">
-                                                                Riwayat Versi
-                                                            </a>
-                                                            @can('update', $document)
-                                                                <a class="dropdown-item py-1" href="{{ route('document.edit', $document) }}">
-                                                                    Edit Dokumen
+                                                    @if ($trashed)
+                                                        <form action="{{ route('document.restore', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Pulihkan dokumen '.$document->name.'? Dokumen kembali ke daftar beserta kuis pretest/posttest-nya.'))">
+                                                            @csrf
+                                                            @method('PATCH')
+                                                            <button type="submit" class="btn btn-success btn-xs" title="Kembalikan dokumen ke daftar">
+                                                                <i class="fas fa-trash-restore mr-1"></i> Pulihkan
+                                                            </button>
+                                                        </form>
+                                                    @else
+                                                        <div class="dropdown">
+                                                            <button class="btn btn-default btn-xs dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                                Aksi
+                                                            </button>
+                                                            <div class="dropdown-menu dropdown-menu-right shadow-sm border text-sm" style="font-size: 0.85rem;">
+                                                                <a class="dropdown-item py-1" href="javascript:void(0)" onclick="openDocumentHistory('{{ $document->id }}')">
+                                                                    Riwayat Versi
                                                                 </a>
-                                                                @if($quizSettings)
-                                                                    <a class="dropdown-item py-1" href="{{ $quizSettings->url('questions.index') }}">
-                                                                        Soal Pretest/Posttest
+                                                                @can('update', $document)
+                                                                    <a class="dropdown-item py-1" href="{{ route('document.edit', $document) }}">
+                                                                        Edit Dokumen
                                                                     </a>
-                                                                    <a class="dropdown-item py-1" href="{{ $quizSettings->url('results') }}">
-                                                                        Rekap Nilai Kuis
-                                                                    </a>
-                                                                @endif
-                                                                <div class="dropdown-divider my-1"></div>
-                                                                @if ($document->is_active)
-                                                                    <form action="{{ route('document.deactivate', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Apakah anda yakin menonaktifkan dokumen '.$document->name.'?'))">
+                                                                    @if($quizSettings)
+                                                                        <a class="dropdown-item py-1" href="{{ $quizSettings->url('questions.index') }}">
+                                                                            Soal Pretest/Posttest
+                                                                        </a>
+                                                                        <a class="dropdown-item py-1" href="{{ $quizSettings->url('results') }}">
+                                                                            Rekap Nilai Kuis
+                                                                        </a>
+                                                                    @endif
+                                                                    <div class="dropdown-divider my-1"></div>
+                                                                    @if ($document->is_active)
+                                                                        <form action="{{ route('document.deactivate', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Apakah anda yakin menonaktifkan dokumen '.$document->name.'?'))">
+                                                                            @csrf
+                                                                            @method('PATCH')
+                                                                            <button type="submit" class="dropdown-item py-1 text-warning">Nonaktifkan Dokumen</button>
+                                                                        </form>
+                                                                    @else
+                                                                        <form action="{{ route('document.activate', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Mengaktifkan kembali dokumen '.$document->name.'?'))">
+                                                                            @csrf
+                                                                            @method('PATCH')
+                                                                            <button type="submit" class="dropdown-item py-1 text-success">Aktifkan Dokumen</button>
+                                                                        </form>
+                                                                    @endif
+                                                                @endcan
+                                                                @can('delete', $document)
+                                                                    <form action="{{ route('document.destroy', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Hapus dokumen '.$document->name.'? Dokumen akan hilang dari daftar beserta kuis pretest/posttest-nya.'))">
                                                                         @csrf
-                                                                        @method('PATCH')
-                                                                        <button type="submit" class="dropdown-item py-1 text-warning">Nonaktifkan Dokumen</button>
+                                                                        @method('DELETE')
+                                                                        <button type="submit" class="dropdown-item py-1 text-danger">Hapus Dokumen</button>
                                                                     </form>
-                                                                @else
-                                                                    <form action="{{ route('document.activate', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Mengaktifkan kembali dokumen '.$document->name.'?'))">
-                                                                        @csrf
-                                                                        @method('PATCH')
-                                                                        <button type="submit" class="dropdown-item py-1 text-success">Aktifkan Dokumen</button>
-                                                                    </form>
-                                                                @endif
-                                                            @endcan
-                                                            @can('delete', $document)
-                                                                <form action="{{ route('document.destroy', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Hapus dokumen '.$document->name.'? Dokumen akan hilang dari daftar beserta kuis pretest/posttest-nya.'))">
-                                                                    @csrf
-                                                                    @method('DELETE')
-                                                                    <button type="submit" class="dropdown-item py-1 text-danger">Hapus Dokumen</button>
-                                                                </form>
-                                                            @endcan
+                                                                @endcan
+                                                            </div>
                                                         </div>
-                                                    </div>
+                                                    @endif
                                                 </div>
                                             </td>
                                         </tr>
-                                    @endforeach
+                                    @empty
+                                        <tr>
+                                            <td colspan="8" class="text-center text-muted py-4">{{ $trashed ? 'Tidak ada dokumen yang dihapus.' : 'Belum ada dokumen.' }}</td>
+                                        </tr>
+                                    @endforelse
                                 </tbody>
                             </table>
                         </div>

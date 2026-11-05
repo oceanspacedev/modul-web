@@ -24,6 +24,7 @@ use Illuminate\View\View;
 #[Authorize('create', Document::class, only: ['create', 'store'])]
 #[Authorize('update', 'document', only: ['edit', 'update', 'deactivate', 'activate'])]
 #[Authorize('delete', 'document', only: ['destroy'])]
+#[Authorize('restore', 'document', only: ['restore'])]
 class DocumentController extends Controller
 {
     public function __construct(private MaterialQuizService $materialQuiz) {}
@@ -33,7 +34,12 @@ class DocumentController extends Controller
         $divisis = Divisi::all();
         $doctypes = DokumenType::all();
 
-        $query = Document::with(['divisi', 'role', 'dokumentype', 'versions', 'quizModule'])->withInactive();
+        // Tab "Terhapus" menampilkan dokumen yang di-soft delete agar bisa dipulihkan (khusus pengelola dokumen).
+        $trashed = $request->query('tab') === 'terhapus' && $request->user()->can('restore', Document::class);
+
+        $query = Document::with(['divisi', 'role', 'dokumentype', 'versions', 'quizModule'])
+            ->withInactive()
+            ->when($trashed, fn ($query) => $query->onlyTrashed());
 
         if ($request->filled('divisi_id')) {
             $query->where('divisi_id', $request->divisi_id);
@@ -47,7 +53,7 @@ class DocumentController extends Controller
             $query->where('name', 'like', '%'.$request->search.'%');
         }
 
-        $documents = $query->orderBy('name')->get();
+        $documents = $query->when($trashed, fn ($query) => $query->latest('deleted_at'), fn ($query) => $query->orderBy('name'))->get();
 
         return view('document.index', [
             'title' => 'Documents',
@@ -55,6 +61,7 @@ class DocumentController extends Controller
             'divisis' => $divisis,
             'doctypes' => $doctypes,
             'documents' => $documents,
+            'trashed' => $trashed,
         ]);
     }
 
@@ -264,6 +271,20 @@ class DocumentController extends Controller
         });
 
         return to_route('document.index')->with('success', 'Berhasil menghapus dokumen '.$document->name);
+    }
+
+    /**
+     * Pulihkan dokumen yang dihapus beserta kuis pretest/posttest-nya (ikut terhapus saat dokumen dihapus).
+     * Status aktif/nonaktif dokumen tetap seperti sebelum dihapus.
+     */
+    public function restore(Document $document): RedirectResponse
+    {
+        DB::transaction(function () use ($document) {
+            $document->restore();
+            $document->quizModule()->onlyTrashed()->first()?->restore();
+        });
+
+        return to_route('document.index', ['tab' => 'terhapus'])->with('success', 'Berhasil memulihkan dokumen '.$document->name);
     }
 
     /**

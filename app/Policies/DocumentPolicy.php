@@ -31,4 +31,12 @@ class DocumentPolicy
     {
         return $user->checkPermissionTo('manage-documents');
     }
+
+    /**
+     * Memulihkan dokumen yang dihapus; tanpa model dipakai untuk menampilkan tab "Terhapus".
+     */
+    public function restore(User $user, ?Document $document = null): bool
+    {
+        return $user->checkPermissionTo('manage-documents');
+    }
 }
