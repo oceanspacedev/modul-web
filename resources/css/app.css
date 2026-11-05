@@ -110,8 +110,9 @@ hr {
 
 /* =========================================================
    APP SHELL
-   Gray frame (sidebar + background) with one white panel that
-   holds the topbar, content and footer.
+   Flat layout: gray sidebar split from the white content by a single
+   vertical line; the topbar only has a bottom line. No framed panel,
+   so no near-parallel lines between the sidebar and the content.
    ========================================================= */
 .wrapper,
 .content-wrapper {
@@ -120,30 +121,6 @@ hr {
 
 body:not(.layout-top-nav) .content-wrapper {
     background-color: #ffffff !important;
-}
-
-@media (min-width: 992px) {
-    body:not(.layout-top-nav) .main-header.navbar {
-        margin-top: 0.5rem;
-        border: 1px solid var(--ring) !important;
-        border-right: 0 !important;
-        border-top-left-radius: var(--radius-xl);
-    }
-
-    body:not(.layout-top-nav) .content-wrapper {
-        border-left: 1px solid var(--ring);
-    }
-
-    body:not(.layout-top-nav) .main-footer {
-        margin-bottom: 0.5rem;
-        border: 1px solid var(--ring) !important;
-        border-right: 0 !important;
-        border-bottom-left-radius: var(--radius-xl);
-    }
-
-    body:not(.layout-top-nav) .wrapper {
-        min-height: calc(100vh - 1rem);
-    }
 }
 
 /* Public top-nav layout (no sidebar) */
@@ -155,7 +132,7 @@ body.layout-top-nav .main-footer {
 
 /* ---------- Topbar ---------- */
 .main-header.navbar {
-    background: var(--gray-50) !important;
+    background: #ffffff !important;
     border-bottom: 1px solid var(--ring) !important;
     box-shadow: none !important;
     padding: 0.5rem 1rem;
@@ -293,7 +270,7 @@ body.layout-top-nav .main-header.navbar {
 }
 
 .main-sidebar {
-    border-right: 0 !important;
+    border-right: 1px solid var(--ring) !important;
     box-shadow: none !important;
 }
 
@@ -312,7 +289,7 @@ body.layout-top-nav .main-header.navbar {
     gap: 10px;
     height: auto !important;
     padding: 1.15rem 1.25rem 1rem !important;
-    border-bottom: 1px dashed var(--ring) !important;
+    border-bottom: 0 !important;
     background: transparent !important;
 }
 
