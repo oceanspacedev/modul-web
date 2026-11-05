@@ -35,8 +35,8 @@
                 <label class="custom-control-label" for="quiz_pretest">Aktifkan Pretest</label>
             </div>
             <div id="quizPretestMax" class="{{ $quizPretest ? '' : 'd-none' }}">
-                <label class="small text-muted mb-1" for="quiz_pretest_max">Batas percobaan</label>
-                <input type="number" min="1" max="255" class="form-control form-control-sm" id="quiz_pretest_max" name="quiz[pretest_max_attempts]" value="{{ $quizPretestMax }}" placeholder="Kosong = tanpa batas">
+                <label for="quiz_pretest_max">Batas percobaan</label>
+                <input type="number" min="1" max="255" class="form-control" id="quiz_pretest_max" name="quiz[pretest_max_attempts]" value="{{ $quizPretestMax }}" placeholder="Kosong = tanpa batas">
             </div>
         </div>
         <div class="col-md-6 mb-2">
@@ -46,15 +46,15 @@
                 <label class="custom-control-label" for="quiz_posttest">Aktifkan Posttest</label>
             </div>
             <div id="quizPosttestMax" class="{{ $quizPosttest ? '' : 'd-none' }}">
-                <label class="small text-muted mb-1" for="quiz_posttest_max">Batas percobaan</label>
-                <input type="number" min="1" max="255" class="form-control form-control-sm" id="quiz_posttest_max" name="quiz[posttest_max_attempts]" value="{{ $quizPosttestMax }}" placeholder="Kosong = tanpa batas">
+                <label for="quiz_posttest_max">Batas percobaan</label>
+                <input type="number" min="1" max="255" class="form-control" id="quiz_posttest_max" name="quiz[posttest_max_attempts]" value="{{ $quizPosttestMax }}" placeholder="Kosong = tanpa batas">
             </div>
         </div>
     </div>
 
     <div id="quizPassing" class="{{ $quizPretest || $quizPosttest ? '' : 'd-none' }}">
-        <label class="small text-muted mb-1" for="quiz_passing_score">Nilai minimal lulus (KKM)</label>
-        <input type="number" min="0" max="100" class="form-control form-control-sm mb-3" id="quiz_passing_score" name="quiz[passing_score]" value="{{ $quizPassing }}" style="max-width: 140px;">
+        <label for="quiz_passing_score">Nilai minimal lulus (KKM)</label>
+        <input type="number" min="0" max="100" class="form-control mb-3" id="quiz_passing_score" name="quiz[passing_score]" value="{{ $quizPassing }}" style="max-width: 140px;">
         @include('learning_module.partials.quiz-mode-fields', [
             'modeName' => 'quiz[mode]',
             'secondsName' => 'quiz[question_seconds]',
