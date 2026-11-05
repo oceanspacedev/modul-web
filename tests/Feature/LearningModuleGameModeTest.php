@@ -63,7 +63,7 @@ class LearningModuleGameModeTest extends TestCase
         $this->assertSame(15, $quiz->question_seconds);
 
         $this->actingAs($this->admin)->get(route('video.edit', Video::sole()))
-            ->assertOk()->assertSee('Mode Quizizz (Game)')->assertSee('value="15"', false);
+            ->assertOk()->assertSee('Game (Quizizz)')->assertSee('value="15"', false);
     }
 
     public function test_quiz_mode_settings_are_validated(): void
@@ -108,7 +108,7 @@ class LearningModuleGameModeTest extends TestCase
         $this->assertTrue($module->isGameMode());
         $this->assertSame(25, $module->question_seconds);
 
-        $this->actingAs($this->admin)->get(route('learning-module.edit', $module))->assertOk()->assertSee('Mode Quizizz (Game)');
+        $this->actingAs($this->admin)->get(route('learning-module.edit', $module))->assertOk()->assertSee('Game (Quizizz)');
     }
 
     public function test_new_modules_default_to_formal_mode(): void
