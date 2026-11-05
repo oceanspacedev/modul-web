@@ -111,8 +111,9 @@ hr {
 /* =========================================================
    APP SHELL
    Flat layout: gray sidebar split from the white content by a single
-   vertical line; the topbar only has a bottom line. No framed panel,
-   so no near-parallel lines between the sidebar and the content.
+   vertical line. The page side (topbar, content) has no frame or
+   horizontal lines, so nothing runs almost parallel to the sidebar's
+   brand divider.
    ========================================================= */
 .wrapper,
 .content-wrapper {
@@ -133,7 +134,7 @@ body.layout-top-nav .main-footer {
 /* ---------- Topbar ---------- */
 .main-header.navbar {
     background: #ffffff !important;
-    border-bottom: 1px solid var(--ring) !important;
+    border-bottom: 0 !important;
     box-shadow: none !important;
     padding: 0.5rem 1rem;
     min-height: 57px;
@@ -141,6 +142,7 @@ body.layout-top-nav .main-footer {
 
 body.layout-top-nav .main-header.navbar {
     background: #ffffff !important;
+    border-bottom: 1px solid var(--ring) !important;
 }
 
 .main-header .nav-link {
@@ -289,7 +291,7 @@ body.layout-top-nav .main-header.navbar {
     gap: 10px;
     height: auto !important;
     padding: 1.15rem 1.25rem 1rem !important;
-    border-bottom: 0 !important;
+    border-bottom: 1px dashed var(--ring) !important;
     background: transparent !important;
 }
 
