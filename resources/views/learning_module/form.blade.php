@@ -33,8 +33,9 @@
             @endif
 
             <div class="row">
-                <div class="col-lg-6 mb-4">
-                    <div class="card h-100 mb-0">
+                <div class="col-lg-7 d-flex flex-column">
+                    {{-- INFORMASI MODUL --}}
+                    <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">Informasi Modul</h3>
                         </div>
@@ -45,84 +46,23 @@
                                     placeholder="Contoh: SOP Keselamatan Kerja Gudang" required maxlength="255">
                             </div>
 
-                            <div class="form-group">
+                            <div class="form-group mb-0">
                                 <label for="description">Deskripsi</label>
                                 <textarea id="description" name="description" class="form-control" rows="3"
                                     placeholder="Tujuan dan gambaran singkat modul">{{ old('description', $module->description) }}</textarea>
                             </div>
-
-                            <div class="row">
-                                <div class="col-md-6 form-group">
-                                    <label for="passing_score">Nilai Minimal Lulus (KKM) <span class="text-danger">*</span></label>
-                                    <input type="number" id="passing_score" name="passing_score" class="form-control" min="0" max="100"
-                                        value="{{ old('passing_score', $module->passing_score) }}" required>
-                                    <small class="form-text text-muted">Posttest dinyatakan lulus bila nilainya &ge; KKM.</small>
-                                </div>
-                                <div class="col-md-6 form-group d-flex align-items-center">
-                                    <div class="custom-control custom-switch mt-md-3">
-                                        <input type="checkbox" class="custom-control-input" id="shuffle_questions" name="shuffle_questions" value="1"
-                                            {{ old('shuffle_questions', $module->shuffle_questions) ? 'checked' : '' }}>
-                                        <label class="custom-control-label" for="shuffle_questions">Acak urutan soal setiap percobaan</label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6 form-group">
-                                    <label for="pretest_max_attempts">Batas Percobaan Pretest</label>
-                                    <input type="number" id="pretest_max_attempts" name="pretest_max_attempts" class="form-control" min="1" max="255"
-                                        value="{{ old('pretest_max_attempts', $module->exists ? $module->pretest_max_attempts : 1) }}" placeholder="Kosong = tanpa batas">
-                                </div>
-                                <div class="col-md-6 form-group">
-                                    <label for="posttest_max_attempts">Batas Percobaan Posttest</label>
-                                    <input type="number" id="posttest_max_attempts" name="posttest_max_attempts" class="form-control" min="1" max="255"
-                                        value="{{ old('posttest_max_attempts', $module->posttest_max_attempts) }}" placeholder="Kosong = tanpa batas">
-                                </div>
-                            </div>
-
-                            <div class="form-group">
-                                @include('learning_module.partials.quiz-mode-fields', [
-                                    'modeName' => 'quiz_mode',
-                                    'secondsName' => 'question_seconds',
-                                    'mode' => old('quiz_mode', $module->quiz_mode ?? \App\Models\LearningModule::MODE_FORMAL),
-                                    'seconds' => old('question_seconds', $module->question_seconds ?? 30),
-                                    'idPrefix' => 'module',
-                                ])
-                            </div>
-
-                            <div class="form-group">
-                                <label for="divisi_ids">Divisi Sasaran</label>
-                                <select id="divisi_ids" name="divisi_ids[]" class="form-control select2" multiple data-placeholder="Semua divisi">
-                                    @foreach($divisis as $divisi)
-                                        <option value="{{ $divisi->id }}" {{ $selectedDivisis->contains($divisi->id) ? 'selected' : '' }}>{{ $divisi->name }}</option>
-                                    @endforeach
-                                </select>
-                                <small class="form-text text-muted">Kosongkan untuk semua divisi.</small>
-                            </div>
-
-                            <div class="form-group mb-0">
-                                <label for="role_ids">Jabatan Sasaran</label>
-                                <select id="role_ids" name="role_ids[]" class="form-control select2" multiple data-placeholder="Semua jabatan">
-                                    @foreach($roles as $role)
-                                        <option value="{{ $role->id }}" {{ $selectedRoles->contains($role->id) ? 'selected' : '' }}>{{ $role->name }}</option>
-                                    @endforeach
-                                </select>
-                                <small class="form-text text-muted">Kosongkan untuk semua jabatan.</small>
-                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="col-lg-6 mb-4">
-                    <div class="card h-100 mb-0">
+                    {{-- MATERI MODUL --}}
+                    <div class="card flex-grow-1">
                         <div class="card-header">
                             <h3 class="card-title">Materi Modul</h3>
                         </div>
                         <div class="card-body">
                             <p class="text-muted small mb-3">
                                 Pilih dari <a href="{{ route('video.index') }}" target="_blank">Video Materi</a> dan
-                                <a href="{{ route('document.index') }}" target="_blank">Dokumen</a> yang sudah diunggah.
-                                Peserta wajib menyelesaikan semua materi setelah pretest sebelum posttest terbuka.
+                                <a href="{{ route('document.index') }}" target="_blank">Dokumen</a>. Peserta menyelesaikan semua materi sebelum posttest.
                             </p>
 
                             <div class="d-flex gap-2 mb-3">
@@ -151,13 +91,90 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="d-flex justify-content-end gap-2 mb-4">
-                <a href="{{ route('learning-module.index') }}" class="btn btn-default">Batal</a>
-                <button type="submit" class="btn btn-primary">
-                    {{ $isEdit ? 'Simpan Perubahan' : 'Simpan & Lanjut Buat Soal' }}
-                </button>
+                <div class="col-lg-5">
+                    {{-- PENGATURAN KUIS --}}
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Pengaturan Kuis</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-sm-6 form-group">
+                                    <label for="passing_score">KKM <span class="text-danger">*</span></label>
+                                    <input type="number" id="passing_score" name="passing_score" class="form-control" min="0" max="100"
+                                        value="{{ old('passing_score', $module->passing_score) }}" required>
+                                    <small class="form-text text-muted">Posttest lulus bila nilai &ge; KKM.</small>
+                                </div>
+                                <div class="col-sm-6 form-group d-flex align-items-center">
+                                    <div class="custom-control custom-switch mt-sm-3">
+                                        <input type="checkbox" class="custom-control-input" id="shuffle_questions" name="shuffle_questions" value="1"
+                                            {{ old('shuffle_questions', $module->shuffle_questions) ? 'checked' : '' }}>
+                                        <label class="custom-control-label" for="shuffle_questions">Acak urutan soal</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-sm-6 form-group">
+                                    <label for="pretest_max_attempts">Batas Percobaan Pretest</label>
+                                    <input type="number" id="pretest_max_attempts" name="pretest_max_attempts" class="form-control" min="1" max="255"
+                                        value="{{ old('pretest_max_attempts', $module->exists ? $module->pretest_max_attempts : 1) }}" placeholder="Tanpa batas">
+                                </div>
+                                <div class="col-sm-6 form-group">
+                                    <label for="posttest_max_attempts">Batas Percobaan Posttest</label>
+                                    <input type="number" id="posttest_max_attempts" name="posttest_max_attempts" class="form-control" min="1" max="255"
+                                        value="{{ old('posttest_max_attempts', $module->posttest_max_attempts) }}" placeholder="Tanpa batas">
+                                </div>
+                            </div>
+
+                            @include('learning_module.partials.quiz-mode-fields', [
+                                'modeName' => 'quiz_mode',
+                                'secondsName' => 'question_seconds',
+                                'mode' => old('quiz_mode', $module->quiz_mode ?? \App\Models\LearningModule::MODE_FORMAL),
+                                'seconds' => old('question_seconds', $module->question_seconds ?? 30),
+                                'idPrefix' => 'module',
+                            ])
+                        </div>
+                    </div>
+
+                    {{-- SASARAN PESERTA --}}
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Sasaran Peserta</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="divisi_ids">Divisi</label>
+                                <select id="divisi_ids" name="divisi_ids[]" class="form-control select2" multiple data-placeholder="Semua divisi">
+                                    @foreach($divisis as $divisi)
+                                        <option value="{{ $divisi->id }}" {{ $selectedDivisis->contains($divisi->id) ? 'selected' : '' }}>{{ $divisi->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="form-group mb-0">
+                                <label for="role_ids">Jabatan</label>
+                                <select id="role_ids" name="role_ids[]" class="form-control select2" multiple data-placeholder="Semua jabatan">
+                                    @foreach($roles as $role)
+                                        <option value="{{ $role->id }}" {{ $selectedRoles->contains($role->id) ? 'selected' : '' }}>{{ $role->name }}</option>
+                                    @endforeach
+                                </select>
+                                <small class="form-text text-muted">Kosongkan untuk semua divisi/jabatan.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- SIMPAN --}}
+                    <div class="card">
+                        <div class="card-body">
+                            <button type="submit" class="btn btn-primary btn-block">
+                                {{ $isEdit ? 'Simpan Perubahan' : 'Simpan & Lanjut Buat Soal' }}
+                            </button>
+                            <a href="{{ route('learning-module.index') }}" class="btn btn-default btn-block">Batal</a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </form>
     </div>
