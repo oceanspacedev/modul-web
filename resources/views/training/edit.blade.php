@@ -6,7 +6,7 @@
         <x-page-header title="Edit Pelatihan" :subtitle="$training->title" eyebrow="Pelatihan / Jadwal">
             <x-slot:actions>
                 <a href="/training/{{ $training->id }}" class="btn btn-default">
-                    <i class="fas fa-arrow-left"></i> Kembali ke Detail
+                    <i class="fas fa-arrow-left"></i> Kembali
                 </a>
             </x-slot:actions>
         </x-page-header>
@@ -29,13 +29,13 @@
                         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label for="title">Judul / Topik Pelatihan <span class="text-danger">*</span></label>
+                                <label for="title">Judul <span class="text-danger">*</span></label>
                                 <input type="text" id="title" name="title" class="form-control" value="{{ old('title', $training->title) }}" required>
                             </div>
 
                             <div class="form-row">
                                 <div class="form-group col-md-6">
-                                    <label for="status">Status Pelatihan <span class="text-danger">*</span></label>
+                                    <label for="status">Status <span class="text-danger">*</span></label>
                                     <select id="status" name="status" class="form-control" required>
                                         @foreach (App\Enums\TrainingStatus::cases() as $status)
                                             <option value="{{ $status->value }}" @selected(old('status', $training->status->value) === $status->value)>{{ $status->label() }}</option>
@@ -43,7 +43,7 @@
                                     </select>
                                 </div>
                                 <div class="form-group col-md-6">
-                                    <label for="trainer_id">Pemateri (Trainer) <span class="text-danger">*</span></label>
+                                    <label for="trainer_id">Pemateri <span class="text-danger">*</span></label>
                                     <select id="trainer_id" name="trainer_id" class="form-control" required>
                                         @foreach($users as $u)
                                             <option value="{{ $u->id }}" {{ (old('trainer_id', $training->trainer_id) == $u->id) ? 'selected' : '' }}>
@@ -56,30 +56,30 @@
 
                             <div class="form-row">
                                 <div class="form-group col-md-6">
-                                    <label for="training_date">Tanggal Pelaksanaan <span class="text-danger">*</span></label>
+                                    <label for="training_date">Tanggal <span class="text-danger">*</span></label>
                                     <input type="date" id="training_date" name="training_date" class="form-control"
                                            value="{{ old('training_date', \Carbon\Carbon::parse($training->training_date)->format('Y-m-d')) }}" required>
                                 </div>
                                 <div class="form-group col-md-3 col-6">
-                                    <label for="start_time">Jam Mulai <span class="text-danger">*</span></label>
+                                    <label for="start_time">Mulai <span class="text-danger">*</span></label>
                                     <input type="time" id="start_time" name="start_time" class="form-control"
                                            value="{{ old('start_time', substr($training->start_time, 0, 5)) }}" required>
                                 </div>
                                 <div class="form-group col-md-3 col-6">
-                                    <label for="end_time">Jam Selesai <span class="text-danger">*</span></label>
+                                    <label for="end_time">Selesai <span class="text-danger">*</span></label>
                                     <input type="time" id="end_time" name="end_time" class="form-control"
                                            value="{{ old('end_time', substr($training->end_time, 0, 5)) }}" required>
                                 </div>
                             </div>
 
                             <div class="form-group">
-                                <label for="zoom_link">Tautan Zoom / Google Meet <span class="text-danger">*</span></label>
+                                <label for="zoom_link">Link Meeting <span class="text-danger">*</span></label>
                                 <input type="url" id="zoom_link" name="zoom_link" class="form-control"
                                        value="{{ old('zoom_link', $training->zoom_link) }}" required>
                             </div>
 
                             <div class="form-group mb-0">
-                                <label for="description">Deskripsi / Silabus Materi</label>
+                                <label for="description">Deskripsi</label>
                                 <textarea id="description" name="description" class="form-control" rows="3">{{ old('description', $training->description) }}</textarea>
                             </div>
                         </div>
@@ -88,15 +88,12 @@
                     {{-- MATERI & MODE KUIS --}}
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">Materi & Mode Kuis</h3>
+                            <h3 class="card-title">Materi & Kuis</h3>
                         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label for="documents" class="d-flex justify-content-between align-items-center">
-                                    <span>Dokumen Materi (SOP / Modul)</span>
-                                    <span class="badge badge-secondary">{{ count($selectedDocuments) }} Terpilih</span>
-                                </label>
-                                <select id="documents" name="documents[]" class="form-control select2" multiple="multiple" data-placeholder="-- Pilih dokumen materi acuan --">
+                                <label for="documents">Dokumen Materi</label>
+                                <select id="documents" name="documents[]" class="form-control select2" multiple="multiple" data-placeholder="Pilih dokumen (opsional)">
                                     @foreach($documents as $doc)
                                         <option value="{{ $doc->id }}" {{ in_array($doc->id, old('documents', $selectedDocuments ?? [])) ? 'selected' : '' }}>
                                             {{ $doc->name }} ({{ $doc->dokumentype->name ?? 'Dokumen' }})
@@ -106,17 +103,15 @@
                             </div>
 
                             <div class="form-group mb-0">
-                                <label class="d-block">Tampilan / Mode Kuis Peserta</label>
+                                <label class="d-block">Mode Kuis</label>
                                 <div class="row">
                                     <div class="col-md-6 mb-2 mb-md-0">
                                         <div class="border rounded p-3 h-100">
                                             <div class="custom-control custom-radio">
                                                 <input type="radio" id="mode_formal" name="quiz_mode" value="formal" class="custom-control-input" {{ old('quiz_mode', $training->quiz_mode ?? 'formal') === 'formal' ? 'checked' : '' }}>
                                                 <label class="custom-control-label d-block" for="mode_formal">
-                                                    <strong class="d-block">Mode Formal (Ujian)</strong>
-                                                    <span class="d-block text-muted small mt-1">
-                                                        Formulir ujian lengkap, anti-cheat ketat, dan cocok untuk evaluasi akademik/essay.
-                                                    </span>
+                                                    <strong class="d-block">Formal</strong>
+                                                    <span class="d-block text-muted small mt-1">Semua soal dalam satu halaman.</span>
                                                 </label>
                                             </div>
                                         </div>
@@ -126,10 +121,8 @@
                                             <div class="custom-control custom-radio">
                                                 <input type="radio" id="mode_game" name="quiz_mode" value="game" class="custom-control-input" {{ old('quiz_mode', $training->quiz_mode ?? 'formal') === 'game' ? 'checked' : '' }}>
                                                 <label class="custom-control-label d-block" for="mode_game">
-                                                    <strong class="d-block">Mode Game (Quizizz)</strong>
-                                                    <span class="d-block text-muted small mt-1">
-                                                        1 soal per layar, tombol warna-warni, timer per soal, sound effect, dan podium juara.
-                                                    </span>
+                                                    <strong class="d-block">Game (Quizizz)</strong>
+                                                    <span class="d-block text-muted small mt-1">1 soal per layar dengan timer.</span>
                                                 </label>
                                             </div>
                                         </div>
@@ -148,8 +141,8 @@
                                 Peserta <span class="badge badge-secondary"><span id="selectedCountBadge">0</span> dipilih</span>
                             </h3>
                             <div class="card-tools d-flex gap-1">
-                                <button type="button" id="btnSelectAll" class="btn btn-xs btn-default">Pilih Semua</button>
-                                <button type="button" id="btnDeselectAll" class="btn btn-xs btn-default">Batal Semua</button>
+                                <button type="button" id="btnSelectAll" class="btn btn-xs btn-default">Pilih semua</button>
+                                <button type="button" id="btnDeselectAll" class="btn btn-xs btn-default">Kosongkan</button>
                             </div>
                         </div>
 
@@ -164,7 +157,7 @@
                                     </select>
                                 </div>
                                 <div class="form-group col-sm-6">
-                                    <input type="text" id="searchParticipant" class="form-control form-control-sm" placeholder="Cari nama, username, atau ID...">
+                                    <input type="text" id="searchParticipant" class="form-control form-control-sm" placeholder="Cari peserta...">
                                 </div>
                             </div>
 
@@ -182,17 +175,13 @@
                                         <label class="custom-control-label" for="user_{{ $user->id }}">
                                             <strong class="d-block text-dark">{{ $user->nama_lengkap }}</strong>
                                             <span class="text-muted small">
-                                                {{ $user->employee_id ?? '-' }} &bull; {{ $user->username }} &bull; {{ $user->divisi->name ?? 'Divisi Umum' }}
+                                                {{ $user->divisi->name ?? 'Divisi Umum' }}
                                             </span>
                                         </label>
                                     </div>
-                                    <div class="text-right pl-2">
-                                        @if($user->no_hp)
-                                            <span class="text-muted small">{{ $user->no_hp }}</span>
-                                        @else
-                                            <span class="text-muted small">No WA -</span>
-                                        @endif
-                                    </div>
+                                    @unless($user->no_hp)
+                                        <span class="badge badge-secondary ml-2" title="Nomor WhatsApp belum diisi">Tanpa WA</span>
+                                    @endunless
                                 </div>
                                 @endforeach
                             </div>
@@ -202,22 +191,20 @@
                     {{-- PRESENSI --}}
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">Presensi</h3>
+                            <h3 class="card-title">Pengaturan</h3>
                         </div>
                         <div class="card-body">
-                            <div class="custom-control custom-checkbox mb-3">
+                            <div class="custom-control custom-switch mb-3">
                                 <input type="checkbox" class="custom-control-input" id="is_attendance_active" name="is_attendance_active" value="1" {{ old('is_attendance_active', $training->is_attendance_active) ? 'checked' : '' }}>
                                 <label class="custom-control-label" for="is_attendance_active">
-                                    Buka akses presensi kehadiran peserta
+                                    Buka presensi
                                 </label>
-                                <small class="form-text text-muted mt-0">Bisa dibuka/ditutup cepat dari halaman detail pelatihan.</small>
                             </div>
-                            <div class="custom-control custom-checkbox">
+                            <div class="custom-control custom-switch">
                                 <input type="checkbox" class="custom-control-input" id="require_attendance_proof" name="require_attendance_proof" value="1" {{ old('require_attendance_proof', $training->require_attendance_proof) ? 'checked' : '' }}>
                                 <label class="custom-control-label" for="require_attendance_proof">
-                                    Wajibkan peserta unggah screenshot bukti Zoom/Pelatihan
+                                    Wajib upload bukti screenshot
                                 </label>
-                                <small class="form-text text-muted mt-0">Peserta harus melampirkan screenshot layar Zoom saat konfirmasi kehadiran.</small>
                             </div>
                         </div>
                     </div>
@@ -301,7 +288,7 @@ document.addEventListener('DOMContentLoaded', function() {
         $('#documents').select2({
             theme: 'bootstrap4',
             width: '100%',
-            placeholder: '-- Pilih satu atau beberapa dokumen materi --'
+            placeholder: 'Pilih dokumen (opsional)'
         });
     }
 });
