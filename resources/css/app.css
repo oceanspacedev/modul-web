@@ -23,13 +23,13 @@
     --gray-900: #18181b;
     --gray-950: #09090b;
 
-    --primary-50: #fdf2f8;
-    --primary-100: #fce7f3;
-    --primary-200: #fbcfe8;
-    --primary-500: #f78ac2;  /* hover: a touch lighter */
-    --primary-600: #f472b6;  /* main accent: soft pink */
-    --primary-700: #db2777;  /* text / pressed: readable pink */
-    --primary-800: #be185d;
+    --primary-50: #fff0f7;
+    --primary-100: #ffe0ef;
+    --primary-200: #ffc2df;
+    --primary-500: #ff6bb5;  /* hover: a touch lighter */
+    --primary-600: #ff4da6;  /* main accent: bright, saturated light pink */
+    --primary-700: #e6007a;  /* text / pressed: readable vivid pink */
+    --primary-800: #c20067;
     --primary: var(--primary-600);
     --primary-dark: var(--primary-700);
     --primary-soft: var(--primary-50);
@@ -52,7 +52,7 @@
     --shadow-xs: 0 1px 2px 0 rgba(9, 9, 11, 0.05);
     --shadow-lg: 0 10px 15px -3px rgba(9, 9, 11, 0.08), 0 4px 6px -4px rgba(9, 9, 11, 0.06);
     --shadow-xl: 0 20px 25px -5px rgba(9, 9, 11, 0.1), 0 8px 10px -6px rgba(9, 9, 11, 0.08);
-    --focus-ring: 0 0 0 1px var(--primary-600), 0 0 0 4px rgba(244, 114, 182, 0.2);
+    --focus-ring: 0 0 0 1px var(--primary-600), 0 0 0 4px rgba(255, 77, 166, 0.2);
 
     /* legacy aliases still referenced by a few views */
     --page-bg: var(--gray-50);
@@ -1880,7 +1880,7 @@ small.form-text {
 .badge-info {
     background: var(--primary-50) !important;
     color: var(--primary-700) !important;
-    box-shadow: inset 0 0 0 1px rgba(244, 114, 182, 0.25);
+    box-shadow: inset 0 0 0 1px rgba(255, 77, 166, 0.25);
 }
 
 .badge-dark {
@@ -1902,7 +1902,7 @@ small.form-text {
 
 /* Badges coloured with bg-* utilities (outside tables) */
 .badge.bg-primary,
-.badge.bg-info { background: var(--primary-50) !important; color: var(--primary-700) !important; box-shadow: inset 0 0 0 1px rgba(244, 114, 182, 0.25); }
+.badge.bg-info { background: var(--primary-50) !important; color: var(--primary-700) !important; box-shadow: inset 0 0 0 1px rgba(255, 77, 166, 0.25); }
 .badge.bg-success { background: var(--success-50) !important; color: var(--success-700) !important; box-shadow: inset 0 0 0 1px rgba(5, 150, 105, 0.2); }
 .badge.bg-warning { background: var(--warning-50) !important; color: var(--warning-700) !important; box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.2); }
 .badge.bg-danger { background: var(--danger-50) !important; color: var(--danger-700) !important; box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.15); }
@@ -1967,7 +1967,7 @@ small.form-text {
 .alert-primary {
     background: var(--primary-50) !important;
     color: var(--primary-700) !important;
-    box-shadow: inset 0 0 0 1px rgba(244, 114, 182, 0.25);
+    box-shadow: inset 0 0 0 1px rgba(255, 77, 166, 0.25);
 }
 
 .alert-light,
