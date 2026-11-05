@@ -421,7 +421,7 @@ $(document).ready(function() {
     Chart.defaults.global.defaultFontColor = '#71717a';
 
     // -------------------------------------------------------------
-    // 1. Chart Peserta Pelatihan (Bar Chart - primary blue)
+    // 1. Chart Peserta Pelatihan (Bar Chart - primary pink)
     // -------------------------------------------------------------
     var ctxPelatihan = document.getElementById('chartPelatihan');
     if (ctxPelatihan) {
@@ -435,9 +435,9 @@ $(document).ready(function() {
                 datasets: [{
                     label: 'Jumlah Peserta',
                     data: dataPelatihan,
-                    backgroundColor: '#db2777',
+                    backgroundColor: '#f472b6',
                     borderWidth: 0,
-                    hoverBackgroundColor: '#be185d',
+                    hoverBackgroundColor: '#ec4899',
                     maxBarThickness: 40,
                     borderRadius: 6
                 }]
@@ -502,7 +502,7 @@ $(document).ready(function() {
                     // Semantic: success / primary / warning / fail
                     backgroundColor: [
                         '#059669', // Sangat Baik - green
-                        '#db2777', // Baik - primary blue
+                        '#f472b6', // Baik - primary pink
                         '#d97706', // Cukup - amber
                         '#dc2626'  // Kurang - red
                     ],
@@ -548,7 +548,7 @@ $(document).ready(function() {
     }
 
     // -------------------------------------------------------------
-    // 3. Chart Popularitas Video (Horizontal Bar - primary blue)
+    // 3. Chart Popularitas Video (Horizontal Bar - primary pink)
     // -------------------------------------------------------------
     var ctxVideo = document.getElementById('chartVideoViews');
     if (ctxVideo) {
@@ -562,9 +562,9 @@ $(document).ready(function() {
                 datasets: [{
                     label: 'Total Views',
                     data: dataVideo,
-                    backgroundColor: '#db2777',
+                    backgroundColor: '#f472b6',
                     borderWidth: 0,
-                    hoverBackgroundColor: '#be185d',
+                    hoverBackgroundColor: '#ec4899',
                     maxBarThickness: 24,
                     borderRadius: 6
                 }]
@@ -620,7 +620,7 @@ $(document).ready(function() {
                 datasets: [{
                     data: dataContent,
                     backgroundColor: [
-                        '#db2777', // video - primary
+                        '#f472b6', // video - primary
                         '#a1a1aa', // dokumen - zinc 400
                         '#d4d4d8', // pelatihan - zinc 300
                         '#e4e4e7'  // divisi - zinc 200
