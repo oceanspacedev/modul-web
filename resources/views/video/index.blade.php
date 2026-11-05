@@ -52,11 +52,8 @@
 .video-thumb-tag.is-bottom { bottom: 8px; right: 8px; }
 .video-card-title a { color: var(--gray-950); }
 .video-card-title a:hover { color: var(--primary-600); text-decoration: none; }
-.video-gallery-header { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
-.video-gallery-header .card-tools { margin-left: auto; }
-.video-search { width: 240px; }
+.video-search { width: 260px; margin: 0; }
 @media (max-width: 575.98px) {
-    .video-gallery-header .card-tools { width: 100%; }
     .video-search { width: 100%; }
 }
 </style>
@@ -82,22 +79,12 @@
         <x-flash />
 
         <div class="card">
-            <div class="card-header video-gallery-header">
+            <div class="card-header">
                 <h3 class="card-title">
-                    Semua Video <span class="badge badge-secondary">{{ $videos->total() }}</span>
+                    Semua Video <span class="badge badge-secondary ml-1">{{ $videos->total() }}</span>
                 </h3>
-                {{-- Search --}}
-                <form action="{{ route('video.index') }}" method="GET" class="card-tools d-flex align-items-center gap-2">
-                    @if(request('search'))
-                        <a href="{{ route('video.index') }}" class="btn btn-link btn-sm px-1" title="Reset Pencarian">Reset</a>
-                    @endif
-                    <div class="input-group input-group-sm video-search">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text"><i class="fas fa-search"></i></span>
-                        </div>
-                        <input type="text" name="search" class="form-control"
-                            placeholder="Cari video..." value="{{ request('search') }}">
-                    </div>
+                <form action="{{ route('video.index') }}" method="GET" class="card-tools video-search" role="search">
+                    <x-search-field placeholder="Cari video..." :clear-url="route('video.index')" />
                 </form>
             </div>
 

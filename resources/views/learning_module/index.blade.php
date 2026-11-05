@@ -21,15 +21,8 @@
             <div class="card-header">
                 <h3 class="card-title">Daftar Modul</h3>
                 <div class="card-tools">
-                    <form action="{{ route('learning-module.index') }}" method="GET" class="m-0">
-                        <div class="input-group input-group-sm" style="width: 260px; max-width: 100%;">
-                            <input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Cari judul modul...">
-                            <div class="input-group-append">
-                                <button type="submit" class="btn btn-default">
-                                    <i class="fas fa-search"></i>
-                                </button>
-                            </div>
-                        </div>
+                    <form action="{{ route('learning-module.index') }}" method="GET" class="m-0" role="search" style="width: 260px; max-width: 100%;">
+                        <x-search-field placeholder="Cari modul..." :clear-url="route('learning-module.index')" />
                     </form>
                 </div>
             </div>
