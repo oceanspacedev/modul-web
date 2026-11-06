@@ -187,7 +187,8 @@ $(function () {
     var labels = @json($materialLabels);
     var $list = $('#materialList');
 
-    $('.select2').each(function () {
+    // Hanya <select>: kotak buatan Select2 juga ber-class "select2".
+    $('select.select2').each(function () {
         $(this).select2({ width: '100%', placeholder: $(this).data('placeholder') });
     });
     $('#materialPicker').select2({ width: '100%', placeholder: $('#materialPicker').data('placeholder'), allowClear: true });
