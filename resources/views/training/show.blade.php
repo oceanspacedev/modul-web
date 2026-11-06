@@ -33,11 +33,11 @@
                     <i class="fas fa-arrow-left"></i>
                 </a>
                 <button type="button" class="btn btn-default" data-toggle="modal" data-target="#scanZoomModal">
-                    <i class="fas fa-video-slash"></i> Scan Off Cam Zoom (AI)
+                    <i class="fas fa-video-slash"></i> Scan Off Cam
                 </button>
                 <div class="dropdown d-inline-block">
                     <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        Menu Opsi
+                        Opsi
                     </button>
                     <div class="dropdown-menu dropdown-menu-right">
                         <a class="dropdown-item" href="/training/{{ $training->id }}/edit">
@@ -53,7 +53,7 @@
                     </div>
                 </div>
                 <a href="/training/{{ $training->id }}/questions" class="btn btn-primary">
-                    Kelola Soal Kuis ({{ $training->questions->count() }})
+                    Soal Kuis ({{ $training->questions->count() }})
                 </a>
             </x-slot:actions>
         </x-page-header>
@@ -63,6 +63,54 @@
 <section class="content">
     <div class="container-fluid">
         <x-flash />
+
+        {{-- RINGKASAN --}}
+        @php
+            $attendanceRate = $stats['total'] > 0 ? round(($stats['attended'] / $stats['total']) * 100) : 0;
+            $quizRate = $stats['total'] > 0 ? round(($stats['quizSubmitted'] / $stats['total']) * 100) : 0;
+        @endphp
+        <div class="row">
+            <div class="col-lg-3 col-6 mb-3">
+                <div class="stat-tile h-100">
+                    <span class="stat-tile-icon"><i class="fas fa-users"></i></span>
+                    <div class="min-w-0">
+                        <p class="stat-tile-label">Peserta</p>
+                        <p class="stat-tile-value" id="statTotal">{{ $stats['total'] }}</p>
+                        <p class="stat-tile-hint"><span id="statAttended">{{ $stats['attended'] }}</span> hadir &middot; <span id="statPending">{{ $stats['pending'] }}</span> belum absen</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-6 mb-3">
+                <div class="stat-tile h-100">
+                    <span class="stat-tile-icon"><i class="fas fa-user-check"></i></span>
+                    <div class="min-w-0">
+                        <p class="stat-tile-label">Kehadiran</p>
+                        <p class="stat-tile-value">{{ $attendanceRate }}%</p>
+                        <p class="stat-tile-hint"><span id="statAbsent">{{ $stats['absent'] }}</span> tidak hadir</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-6 mb-3">
+                <div class="stat-tile h-100">
+                    <span class="stat-tile-icon"><i class="fas fa-clipboard-check"></i></span>
+                    <div class="min-w-0">
+                        <p class="stat-tile-label">Kuis selesai</p>
+                        <p class="stat-tile-value"><span id="statQuiz">{{ $stats['quizSubmitted'] }}</span><span class="text-muted text-sm font-weight-normal"> / {{ $stats['total'] }}</span></p>
+                        <p class="stat-tile-hint">{{ $quizRate }}% peserta</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-6 mb-3">
+                <div class="stat-tile h-100">
+                    <span class="stat-tile-icon"><i class="fas fa-chart-line"></i></span>
+                    <div class="min-w-0">
+                        <p class="stat-tile-label">Rata-rata nilai</p>
+                        <p class="stat-tile-value" id="statAvg">{{ $stats['avgScore'] }}</p>
+                        <p class="stat-tile-hint">dari yang sudah mengerjakan</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- TRAINING DETAIL OVERVIEW & SESSION CONTROL -->
         <div class="row">
@@ -309,65 +357,6 @@
             </div>
         </div>
 
-        <!-- 4 SUMMARY STATS CARDS -->
-        @php
-            $attendanceRate = $stats['total'] > 0 ? round(($stats['attended'] / $stats['total']) * 100) : 0;
-            $quizRate = $stats['total'] > 0 ? round(($stats['quizSubmitted'] / $stats['total']) * 100) : 0;
-        @endphp
-        <div class="row mb-3">
-            <div class="col-lg-3 col-sm-6 mb-3">
-                <div class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-users"></i></span>
-                    <div class="min-w-0">
-                        <p class="stat-tile-label">Total Peserta Terdaftar</p>
-                        <p class="stat-tile-value" id="statTotal">{{ $stats['total'] }}</p>
-                        <p class="stat-tile-hint">
-                            <span id="statAttended">{{ $stats['attended'] }}</span> Hadir &bull; <span id="statPending">{{ $stats['pending'] }}</span> Belum Absen
-                        </p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-sm-6 mb-3">
-                <div class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-user-check"></i></span>
-                    <div class="min-w-0">
-                        <p class="stat-tile-label">Tingkat Kehadiran</p>
-                        <p class="stat-tile-value">{{ $attendanceRate }}%</p>
-                        <p class="stat-tile-hint">
-                            <span id="statAbsent">{{ $stats['absent'] }}</span> Peserta Tidak Hadir
-                        </p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-sm-6 mb-3">
-                <div class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-clipboard-check"></i></span>
-                    <div class="min-w-0">
-                        <p class="stat-tile-label">Penyelesaian Kuis</p>
-                        <p class="stat-tile-value">
-                            <span id="statQuiz">{{ $stats['quizSubmitted'] }}</span>
-                            <span class="text-muted text-sm font-weight-normal">/ {{ $stats['total'] }} Peserta</span>
-                        </p>
-                        <p class="stat-tile-hint">
-                            {{ $quizRate }}% Peserta sudah mengerjakan
-                        </p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-sm-6 mb-3">
-                <div class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-chart-line"></i></span>
-                    <div class="min-w-0">
-                        <p class="stat-tile-label">Rata-rata Nilai Kuis</p>
-                        <p class="stat-tile-value" id="statAvg">{{ $stats['avgScore'] }}</p>
-                        <p class="stat-tile-hint">
-                            Dari total jawaban peserta
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- TABEL REKAP PESERTA & NILAI -->
         <div class="card">
             <div class="card-header">
@@ -379,7 +368,7 @@
                     <button type="button" class="btn btn-default btn-sm" id="btnToggleManualOffCamMode">
                         <i class="fas fa-user-edit"></i> Input Off Cam Manual
                     </button>
-                    <input type="text" id="filterTableInput" class="form-control form-control-sm" placeholder="Cari nama, divisi..." style="width: 180px;">
+                    <input type="text" id="filterTableInput" class="form-control form-control-sm" placeholder="Cari peserta..." style="width: 200px;">
                 </div>
             </div>
 
@@ -402,11 +391,10 @@
                     <thead>
                         <tr>
                             <th class="text-center" style="width: 50px;">No</th>
-                            <th>Nama Peserta</th>
-                            <th>Divisi</th>
+                            <th>Peserta</th>
                             <th>WhatsApp</th>
-                            <th class="text-center">Presensi</th>
-                            <th class="text-center">Status Kuis</th>
+                            <th>Presensi</th>
+                            <th>Kuis</th>
                             <th class="text-center">Nilai</th>
                             <th class="text-center" style="width: 110px;" id="thActionHeader">Aksi</th>
                         </tr>
@@ -427,85 +415,66 @@
                                 {{ $index + 1 }}
                             </td>
                             <td class="align-middle">
-                                <strong class="d-block">{{ $userName }}</strong>
-                                <span class="text-muted text-xs">{{ $userIdKaryawan }} &bull; {{ $userEmail }}</span>
+                                <span class="d-block font-weight-bold text-gray-950" title="{{ $userEmail }}">{{ $userName }}</span>
+                                <span class="cell-sub">{{ $userIdKaryawan }} &middot; {{ $userDivisi }}</span>
                             </td>
-                            <td class="align-middle text-muted">
-                                {{ $userDivisi }}
-                            </td>
-                            <td class="align-middle">
+                            <td class="align-middle text-nowrap">
                                 <span class="d-block">{{ $userNoWa }}</span>
-                                @if($part->wa_sent_at)
-                                    <span class="badge badge-success">WA Terkirim</span>
-                                @else
-                                    <span class="badge badge-secondary">Belum Dikirim</span>
-                                @endif
+                                <span class="cell-sub">{{ $part->wa_sent_at ? 'WA terkirim' : 'Belum dikirim' }}</span>
                             </td>
-                            <td class="text-center align-middle">
+                            <td class="align-middle text-nowrap">
                                 @if($part->attendance_status === 'hadir')
-                                    <span class="badge badge-success">Hadir</span>
-                                    <span class="d-block text-muted text-xs mt-1">
+                                    <span class="status-dot is-success">Hadir</span>
+                                    <span class="cell-sub">
                                         {{ \Carbon\Carbon::parse($part->attended_at)->format('H:i') }} WIB
+                                        @if($part->attendance_proof)
+                                            &middot; <a href="javascript:void(0)" data-toggle="modal" data-target="#proofModal_{{ $part->id }}">Foto</a>
+                                        @endif
                                     </span>
-                                    @if($part->attendance_proof)
-                                        <a href="javascript:void(0)" class="text-xs d-block mt-1" data-toggle="modal" data-target="#proofModal_{{ $part->id }}">
-                                            Lihat Foto
-                                        </a>
-                                    @endif
                                 @elseif($part->attendance_status === 'tidak_hadir')
-                                    <span class="badge badge-danger">Tidak Hadir</span>
+                                    <span class="status-dot is-danger">Tidak hadir</span>
                                     @if($part->attendance_notes)
-                                        <span class="d-block text-muted text-xs mt-1">{{ $part->attendance_notes }}</span>
+                                        <span class="cell-sub text-truncate" style="max-width: 160px;" title="{{ $part->attendance_notes }}">{{ $part->attendance_notes }}</span>
                                     @endif
                                 @else
-                                    <span class="badge badge-warning">Belum Absen</span>
+                                    <span class="status-dot">Belum absen</span>
                                 @endif
 
                                 <div class="offcam-badge-box" id="offcamBadge_{{ $part->id }}">
                                     @if($part->is_off_cam && ($part->off_cam_count ?? 1) > 0)
-                                        <div class="mt-1 pt-1 border-top">
-                                            <span class="badge badge-danger" title="Terdeteksi Off Cam di Zoom ({{ $part->off_cam_count ?: 1 }}x): {{ $part->zoom_display_name ?: '-' }}">
-                                                <i class="fas fa-video-slash"></i> Off Cam ({{ $part->off_cam_count ?: 1 }}x)
-                                            </span>
-                                            @if($part->zoom_display_name)
-                                                <span class="d-block text-muted font-italic text-xs text-truncate mx-auto" style="max-width: 130px;" title="{{ $part->zoom_display_name }}">
-                                                    "{{ $part->zoom_display_name }}"
-                                                </span>
-                                            @endif
-                                        </div>
+                                        <span class="cell-flag is-danger" title="Terdeteksi Off Cam di Zoom{{ $part->zoom_display_name ? ': '.$part->zoom_display_name : '' }}">
+                                            <i class="fas fa-video-slash"></i> Off cam {{ $part->off_cam_count ?: 1 }}x
+                                        </span>
                                     @endif
                                 </div>
                             </td>
-                            <td class="text-center align-middle">
+                            <td class="align-middle text-nowrap">
                                 @if($quiz)
-                                    <span class="badge badge-primary">
-                                        Selesai ({{ $quiz->correct_answers }} PG Benar)
+                                    <span class="d-block">Selesai</span>
+                                    <span class="cell-sub">
+                                        {{ $quiz->correct_answers }} PG benar
+                                        @if($quiz->essay_status === 'graded')
+                                            &middot; Essay {{ $quiz->essay_score }}
+                                        @endif
+                                        &middot; {{ \Carbon\Carbon::parse($quiz->submitted_at)->format('d/m H:i') }}
                                     </span>
-                                    @if($quiz->essay_status === 'graded')
-                                        <div class="mt-1"><span class="badge badge-success">Essay: {{ $quiz->essay_score }}/100</span></div>
-                                    @elseif($quiz->essay_status === 'pending')
-                                        <div class="mt-1"><span class="badge badge-warning">Essay: Menunggu Review</span></div>
+                                    @if($quiz->essay_status === 'pending')
+                                        <span class="cell-flag is-warning"><i class="fas fa-hourglass-half"></i> Essay perlu dinilai</span>
                                     @endif
-                                    <span class="d-block text-muted text-xs mt-1">
-                                        {{ \Carbon\Carbon::parse($quiz->submitted_at)->format('d/m H:i') }}
-                                    </span>
                                 @else
-                                    <span class="text-muted text-sm">Belum Mengerjakan</span>
+                                    <span class="text-muted">Belum mengerjakan</span>
                                 @endif
                             </td>
-                            <td class="text-center align-middle">
+                            <td class="text-center align-middle text-nowrap">
                                 @if($quiz)
-                                    <strong class="{{ $quiz->score >= 75 ? 'text-success' : ($quiz->score >= 50 ? 'text-warning' : 'text-danger') }}">
-                                        {{ $quiz->score }}
-                                    </strong>
+                                    <span class="score-value {{ $quiz->score < 50 ? 'is-danger' : ($quiz->score < 75 ? 'is-warning' : '') }}">{{ $quiz->score }}</span>
                                     @if($quiz->essay_status === 'pending')
-                                        <span class="text-muted text-xs d-block">(Skor PG)</span>
+                                        <span class="cell-sub">skor PG</span>
                                     @endif
-
                                     @if($quiz->is_force_submitted)
-                                        <div class="mt-1"><span class="badge badge-danger">Curang (Auto-Submit)</span></div>
+                                        <span class="cell-flag is-danger" title="Dikirim otomatis karena kecurangan"><i class="fas fa-exclamation-triangle"></i> Curang (Auto-Submit)</span>
                                     @elseif(($quiz->tab_switch_count ?? 0) > 0)
-                                        <div class="mt-1"><span class="badge badge-warning">Pindah Tab: {{ $quiz->tab_switch_count }}x</span></div>
+                                        <span class="cell-flag is-warning" title="Peserta berpindah tab saat mengerjakan"><i class="fas fa-exchange-alt"></i> Pindah tab {{ $quiz->tab_switch_count }}x</span>
                                     @endif
                                 @else
                                     <span class="text-muted">-</span>
@@ -2029,11 +1998,9 @@ if (typeof $ !== 'undefined') {
                     if (badgeBox) {
                         if (count > 0) {
                             badgeBox.innerHTML = `
-                                <div class="mt-1 pt-1 border-top">
-                                    <span class="badge badge-danger" title="Terdeteksi Off Cam di Zoom (${count}x)">
-                                        <i class="fas fa-video-slash"></i> Off Cam (${count}x)
-                                    </span>
-                                </div>
+                                <span class="cell-flag is-danger" title="Terdeteksi Off Cam di Zoom">
+                                    <i class="fas fa-video-slash"></i> Off cam ${count}x
+                                </span>
                             `;
                         } else {
                             badgeBox.innerHTML = '';

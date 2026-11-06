@@ -1835,6 +1835,60 @@ small.form-text {
 .table td .badge.bg-purple:hover,
 .table td button.badge:hover { background: var(--gray-50) !important; color: var(--gray-950) !important; }
 
+/* Quiet table cells: one main line, one muted sub-line, colour only for flags. */
+.text-gray-950 { color: var(--gray-950) !important; }
+
+.cell-sub {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.75rem;
+    color: var(--gray-500);
+}
+
+.cell-flag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 3px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.cell-flag.is-warning { color: var(--warning-700); }
+.cell-flag.is-danger { color: var(--danger-600); }
+
+.status-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--gray-500);
+}
+
+.status-dot::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 9999px;
+    background: var(--gray-300);
+}
+
+.status-dot.is-success { color: var(--gray-950); }
+.status-dot.is-success::before { background: var(--success-600); }
+.status-dot.is-danger { color: var(--danger-700); }
+.status-dot.is-danger::before { background: var(--danger-600); }
+
+.score-value {
+    display: block;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--gray-950);
+    font-variant-numeric: tabular-nums;
+}
+
+.score-value.is-warning { color: var(--warning-700); }
+.score-value.is-danger { color: var(--danger-600); }
+
 /* =========================================================
    BADGES (soft pills with an inset ring)
    ========================================================= */
