@@ -31,8 +31,10 @@ class RolePermissionTest extends TestCase
     {
         $response = $this->actingAs($this->admin())->get('/roles');
         $response->assertStatus(200);
-        $response->assertSee('Manajemen Jabatan & Hak Akses', false);
+        $response->assertSee('Kelola jabatan dan tentukan fitur apa saja', false);
         $response->assertSee('Daftar Jabatan & Hak Akses Fitur', false);
+        $response->assertSee('Matriks Hak Akses');
+        $response->assertSee('Melihat Dashboard & Statistik');
         $response->assertSee('ADMIN');
         $response->assertSee('STAFF');
         $response->assertSee('MANAGER');

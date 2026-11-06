@@ -82,6 +82,17 @@ class RoleController extends Controller
         $users = User::with(['roles', 'permissions', 'divisi', 'position'])->orderBy('nama_lengkap')->get();
         $permissionGroups = self::getPermissionGroups();
 
+        // Hak akses yang belum masuk kelompok mana pun tetap ditampilkan di matriks.
+        $grouped = collect($permissionGroups)->flatMap(fn ($group) => array_keys($group['permissions']));
+        $ungrouped = $permissions->pluck('name')->diff($grouped)->sort()->values();
+        if ($ungrouped->isNotEmpty()) {
+            $permissionGroups['Lainnya'] = [
+                'icon' => 'fas fa-ellipsis-h',
+                'color' => 'text-muted',
+                'permissions' => $ungrouped->mapWithKeys(fn ($name) => [$name => 'Tidak dipakai fitur mana pun'])->all(),
+            ];
+        }
+
         return view('setting.role.index', [
             'title' => 'Manajemen Jabatan & Hak Akses',
             'active' => 'setting',

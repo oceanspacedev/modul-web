@@ -2877,6 +2877,215 @@ body.page-center {
 }
 
 /* =========================================================
+   JABATAN & HAK AKSES (setting/role/index)
+   ========================================================= */
+.role-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.role-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: var(--radius-lg);
+    background: var(--gray-50);
+    border: 1px solid var(--ring);
+    color: var(--gray-500);
+    font-size: 0.8rem;
+}
+
+.role-avatar.is-admin {
+    background: var(--primary-50);
+    border-color: rgba(255, 77, 166, 0.25);
+    color: var(--primary-700);
+}
+
+/* Progress: berapa hak akses yang dimiliki */
+.perm-meter {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+}
+
+.perm-meter-bar {
+    flex: 1 1 auto;
+    height: 6px;
+    min-width: 80px;
+    border-radius: 9999px;
+    background: var(--gray-100);
+    overflow: hidden;
+}
+
+.perm-meter-bar > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--primary-600);
+}
+
+.perm-meter-label {
+    min-width: 48px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--gray-950);
+    text-align: right;
+}
+
+/* Matriks fitur x jabatan */
+.perm-matrix th,
+.perm-matrix td {
+    vertical-align: middle !important;
+}
+
+.perm-matrix thead th {
+    white-space: nowrap;
+}
+
+.perm-matrix .perm-matrix-feature {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    min-width: 260px;
+    background: #ffffff;
+    border-right: 1px solid var(--ring);
+}
+
+.perm-matrix thead .perm-matrix-feature {
+    background: inherit;
+    z-index: 2;
+}
+
+.perm-matrix .perm-matrix-role {
+    color: var(--gray-950);
+    font-weight: 600;
+}
+
+.perm-matrix .perm-matrix-role:hover {
+    color: var(--primary-700);
+    text-decoration: none;
+}
+
+.perm-matrix .perm-matrix-group td {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+    background: var(--gray-50) !important;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--gray-600, #52525b);
+}
+
+.perm-matrix .perm-slug {
+    padding: 0;
+    background: none;
+    font-size: 0.7rem;
+    color: var(--gray-400);
+}
+
+.perm-matrix .perm-yes {
+    color: var(--success-600);
+    font-size: 1rem;
+}
+
+.perm-matrix .perm-no {
+    color: var(--gray-300);
+    font-weight: 600;
+}
+
+.perm-matrix tbody tr:not(.perm-matrix-group):hover td {
+    background: var(--gray-50);
+}
+
+.perm-matrix tfoot td {
+    background: var(--gray-50);
+    border-top: 1px solid var(--ring);
+    font-size: 0.8125rem;
+}
+
+/* Kartu jabatan */
+.role-card .card-header .badge {
+    flex-shrink: 0;
+}
+
+.role-module-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-lg);
+}
+
+.role-module-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.4375rem 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--gray-950);
+}
+
+.role-module-list li + li {
+    border-top: 1px solid var(--ring);
+}
+
+.role-module-list li i {
+    color: var(--gray-400);
+    margin-right: 0.25rem;
+}
+
+.role-module-list li.is-off {
+    color: var(--gray-400);
+}
+
+.role-module-count {
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+}
+
+.role-module-list li:not(.is-off) .role-module-count {
+    color: var(--success-700);
+}
+
+/* Penetapan jabatan: filter + pencarian */
+.role-user-filters {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+}
+
+.role-user-filters .filter-group {
+    display: flex;
+    min-width: 0;
+}
+
+@media (min-width: 768px) {
+    .role-user-filters {
+        grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+    }
+    .role-user-filters .search-field {
+        max-width: 360px;
+        justify-self: end;
+        width: 100%;
+    }
+}
+
+.role-assign-form {
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+/* =========================================================
    PRINT: keep the app unprintable (as before)
    ========================================================= */
 @media print {
