@@ -1,17 +1,33 @@
-// Dropdown yang bisa diketik untuk mencari: beri <select> class "select2".
+// Semua dropdown (<select>) bisa diketik untuk mencari (Select2), termasuk
+// yang ditambahkan lewat JS belakangan. Untuk tetap memakai dropdown bawaan
+// browser, beri <select> (atau pembungkusnya) atribut data-native-select.
 // Di dalam modal Bootstrap, daftar pilihannya ditempel ke modal itu supaya
 // kolom pencariannya tetap bisa diketik (focus trap modal).
+var SEARCHABLE_SELECT = "select";
+var NATIVE_SELECT_AREA = "[data-native-select], .phpdebugbar";
+
 window.initSearchableSelects = function (scope) {
     if (!$.fn.select2) {
         return;
     }
-    var selects = $(scope || document).find("select.select2").get();
+    var selects = $(scope || document)
+        .find(SEARCHABLE_SELECT)
+        .addBack(SEARCHABLE_SELECT)
+        .filter(function () {
+            // Yang sudah dipasang (mis. oleh skrip halaman) tidak diulang.
+            return !$(this).hasClass("select2-hidden-accessible") && !$(this).closest(NATIVE_SELECT_AREA).length;
+        })
+        .get();
     var batch = 50;
 
     function init(select) {
         var $select = $(select);
+        if ($select.hasClass("select2-hidden-accessible") || !document.body.contains(select)) {
+            return;
+        }
         var $modal = $select.closest(".modal");
         $select.select2({
+            width: select.style.width || "100%",
             dropdownParent: $modal.length ? $modal : $(document.body),
         });
     }
@@ -40,8 +56,43 @@ $(document).on("select2:open", function (e) {
     }
 });
 
+// Select2 mengabarkan perubahan pilihan lewat jQuery .trigger("change"), yang
+// tidak sampai ke listener addEventListener("change") biasa. Untuk dropdown
+// Select2, kirim event change native: listener jQuery, native, dan atribut
+// onchange semuanya tetap jalan, masing-masing sekali.
+$.event.special.change = $.extend({}, $.event.special.change, {
+    trigger: function (event) {
+        if (
+            this.nodeName === "SELECT" &&
+            $(this).hasClass("select2-hidden-accessible") &&
+            !event.namespace &&
+            arguments.length === 1
+        ) {
+            this.dispatchEvent(new Event("change", { bubbles: true }));
+            return false;
+        }
+    },
+});
+
 $(document).ready(function () {
     initSearchableSelects();
+
+    // Dropdown yang muncul belakangan (baris tabel, form dari JS) ikut dipasang.
+    if (window.MutationObserver) {
+        new MutationObserver(function (mutations) {
+            var added = [];
+            mutations.forEach(function (mutation) {
+                mutation.addedNodes.forEach(function (node) {
+                    if (node.nodeType === 1 && (node.nodeName === "SELECT" || node.querySelector("select"))) {
+                        added.push(node);
+                    }
+                });
+            });
+            if (added.length) {
+                initSearchableSelects(added);
+            }
+        }).observe(document.body, { childList: true, subtree: true });
+    }
     $(".viewoption").click(function (e) {
         var $option = $("#options");
         $option.empty();

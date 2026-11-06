@@ -280,8 +280,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Select2 memicu change lewat jQuery, jadi dengarkan lewat jQuery juga.
-    $(filterDivisi).on('change', applyFilter);
+    filterDivisi.addEventListener('change', applyFilter);
     searchInput.addEventListener('input', applyFilter);
 
     // Initialize select2 for documents
