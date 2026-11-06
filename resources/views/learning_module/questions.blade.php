@@ -407,7 +407,7 @@ $(function () {
             var options = letters.map(function (letter) {
                 var id = 'ai_key_' + index + '_' + letter;
                 var isKey = q.correct_answer === letter;
-                return '<div class="col-md-6 mb-2"><div class="ai-option' + (isKey ? ' is-key' : '') + '">' +
+                return '<div class="mb-2"><div class="ai-option' + (isKey ? ' is-key' : '') + '">' +
                     '<label class="ai-option-key" for="' + id + '" title="Tandai sebagai kunci jawaban">' +
                         '<input type="radio" id="' + id + '" name="ai_key_' + index + '" value="' + letter + '" class="ai-key"' + (isKey ? ' checked' : '') + '>' +
                         letter.toUpperCase() +
@@ -429,10 +429,12 @@ $(function () {
                     '<div class="card-body p-3">' +
                         '<label class="small font-weight-bold text-muted mb-1">Pertanyaan</label>' +
                         '<textarea class="form-control mb-2 ai-question" rows="2">' + escapeHtml(q.question) + '</textarea>' +
-                        '<div class="ai-q-image mb-3">' + quizImageSlot('Tambah gambar soal') + '</div>' +
-                        '<label class="small font-weight-bold text-muted mb-1">Pilihan jawaban <span class="font-weight-normal">(pilih huruf untuk menandai kunci jawaban)</span></label>' +
-                        '<div class="row">' + options + '</div>' +
-                        '<label class="small font-weight-bold text-muted mb-1 mt-1">Pembahasan</label>' +
+                        '<div class="ai-q-image">' + quizImageSlot('Tambah gambar soal') + '</div>' +
+                        '<div class="quiz-options-block">' +
+                            '<label class="small font-weight-bold text-muted mb-1">Pilihan jawaban <span class="font-weight-normal">(pilih huruf untuk menandai kunci jawaban)</span></label>' +
+                            options +
+                        '</div>' +
+                        '<label class="small font-weight-bold text-muted mb-1">Pembahasan</label>' +
                         '<textarea class="form-control form-control-sm ai-explanation" rows="2" placeholder="Pembahasan">' + escapeHtml(q.explanation) + '</textarea>' +
                     '</div>' +
                 '</div>'

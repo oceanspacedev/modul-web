@@ -1,7 +1,7 @@
 {{-- Pilihan A–F untuk form tambah/edit soal pilihan ganda: tiap pilihan boleh teks, gambar, atau keduanya. --}}
-<div class="form-row">
+<div class="quiz-options-block">
     @foreach(\App\Models\TrainingQuestion::OPTION_LETTERS as $letter)
-        <div class="form-group col-md-6">
+        <div class="form-group mb-2">
             <label>
                 Pilihan {{ strtoupper($letter) }}
                 @if(in_array($letter, ['a', 'b']))

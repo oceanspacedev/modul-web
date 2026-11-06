@@ -922,14 +922,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 '</div>';
 
             if (!isEssay) {
-                cardHtml += '<div class="form-group">' +
+                cardHtml += '<div class="quiz-options-block">' +
                     '<label>Pilihan Jawaban <span class="text-muted">(tandai kunci jawaban)</span></label>' +
-                    '<div class="row">' +
                     ['a', 'b', 'c', 'd', 'e'].map(function(opt) {
                         var optVal = q['option_' + opt] || '';
                         var isChecked = (q.correct_answer === opt) ? 'checked' : '';
                         var keyClass = (q.correct_answer === opt) ? ' is-key' : '';
-                        return '<div class="col-md-6 mb-2">' +
+                        return '<div class="mb-2">' +
                             '<div class="input-group' + keyClass + '">' +
                                 '<div class="input-group-prepend">' +
                                     '<span class="input-group-text" style="cursor: pointer;" title="Tandai sebagai kunci">' +
@@ -942,7 +941,6 @@ document.addEventListener('DOMContentLoaded', function () {
                             '<div class="ai-opt-image mt-1" data-letter="' + opt + '">' + quizImageSlot('Gambar ' + opt.toUpperCase()) + '</div>' +
                         '</div>';
                     }).join('') +
-                    '</div>' +
                 '</div>';
             } else {
                 cardHtml += '<div class="form-group">' +

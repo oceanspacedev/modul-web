@@ -2764,6 +2764,14 @@ body.page-center {
 .quiz-opt-img { max-height: 140px; }
 .quiz-img-thumb { max-height: 96px; }
 
+/* Answer options in one column, set apart from the question and explanation text by a line above and below */
+.quiz-options-block {
+    border-top: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--gray-200);
+    padding: .75rem 0 .25rem;
+    margin: .75rem 0;
+}
+
 /* "Tambah gambar" control (manual form + AI review cards) */
 .quiz-img-add {
     display: inline-flex;

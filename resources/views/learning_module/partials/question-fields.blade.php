@@ -4,9 +4,9 @@
     <textarea name="question" class="form-control" rows="3" required>{{ $question->question ?? '' }}</textarea>
     <x-quiz-image-field class="mt-2" name="question_image" remove-name="remove_question_image" :current="$question?->imageUrl()" label="Tambah gambar soal" />
 </div>
-<div class="row">
+<div class="quiz-options-block">
     @foreach(\App\Models\LearningModuleQuestion::OPTION_LETTERS as $letter)
-        <div class="col-md-6 mb-2">
+        <div class="mb-2">
             <label class="mb-1">
                 Pilihan {{ strtoupper($letter) }}
                 @if(in_array($letter, ['a', 'b']))
@@ -23,6 +23,8 @@
                 label="Gambar {{ strtoupper($letter) }}" />
         </div>
     @endforeach
+</div>
+<div class="row">
     <div class="col-md-6 mb-2">
         <label class="mb-1">Kunci Jawaban <span class="text-danger">*</span></label>
         <select name="correct_answer" class="form-control" required>
