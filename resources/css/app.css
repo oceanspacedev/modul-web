@@ -2781,16 +2781,28 @@ body.page-center {
 /* One answer option in the AI review cards: a single box with the letter (radio marks the key),
    a divider line, then the option text. The key option is drawn green. */
 .quiz-option-row {
+    position: relative;
     display: flex;
     align-items: stretch;
-    border: 1px solid var(--ring-input);
     border-radius: var(--radius-lg);
     background: #fff;
     box-shadow: var(--shadow-xs);
     overflow: hidden;
-    transition: border-color 0.1s ease, box-shadow 0.1s ease;
+    transition: box-shadow 0.1s ease;
 }
-.quiz-option-row:focus-within { border-color: var(--primary-600); box-shadow: var(--focus-ring); }
+/* The outline is drawn on top of the letter and text. As a plain border, the white text field could
+   round onto the same screen pixel at some scroll positions (display scaling such as 125%) and hide the top line. */
+.quiz-option-row::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 1px solid var(--ring-input);
+    border-radius: inherit;
+    pointer-events: none;
+    transition: border-color 0.1s ease;
+}
+.quiz-option-row:focus-within { box-shadow: var(--focus-ring); }
+.quiz-option-row:focus-within::after { border-color: var(--primary-600); }
 .quiz-option-letter {
     display: flex;
     align-items: center;
@@ -2812,7 +2824,7 @@ body.page-center {
     border-radius: 0 !important;
     box-shadow: none !important;
 }
-.quiz-option-row.is-key { border-color: var(--success-600); }
+.quiz-option-row.is-key::after { border-color: var(--success-600); }
 .quiz-option-row.is-key .quiz-option-letter {
     background: var(--success-50);
     color: var(--success-700);
