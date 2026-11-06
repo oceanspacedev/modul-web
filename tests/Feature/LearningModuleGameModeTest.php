@@ -137,7 +137,7 @@ class LearningModuleGameModeTest extends TestCase
         preg_match('/const QUESTIONS = (\[.*?\]);/s', $html, $match);
         $questions = json_decode($match[1], true);
         $this->assertCount(2, $questions);
-        $this->assertSame(['id', 'question', 'options'], array_keys($questions[0]));
+        $this->assertSame(['id', 'question', 'options', 'image', 'option_images'], array_keys($questions[0]));
     }
 
     public function test_answers_are_locked_and_only_report_right_or_wrong(): void

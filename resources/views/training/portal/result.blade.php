@@ -131,6 +131,9 @@
                             Soal {{ $index + 1 }} {{ $isEssay ? '(Essay)' : '' }}
                         </span>
                         <strong class="d-block mt-2">{{ $q->question }}</strong>
+                        @if($q->imageUrl())
+                            <img src="{{ $q->imageUrl() }}" alt="Gambar soal" class="quiz-img mt-2">
+                        @endif
                     </div>
                     <div>
                         @if($isEssay)
@@ -160,10 +163,16 @@
                             <strong class="{{ $isCorrect ? 'text-success' : 'text-danger' }}">
                                 {{ strtoupper($userAns ?? '-') }}. {{ $q->{'option_' . $userAns} ?? '-' }}
                             </strong>
+                            @if($userAns && $q->optionImageUrl($userAns))
+                                <img src="{{ $q->optionImageUrl($userAns) }}" alt="Gambar jawaban Anda" class="quiz-img quiz-opt-img mt-1">
+                            @endif
                         </div>
                         @if(!$isCorrect && $q->correct_answer)
                         <div class="mb-1 text-success">
                             Kunci Jawaban: <strong>{{ strtoupper($q->correct_answer) }}. {{ $q->{'option_' . $q->correct_answer} ?? '-' }}</strong>
+                            @if($q->optionImageUrl($q->correct_answer))
+                                <img src="{{ $q->optionImageUrl($q->correct_answer) }}" alt="Gambar kunci jawaban" class="quiz-img quiz-opt-img mt-1">
+                            @endif
                         </div>
                         @endif
                     @endif

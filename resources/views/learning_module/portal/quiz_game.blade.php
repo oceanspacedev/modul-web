@@ -42,6 +42,9 @@
         .kahoot-timer-circle.timer-urgent { background: #e21b3c; box-shadow: 0 0 25px rgba(226,27,60,.6); animation: urgentPulse .5s infinite alternate; }
         @keyframes urgentPulse { from { transform: scale(1); } to { transform: scale(1.08); } }
         .kahoot-question-text { font-size: 2.1rem; font-weight: 800; color: #0f172a; line-height: 1.35; margin: 0; flex: 1; text-align: center; white-space: pre-line; }
+        .kahoot-question-main { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 16px; min-width: 0; }
+        .kahoot-question-image { max-width: 100%; max-height: 240px; object-fit: contain; border-radius: 12px; border: 1px solid #e2e8f0; }
+        .kahoot-opt-image { display: block; max-width: 100%; max-height: 120px; margin-top: 8px; object-fit: contain; border-radius: 8px; background: #fff; }
         .kahoot-answer-arena { margin-top: auto; padding: 20px 28px 28px; }
         .answer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .kahoot-btn { border: none; outline: none !important; border-radius: 10px; padding: 24px 32px; min-height: 120px; color: #fff; display: flex; align-items: center; cursor: pointer; box-shadow: 0 6px 14px rgba(0,0,0,.12); transition: transform .15s, filter .15s, opacity .2s; text-align: left; width: 100%; }
@@ -142,7 +145,10 @@
                     <div class="kahoot-timer-col">
                         <div class="kahoot-timer-circle" id="kahootTimerCircle"><span id="kahootTimerNumber">{{ $module->question_seconds }}</span></div>
                     </div>
-                    <h1 class="kahoot-question-text" id="questionPrompt"></h1>
+                    <div class="kahoot-question-main">
+                        <h1 class="kahoot-question-text" id="questionPrompt"></h1>
+                        <img id="questionImage" class="kahoot-question-image" alt="Gambar soal" hidden>
+                    </div>
                     <div class="kahoot-spacer-col"></div>
                     <div class="feedback-banner" id="feedbackBanner"></div>
                 </div>
@@ -261,6 +267,13 @@
             banner.style.display = 'none';
             $('qStepCounter').textContent = `${index + 1} / ${QUESTIONS.length}`;
             $('questionPrompt').textContent = q.question;
+            if (q.image) {
+                $('questionImage').src = q.image;
+                $('questionImage').hidden = false;
+            } else {
+                $('questionImage').removeAttribute('src');
+                $('questionImage').hidden = true;
+            }
 
             grid.innerHTML = '';
             Object.entries(q.options).forEach(([key, text]) => {
@@ -270,6 +283,12 @@
                 btn.dataset.key = key;
                 const shape = document.createElement('span'); shape.className = 'kahoot-shape'; shape.textContent = SHAPES[key] || key.toUpperCase();
                 const label = document.createElement('span'); label.className = 'kahoot-text'; label.textContent = text;
+                const optionImage = (q.option_images || {})[key];
+                if (optionImage) {
+                    const img = document.createElement('img');
+                    img.src = optionImage; img.alt = 'Gambar pilihan ' + key.toUpperCase(); img.className = 'kahoot-opt-image';
+                    label.appendChild(img);
+                }
                 btn.append(shape, label);
                 btn.addEventListener('click', () => choose(key, btn));
                 grid.appendChild(btn);

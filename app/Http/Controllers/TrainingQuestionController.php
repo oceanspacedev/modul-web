@@ -9,6 +9,7 @@ use App\Models\Document;
 use App\Models\Training;
 use App\Models\TrainingQuestion;
 use App\Services\GeminiQuestionService;
+use App\Support\QuizImage;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -240,7 +241,7 @@ class TrainingQuestionController extends Controller
      */
     public function store(TrainingQuestionRequest $request, Training $training): RedirectResponse
     {
-        $training->questions()->create($request->questionData());
+        $training->questions()->create($request->questionDataWithImages());
 
         return back()->with('success', 'Soal kuis baru berhasil ditambahkan!');
     }
@@ -250,7 +251,7 @@ class TrainingQuestionController extends Controller
      */
     public function update(TrainingQuestionRequest $request, Training $training, TrainingQuestion $question): RedirectResponse
     {
-        $question->update($request->questionData());
+        $question->update($request->questionDataWithImages());
 
         return back()->with('success', 'Soal kuis berhasil diperbarui!');
     }
@@ -270,7 +271,8 @@ class TrainingQuestionController extends Controller
      */
     public function deleteAll(Training $training): RedirectResponse
     {
-        $training->questions()->delete();
+        // One by one so each question's images are removed from storage too.
+        $training->questions()->get()->each->delete();
 
         return back()->with('success', 'Semua soal kuis berhasil dihapus!');
     }
@@ -329,6 +331,18 @@ class TrainingQuestionController extends Controller
     }
 
     /**
+     * Upload one image from the AI review step; the returned path is sent along when the questions are saved.
+     */
+    public function uploadImage(Request $request, Training $training): JsonResponse
+    {
+        $request->validate(['image' => ['required', ...QuizImage::fileRules()]]);
+
+        $path = QuizImage::store($request->file('image'));
+
+        return response()->json(['path' => $path, 'url' => QuizImage::url($path)]);
+    }
+
+    /**
      * Save AI-generated questions in batch after trainer review
      */
     public function saveAiBatch(Request $request, Training $training): JsonResponse|RedirectResponse
@@ -339,6 +353,9 @@ class TrainingQuestionController extends Controller
             'questions.*.question' => 'required|string',
             'questions.*.type' => 'required|in:multiple_choice,essay',
             'questions.*.correct_answer' => 'required|string',
+            'questions.*.question_image' => QuizImage::pathRules(),
+            'questions.*.option_images' => 'nullable|array',
+            'questions.*.option_images.*' => QuizImage::pathRules(),
         ]);
 
         $savedCount = 0;
@@ -354,6 +371,7 @@ class TrainingQuestionController extends Controller
                 'option_e' => ($type === 'multiple_choice') ? ($q['option_e'] ?? null) : null,
                 'correct_answer' => $q['correct_answer'] ?? 'a',
                 'explanation' => $q['explanation'] ?? null,
+                ...QuizImage::fromPayload($q, $type === 'multiple_choice' ? ['a', 'b', 'c', 'd', 'e'] : []),
             ]);
             $savedCount++;
         }

@@ -66,6 +66,8 @@ class LearningModuleAttempt extends Model
                 'question_id' => $question->id,
                 'question' => $question->question,
                 'options' => $options,
+                'question_image' => $question->question_image,
+                'option_images' => $question->option_images ?: null,
                 'correct_answer' => $question->correct_answer,
                 'user_answer' => $userAnswer,
                 'is_correct' => $isCorrect,

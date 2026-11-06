@@ -96,12 +96,24 @@
                     </div>
                     <div class="p-3">
                         <p class="font-weight-bold mb-3" style="white-space: pre-line;">{{ $q->question }}</p>
+                        @if($q->imageUrl())
+                            <a href="{{ $q->imageUrl() }}" target="_blank" rel="noopener" class="d-inline-block mb-3">
+                                <img src="{{ $q->imageUrl() }}" alt="Gambar soal" class="quiz-img">
+                            </a>
+                        @endif
                         <div class="row text-sm">
                             @foreach($q->options() as $letter => $text)
                                 @php $isKey = $q->correct_answer === $letter; @endphp
                                 <div class="col-md-6 mb-2">
                                     <div class="d-flex align-items-start justify-content-between gap-2 px-2 py-1 border rounded {{ $isKey ? 'bg-soft-success font-weight-bold' : '' }}">
-                                        <span>{{ strtoupper($letter) }}. {{ $text }}</span>
+                                        <span>
+                                            {{ strtoupper($letter) }}. {{ $text }}
+                                            @if($q->optionImageUrl($letter))
+                                                <a href="{{ $q->optionImageUrl($letter) }}" target="_blank" rel="noopener" class="d-block mt-1">
+                                                    <img src="{{ $q->optionImageUrl($letter) }}" alt="Gambar pilihan {{ strtoupper($letter) }}" class="quiz-img quiz-opt-img">
+                                                </a>
+                                            @endif
+                                        </span>
                                         @if($isKey)
                                             <span class="badge badge-success">Kunci</span>
                                         @endif
@@ -120,7 +132,7 @@
                 <div class="modal fade" id="editModal_{{ $q->id }}" tabindex="-1" role="dialog" aria-hidden="true">
                     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
                         <div class="modal-content">
-                            <form action="{{ $module->url('questions.update', ['question' => $q]) }}" method="POST">
+                            <form action="{{ $module->url('questions.update', ['question' => $q]) }}" method="POST" enctype="multipart/form-data">
                                 @csrf
                                 @method('PUT')
                                 <div class="modal-header">
@@ -153,7 +165,7 @@
 <div class="modal fade" id="addQuestionModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content">
-            <form action="{{ $module->url('questions.store') }}" method="POST">
+            <form action="{{ $module->url('questions.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-header">
                     <h5 class="modal-title">Tambah Soal Pilihan Ganda</h5>
@@ -292,6 +304,7 @@
 @endsection
 
 @section('footer')
+@include('layout.partials.quiz-image-slot-script', ['uploadUrl' => $module->url('questions.upload-image')])
 <script>
 $(function () {
     var csrf = '{{ csrf_token() }}';
@@ -400,7 +413,9 @@ $(function () {
                         letter.toUpperCase() +
                     '</label>' +
                     '<input type="text" class="form-control ai-opt" data-letter="' + letter + '" value="' + escapeHtml(q['option_' + letter]) + '" placeholder="Pilihan ' + letter.toUpperCase() + ' (opsional)">' +
-                '</div></div>';
+                '</div>' +
+                '<div class="ai-opt-image mt-1" data-letter="' + letter + '">' + quizImageSlot('Gambar ' + letter.toUpperCase()) + '</div>' +
+                '</div>';
             }).join('');
 
             $container.append(
@@ -413,7 +428,8 @@ $(function () {
                     '</div>' +
                     '<div class="card-body p-3">' +
                         '<label class="small font-weight-bold text-muted mb-1">Pertanyaan</label>' +
-                        '<textarea class="form-control mb-3 ai-question" rows="2">' + escapeHtml(q.question) + '</textarea>' +
+                        '<textarea class="form-control mb-2 ai-question" rows="2">' + escapeHtml(q.question) + '</textarea>' +
+                        '<div class="ai-q-image mb-3">' + quizImageSlot('Tambah gambar soal') + '</div>' +
                         '<label class="small font-weight-bold text-muted mb-1">Pilihan jawaban <span class="font-weight-normal">(pilih huruf untuk menandai kunci jawaban)</span></label>' +
                         '<div class="row">' + options + '</div>' +
                         '<label class="small font-weight-bold text-muted mb-1 mt-1">Pembahasan</label>' +
@@ -449,10 +465,18 @@ $(function () {
             var item = {
                 question: $.trim($card.find('.ai-question').val()),
                 explanation: $.trim($card.find('.ai-explanation').val()),
-                correct_answer: $card.find('.ai-key:checked').val() || 'a'
+                correct_answer: $card.find('.ai-key:checked').val() || 'a',
+                question_image: quizImageSlotValue($card.find('.ai-q-image .quiz-img-slot')[0]),
+                option_images: {}
             };
             $card.find('.ai-opt').each(function () {
                 item['option_' + $(this).data('letter')] = $.trim($(this).val()) || null;
+            });
+            $card.find('.ai-opt-image').each(function () {
+                var path = quizImageSlotValue($(this).find('.quiz-img-slot')[0]);
+                if (path) {
+                    item.option_images[$(this).data('letter')] = path;
+                }
             });
             payload.push(item);
         });

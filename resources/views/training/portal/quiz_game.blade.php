@@ -218,6 +218,33 @@
             text-align: center;
         }
 
+        .kahoot-question-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            min-width: 0;
+        }
+
+        .kahoot-question-image {
+            max-width: 100%;
+            max-height: 240px;
+            object-fit: contain;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .kahoot-opt-image {
+            display: block;
+            max-width: 100%;
+            max-height: 120px;
+            margin-top: 8px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: #ffffff;
+        }
+
         .kahoot-spacer-col {
             width: 90px;
             flex-shrink: 0;
@@ -720,7 +747,10 @@
                         </div>
                     </div>
 
-                    <h1 class="kahoot-question-text" id="questionPrompt">Memuat soal...</h1>
+                    <div class="kahoot-question-main">
+                        <h1 class="kahoot-question-text" id="questionPrompt">Memuat soal...</h1>
+                        <img id="questionImage" class="kahoot-question-image" alt="Gambar soal" hidden>
+                    </div>
 
                     <div class="kahoot-spacer-col"></div>
 
@@ -817,7 +847,14 @@
 
     <!-- Data Injection -->
     <script>
-        const QUIZ_QUESTIONS = @json($questions);
+        @php
+            $gameQuestions = $questions->map(fn ($question) => [
+                ...$question->toArray(),
+                'question_image_url' => $question->imageUrl(),
+                'option_image_urls' => (object) $question->optionImageUrls(),
+            ])->values();
+        @endphp
+        const QUIZ_QUESTIONS = @json($gameQuestions);
         const PARTICIPANT_TOKEN = "{{ $participant->token }}";
         const CURRENT_USER_ID = {{ (int)$participant->user_id }};
         const CURRENT_USER_NAME = "{{ addslashes($participant->user->nama_lengkap) }}";
@@ -994,6 +1031,14 @@
             const q = QUIZ_QUESTIONS[index];
             if (qStepCounter) qStepCounter.textContent = `${index + 1} of ${QUIZ_QUESTIONS.length}`;
             questionPrompt.textContent = q.question;
+            const questionImage = document.getElementById('questionImage');
+            if (q.question_image_url) {
+                questionImage.src = q.question_image_url;
+                questionImage.hidden = false;
+            } else {
+                questionImage.removeAttribute('src');
+                questionImage.hidden = true;
+            }
 
             // Reset timer
             clearInterval(timerInterval);
@@ -1024,16 +1069,26 @@
 
                 const optKeys = ['a', 'b', 'c', 'd', 'e', 'f'];
                 optKeys.forEach(key => {
-                    const optText = q['option_' + key];
-                    if (optText) {
+                    const optText = q['option_' + key] || '';
+                    const optImage = (q.option_image_urls || {})[key] || null;
+                    if (optText || optImage) {
                         const btn = document.createElement('button');
                         btn.type = 'button';
                         btn.className = `kahoot-btn btn-opt-${key}`;
                         btn.setAttribute('data-key', key);
                         btn.innerHTML = `
                             <span class="kahoot-shape">${shapes[key] || key.toUpperCase()}</span>
-                            <span class="kahoot-text">${optText}</span>
+                            <span class="kahoot-text"></span>
                         `;
+                        const textEl = btn.querySelector('.kahoot-text');
+                        textEl.textContent = optText;
+                        if (optImage) {
+                            const img = document.createElement('img');
+                            img.src = optImage;
+                            img.alt = 'Gambar pilihan ' + key.toUpperCase();
+                            img.className = 'kahoot-opt-image';
+                            textEl.appendChild(img);
+                        }
                         btn.addEventListener('click', () => selectAnswer(key, btn));
                         optionsGrid.appendChild(btn);
                     }

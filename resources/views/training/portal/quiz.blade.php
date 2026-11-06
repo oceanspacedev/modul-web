@@ -48,6 +48,9 @@
                         <span class="badge badge-primary mr-2">Essay / Uraian</span>
                     @endif
                     <strong class="d-block mt-2" style="font-size: 0.9375rem;">{{ $q->question }}</strong>
+                    @if($q->imageUrl())
+                        <img src="{{ $q->imageUrl() }}" alt="Gambar soal {{ $index + 1 }}" class="quiz-img mt-2">
+                    @endif
                 </div>
 
                 @if($q->type === 'essay')
@@ -57,20 +60,14 @@
                     </div>
                 @else
                     <div class="mt-3">
-                        @php
-                            $availableOptions = [];
-                            foreach(['a', 'b', 'c', 'd', 'e', 'f'] as $opt) {
-                                if (!empty($q->{'option_' . $opt})) {
-                                    $availableOptions[$opt] = $q->{'option_' . $opt};
-                                }
-                            }
-                        @endphp
-
-                        @foreach($availableOptions as $optKey => $optVal)
+                        @foreach($q->options() as $optKey => $optVal)
                             <label class="option-label" for="q_{{ $q->id }}_{{ $optKey }}">
                                 <input type="radio" name="answers[{{ $q->id }}]" value="{{ $optKey }}" id="q_{{ $q->id }}_{{ $optKey }}" {{ $loop->first ? 'required' : '' }}>
                                 <div>
                                     <strong>{{ strtoupper($optKey) }}.</strong> {{ $optVal }}
+                                    @if($q->optionImageUrl($optKey))
+                                        <img src="{{ $q->optionImageUrl($optKey) }}" alt="Gambar pilihan {{ strtoupper($optKey) }}" class="quiz-img quiz-opt-img mt-1">
+                                    @endif
                                 </div>
                             </label>
                         @endforeach

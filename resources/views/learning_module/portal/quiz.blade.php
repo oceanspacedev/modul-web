@@ -56,6 +56,9 @@
                 @foreach($questions as $index => $question)
                     <div class="card-body {{ $loop->first ? '' : 'border-top' }}">
                         <p class="font-weight-bold mb-3" style="white-space: pre-line;">{{ $index + 1 }}. {{ $question->question }}</p>
+                        @if($question->imageUrl())
+                            <img src="{{ $question->imageUrl() }}" alt="Gambar soal {{ $index + 1 }}" class="quiz-img mb-3">
+                        @endif
                         @foreach($question->options() as $letter => $text)
                             <div class="custom-control custom-radio mb-2">
                                 <input type="radio" class="custom-control-input" id="q{{ $question->id }}_{{ $letter }}"
@@ -63,6 +66,9 @@
                                     {{ old('answers.'.$question->id) === $letter ? 'checked' : '' }}>
                                 <label class="custom-control-label font-weight-normal" for="q{{ $question->id }}_{{ $letter }}">
                                     {{ strtoupper($letter) }}. {{ $text }}
+                                    @if($question->optionImageUrl($letter))
+                                        <img src="{{ $question->optionImageUrl($letter) }}" alt="Gambar pilihan {{ strtoupper($letter) }}" class="quiz-img quiz-opt-img mt-1">
+                                    @endif
                                 </label>
                             </div>
                         @endforeach

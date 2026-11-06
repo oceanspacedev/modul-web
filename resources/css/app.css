@@ -2748,6 +2748,60 @@ body.page-center {
 }
 
 /* =========================================================
+   QUIZ IMAGES: optional picture on a question and on each answer option
+   ========================================================= */
+.quiz-img {
+    display: block;
+    max-width: 100%;
+    max-height: 260px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    background: #fff;
+}
+.quiz-opt-img { max-height: 140px; }
+.quiz-img-thumb { max-height: 96px; }
+
+/* "Tambah gambar" control (manual form + AI review cards) */
+.quiz-img-add {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border: 1px dashed var(--gray-300, #d4d4d8);
+    border-radius: var(--radius-lg);
+    color: var(--gray-600, #52525b);
+    font-size: .8rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+.quiz-img-add:hover { border-color: var(--primary-600); color: var(--primary-600); }
+.quiz-img-input { display: none; }
+.quiz-img-filename { margin-left: .4rem; }
+.quiz-img-slot.is-uploading .quiz-img-add { opacity: .6; pointer-events: none; }
+.quiz-img-preview {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 4px;
+}
+.quiz-img-remove {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 9999px;
+    background: var(--danger-600);
+    color: #fff;
+    font-size: 14px;
+    line-height: 22px;
+    cursor: pointer;
+}
+
+/* =========================================================
    PRINT: keep the app unprintable (as before)
    ========================================================= */
 @media print {

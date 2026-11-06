@@ -69,14 +69,7 @@
                 @forelse($questions as $index => $q)
                 @php
                     $isEssay = ($q->type === 'essay');
-                    $activeOptions = [];
-                    if (!$isEssay) {
-                        foreach (['a', 'b', 'c', 'd', 'e', 'f'] as $l) {
-                            if (!empty($q->{'option_' . $l})) {
-                                $activeOptions[$l] = $q->{'option_' . $l};
-                            }
-                        }
-                    }
+                    $activeOptions = $isEssay ? [] : $q->options();
                 @endphp
                 <div class="card mb-3">
                     <div class="card-header">
@@ -103,6 +96,11 @@
                     </div>
                     <div class="card-body">
                         <p class="section-title mb-3">{{ $q->question }}</p>
+                        @if($q->imageUrl())
+                            <a href="{{ $q->imageUrl() }}" target="_blank" rel="noopener" class="d-inline-block mb-3">
+                                <img src="{{ $q->imageUrl() }}" alt="Gambar soal" class="quiz-img">
+                            </a>
+                        @endif
 
                         @if($isEssay)
                             <div class="p-3 border rounded bg-light small">
@@ -117,7 +115,14 @@
                                     @endphp
                                     <div class="col-md-6 mb-2">
                                         <div class="d-flex align-items-start justify-content-between gap-2 px-3 py-2 border rounded {{ $isKey ? 'bg-soft-success' : '' }}">
-                                            <span><strong>{{ strtoupper($optKey) }}.</strong> {{ $optVal }}</span>
+                                            <span>
+                                                <strong>{{ strtoupper($optKey) }}.</strong> {{ $optVal }}
+                                                @if($q->optionImageUrl($optKey))
+                                                    <a href="{{ $q->optionImageUrl($optKey) }}" target="_blank" rel="noopener" class="d-block mt-1">
+                                                        <img src="{{ $q->optionImageUrl($optKey) }}" alt="Gambar pilihan {{ strtoupper($optKey) }}" class="quiz-img quiz-opt-img">
+                                                    </a>
+                                                @endif
+                                            </span>
                                             @if($isKey)
                                                 <span class="badge badge-success">Kunci jawaban</span>
                                             @endif
@@ -139,7 +144,7 @@
                 <div class="modal fade" id="editModal_{{ $q->id }}" tabindex="-1" role="dialog" aria-hidden="true">
                     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
                         <div class="modal-content">
-                            <form action="{{ route('training.questions.update', [$training, $q]) }}" method="POST">
+                            <form action="{{ route('training.questions.update', [$training, $q]) }}" method="POST" enctype="multipart/form-data">
                                 @method('PUT')
                                 @csrf
                                 <div class="modal-header">
@@ -157,36 +162,12 @@
                                     <div class="form-group">
                                         <label>Pertanyaan</label>
                                         <textarea name="question" class="form-control" rows="3" required>{{ $q->question }}</textarea>
+                                        <x-quiz-image-field class="mt-2" name="question_image" remove-name="remove_question_image" :current="$q->imageUrl()" label="Tambah gambar soal" />
                                     </div>
 
                                     <!-- OPTIONS CONTAINER -->
                                     <div id="edit_opts_{{ $q->id }}" class="opts-container" style="{{ $isEssay ? 'display: none;' : '' }}">
-                                        <div class="form-row">
-                                            <div class="form-group col-md-6">
-                                                <label>Pilihan A <span class="text-danger">*</span></label>
-                                                <input type="text" name="option_a" class="form-control" value="{{ $q->option_a }}">
-                                            </div>
-                                            <div class="form-group col-md-6">
-                                                <label>Pilihan B <span class="text-danger">*</span></label>
-                                                <input type="text" name="option_b" class="form-control" value="{{ $q->option_b }}">
-                                            </div>
-                                            <div class="form-group col-md-6">
-                                                <label>Pilihan C <span class="text-muted">(opsional)</span></label>
-                                                <input type="text" name="option_c" class="form-control" value="{{ $q->option_c }}">
-                                            </div>
-                                            <div class="form-group col-md-6">
-                                                <label>Pilihan D <span class="text-muted">(opsional)</span></label>
-                                                <input type="text" name="option_d" class="form-control" value="{{ $q->option_d }}">
-                                            </div>
-                                            <div class="form-group col-md-6">
-                                                <label>Pilihan E <span class="text-muted">(opsional)</span></label>
-                                                <input type="text" name="option_e" class="form-control" value="{{ $q->option_e }}">
-                                            </div>
-                                            <div class="form-group col-md-6">
-                                                <label>Pilihan F <span class="text-muted">(opsional)</span></label>
-                                                <input type="text" name="option_f" class="form-control" value="{{ $q->option_f }}">
-                                            </div>
-                                        </div>
+                                        @include('training.questions.partials.option-fields', ['question' => $q])
                                         <div class="form-group">
                                             <label>Kunci Jawaban Pilihan Ganda</label>
                                             <select name="correct_answer" class="form-control select-key">
@@ -473,7 +454,7 @@
 <div class="modal fade" id="addQuestionModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content">
-            <form action="/training/{{ $training->id }}/questions" method="POST">
+            <form action="/training/{{ $training->id }}/questions" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-header">
                     <h5 class="modal-title">Tambah Pertanyaan Manual</h5>
@@ -491,36 +472,12 @@
                     <div class="form-group">
                         <label>Pertanyaan Soal <span class="text-danger">*</span></label>
                         <textarea name="question" class="form-control" rows="3" placeholder="Tuliskan pertanyaan di sini..." required></textarea>
+                        <x-quiz-image-field class="mt-2" name="question_image" remove-name="remove_question_image" label="Tambah gambar soal" />
                     </div>
 
                     <!-- OPTIONS CONTAINER -->
                     <div id="add_opts_container" class="opts-container">
-                        <div class="form-row">
-                            <div class="form-group col-md-6">
-                                <label>Pilihan A <span class="text-danger">*</span></label>
-                                <input type="text" name="option_a" class="form-control" placeholder="Teks opsi A">
-                            </div>
-                            <div class="form-group col-md-6">
-                                <label>Pilihan B <span class="text-danger">*</span></label>
-                                <input type="text" name="option_b" class="form-control" placeholder="Teks opsi B">
-                            </div>
-                            <div class="form-group col-md-6">
-                                <label>Pilihan C <span class="text-muted">(opsional)</span></label>
-                                <input type="text" name="option_c" class="form-control" placeholder="Teks opsi C">
-                            </div>
-                            <div class="form-group col-md-6">
-                                <label>Pilihan D <span class="text-muted">(opsional)</span></label>
-                                <input type="text" name="option_d" class="form-control" placeholder="Teks opsi D">
-                            </div>
-                            <div class="form-group col-md-6">
-                                <label>Pilihan E <span class="text-muted">(opsional)</span></label>
-                                <input type="text" name="option_e" class="form-control" placeholder="Teks opsi E">
-                            </div>
-                            <div class="form-group col-md-6">
-                                <label>Pilihan F <span class="text-muted">(opsional)</span></label>
-                                <input type="text" name="option_f" class="form-control" placeholder="Teks opsi F">
-                            </div>
-                        </div>
+                        @include('training.questions.partials.option-fields', ['question' => null])
                         <div class="form-group">
                             <label>Kunci Jawaban Benar <span class="text-danger">*</span></label>
                             <select name="correct_answer" class="form-control select-key">
@@ -666,6 +623,7 @@ KUNCI: Acuan poin jawaban peserta
     </div>
 </div>
 
+@include('layout.partials.quiz-image-slot-script', ['uploadUrl' => route('training.questions.upload-image', $training)])
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // Dynamic switch for Type (Multiple Choice vs Essay)
@@ -960,6 +918,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<div class="form-group">' +
                     '<label>Pertanyaan</label>' +
                     '<textarea class="form-control ai-q-text" rows="3">' + escapeHtml(q.question) + '</textarea>' +
+                    '<div class="ai-q-image mt-2">' + quizImageSlot('Tambah gambar soal') + '</div>' +
                 '</div>';
 
             if (!isEssay) {
@@ -980,6 +939,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 '</div>' +
                                 '<input type="text" class="form-control ai-opt-' + opt + '" value="' + escapeHtml(optVal) + '" placeholder="Opsi ' + opt.toUpperCase() + '">' +
                             '</div>' +
+                            '<div class="ai-opt-image mt-1" data-letter="' + opt + '">' + quizImageSlot('Gambar ' + opt.toUpperCase()) + '</div>' +
                         '</div>';
                     }).join('') +
                     '</div>' +
@@ -1082,8 +1042,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 var item = {
                     type: isEssay ? 'essay' : 'multiple_choice',
                     question: qText,
-                    explanation: explanation
+                    explanation: explanation,
+                    question_image: quizImageSlotValue(card.querySelector('.ai-q-image .quiz-img-slot'))
                 };
+
+                if (!isEssay) {
+                    item.option_images = {};
+                    card.querySelectorAll('.ai-opt-image').forEach(function(box) {
+                        var path = quizImageSlotValue(box.querySelector('.quiz-img-slot'));
+                        if (path) {
+                            item.option_images[box.getAttribute('data-letter')] = path;
+                        }
+                    });
+                }
 
                 if (!isEssay) {
                     item.option_a = (card.querySelector('.ai-opt-a') ? card.querySelector('.ai-opt-a').value.trim() : '');

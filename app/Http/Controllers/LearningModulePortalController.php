@@ -90,6 +90,8 @@ class LearningModulePortalController extends Controller
                 'id' => $question->id,
                 'question' => $question->question,
                 'options' => $question->options(),
+                'image' => $question->imageUrl(),
+                'option_images' => (object) $question->optionImageUrls(),
             ])->values(),
             'answered' => $questions->filter(fn ($question) => array_key_exists($question->id, $locked))
                 ->mapWithKeys(fn ($question) => [$question->id => $this->isCorrect($question, $locked[$question->id])]),

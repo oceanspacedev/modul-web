@@ -671,6 +671,9 @@
                                                                     #{{ $qIndex + 1 }} {{ $isEssay ? '(Essay)' : '(PG)' }}
                                                                 </span>
                                                                 <strong>{{ $question->question }}</strong>
+                                                                @if($question->imageUrl())
+                                                                    <img src="{{ $question->imageUrl() }}" alt="Gambar soal" class="quiz-img quiz-opt-img mt-2">
+                                                                @endif
                                                             </div>
                                                             <div>
                                                                 @if($isEssay)
@@ -693,9 +696,19 @@
                                                                     <div class="text-muted"><strong>Pedoman Acuan Jawaban:</strong> {{ $question->correct_answer }}</div>
                                                                 @endif
                                                             @else
-                                                                <div class="mb-1">Jawaban Peserta: <strong>{{ strtoupper($userAns ?? '-') }}</strong> ({{ $question->{'option_' . $userAns} ?? '-' }})</div>
+                                                                <div class="mb-1">
+                                                                    Jawaban Peserta: <strong>{{ strtoupper($userAns ?? '-') }}</strong> ({{ $question->{'option_' . $userAns} ?? '-' }})
+                                                                    @if($userAns && $question->optionImageUrl($userAns))
+                                                                        <img src="{{ $question->optionImageUrl($userAns) }}" alt="Gambar jawaban peserta" class="quiz-img quiz-img-thumb mt-1">
+                                                                    @endif
+                                                                </div>
                                                                 @if($question->correct_answer)
-                                                                    <div class="text-success">Kunci Jawaban: <strong>{{ strtoupper($question->correct_answer) }}</strong> ({{ $question->{'option_' . $question->correct_answer} ?? '-' }})</div>
+                                                                    <div class="text-success">
+                                                                        Kunci Jawaban: <strong>{{ strtoupper($question->correct_answer) }}</strong> ({{ $question->{'option_' . $question->correct_answer} ?? '-' }})
+                                                                        @if($question->optionImageUrl($question->correct_answer))
+                                                                            <img src="{{ $question->optionImageUrl($question->correct_answer) }}" alt="Gambar kunci jawaban" class="quiz-img quiz-img-thumb mt-1">
+                                                                        @endif
+                                                                    </div>
                                                                 @endif
                                                             @endif
 

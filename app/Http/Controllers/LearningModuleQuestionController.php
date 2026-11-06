@@ -10,6 +10,7 @@ use App\Models\LearningModule;
 use App\Models\LearningModuleItem;
 use App\Models\LearningModuleQuestion;
 use App\Services\MaterialQuizService;
+use App\Support\QuizImage;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -45,7 +46,7 @@ class LearningModuleQuestionController extends Controller
 
     public function store(LearningModuleQuestionRequest $request, LearningModule $module): RedirectResponse
     {
-        $module->questions()->create([...$request->questionData(), 'sort_order' => $this->nextSortOrder($module)]);
+        $module->questions()->create([...$request->questionDataWithImages(), 'sort_order' => $this->nextSortOrder($module)]);
         $this->materialQuiz->refresh($module);
 
         return back()->with('success', 'Soal baru berhasil ditambahkan!');
@@ -53,7 +54,7 @@ class LearningModuleQuestionController extends Controller
 
     public function update(LearningModuleQuestionRequest $request, LearningModule $module, LearningModuleQuestion $question): RedirectResponse
     {
-        $question->update($request->questionData());
+        $question->update($request->questionDataWithImages());
 
         return back()->with('success', 'Soal berhasil diperbarui!');
     }
@@ -68,7 +69,8 @@ class LearningModuleQuestionController extends Controller
 
     public function deleteAll(LearningModule $module): RedirectResponse
     {
-        $module->questions()->delete();
+        // Satu per satu supaya gambar soal ikut terhapus dari storage.
+        $module->questions()->get()->each->delete();
         $this->materialQuiz->refresh($module);
 
         return back()->with('success', 'Semua soal berhasil dihapus!');
@@ -140,6 +142,18 @@ class LearningModuleQuestionController extends Controller
     }
 
     /**
+     * Unggah satu gambar dari langkah review soal AI; path-nya dikirim lagi saat soal disimpan.
+     */
+    public function uploadImage(Request $request, LearningModule $module): JsonResponse
+    {
+        $request->validate(['image' => ['required', ...QuizImage::fileRules()]]);
+
+        $path = QuizImage::store($request->file('image'));
+
+        return response()->json(['path' => $path, 'url' => QuizImage::url($path)]);
+    }
+
+    /**
      * Simpan soal AI setelah ditinjau trainer.
      */
     public function saveAiBatch(Request $request, LearningModule $module): JsonResponse
@@ -147,17 +161,32 @@ class LearningModuleQuestionController extends Controller
         $request->validate([
             'questions' => 'required|array|min:1',
             'questions.*.question' => 'required|string',
-            'questions.*.option_a' => 'required|string',
-            'questions.*.option_b' => 'required|string',
+            'questions.*.option_a' => 'nullable|string',
+            'questions.*.option_b' => 'nullable|string',
             'questions.*.option_c' => 'nullable|string',
             'questions.*.option_d' => 'nullable|string',
             'questions.*.option_e' => 'nullable|string',
             'questions.*.correct_answer' => 'required|in:a,b,c,d,e',
             'questions.*.explanation' => 'nullable|string',
+            'questions.*.question_image' => QuizImage::pathRules(),
+            'questions.*.option_images' => 'nullable|array',
+            'questions.*.option_images.*' => QuizImage::pathRules(),
         ]);
 
+        // Pilihan terisi = punya teks atau gambar.
         foreach ($request->questions as $index => $q) {
-            if (blank($q['option_'.$q['correct_answer']] ?? null)) {
+            $filled = fn (string $letter) => filled($q['option_'.$letter] ?? null) || filled($q['option_images'][$letter] ?? null);
+
+            foreach (['a', 'b'] as $letter) {
+                if (! $filled($letter)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Soal #'.($index + 1).': pilihan '.strtoupper($letter).' wajib diisi teks atau gambar.',
+                    ], 422);
+                }
+            }
+
+            if (! $filled($q['correct_answer'])) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Soal #'.($index + 1).': kunci jawaban menunjuk pilihan '.strtoupper($q['correct_answer']).' yang kosong.',
@@ -170,13 +199,14 @@ class LearningModuleQuestionController extends Controller
             foreach ($request->questions as $q) {
                 $module->questions()->create([
                     'question' => $q['question'],
-                    'option_a' => $q['option_a'],
-                    'option_b' => $q['option_b'],
+                    'option_a' => $q['option_a'] ?? null,
+                    'option_b' => $q['option_b'] ?? null,
                     'option_c' => $q['option_c'] ?? null,
                     'option_d' => $q['option_d'] ?? null,
                     'option_e' => $q['option_e'] ?? null,
                     'correct_answer' => $q['correct_answer'],
                     'explanation' => $q['explanation'] ?? null,
+                    ...QuizImage::fromPayload($q, LearningModuleQuestion::OPTION_LETTERS),
                     'sort_order' => $sortOrder++,
                 ]);
             }
