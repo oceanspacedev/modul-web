@@ -294,12 +294,12 @@
                 {{-- 7 --}}
                 <div class="pg-card" id="pelatihan">
                     <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-chalkboard-teacher"></i></span><h2>7. Pelatihan</h2></div>
-                    <p>Menu <b>Pelatihan</b> berisi <b>Jadwal Pelatihan</b>, <b>Tambah Pelatihan</b>, dan <b>Pelatihan Saya</b>.</p>
+                    <p>Menu <b>Pelatihan</b> berisi <b>Jadwal Pelatihan</b> dan <b>Pelatihan Saya</b>.</p>
                     <figure class="pg-shot"><img src="/assets/panduan/training-list.gif" alt="Animasi: memfilter dan mencari pelatihan" loading="lazy"><figcaption>Animasi: memfilter status <b>Dijadwalkan</b> lalu mencari topik di daftar Jadwal Pelatihan.</figcaption></figure>
                     <h3>7.1 Membuat jadwal pelatihan</h3>
                     <figure class="pg-shot"><img src="/assets/panduan/training-create.gif" alt="Animasi: mengisi form pelatihan" loading="lazy"><figcaption>Animasi: mengisi judul, pemateri, jadwal, tautan Zoom, deskripsi, dan mode kuis, lalu memilih semua peserta. Data pada animasi hanya contoh.</figcaption></figure>
                     <ol>
-                        <li>Klik <b>Tambah Pelatihan</b>.</li>
+                        <li>Buka <b>Pelatihan → Jadwal Pelatihan</b>, klik <b>Tambah Pelatihan</b>.</li>
                         <li>Isi <b>Judul / Topik Pelatihan</b>, pilih <b>Pemateri (Trainer)</b>, <b>Tanggal Pelaksanaan</b>, <b>Jam Mulai</b>, dan <b>Jam Selesai</b>.</li>
                         <li>Isi <b>Tautan Zoom / Google Meet</b>. Link ini ditampilkan ke peserta.</li>
                         <li>Isi <b>Deskripsi / Silabus Materi</b> (opsional) dan pilih dokumen materi (opsional).</li>

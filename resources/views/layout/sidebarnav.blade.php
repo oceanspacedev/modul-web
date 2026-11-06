@@ -40,15 +40,9 @@
                     <ul class="nav nav-treeview">
                         @can('manage-trainings')
                         <li class="nav-item">
-                            <a href="/training" class="nav-link {{ request()->is('training') || (request()->is('training/*') && !request()->is('training/create')) ? 'active' : '' }}">
+                            <a href="/training" class="nav-link {{ request()->is('training*') ? 'active' : '' }}">
                                 <i class="fas fa-calendar-alt nav-icon"></i>
                                 <p>Jadwal Pelatihan</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="/training/create" class="nav-link {{ request()->is('training/create') ? 'active' : '' }}">
-                                <i class="fas fa-plus-circle nav-icon"></i>
-                                <p>Tambah Pelatihan</p>
                             </a>
                         </li>
                         @endcan

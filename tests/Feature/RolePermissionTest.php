@@ -240,7 +240,8 @@ class RolePermissionTest extends TestCase
         $this->assertStringContainsString('/dashboard', $sidebarAdmin);
         $this->assertStringContainsString('/video', $sidebarAdmin);
         $this->assertStringContainsString('href="/training"', $sidebarAdmin);
-        $this->assertStringContainsString('/training/create', $sidebarAdmin);
+        // Pelatihan baru ditambahkan dari halaman Jadwal Pelatihan, seperti modul.
+        $this->assertStringNotContainsString('/training/create', $sidebarAdmin);
         $this->assertStringContainsString('/my-trainings', $sidebarAdmin);
         $this->assertStringContainsString('/user', $sidebarAdmin);
         $this->assertStringContainsString('/roles', $sidebarAdmin);
