@@ -157,6 +157,34 @@
                 @endcan
                 @endcanany
 
+                @canany(['viewHorizon', 'viewLogViewer'])
+                <li class="nav-header">Sistem</li>
+
+                @can('viewHorizon')
+                <li class="nav-item">
+                    <a href="{{ url(config('horizon.path', 'horizon')) }}" class="nav-link" target="_blank" rel="noopener">
+                        <i class="nav-icon fas fa-layer-group"></i>
+                        <p>
+                            Horizon (Antrian)
+                            <i class="right fas fa-external-link-alt"></i>
+                        </p>
+                    </a>
+                </li>
+                @endcan
+
+                @can('viewLogViewer')
+                <li class="nav-item">
+                    <a href="{{ url(config('log-viewer.route_path', 'log-viewer')) }}" class="nav-link" target="_blank" rel="noopener">
+                        <i class="nav-icon fas fa-clipboard-list"></i>
+                        <p>
+                            Log Viewer
+                            <i class="right fas fa-external-link-alt"></i>
+                        </p>
+                    </a>
+                </li>
+                @endcan
+                @endcanany
+
                 <li class="nav-header">Bantuan</li>
                 <li class="nav-item">
                     <a href="/panduan" class="nav-link {{ ($active ?? '') === 'panduan' ? 'active' : '' }}">
