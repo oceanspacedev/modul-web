@@ -286,7 +286,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize select2 for documents
     if (typeof $ !== 'undefined' && $.fn.select2) {
         $('#documents').select2({
-            theme: 'bootstrap4',
             width: '100%',
             placeholder: 'Pilih dokumen (opsional)'
         });

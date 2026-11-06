@@ -1289,7 +1289,6 @@ if (typeof $ !== 'undefined') {
     $(function() {
         if ($.fn.select2) {
             $('#modalDocSelect').select2({
-                theme: 'bootstrap4',
                 dropdownParent: $('#attachDocumentModal'),
                 placeholder: '-- Pilih dokumen untuk dilampirkan --',
                 width: '100%'

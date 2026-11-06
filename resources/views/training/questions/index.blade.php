@@ -755,7 +755,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize select2 for other docs
     if (typeof $ !== 'undefined' && $.fn.select2) {
         $('#aiSelectOtherDocs').select2({
-            theme: 'bootstrap4',
             dropdownParent: aiModal,
             placeholder: 'Cari & pilih dokumen lain...',
             width: '100%'
