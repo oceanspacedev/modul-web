@@ -25,7 +25,7 @@
                                 </div>
                                 <div class="form-group">
                                     <label for="area_id">Area</label>
-                                    <select class="custom-select" id="area_id" name="area_id">
+                                    <select class="custom-select select2" id="area_id" name="area_id" style="width: 100%;">
                                         <option value="">-- Tanpa Area --</option>
                                         @foreach ($areas as $area)
                                             <option value="{{ $area->id }}" @selected((string) old('area_id', $divisi->area_id) === (string) $area->id)>{{ $area->name }}</option>

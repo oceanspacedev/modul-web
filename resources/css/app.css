@@ -1566,6 +1566,7 @@ small.form-text {
     line-height: 1.5 !important;
     font-size: 0.875rem;
     color: var(--gray-950);
+    text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1587,6 +1588,19 @@ small.form-text {
     position: static !important;
     margin: 0 !important;
     border-color: var(--gray-400) transparent transparent transparent;
+}
+
+/* Select2 on a small select (form-control-sm), e.g. in table rows. */
+select.form-control-sm + .select2-container--default .select2-selection--single {
+    height: 31px !important;
+}
+
+select.form-control-sm + .select2-container--default .select2-selection--single .select2-selection__rendered {
+    font-size: 0.8125rem;
+}
+
+select.form-control-sm + .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 29px !important;
 }
 
 .select2-container--default .select2-selection--multiple {

@@ -55,7 +55,7 @@
             </div>
             <div class="form-group col-lg-6">
                 <label for="role_id">Jabatan <span class="text-danger">*</span></label>
-                <select class="form-control" id="role_id" name="role_id" required>
+                <select class="form-control select2" id="role_id" name="role_id" style="width: 100%;" required>
                     <option value="">-- Pilih Jabatan --</option>
                     @foreach ($roles as $role)
                         <option value="{{ $role->id }}" data-admin="{{ $role->name === 'ADMIN' ? 1 : 0 }}" data-requires-approval="{{ $role->requires_approval ? 1 : 0 }}"

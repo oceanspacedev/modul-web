@@ -53,7 +53,7 @@
                             </div>
                             <div class="col-lg-3 form-group mb-0">
                                 <label for="divisi_id">Divisi</label>
-                                <select class="custom-select" name="divisi_id"
+                                <select class="custom-select select2" name="divisi_id" style="width: 100%;"
                                     id="divisi_id" required>
                                     <option value="">--Pilih Divisi--</option>
                                     @foreach ($divisis as $divisi)

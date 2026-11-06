@@ -194,7 +194,7 @@
                                         <form action="{{ route('roles.assign') }}" method="POST" class="d-flex align-items-center justify-content-center gap-2 m-0">
                                             @csrf
                                             <input type="hidden" name="user_id" value="{{ $u->id }}">
-                                            <select name="role" class="form-control form-control-sm" style="width: 140px;">
+                                            <select name="role" class="form-control form-control-sm select2" style="width: 140px;">
                                                 @foreach($roles as $r)
                                                     <option value="{{ $r->name }}" {{ $u->hasRole($r->name) ? 'selected' : '' }}>
                                                         {{ $r->name }}

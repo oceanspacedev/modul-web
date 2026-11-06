@@ -65,7 +65,7 @@
                         </div>
                         <div class="filter-group">
                             <div class="filter-group-icon"><i class="fas fa-map-marker-alt"></i></div>
-                            <select name="area_id" class="custom-select" aria-label="Area" onchange="this.form.submit()">
+                            <select name="area_id" class="custom-select select2" aria-label="Area" style="width: 100%;" onchange="this.form.submit()">
                                 <option value="">Area</option>
                                 @foreach ($areas as $area)
                                     <option value="{{ $area->id }}" @selected(request('area_id') == $area->id)>{{ $area->name }}</option>
@@ -74,7 +74,7 @@
                         </div>
                         <div class="filter-group">
                             <div class="filter-group-icon"><i class="fas fa-building"></i></div>
-                            <select name="divisi_id" class="custom-select" aria-label="Divisi" onchange="this.form.submit()">
+                            <select name="divisi_id" class="custom-select select2" aria-label="Divisi" style="width: 100%;" onchange="this.form.submit()">
                                 <option value="">Divisi</option>
                                 @foreach ($divisis as $divisi)
                                     <option value="{{ $divisi->id }}" @selected(request('divisi_id') == $divisi->id)>{{ $divisi->name }}</option>
@@ -83,7 +83,7 @@
                         </div>
                         <div class="filter-group">
                             <div class="filter-group-icon"><i class="fas fa-user-tag"></i></div>
-                            <select name="role_id" class="custom-select" aria-label="Jabatan" onchange="this.form.submit()">
+                            <select name="role_id" class="custom-select select2" aria-label="Jabatan" style="width: 100%;" onchange="this.form.submit()">
                                 <option value="">Jabatan</option>
                                 @foreach ($roles as $role)
                                     <option value="{{ $role->id }}" @selected(request('role_id') == $role->id)>{{ $role->name }}</option>

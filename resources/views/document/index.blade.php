@@ -39,7 +39,7 @@
                             <div class="filter-group-icon">
                                 <i class="fas fa-building"></i>
                             </div>
-                            <select class="custom-select" name="divisi_id" id="divisi_id" onchange="this.form.submit()">
+                            <select class="custom-select select2" name="divisi_id" id="divisi_id" style="width: 100%;" onchange="this.form.submit()">
                                 <option value="">Semua Divisi</option>
                                 @foreach ($divisis as $divisi)
                                     <option value="{{ $divisi->id }}" {{ request('divisi_id') == $divisi->id ? 'selected' : '' }}>{{ $divisi->name }}</option>

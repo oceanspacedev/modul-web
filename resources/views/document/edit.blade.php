@@ -54,7 +54,7 @@
 
                             <div class="col-lg-3 form-group">
                                 <label for="divisi_id">Divisi</label>
-                                <select class="custom-select" name="divisi_id" id="divisi_id" required>
+                                <select class="custom-select select2" name="divisi_id" id="divisi_id" style="width: 100%;" required>
                                     <option value="">--Pilih Divisi--</option>
                                     @foreach ($divisis as $divisi)
                                         <option value="{{ $divisi->id }}"
@@ -66,7 +66,7 @@
 
                             <div class="col-lg-3 form-group">
                                 <label for="role_id">Jabatan</label>
-                                <select class="custom-select" name="role_id" id="role_id" required>
+                                <select class="custom-select select2" name="role_id" id="role_id" style="width: 100%;" required>
                                     <option value="0">SEMUA JABATAN</option>
                                     @foreach ($roles as $role)
                                         <option value="{{ $role->id }}" @selected($role->id == $document->role_id)>
