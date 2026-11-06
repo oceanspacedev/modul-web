@@ -127,6 +127,7 @@ Route::middleware('auth')->group(function () {
                 Route::post('update-attendance/{participant}', 'updateParticipantAttendance')->name('update-attendance');
                 Route::post('grade-essay/{quizResult}', 'gradeEssay')->name('grade-essay');
                 Route::get('export', 'export')->name('export');
+                Route::get('live-stats', 'liveStats')->name('live-stats');
                 Route::post('attach-document', 'attachDocument')->name('attach-document');
                 Route::post('detach-document/{document}', 'detachDocument')->name('detach-document');
                 Route::post('scan-zoom-ai', 'scanZoomAi')->name('scan-zoom-ai');

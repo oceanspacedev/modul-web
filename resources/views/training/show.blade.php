@@ -1268,7 +1268,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // LIVE STATS POLLING — update counter admin setiap 10 detik
 // ---------------------------------------------------------------
 (function () {
-    const STATS_URL = '/training/{{ $training->id }}/live-stats';
+    const STATS_URL = @js(route('training.live-stats', $training));
 
     function updateStat(id, value) {
         const el = document.getElementById(id);
@@ -1282,8 +1282,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function pollStats() {
-        fetch(STATS_URL)
-            .then(function(res) { return res.json(); })
+        fetch(STATS_URL, { headers: { 'Accept': 'application/json' } })
+            .then(function(res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            })
             .then(function(data) {
                 updateStat('statTotal',    data.total);
                 updateStat('statAttended', data.attended);

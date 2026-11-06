@@ -29,9 +29,9 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 #[Authorize('viewAny', Training::class, only: ['index'])]
 #[Authorize('create', Training::class, only: ['create', 'store'])]
-#[Authorize('view', 'training', only: ['show', 'export'])]
+#[Authorize('view', 'training', only: ['show', 'liveStats', 'export'])]
 #[Authorize('delete', 'training', only: ['destroy'])]
-#[Authorize('update', 'training', except: ['index', 'create', 'store', 'show', 'export', 'destroy'])]
+#[Authorize('update', 'training', except: ['index', 'create', 'store', 'show', 'liveStats', 'export', 'destroy'])]
 class TrainingController extends Controller
 {
     /**
@@ -129,26 +129,23 @@ class TrainingController extends Controller
 
         $allDocuments = Document::with('dokumentype')->orderBy('name')->get();
 
-        $totalParticipants = $training->participants->count();
-        $attendedCount = $training->participants->where('attendance_status', 'hadir')->count();
-        $absentCount = $training->participants->where('attendance_status', 'tidak_hadir')->count();
-        $quizSubmittedCount = $training->quizResults->count();
-        $avgScore = $quizSubmittedCount > 0 ? round($training->quizResults->avg('score'), 1) : 0;
-
         return view('training.show', [
             'title' => 'Detail Pelatihan: '.$training->title,
             'active' => 'training',
             'training' => $training,
             'allDocuments' => $allDocuments,
-            'stats' => [
-                'total' => $totalParticipants,
-                'attended' => $attendedCount,
-                'absent' => $absentCount,
-                'pending' => $totalParticipants - ($attendedCount + $absentCount),
-                'quizSubmitted' => $quizSubmittedCount,
-                'avgScore' => $avgScore,
-            ],
+            'stats' => $this->stats($training),
         ]);
+    }
+
+    /**
+     * Attendance & quiz counters for the detail page cards, polled every few seconds by the admin page.
+     */
+    public function liveStats(Training $training): JsonResponse
+    {
+        $training->load(['participants', 'quizResults']);
+
+        return response()->json($this->stats($training));
     }
 
     /**
@@ -659,6 +656,26 @@ class TrainingController extends Controller
                 ? "{$participantName} tercatat Off Cam {$newCount}x"
                 : "Status Off Cam {$participantName} dibatalkan",
         ]);
+    }
+
+    /**
+     * @return array{total: int, attended: int, absent: int, pending: int, quizSubmitted: int, avgScore: float|int}
+     */
+    private function stats(Training $training): array
+    {
+        $total = $training->participants->count();
+        $attended = $training->participants->where('attendance_status', 'hadir')->count();
+        $absent = $training->participants->where('attendance_status', 'tidak_hadir')->count();
+        $quizSubmitted = $training->quizResults->count();
+
+        return [
+            'total' => $total,
+            'attended' => $attended,
+            'absent' => $absent,
+            'pending' => $total - ($attended + $absent),
+            'quizSubmitted' => $quizSubmitted,
+            'avgScore' => $quizSubmitted > 0 ? round($training->quizResults->avg('score'), 1) : 0,
+        ];
     }
 
     private function addParticipant(Training $training, int $userId): TrainingParticipant
