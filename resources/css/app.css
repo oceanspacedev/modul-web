@@ -2764,6 +2764,47 @@ body.page-center {
 .quiz-opt-img { max-height: 140px; }
 .quiz-img-thumb { max-height: 96px; }
 
+/* One answer option in the AI review cards: a single box with the letter (radio marks the key),
+   a divider line, then the option text. The key option is drawn green. */
+.quiz-option-row {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--ring-input);
+    border-radius: var(--radius-lg);
+    background: #fff;
+    box-shadow: var(--shadow-xs);
+    overflow: hidden;
+    transition: border-color 0.1s ease, box-shadow 0.1s ease;
+}
+.quiz-option-row:focus-within { border-color: var(--primary-600); box-shadow: var(--focus-ring); }
+.quiz-option-letter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex: 0 0 60px;
+    margin: 0;
+    border-right: 1px solid var(--ring-input);
+    background: var(--gray-50);
+    color: var(--gray-700);
+    font-weight: 600;
+    cursor: pointer;
+}
+.quiz-option-letter input { margin: 0; cursor: pointer; }
+.quiz-option-row > .form-control {
+    flex: 1 1 auto;
+    min-width: 0;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+.quiz-option-row.is-key { border-color: var(--success-600); }
+.quiz-option-row.is-key .quiz-option-letter {
+    background: var(--success-50);
+    color: var(--success-700);
+    border-right-color: var(--success-600);
+}
+
 /* Answer options in one column, set apart from the question and explanation text by a line above and below */
 .quiz-options-block {
     border-top: 1px solid var(--gray-200);

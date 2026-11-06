@@ -1,14 +1,6 @@
 @extends('layout.main_template')
 
 @section('content')
-<style>
-    /* Kunci jawaban yang ditandai pada kartu review soal AI */
-    .ai-q-card .input-group.is-key .input-group-text,
-    .ai-q-card .input-group.is-key .form-control {
-        border-color: var(--success-600) !important;
-        background-color: var(--success-50) !important;
-    }
-</style>
 
 <section class="content-header">
     <div class="container-fluid">
@@ -929,13 +921,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         var isChecked = (q.correct_answer === opt) ? 'checked' : '';
                         var keyClass = (q.correct_answer === opt) ? ' is-key' : '';
                         return '<div class="mb-2">' +
-                            '<div class="input-group' + keyClass + '">' +
-                                '<div class="input-group-prepend">' +
-                                    '<span class="input-group-text" style="cursor: pointer;" title="Tandai sebagai kunci">' +
-                                        '<input type="radio" name="ai_correct_' + index + '" value="' + opt + '" ' + isChecked + ' class="mr-1 ai-radio-key" style="cursor: pointer;">' +
-                                        '<span class="text-dark">' + opt.toUpperCase() + '</span>' +
-                                    '</span>' +
-                                '</div>' +
+                            '<div class="quiz-option-row' + keyClass + '">' +
+                                '<label class="quiz-option-letter" title="Tandai sebagai kunci">' +
+                                    '<input type="radio" name="ai_correct_' + index + '" value="' + opt + '" ' + isChecked + ' class="ai-radio-key">' +
+                                    opt.toUpperCase() +
+                                '</label>' +
                                 '<input type="text" class="form-control ai-opt-' + opt + '" value="' + escapeHtml(optVal) + '" placeholder="Opsi ' + opt.toUpperCase() + '">' +
                             '</div>' +
                             '<div class="ai-opt-image mt-1" data-letter="' + opt + '">' + quizImageSlot('Gambar ' + opt.toUpperCase()) + '</div>' +
@@ -979,10 +969,10 @@ document.addEventListener('DOMContentLoaded', function () {
             r.addEventListener('change', function() {
                 var card = this.closest('.ai-q-card');
                 if (card) {
-                    card.querySelectorAll('.input-group').forEach(function(ig) {
+                    card.querySelectorAll('.quiz-option-row').forEach(function(ig) {
                         ig.classList.remove('is-key');
                     });
-                    var parentGroup = this.closest('.input-group');
+                    var parentGroup = this.closest('.quiz-option-row');
                     if (parentGroup) {
                         parentGroup.classList.add('is-key');
                     }

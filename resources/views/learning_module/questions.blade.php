@@ -5,20 +5,6 @@
 @endphp
 
 @section('content')
-<style>
-    /* Pilihan jawaban hasil AI: kotak huruf dan kolom teks setinggi, kunci jawaban ditandai hijau. */
-    .ai-option { display: flex; align-items: stretch; }
-    .ai-option-key {
-        display: flex; align-items: center; gap: 6px; flex: 0 0 56px; justify-content: center;
-        margin: 0; padding: 0 10px; border: 1px solid var(--gray-200); border-right: 0;
-        border-radius: var(--radius-lg) 0 0 var(--radius-lg);
-        background: var(--gray-50); color: var(--gray-700); font-weight: 600; cursor: pointer;
-    }
-    .ai-option-key input { margin: 0; cursor: pointer; }
-    .ai-option .ai-opt { height: 38px; border-radius: 0 var(--radius-lg) var(--radius-lg) 0; }
-    .ai-option.is-key .ai-option-key { background: var(--success-50); border-color: var(--success-600); color: var(--success-700); }
-    .ai-option.is-key .ai-opt { border-color: var(--success-600); }
-</style>
 
 <section class="content-header">
     <div class="container-fluid">
@@ -407,8 +393,8 @@ $(function () {
             var options = letters.map(function (letter) {
                 var id = 'ai_key_' + index + '_' + letter;
                 var isKey = q.correct_answer === letter;
-                return '<div class="mb-2"><div class="ai-option' + (isKey ? ' is-key' : '') + '">' +
-                    '<label class="ai-option-key" for="' + id + '" title="Tandai sebagai kunci jawaban">' +
+                return '<div class="mb-2"><div class="quiz-option-row ai-option' + (isKey ? ' is-key' : '') + '">' +
+                    '<label class="quiz-option-letter" for="' + id + '" title="Tandai sebagai kunci jawaban">' +
                         '<input type="radio" id="' + id + '" name="ai_key_' + index + '" value="' + letter + '" class="ai-key"' + (isKey ? ' checked' : '') + '>' +
                         letter.toUpperCase() +
                     '</label>' +
