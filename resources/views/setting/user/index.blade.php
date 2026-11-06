@@ -56,13 +56,6 @@
                         @if (request('tab'))
                             <input type="hidden" name="tab" value="{{ request('tab') }}">
                         @endif
-                        <div class="user-filters-search">
-                            <x-search-field placeholder="Cari nama, username, ID, No. HP..."
-                                :clear-url="route('user.index', request()->except(['search', 'page']))" />
-                            @if ($hasFilter)
-                                <a href="{{ route('user.index', request('tab') ? ['tab' => request('tab')] : []) }}" class="btn btn-default" title="Hapus semua filter">Reset</a>
-                            @endif
-                        </div>
                         <div class="filter-group">
                             <div class="filter-group-icon"><i class="fas fa-map-marker-alt"></i></div>
                             <select name="area_id" class="custom-select select2" aria-label="Area" style="width: 100%;" onchange="this.form.submit()">
@@ -107,6 +100,13 @@
                                     <option value="{{ $approver->id }}" @selected(request('approval_id') == $approver->id)>{{ $approver->nama_lengkap }}</option>
                                 @endforeach
                             </select>
+                        </div>
+                        <div class="user-filters-search">
+                            <x-search-field placeholder="Cari nama, username, ID, No. HP..."
+                                :clear-url="route('user.index', request()->except(['search', 'page']))" />
+                            @if ($hasFilter)
+                                <a href="{{ route('user.index', request('tab') ? ['tab' => request('tab')] : []) }}" class="btn btn-default" title="Hapus semua filter">Reset</a>
+                            @endif
                         </div>
                     </form>
                 </div>
