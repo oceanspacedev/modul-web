@@ -464,28 +464,70 @@ body.layout-top-nav .main-header.navbar {
     border-top: 1px dashed var(--ring);
 }
 
-/* Collapsed (sidebar-mini) */
+/* Collapsed (sidebar-mini): ikon saja, rata tengah. Teks disembunyikan
+   dengan display:none supaya tidak lagi makan tempat dan mendorong logo
+   serta ikon keluar dari tengah. */
 .sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .brand-link {
     justify-content: center;
     padding-left: 0 !important;
     padding-right: 0 !important;
 }
 
+.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .brand-link .brand-text {
+    display: none !important;
+}
+
 .sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .nav-sidebar {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
+    padding-left: 0.625rem;
+    padding-right: 0.625rem;
 }
 
 .sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .nav-sidebar .nav-link {
     justify-content: center;
+    width: 100% !important;
+    height: 40px;
+    padding: 0 !important;
+}
+
+.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .nav-sidebar .nav-link p,
+.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .nav-sidebar .nav-treeview {
+    display: none !important;
 }
 
 .sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .nav-sidebar .nav-link .nav-icon {
-    margin-right: 0 !important;
+    margin: 0 !important;
+    font-size: 1rem !important;
 }
 
+/* Saat sidebar ciut di-hover, AdminLTE membuat teks menu display:block
+   sehingga panah kanan menempel ke teks; kembalikan ke flex. */
+.sidebar-mini.sidebar-collapse .main-sidebar:hover .nav-sidebar .nav-link p {
+    display: flex !important;
+}
+
+/* Judul grup jadi garis pemisah tipis */
 .sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .nav-sidebar .nav-header {
+    height: 0;
+    margin: 0.5rem 0.5rem;
+    padding: 0 !important;
+    overflow: hidden;
+    font-size: 0 !important;
+    border-top: 1px solid var(--ring);
+}
+
+.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .nav-sidebar > .nav-header:first-child {
     display: none !important;
+}
+
+/* Menu aktif tetap terlihat walau tanpa teks */
+.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .nav-sidebar > .nav-item > .nav-link.active,
+.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .nav-sidebar > .nav-item.menu-open > .nav-link {
+    background: #ffffff !important;
+    box-shadow: 0 0 0 1px var(--ring), var(--shadow-xs) !important;
+}
+
+.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .nav-sidebar > .nav-item.menu-open > .nav-link .nav-icon {
+    color: var(--gray-950) !important;
 }
 
 /* ---------- Footer ---------- */
