@@ -50,7 +50,7 @@
                             <div class="filter-group-icon">
                                 <i class="fas fa-tags"></i>
                             </div>
-                            <select class="custom-select" name="doctype_id" id="doctype_id" onchange="this.form.submit()">
+                            <select class="custom-select select2" name="doctype_id" id="doctype_id" style="width: 100%;" onchange="this.form.submit()">
                                 <option value="">Semua Tipe</option>
                                 @foreach ($doctypes as $doctype)
                                     <option value="{{ $doctype->id }}" {{ request('doctype_id') == $doctype->id ? 'selected' : '' }}>{{ $doctype->name }}</option>

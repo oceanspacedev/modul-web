@@ -26,7 +26,7 @@
                             </div>
                             <div class="col-lg-3 form-group">
                                 <label for="document_type">Tipe Dokumen</label>
-                                <select class="custom-select" name="document_type" id="document_type"
+                                <select class="custom-select select2" name="document_type" id="document_type" style="width: 100%;"
                                     required>
                                     @foreach ($documentypes as $documentype)
                                         <option value="{{ $documentype->id }}">{{ $documentype->name }}
