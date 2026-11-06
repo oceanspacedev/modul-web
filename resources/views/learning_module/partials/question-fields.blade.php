@@ -1,7 +1,7 @@
 {{-- Field soal pilihan ganda; $question opsional (form edit). Form pemakainya wajib enctype="multipart/form-data". --}}
 <div class="form-group mb-3">
     <label class="mb-1">Pertanyaan <span class="text-danger">*</span></label>
-    <textarea name="question" class="form-control" rows="3" required>{{ $question->question ?? '' }}</textarea>
+    <textarea name="question" class="form-control" rows="3" placeholder="Teks pertanyaan (boleh kosong kalau soalnya berupa gambar)">{{ $question->question ?? '' }}</textarea>
     <x-quiz-image-field class="mt-2" name="question_image" remove-name="remove_question_image" :current="$question?->imageUrl()" label="Tambah gambar soal" />
 </div>
 <div class="quiz-options-block">

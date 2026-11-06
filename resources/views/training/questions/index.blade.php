@@ -153,7 +153,7 @@
                                     </div>
                                     <div class="form-group">
                                         <label>Pertanyaan</label>
-                                        <textarea name="question" class="form-control" rows="3" required>{{ $q->question }}</textarea>
+                                        <textarea name="question" class="form-control" rows="3" placeholder="Teks pertanyaan (boleh kosong kalau soalnya berupa gambar)">{{ $q->question }}</textarea>
                                         <x-quiz-image-field class="mt-2" name="question_image" remove-name="remove_question_image" :current="$q->imageUrl()" label="Tambah gambar soal" />
                                     </div>
 
@@ -463,7 +463,7 @@
 
                     <div class="form-group">
                         <label>Pertanyaan Soal <span class="text-danger">*</span></label>
-                        <textarea name="question" class="form-control" rows="3" placeholder="Tuliskan pertanyaan di sini..." required></textarea>
+                        <textarea name="question" class="form-control" rows="3" placeholder="Tuliskan pertanyaan di sini, atau tambahkan gambar saja di bawah..."></textarea>
                         <x-quiz-image-field class="mt-2" name="question_image" remove-name="remove_question_image" label="Tambah gambar soal" />
                     </div>
 
@@ -1056,7 +1056,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     item.correct_answer = card.querySelector('.ai-essay-key') ? card.querySelector('.ai-essay-key').value.trim() : '';
                 }
 
-                if (item.question.length > 0) {
+                // Soal boleh berupa teks, gambar, atau keduanya.
+                if (item.question.length > 0 || item.question_image) {
                     payload.push(item);
                 }
             }

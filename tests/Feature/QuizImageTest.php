@@ -162,6 +162,95 @@ class QuizImageTest extends TestCase
         Storage::disk('public')->assertMissing([$questionImage, $optionImage]);
     }
 
+    public function test_question_can_be_only_an_image(): void
+    {
+        $training = $this->training();
+        $module = LearningModule::create(['title' => 'K3 Rambu', 'passing_score' => 70]);
+
+        // Form manual: tanpa teks dan tanpa gambar ditolak, gambar saja diterima.
+        $this->actingAs($this->admin)->post("/training/{$training->id}/questions", [
+            'type' => 'multiple_choice',
+            'question' => '',
+            'option_a' => 'Ya',
+            'option_b' => 'Tidak',
+            'correct_answer' => 'a',
+        ])->assertSessionHasErrors('question');
+
+        $this->actingAs($this->admin)->post("/training/{$training->id}/questions", [
+            'type' => 'multiple_choice',
+            'question' => '',
+            'question_image' => $this->image(),
+            'option_images' => ['a' => $this->image('a.png'), 'b' => $this->image('b.png')],
+            'correct_answer' => 'a',
+        ])->assertSessionHasNoErrors();
+
+        $question = TrainingQuestion::sole();
+        $this->assertSame('', $question->question);
+        $this->assertNotNull($question->question_image);
+
+        // Edit soal hanya gambar tanpa mengirim gambar baru: gambar lama tetap dipakai.
+        $this->actingAs($this->admin)->put(route('training.questions.update', [$training, $question]), [
+            'type' => 'multiple_choice',
+            'question' => '',
+            'correct_answer' => 'b',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame('b', $question->fresh()->correct_answer);
+
+        // Menghapus satu-satunya gambar soal tanpa teks ditolak.
+        $this->actingAs($this->admin)->put(route('training.questions.update', [$training, $question]), [
+            'type' => 'multiple_choice',
+            'question' => '',
+            'correct_answer' => 'b',
+            'remove_question_image' => '1',
+        ])->assertSessionHasErrors('question');
+
+        $this->actingAs($this->admin)->post($module->url('questions.store'), [
+            'question' => '',
+            'question_image' => $this->image(),
+            'option_a' => 'Ya',
+            'option_b' => 'Tidak',
+            'correct_answer' => 'a',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame('', LearningModuleQuestion::sole()->question);
+
+        // Preview AI: gambar saja diterima, kosong semua ditolak.
+        $image = $this->uploadPath(route('training.questions.upload-image', $training));
+        $this->actingAs($this->admin)->postJson("/training/{$training->id}/questions/save-ai-batch", ['questions' => [[
+            'type' => 'multiple_choice',
+            'question' => '',
+            'question_image' => $image,
+            'option_a' => 'Ya',
+            'option_b' => 'Tidak',
+            'correct_answer' => 'a',
+        ]]])->assertOk();
+        $this->assertSame('', TrainingQuestion::latest('id')->first()->question);
+
+        $this->actingAs($this->admin)->postJson("/training/{$training->id}/questions/save-ai-batch", ['questions' => [[
+            'type' => 'multiple_choice',
+            'question' => '',
+            'option_a' => 'Ya',
+            'option_b' => 'Tidak',
+            'correct_answer' => 'a',
+        ]]])->assertUnprocessable();
+
+        $moduleImage = $this->uploadPath($module->url('questions.upload-image'));
+        $this->actingAs($this->admin)->postJson($module->url('questions.save-ai-batch'), ['questions' => [[
+            'question' => '',
+            'question_image' => $moduleImage,
+            'option_a' => 'Ya',
+            'option_b' => 'Tidak',
+            'correct_answer' => 'a',
+        ]]])->assertOk();
+
+        $this->actingAs($this->admin)->postJson($module->url('questions.save-ai-batch'), ['questions' => [[
+            'question' => '',
+            'option_a' => 'Ya',
+            'option_b' => 'Tidak',
+            'correct_answer' => 'a',
+        ]]])->assertUnprocessable();
+        $this->assertSame(2, LearningModuleQuestion::count());
+    }
+
     public function test_training_participant_sees_question_and_option_images(): void
     {
         $training = $this->training();

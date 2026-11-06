@@ -18,14 +18,14 @@ class LearningModuleQuestionRequest extends FormRequest
     }
 
     /**
-     * Pilihan ganda saja: minimal opsi A dan B (teks atau gambar), kunci harus menunjuk opsi yang terisi.
+     * Pertanyaan boleh teks, gambar, atau keduanya. Pilihan ganda saja: minimal opsi A dan B (teks atau gambar), kunci harus menunjuk opsi yang terisi.
      *
      * @return array<string, mixed>
      */
     public function rules(): array
     {
         return [
-            'question' => ['required', 'string'],
+            'question' => ['nullable', 'string'],
             'option_a' => ['nullable', 'string'],
             'option_b' => ['nullable', 'string'],
             'option_c' => ['nullable', 'string'],
@@ -49,6 +49,10 @@ class LearningModuleQuestionRequest extends FormRequest
     {
         return [
             function (Validator $validator) {
+                if (blank($this->input('question')) && ! QuizImage::questionHasImageAfterSave($this, $this->existingQuestion())) {
+                    $validator->errors()->add('question', 'Pertanyaan wajib diisi teks atau gambar.');
+                }
+
                 $images = QuizImage::optionsWithImageAfterSave($this, $this->existingQuestion(), LearningModuleQuestion::OPTION_LETTERS);
                 $filled = fn (string $letter) => filled($this->input('option_'.$letter)) || $images[$letter];
 
@@ -76,6 +80,8 @@ class LearningModuleQuestionRequest extends FormRequest
         return [
             ...array_fill_keys(['option_a', 'option_b', 'option_c', 'option_d', 'option_e', 'explanation'], null),
             ...$this->safe()->only(['question', 'option_a', 'option_b', 'option_c', 'option_d', 'option_e', 'correct_answer', 'explanation']),
+            // Soal hanya gambar: kolomnya NOT NULL, jadi simpan teks kosong.
+            'question' => (string) $this->input('question'),
         ];
     }
 

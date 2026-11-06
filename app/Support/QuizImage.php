@@ -81,6 +81,15 @@ class QuizImage
     }
 
     /**
+     * Apakah soal akan punya gambar pertanyaan setelah form manual disimpan (untuk validasi "teks atau gambar").
+     */
+    public static function questionHasImageAfterSave(Request $request, ?Model $existing): bool
+    {
+        return $request->hasFile('question_image')
+            || (filled($existing?->question_image) && ! $request->boolean('remove_question_image'));
+    }
+
+    /**
      * Huruf pilihan yang akan punya gambar setelah form manual disimpan (untuk validasi "teks atau gambar").
      *
      * @param  array<int, string>  $letters

@@ -160,7 +160,7 @@ class LearningModuleQuestionController extends Controller
     {
         $request->validate([
             'questions' => 'required|array|min:1',
-            'questions.*.question' => 'required|string',
+            'questions.*.question' => 'nullable|string',
             'questions.*.option_a' => 'nullable|string',
             'questions.*.option_b' => 'nullable|string',
             'questions.*.option_c' => 'nullable|string',
@@ -173,8 +173,15 @@ class LearningModuleQuestionController extends Controller
             'questions.*.option_images.*' => QuizImage::pathRules(),
         ]);
 
-        // Pilihan terisi = punya teks atau gambar.
+        // Pertanyaan dan pilihan terisi = punya teks atau gambar.
         foreach ($request->questions as $index => $q) {
+            if (blank($q['question'] ?? null) && blank($q['question_image'] ?? null)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Soal #'.($index + 1).': pertanyaan wajib diisi teks atau gambar.',
+                ], 422);
+            }
+
             $filled = fn (string $letter) => filled($q['option_'.$letter] ?? null) || filled($q['option_images'][$letter] ?? null);
 
             foreach (['a', 'b'] as $letter) {
@@ -198,7 +205,7 @@ class LearningModuleQuestionController extends Controller
         DB::transaction(function () use ($request, $module, &$sortOrder) {
             foreach ($request->questions as $q) {
                 $module->questions()->create([
-                    'question' => $q['question'],
+                    'question' => $q['question'] ?? '',
                     'option_a' => $q['option_a'] ?? null,
                     'option_b' => $q['option_b'] ?? null,
                     'option_c' => $q['option_c'] ?? null,

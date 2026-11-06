@@ -23,7 +23,8 @@ class TrainingQuestionRequest extends FormRequest
     }
 
     /**
-     * Essay questions have no options; multiple choice needs at least options A and B (text or image).
+     * The question may be text, an image, or both. Essay questions have no options; multiple choice
+     * needs at least options A and B (text or image).
      *
      * @return array<string, mixed>
      */
@@ -37,7 +38,7 @@ class TrainingQuestionRequest extends FormRequest
         if ($this->isEssay()) {
             return [
                 'type' => ['required', 'in:essay'],
-                'question' => ['required', 'string'],
+                'question' => ['nullable', 'string'],
                 'correct_answer' => ['nullable', 'string'],
                 'explanation' => ['nullable', 'string'],
                 ...$questionImage,
@@ -46,7 +47,7 @@ class TrainingQuestionRequest extends FormRequest
 
         return [
             'type' => ['required', 'in:multiple_choice'],
-            'question' => ['required', 'string'],
+            'question' => ['nullable', 'string'],
             'option_a' => ['nullable', 'string'],
             'option_b' => ['nullable', 'string'],
             'option_c' => ['nullable', 'string'],
@@ -70,6 +71,10 @@ class TrainingQuestionRequest extends FormRequest
     {
         return [
             function (Validator $validator) {
+                if (blank($this->input('question')) && ! QuizImage::questionHasImageAfterSave($this, $this->existingQuestion())) {
+                    $validator->errors()->add('question', 'Pertanyaan wajib diisi teks atau gambar.');
+                }
+
                 if ($this->isEssay()) {
                     return;
                 }
@@ -103,6 +108,8 @@ class TrainingQuestionRequest extends FormRequest
         return [
             ...$options,
             ...$this->safe()->except(['question_image', 'option_images', 'remove_question_image', 'remove_option_images']),
+            // Image-only question: the column is NOT NULL, so store an empty text.
+            'question' => (string) $this->input('question'),
         ];
     }
 

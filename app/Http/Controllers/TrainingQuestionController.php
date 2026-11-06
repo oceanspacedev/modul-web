@@ -347,10 +347,9 @@ class TrainingQuestionController extends Controller
      */
     public function saveAiBatch(Request $request, Training $training): JsonResponse|RedirectResponse
     {
-
         $request->validate([
             'questions' => 'required|array|min:1',
-            'questions.*.question' => 'required|string',
+            'questions.*.question' => 'nullable|string',
             'questions.*.type' => 'required|in:multiple_choice,essay',
             'questions.*.correct_answer' => 'required|string',
             'questions.*.question_image' => QuizImage::pathRules(),
@@ -358,12 +357,21 @@ class TrainingQuestionController extends Controller
             'questions.*.option_images.*' => QuizImage::pathRules(),
         ]);
 
+        foreach ($request->questions as $index => $q) {
+            if (blank($q['question'] ?? null) && blank($q['question_image'] ?? null)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Soal #'.($index + 1).': pertanyaan wajib diisi teks atau gambar.',
+                ], 422);
+            }
+        }
+
         $savedCount = 0;
         foreach ($request->questions as $q) {
             $type = $q['type'] ?? 'multiple_choice';
             $training->questions()->create([
                 'type' => $type,
-                'question' => $q['question'],
+                'question' => $q['question'] ?? '',
                 'option_a' => ($type === 'multiple_choice') ? ($q['option_a'] ?? null) : null,
                 'option_b' => ($type === 'multiple_choice') ? ($q['option_b'] ?? null) : null,
                 'option_c' => ($type === 'multiple_choice') ? ($q['option_c'] ?? null) : null,
