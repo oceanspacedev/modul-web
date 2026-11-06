@@ -149,7 +149,7 @@
                         <div class="card-body">
                             <div class="form-row">
                                 <div class="form-group col-sm-6">
-                                    <select id="filterDivisi" class="form-control form-control-sm">
+                                    <select id="filterDivisi" class="form-control form-control-sm select2" aria-label="Divisi" style="width: 100%;">
                                         <option value="">Semua Divisi</option>
                                         @foreach($divisis as $div)
                                             <option value="{{ $div->id }}">{{ $div->name }} ({{ $div->users->count() }})</option>
@@ -280,7 +280,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    filterDivisi.addEventListener('change', applyFilter);
+    // Select2 memicu change lewat jQuery, jadi dengarkan lewat jQuery juga.
+    $(filterDivisi).on('change', applyFilter);
     searchInput.addEventListener('input', applyFilter);
 
     // Initialize select2 for documents
