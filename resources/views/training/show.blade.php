@@ -550,8 +550,8 @@
                                         </div>
                                     @endif
                                 </div>
-                            </td>
 
+                                {{-- Modal per peserta tetap di dalam sel ini: di luar <td> browser memindahkannya keluar tabel dan memisahkan <form> dari isinya. --}}
                                 <!-- MODAL LEMBAR JAWABAN -->
                                 @if($quiz && $quiz->answers)
                                 <div class="modal fade text-left" id="answerModal_{{ $quiz->id }}" tabindex="-1" role="dialog" aria-hidden="true">
