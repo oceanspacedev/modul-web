@@ -245,7 +245,7 @@
 </section>
 
 <!-- AI QUESTION GENERATOR MODAL (GEMINI) -->
-<div class="modal fade" id="aiGenerateModal" tabindex="-1" role="dialog" aria-labelledby="aiGenerateModalLabel" aria-hidden="true" data-backdrop="static">
+<div class="modal fade modal-center" id="aiGenerateModal" tabindex="-1" role="dialog" aria-labelledby="aiGenerateModalLabel" aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
         <div class="modal-content">
             <!-- MODAL HEADER -->
