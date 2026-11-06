@@ -28,6 +28,20 @@
 <!-- datepicker -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.2.0/js/bootstrap-datepicker.min.js"></script>
 <script src="{{ asset('script.js') }}?v={{ filemtime(public_path('script.js')) }}"></script>
+<script>
+    // Row dropdowns inside a scrolling table: position the menu fixed (Popper v1)
+    // so the table's scroll box doesn't clip it.
+    $(document).on('show.bs.dropdown', function (e) {
+        if (!$(e.target).closest('.table-responsive').length || !e.relatedTarget) {
+            return;
+        }
+        var dropdown = $(e.relatedTarget).data('bs.dropdown');
+        if (dropdown) {
+            dropdown._config.boundary = 'window';
+            dropdown._config.popperConfig = $.extend({}, dropdown._config.popperConfig, { positionFixed: true });
+        }
+    });
+</script>
 @yield('footer')
 </body>
 

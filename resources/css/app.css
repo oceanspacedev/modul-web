@@ -1787,11 +1787,8 @@ small.form-text {
     border-radius: 0 0 var(--radius-xl) var(--radius-xl);
 }
 
-@media (min-width: 768px) {
-    .card-body.table-responsive:not([style*="height:"]):not([style*="height: "]) {
-        overflow: visible;
-    }
-}
+/* Wide tables scroll inside their card (Bootstrap default). Row dropdowns
+   are positioned fixed by the layout script so the scroll box can't clip them. */
 
 .table .dropdown-menu,
 .table-responsive .dropdown-menu {
