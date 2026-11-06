@@ -26,10 +26,16 @@ window.initSearchableSelects = function (scope) {
             return;
         }
         var $modal = $select.closest(".modal");
-        $select.select2({
+        var options = {
             width: select.style.width || "100%",
             dropdownParent: $modal.length ? $modal : $(document.body),
-        });
+        };
+        // Pilihan ganda mencari lewat kotaknya sendiri; tanpa placeholder kotak
+        // itu terlihat seperti isian kosong. (Atur sendiri lewat data-placeholder.)
+        if (select.multiple && !$select.data("placeholder")) {
+            options.placeholder = "Ketik untuk mencari...";
+        }
+        $select.select2(options);
     }
 
     // Batch pertama langsung, sisanya bertahap supaya halaman dengan

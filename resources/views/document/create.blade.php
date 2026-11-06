@@ -43,7 +43,7 @@
                         <div class="row">
                             <div class="col-lg-3 form-group mb-lg-0">
                                 <label for="role_id">Jabatan</label>
-                                <select class="custom-select col-lg-12 select2" multiple="multiple" name="role_id[]"
+                                <select class="custom-select col-lg-12 select2" multiple="multiple" name="role_id[]" data-placeholder="Cari jabatan..."
                                     id="role_id" required>
                                     <option value="0">SEMUA JABATAN</option>
                                     @foreach ($roles as $role)
