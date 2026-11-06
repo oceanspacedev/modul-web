@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>MODUL | APP</title>
+    <title>Modul</title>
     @include('layout.partials.favicon')
 
     <!-- Font Awesome -->
@@ -81,7 +81,7 @@
             <div class="container">
                 <a href="/video" class="navbar-brand d-flex align-items-center" style="gap: 10px;">
                     <img src="{{ asset('images/logo.svg') }}" alt="" class="brand-logo">
-                    <span class="text-heading font-weight-bold text-dark" style="font-size: 0.9375rem;">Modul App</span>
+                    <span class="text-heading font-weight-bold text-dark" style="font-size: 0.9375rem;">Modul</span>
                 </a>
 
                 <ul class="navbar-nav ml-auto align-items-center" style="gap: 8px;">

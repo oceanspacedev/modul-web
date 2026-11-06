@@ -29,7 +29,7 @@
 
 <div class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Panduan Penggunaan" subtitle="Cara memakai sistem Modul App dari awal sampai akhir, untuk Admin/Pemateri dan Peserta." eyebrow="Bantuan" />
+        <x-page-header title="Panduan Penggunaan" subtitle="Cara memakai aplikasi Modul dari awal sampai akhir, untuk Admin/Pemateri dan Peserta." eyebrow="Bantuan" />
     </div>
 </div>
 
@@ -69,7 +69,7 @@
                 {{-- 1 --}}
                 <div class="pg-card" id="pengenalan">
                     <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-info-circle"></i></span><h2>1. Pengenalan sistem</h2></div>
-                    <p>Modul App adalah aplikasi untuk mengelola <b>pelatihan internal</b>: menjadwalkan sesi, mengundang peserta lewat WhatsApp, mencatat kehadiran, memberi kuis evaluasi, serta menyimpan dokumen dan video materi.</p>
+                    <p>Modul adalah aplikasi untuk mengelola <b>pelatihan internal</b>: menjadwalkan sesi, mengundang peserta lewat WhatsApp, mencatat kehadiran, memberi kuis evaluasi, serta menyimpan dokumen dan video materi.</p>
                     <h3>Siapa yang memakai</h3>
                     <ul>
                         <li><b>Admin / Pemateri</b>: masuk lewat web dan mengelola modul sesuai hak akses jabatannya.</li>

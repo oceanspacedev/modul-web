@@ -2,7 +2,7 @@
 <aside class="main-sidebar sidebar-light-primary">
     <a href="/dashboard" class="brand-link">
         <img src="{{ asset('images/logo.svg') }}" alt="" class="brand-logo">
-        <span class="brand-text">Modul <span class="brand-badge">APP</span></span>
+        <span class="brand-text">Modul</span>
     </a>
 
     <div class="sidebar">

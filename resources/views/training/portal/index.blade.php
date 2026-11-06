@@ -12,7 +12,7 @@
         <div class="container portal-container">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <span class="portal-brand"><img src="{{ asset('images/logo.svg') }}" alt="" class="brand-logo"> Modul App <span class="portal-brand-sub">Portal Pelatihan</span></span>
+                    <span class="portal-brand"><img src="{{ asset('images/logo.svg') }}" alt="" class="brand-logo"> Modul <span class="portal-brand-sub">Portal Pelatihan</span></span>
                 </div>
                 <div class="text-muted small">
                     {{ $user->nama_lengkap }}

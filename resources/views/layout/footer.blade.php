@@ -1,12 +1,12 @@
 <footer class="main-footer">
     @auth
         <div class="d-flex justify-content-between align-items-center flex-wrap" style="gap: 8px;">
-            <span>&copy; {{ date('Y') }} Modul App &middot; Magang Wikrama</span>
+            <span>&copy; {{ date('Y') }} Modul &middot; Magang Wikrama</span>
             <span class="d-none d-sm-inline">Versi 1.0.0</span>
         </div>
     @else
         <div class="container d-flex justify-content-between align-items-center flex-wrap" style="gap: 8px;">
-            <span>&copy; {{ date('Y') }} Modul App &middot; Magang Wikrama</span>
+            <span>&copy; {{ date('Y') }} Modul &middot; Magang Wikrama</span>
             <span class="d-none d-md-inline">Galeri Publik</span>
         </div>
     @endauth

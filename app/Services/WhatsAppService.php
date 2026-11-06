@@ -52,7 +52,7 @@ class WhatsAppService
         }
         $endpoint = rtrim($baseUrl, '/').'/api/v1/messages';
 
-        $appName = config('app.name', 'Modul App');
+        $appName = config('app.name', 'Modul');
         $message = "*KODE OTP LOGIN - {$appName}*\n\n"
                  ."Halo *{$recipientName}*,\n\n"
                  ."Kode verifikasi (OTP) untuk login ke akun Anda adalah:\n\n"

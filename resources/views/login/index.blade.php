@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Login | Modul App</title>
+    <title>Login | Modul</title>
     @include('layout.partials.favicon')
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -485,7 +485,7 @@
 
 <body>
     <div class="login-wrapper">
-        <img src="{{ asset('images/logo.svg') }}" alt="Modul App" class="login-logo">
+        <img src="{{ asset('images/logo.svg') }}" alt="Modul" class="login-logo">
 
         <div class="login-frame">
         <div class="login-card">
@@ -674,7 +674,7 @@
         </div>
 
         <p class="footer-note">
-            &copy; {{ date('Y') }} Modul App
+            &copy; {{ date('Y') }} Modul
         </p>
     </div>
 
