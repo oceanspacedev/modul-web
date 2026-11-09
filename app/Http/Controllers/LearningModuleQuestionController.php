@@ -8,10 +8,10 @@ use App\Http\Requests\ReviseAiQuestionRequest;
 use App\Imports\LearningModuleQuestionImport;
 use App\Jobs\GenerateExportFile;
 use App\Jobs\GenerateLearningModuleQuestions;
+use App\Jobs\ReviseLearningModuleQuestion;
 use App\Models\LearningModule;
 use App\Models\LearningModuleItem;
 use App\Models\LearningModuleQuestion;
-use App\Services\GeminiQuestionService;
 use App\Services\MaterialQuizService;
 use App\Support\QuizImage;
 use Exception;
@@ -156,23 +156,34 @@ class LearningModuleQuestionController extends Controller
     }
 
     /**
-     * Ubah satu soal di langkah review AI (pertanyaan saja, jawaban saja, atau semuanya) dari teks soal itu sendiri.
+     * Ubah satu soal di langkah review AI (pertanyaan saja, jawaban saja, atau semuanya). AI membaca ulang materi yang
+     * dipilih dan mengecek pertanyaannya belum ada, di queue seperti generateAi; hasilnya diambil lewat aiStatus.
      */
     public function reviseAi(ReviseAiQuestionRequest $request, LearningModule $module): JsonResponse
     {
-        try {
-            $question = (new GeminiQuestionService)->reviseQuestion(
-                [...$request->validated('question'), 'type' => 'multiple_choice'],
-                $request->validated('part'),
-                $request->validated('instruction')
-            );
+        $validated = $request->validate([
+            'item_ids' => 'required|array|min:1',
+            'item_ids.*' => ['integer', Rule::exists('learning_module_items', 'id')->where('learning_module_id', $module->id)],
+        ], ['item_ids.required' => 'Pilih minimal satu materi acuan.']);
 
-            return response()->json(['success' => true, 'question' => $question]);
-        } catch (Exception $e) {
-            report($e);
-
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        if (empty(config('services.gemini.api_key'))) {
+            return response()->json(['success' => false, 'message' => 'GEMINI_API_KEY belum dikonfigurasi.'], 422);
         }
+
+        $token = (string) Str::uuid();
+        Cache::put(GenerateLearningModuleQuestions::cacheKey($token), ['status' => 'pending'], now()->addHours(2));
+
+        ReviseLearningModuleQuestion::dispatch(
+            $token,
+            $module->id,
+            $validated['item_ids'],
+            $request->validated('question'),
+            $request->validated('part'),
+            $request->validated('instruction'),
+            array_filter($request->validated('other_questions') ?? [], 'filled'),
+        );
+
+        return response()->json(['success' => true, 'token' => $token]);
     }
 
     /**

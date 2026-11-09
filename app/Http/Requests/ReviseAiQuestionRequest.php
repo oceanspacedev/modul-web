@@ -6,6 +6,7 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * "Ubah dengan AI" untuk satu soal di layar tinjauan hasil AI (kuis pelatihan & modul).
+ * Materi acuan (document_ids / item_ids) divalidasi di masing-masing controller.
  */
 class ReviseAiQuestionRequest extends FormRequest
 {
@@ -36,6 +37,9 @@ class ReviseAiQuestionRequest extends FormRequest
             'question.option_e' => ['nullable', 'string'],
             'question.correct_answer' => ['nullable', 'string'],
             'question.explanation' => ['nullable', 'string'],
+            // Pertanyaan soal lain di layar tinjauan, untuk dicek supaya tidak muncul dua kali.
+            'other_questions' => ['nullable', 'array', 'max:200'],
+            'other_questions.*' => ['nullable', 'string'],
         ];
     }
 

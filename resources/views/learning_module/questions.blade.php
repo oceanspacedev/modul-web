@@ -451,7 +451,12 @@ $(function () {
     // "Ubah dengan AI" per kartu soal.
     bindAiRevise(document.getElementById('aiQuestions'), {
         url: '{{ $module->url('questions.revise-ai') }}',
+        statusUrl: function (token) { return statusUrlTemplate.replace('00000000-0000-0000-0000-000000000000', token); },
         cardSelector: '.ai-card',
+        // AI membaca ulang materi yang dipilih saat membuat soal.
+        extra: function () {
+            return { item_ids: $('.ai-item:checked').map(function () { return parseInt(this.value, 10); }).get() };
+        },
         read: function (card) {
             var $card = $(card);
             var q = {

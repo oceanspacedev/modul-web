@@ -344,18 +344,26 @@ class TrainingQuestionController extends Controller
     }
 
     /**
-     * Rewrite one question in the AI review step (question only, answers only, or everything) from its own text.
+     * Rewrite one question in the AI review step (question only, answers only, or everything). The AI re-reads the
+     * selected documents and checks the new question against the other review cards and the saved questions.
      */
     public function reviseAiQuestion(ReviseAiQuestionRequest $request, Training $training): JsonResponse
     {
+        $request->validate([
+            'document_ids' => 'required|array|min:1',
+            'document_ids.*' => 'exists:documents,id',
+        ], ['document_ids.required' => 'Pilih minimal 1 dokumen materi acuan.']);
+
         try {
-            $question = (new GeminiQuestionService($request->api_key))->reviseQuestion(
+            $result = (new GeminiQuestionService($request->api_key))->reviseQuestion(
                 $request->validated('question'),
                 $request->validated('part'),
-                $request->validated('instruction')
+                $request->validated('instruction'),
+                Document::with('versions')->whereIn('id', $request->document_ids)->get()->all(),
+                [...($request->validated('other_questions') ?? []), ...$training->questions()->pluck('question')->all()]
             );
 
-            return response()->json(['success' => true, 'question' => $question]);
+            return response()->json(['success' => true, ...$result]);
         } catch (Exception $e) {
             report($e);
 

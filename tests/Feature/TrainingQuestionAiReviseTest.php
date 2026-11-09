@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\Document;
 use App\Models\Training;
 use App\Models\User;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -16,6 +18,8 @@ class TrainingQuestionAiReviseTest extends TestCase
     private User $admin;
 
     private Training $training;
+
+    private Document $document;
 
     protected function setUp(): void
     {
@@ -33,6 +37,9 @@ class TrainingQuestionAiReviseTest extends TestCase
             'status' => 'scheduled',
         ]);
 
+        Storage::fake(config('filesystems.default'))->put('dokumen/apd.txt', 'APD wajib: helm, rompi, sepatu safety.');
+        $this->document = Document::create(['name' => 'SOP APD', 'divisi_id' => 1, 'document_type' => 1, 'path' => 'apd.txt']);
+
         Http::fake([
             'generativelanguage.googleapis.com/*' => Http::response([
                 'candidates' => [['content' => ['parts' => [['text' => json_encode([
@@ -49,6 +56,7 @@ class TrainingQuestionAiReviseTest extends TestCase
         $this->actingAs($this->admin)->postJson(route('training.questions.revise-ai', $this->training), [
             'question' => ['type' => 'essay', 'question' => 'Sebutkan APD wajib!', 'correct_answer' => 'Helm', 'explanation' => ''],
             'part' => 'answers',
+            'document_ids' => [$this->document->id],
         ])->assertOk()->assertJson(['success' => true, 'question' => [
             'type' => 'essay',
             'question' => 'Sebutkan APD wajib!',
@@ -57,6 +65,22 @@ class TrainingQuestionAiReviseTest extends TestCase
         ]]);
 
         $this->assertSame(0, $this->training->questions()->count());
+        Http::assertSent(fn (Request $request) => str_contains($request['contents'][0]['parts'][0]['text'], 'APD wajib: helm, rompi, sepatu safety.'));
+    }
+
+    public function test_other_review_cards_and_saved_questions_are_checked_for_duplicates(): void
+    {
+        $this->training->questions()->create(['type' => 'essay', 'question' => 'Jelaskan fungsi helm!', 'correct_answer' => 'Melindungi kepala']);
+
+        $this->actingAs($this->admin)->postJson(route('training.questions.revise-ai', $this->training), [
+            'question' => ['type' => 'essay', 'question' => 'Sebutkan APD wajib!'],
+            'part' => 'all',
+            'document_ids' => [$this->document->id],
+            'other_questions' => ['Kapan rompi dipakai?'],
+        ])->assertOk()->assertJson(['similar_to' => null]);
+
+        Http::assertSent(fn (Request $request) => str_contains($request['contents'][0]['parts'][1]['text'], 'Kapan rompi dipakai?')
+            && str_contains($request['contents'][0]['parts'][1]['text'], 'Jelaskan fungsi helm!'));
     }
 
     public function test_custom_api_key_from_the_modal_is_used(): void
@@ -64,6 +88,7 @@ class TrainingQuestionAiReviseTest extends TestCase
         $this->actingAs($this->admin)->postJson(route('training.questions.revise-ai', $this->training), [
             'question' => ['type' => 'essay', 'question' => 'Sebutkan APD wajib!'],
             'part' => 'question',
+            'document_ids' => [$this->document->id],
             'api_key' => 'kunci-kustom',
         ])->assertOk();
 
@@ -75,7 +100,14 @@ class TrainingQuestionAiReviseTest extends TestCase
         $this->actingAs($this->admin)->postJson(route('training.questions.revise-ai', $this->training), [
             'question' => ['type' => 'multiple_choice', 'question' => ''],
             'part' => 'all',
+            'document_ids' => [$this->document->id],
         ])->assertUnprocessable()->assertJsonValidationErrors('question.question');
+
+        // Dokumen acuan wajib, karena AI selalu membaca ulang materi.
+        $this->actingAs($this->admin)->postJson(route('training.questions.revise-ai', $this->training), [
+            'question' => ['type' => 'essay', 'question' => 'Sebutkan APD wajib!'],
+            'part' => 'all',
+        ])->assertUnprocessable()->assertJsonValidationErrors('document_ids');
 
         Http::assertNothingSent();
     }

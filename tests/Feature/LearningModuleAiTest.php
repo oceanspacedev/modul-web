@@ -139,25 +139,45 @@ class LearningModuleAiTest extends TestCase
                 ])]]]]],
             ]),
         ]);
+        $item = $this->addVideo(['video_type' => 'link', 'video_link' => 'https://youtu.be/dQw4w9WgXcQ']);
+        $this->module->questions()->create(['question' => 'Apa fungsi rambu kuning?', 'option_a' => 'Peringatan', 'option_b' => 'Larangan', 'correct_answer' => 'a', 'sort_order' => 1]);
         $current = ['question' => 'APD?', 'option_a' => 'Helm', 'option_b' => 'Topi', 'option_c' => '', 'correct_answer' => 'a', 'explanation' => ''];
 
-        $this->actingAs($this->admin)->postJson(route('learning-module.questions.revise-ai', $this->module), [
+        $token = $this->actingAs($this->admin)->postJson(route('learning-module.questions.revise-ai', $this->module), [
             'question' => $current, 'part' => 'all', 'instruction' => 'buat lebih jelas',
-        ])->assertOk()->assertJson(['success' => true, 'question' => [
-            'question' => 'APD apa yang wajib dipakai di area proyek?', 'option_b' => 'Helm', 'correct_answer' => 'b',
-        ]]);
+            'item_ids' => [$item->id], 'other_questions' => ['Kapan APD dipakai?'],
+        ])->assertOk()->json('token');
+
+        $this->actingAs($this->admin)->getJson(route('learning-module.questions.ai-status', [$this->module, $token]))
+            ->assertOk()->assertJson(['status' => 'done', 'similar_to' => null, 'question' => [
+                'question' => 'APD apa yang wajib dipakai di area proyek?', 'option_b' => 'Helm', 'correct_answer' => 'b',
+            ]]);
+
+        // Video dibaca ulang; soal lain di tinjauan dan soal yang sudah tersimpan dikirim supaya tidak muncul dua kali.
+        Http::assertSent(function (Request $request) {
+            $parts = $request['contents'][0]['parts'];
+
+            return ($parts[0]['file_data']['file_uri'] ?? null) === 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+                && str_contains($parts[1]['text'], 'Kapan APD dipakai?')
+                && str_contains($parts[1]['text'], 'Apa fungsi rambu kuning?');
+        });
 
         $this->actingAs($this->admin)->postJson(route('learning-module.questions.revise-ai', $this->module), [
-            'question' => $current, 'part' => 'semua',
+            'question' => $current, 'part' => 'semua', 'item_ids' => [$item->id],
         ])->assertUnprocessable()->assertJsonValidationErrors('part');
+
+        // Materi acuan wajib, karena AI selalu membaca ulang materi.
+        $this->actingAs($this->admin)->postJson(route('learning-module.questions.revise-ai', $this->module), [
+            'question' => $current, 'part' => 'all',
+        ])->assertUnprocessable()->assertJsonValidationErrors('item_ids');
 
         config(['services.gemini.api_key' => null]);
         $this->actingAs($this->admin)->postJson(route('learning-module.questions.revise-ai', $this->module), [
-            'question' => $current, 'part' => 'question',
+            'question' => $current, 'part' => 'question', 'item_ids' => [$item->id],
         ])->assertUnprocessable()->assertJson(['success' => false]);
 
-        // Hanya mengubah isi kartu tinjauan; belum ada soal yang tersimpan.
-        $this->assertSame(0, $this->module->questions()->count());
+        // Hanya mengubah isi kartu tinjauan; tidak ada soal baru yang tersimpan.
+        $this->assertSame(1, $this->module->questions()->count());
         Http::assertSentCount(1);
     }
 

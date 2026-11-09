@@ -786,11 +786,8 @@ document.addEventListener('DOMContentLoaded', function () {
         hideAiError();
     });
 
-    // TRIGGER AI GENERATE
-    document.getElementById('btnTriggerAiGenerate').addEventListener('click', function() {
-        hideAiError();
-
-        // 1. Gather documents
+    // Dokumen acuan yang dipilih (pelatihan + dokumen lain); dipakai saat generate dan saat "Ubah dengan AI".
+    function selectedAiDocIds() {
         var docIds = [];
         document.querySelectorAll('.ai-doc-checkbox:checked').forEach(function(cb) {
             docIds.push(cb.value);
@@ -799,6 +796,15 @@ document.addEventListener('DOMContentLoaded', function () {
         otherDocs.forEach(function(id) {
             if (docIds.indexOf(id) === -1) docIds.push(id);
         });
+        return docIds;
+    }
+
+    // TRIGGER AI GENERATE
+    document.getElementById('btnTriggerAiGenerate').addEventListener('click', function() {
+        hideAiError();
+
+        // 1. Gather documents
+        var docIds = selectedAiDocIds();
 
         if (docIds.length === 0) {
             showAiError('Silakan pilih minimal 1 dokumen materi acuan terlebih dahulu!');
@@ -1031,9 +1037,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             card.querySelectorAll('.ai-q-text, .ai-q-explanation, .ai-essay-key').forEach(autoResize);
         },
+        // AI membaca ulang dokumen acuan yang dipilih saat membuat soal.
         extra: function() {
             var apiKey = document.getElementById('aiApiKeyOverride');
-            return apiKey && apiKey.value ? { api_key: apiKey.value } : {};
+            return Object.assign({ document_ids: selectedAiDocIds() }, apiKey && apiKey.value ? { api_key: apiKey.value } : {});
         }
     });
 

@@ -50,20 +50,28 @@ class GenerateLearningModuleQuestions implements ShouldQueue
         return ! $item->isVideo() || GeminiQuestionService::supportsVideo($item->materialable);
     }
 
+    /**
+     * Materi (Document/Video) dari item modul yang dipilih, sesuai urutan modul.
+     *
+     * @param  array<int, int>  $itemIds
+     */
+    public static function sources(int $moduleId, array $itemIds): array
+    {
+        return LearningModuleItem::with('materialable')
+            ->where('learning_module_id', $moduleId)
+            ->whereIn('id', $itemIds)
+            ->orderBy('sort_order')
+            ->get()
+            ->pluck('materialable')
+            ->filter()
+            ->all();
+    }
+
     public function handle(): void
     {
         try {
-            $sources = LearningModuleItem::with('materialable')
-                ->where('learning_module_id', $this->moduleId)
-                ->whereIn('id', $this->itemIds)
-                ->orderBy('sort_order')
-                ->get()
-                ->pluck('materialable')
-                ->filter()
-                ->all();
-
             $questions = (new GeminiQuestionService)->generateQuestions(
-                $sources,
+                self::sources($this->moduleId, $this->itemIds),
                 $this->questionCount,
                 'multiple_choice',
                 $this->difficulty,
