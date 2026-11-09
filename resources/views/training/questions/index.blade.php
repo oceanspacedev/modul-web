@@ -19,7 +19,10 @@
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="/training/{{ $training->id }}/questions/template">Download Template</a>
                         @if($questions->isNotEmpty())
-                            <a class="dropdown-item" href="{{ route('training.questions.export', $training) }}">Export Soal &amp; Kunci Jawaban</a>
+                            <form action="{{ route('training.questions.export', $training) }}" method="POST" class="m-0">
+                                @csrf
+                                <button type="submit" class="dropdown-item">Export Soal &amp; Kunci Jawaban</button>
+                            </form>
                         @endif
                     </div>
                 </div>

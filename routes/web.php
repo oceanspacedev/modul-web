@@ -151,7 +151,7 @@ Route::middleware('auth')->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::post('/', 'store')->name('store');
                 Route::get('template', 'downloadTemplate')->name('template');
-                Route::get('export', 'export')->name('export');
+                Route::post('export', 'export')->name('export');
                 Route::post('import-excel', 'importExcel')->name('import-excel');
                 Route::post('import-text', 'importText')->name('import-text');
                 Route::post('generate-ai', 'generateAiQuestions')->name('generate-ai');
@@ -185,7 +185,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/', 'index')->name('index');
             Route::post('/', 'store')->name('store');
             Route::get('template', 'downloadTemplate')->name('template');
-            Route::get('export', 'export')->name('export');
+            Route::post('export', 'export')->name('export');
             Route::post('import-excel', 'importExcel')->name('import-excel');
             Route::post('generate-ai', 'generateAi')->name('generate-ai');
             Route::get('ai-status/{token}', 'aiStatus')->whereUuid('token')->name('ai-status');

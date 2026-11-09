@@ -94,7 +94,7 @@
                     </ul>
                     <div class="pg-note">Menu hanya muncul bila jabatan Anda punya izinnya. Semua dropdown bisa dicari dengan mengetik. Tombol <b>Keluar</b> ada di menu nama Anda (kanan atas).</div>
                     <h3>Import, export &amp; notifikasi</h3>
-                    <p>Import dan export (user, rekap pelatihan, rekap modul) diproses di belakang layar, jadi Anda tidak perlu menunggu di halaman. Setelah selesai, hasilnya masuk ke menu <b>Notifikasi</b> (ikon lonceng di kanan atas), dan dikirim juga ke WhatsApp serta email bila No. HP / email Anda terisi. File export diunduh dari menu Notifikasi dan tersedia selama 7 hari.</p>
+                    <p>Import dan export (user, rekap pelatihan, rekap modul, soal &amp; kunci jawaban) diproses di belakang layar, jadi Anda tidak perlu menunggu di halaman. Setelah selesai, hasilnya masuk ke menu <b>Notifikasi</b> (ikon lonceng di kanan atas), dan dikirim juga ke WhatsApp serta email bila No. HP / email Anda terisi. File export diunduh dari menu Notifikasi dan tersedia selama 7 hari.</p>
                 </div>
 
                 {{-- 2 --}}
@@ -227,7 +227,7 @@
                         <li><b>Import</b>: <b>Download Template</b>, isi, lalu <b>Import Excel / CSV</b>. Hapus baris contoh di template dulu. Atau <b>Import Teks Cepat</b> untuk menempel soal (klik <b>Isi Contoh</b> untuk melihat formatnya).</li>
                         <li><b>Buat Soal via AI</b>: pilih dokumen materi, atur jumlah soal, klik <b>Mulai Generate Soal</b>. Periksa hasilnya, lalu klik <b>Simpan</b>.</li>
                     </ul>
-                    <p><b>Export soal:</b> <b>Import / Export → Export Soal &amp; Kunci Jawaban</b> mengunduh semua soal beserta kuncinya dengan format yang sama seperti template, jadi bisa diedit lalu diimpor ke pelatihan lain. Gambar tidak ikut; soal bergambar ditandai di kolom <b>catatan</b>. Soal pretest/posttest modul, video, dan dokumen bisa di-export lewat tombol <b>Export Soal</b> di halaman soalnya.</p>
+                    <p><b>Export soal:</b> <b>Import / Export → Export Soal &amp; Kunci Jawaban</b> menyiapkan file semua soal beserta kuncinya di belakang layar (unduh dari menu <b>Notifikasi</b>), dengan format yang sama seperti template, jadi bisa diedit lalu diimpor ke pelatihan lain. Gambar tidak ikut; soal bergambar ditandai di kolom <b>catatan</b>. Soal pretest/posttest modul, video, dan dokumen bisa di-export lewat tombol <b>Export Soal</b> di halaman soalnya.</p>
                     <h3 id="soal-gambar">Gambar pada soal</h3>
                     <ul>
                         <li>Klik <b>Tambah gambar soal</b> atau <b>Gambar A</b>, <b>Gambar B</b>, dst. (JPG/PNG/WEBP, maks. 5 MB).</li>

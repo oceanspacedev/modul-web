@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Exports\TrainingQuestionsExport;
 use App\Exports\TrainingQuestionTemplate;
 use App\Http\Requests\TrainingQuestionRequest;
 use App\Imports\TrainingQuestionImport;
+use App\Jobs\GenerateExportFile;
 use App\Models\Document;
 use App\Models\Training;
 use App\Models\TrainingQuestion;
@@ -55,11 +55,14 @@ class TrainingQuestionController extends Controller
     }
 
     /**
-     * Download the question bank with answer keys, in the template's format so it can be re-imported.
+     * Export the question bank with answer keys (template format, re-importable) in the background;
+     * the file arrives in the notification inbox.
      */
-    public function export(Training $training): BinaryFileResponse
+    public function export(Request $request, Training $training): RedirectResponse
     {
-        return Excel::download(new TrainingQuestionsExport($training), 'soal_pelatihan_'.Str::slug($training->title).'.xlsx');
+        GenerateExportFile::dispatch($request->user()->id, GenerateExportFile::TRAINING_QUESTIONS, $training->id);
+
+        return back()->with('info', GenerateExportFile::QUEUED_MESSAGE);
     }
 
     /**

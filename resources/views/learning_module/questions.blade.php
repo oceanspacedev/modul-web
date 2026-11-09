@@ -18,9 +18,12 @@
                     <i class="fas fa-file-import"></i> Import Excel / CSV
                 </button>
                 @if($questions->isNotEmpty())
-                    <a href="{{ $module->url('questions.export') }}" class="btn btn-default" title="Soal dan kunci jawaban, format sama dengan template">
-                        <i class="fas fa-file-export"></i> Export Soal
-                    </a>
+                    <form action="{{ $module->url('questions.export') }}" method="POST" class="m-0">
+                        @csrf
+                        <button type="submit" class="btn btn-default" title="Soal dan kunci jawaban, format sama dengan template">
+                            <i class="fas fa-file-export"></i> Export Soal
+                        </button>
+                    </form>
                 @endif
                 <button type="button" class="btn btn-default" data-toggle="modal" data-target="#addQuestionModal">
                     <i class="fas fa-plus"></i> Tambah Manual

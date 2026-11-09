@@ -2,7 +2,9 @@
 
 namespace App\Jobs;
 
+use App\Exports\LearningModuleQuestionsExport;
 use App\Exports\LearningModuleRekapExport;
+use App\Exports\TrainingQuestionsExport;
 use App\Exports\TrainingRekapExport;
 use App\Exports\UserExport;
 use App\Models\LearningModule;
@@ -23,6 +25,10 @@ class GenerateExportFile extends BackgroundTask
     public const TRAINING = 'training-export';
 
     public const LEARNING_MODULE = 'learning-module-export';
+
+    public const TRAINING_QUESTIONS = 'training-questions-export';
+
+    public const LEARNING_MODULE_QUESTIONS = 'learning-module-questions-export';
 
     public const DIRECTORY = 'exports';
 
@@ -56,6 +62,8 @@ class GenerateExportFile extends BackgroundTask
             self::USERS => [new UserExport, 'user_export_'.date('Ymd_His').'.xlsx', 'Export user selesai'],
             self::TRAINING => $this->training(),
             self::LEARNING_MODULE => $this->learningModule(),
+            self::TRAINING_QUESTIONS => $this->trainingQuestions(),
+            self::LEARNING_MODULE_QUESTIONS => $this->learningModuleQuestions(),
             default => throw new InvalidArgumentException("Jenis export tidak dikenal: {$this->type}"),
         };
 
@@ -97,6 +105,34 @@ class GenerateExportFile extends BackgroundTask
             new LearningModuleRekapExport($module),
             'rekap_modul_'.Str::slug($module->title).'_'.date('Ymd_His').'.xlsx',
             'Export rekap modul selesai',
+        ];
+    }
+
+    /**
+     * @return array{0: TrainingQuestionsExport, 1: string, 2: string}
+     */
+    private function trainingQuestions(): array
+    {
+        $training = Training::findOrFail($this->modelId);
+
+        return [
+            new TrainingQuestionsExport($training),
+            'soal_pelatihan_'.Str::slug($training->title).'_'.date('Ymd_His').'.xlsx',
+            'Export soal pelatihan selesai',
+        ];
+    }
+
+    /**
+     * @return array{0: LearningModuleQuestionsExport, 1: string, 2: string}
+     */
+    private function learningModuleQuestions(): array
+    {
+        $module = LearningModule::findOrFail($this->modelId);
+
+        return [
+            new LearningModuleQuestionsExport($module),
+            'soal_modul_'.Str::slug($module->title).'_'.date('Ymd_His').'.xlsx',
+            'Export soal modul selesai',
         ];
     }
 }

@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Video;
 use App\Services\MaterialQuizService;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Excel as ExcelFormat;
 use Maatwebsite\Excel\Facades\Excel;
 use Tests\TestCase;
@@ -64,9 +65,13 @@ class QuestionExportTest extends TestCase
         $this->seedTrainingQuestions($training);
 
         Excel::fake();
-        $this->actingAs($this->admin)->get(route('training.questions.export', $training))->assertOk();
+        $this->actingAs($this->admin)->post(route('training.questions.export', $training))->assertSessionHas('info');
 
-        Excel::assertDownloaded('soal_pelatihan_k3-gudang.xlsx', function (TrainingQuestionsExport $export) {
+        $notification = $this->admin->notifications()->firstOrFail();
+        $this->assertSame('Export soal pelatihan selesai', $notification->data['title']);
+        $this->assertStringStartsWith('soal_pelatihan_k3-gudang_', $notification->data['download_name']);
+
+        Excel::assertStored($notification->data['download_path'], 'local', function (TrainingQuestionsExport $export) {
             $rows = $export->collection()->map(fn ($question) => $export->map($question))->all();
 
             $headings = $export->headings();
@@ -111,8 +116,10 @@ class QuestionExportTest extends TestCase
         $this->assertSame(['e', 'b'], $target->questions()->pluck('correct_answer')->all());
 
         Excel::fake();
-        $this->actingAs($this->admin)->get(route('learning-module.questions.export', $source))->assertOk();
-        Excel::assertDownloaded('soal_modul_k3-dasar.xlsx', function (LearningModuleQuestionsExport $export) {
+        $this->actingAs($this->admin)->post(route('learning-module.questions.export', $source))->assertSessionHas('info');
+        $path = $this->admin->notifications()->firstOrFail()->data['download_path'];
+        $this->assertStringStartsWith('soal_modul_k3-dasar_', basename($path));
+        Excel::assertStored($path, 'local', function (LearningModuleQuestionsExport $export) {
             $first = $export->map($export->collection()->first());
 
             return $first === ['Pertama', 'E', 'Helm', 'Topi', '', '', 'Rompi', 'APD', ''];
@@ -125,9 +132,13 @@ class QuestionExportTest extends TestCase
         $quiz = app(MaterialQuizService::class)->sync($video, ['pretest' => true, 'posttest' => true]);
         $quiz->questions()->create(['question' => 'APD utama?', 'option_a' => 'Helm', 'option_b' => 'Topi', 'correct_answer' => 'a']);
 
-        $this->actingAs($this->admin)->get(route('video-quiz.questions.export', $quiz))
+        Storage::fake('local');
+        $this->actingAs($this->admin)->post(route('video-quiz.questions.export', $quiz))->assertSessionHas('info');
+
+        $notification = $this->admin->notifications()->firstOrFail();
+        $this->actingAs($this->admin)->get(route('notifications.download', $notification->id))
             ->assertOk()
-            ->assertDownload();
+            ->assertDownload($notification->data['download_name']);
 
         $this->actingAs($this->admin)->get(route('video-quiz.questions.index', $quiz))
             ->assertOk()
@@ -141,7 +152,8 @@ class QuestionExportTest extends TestCase
         $module = $this->module('Rahasia');
 
         // JSON requests surface the 403; browsers are sent back with a flash message instead.
-        $this->actingAs($staff)->getJson(route('training.questions.export', $training))->assertForbidden();
-        $this->actingAs($staff)->getJson(route('learning-module.questions.export', $module))->assertForbidden();
+        $this->actingAs($staff)->postJson(route('training.questions.export', $training))->assertForbidden();
+        $this->actingAs($staff)->postJson(route('learning-module.questions.export', $module))->assertForbidden();
+        $this->assertSame(0, $staff->notifications()->count());
     }
 }
