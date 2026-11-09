@@ -88,11 +88,13 @@
                     </ol>
                     <h3>Menu</h3>
                     <ul>
-                        <li><b>Menu</b>: Dashboard, Video Materi, Pelatihan, Modul Belajar, Dokumen.</li>
+                        <li><b>Menu</b>: Dashboard, Notifikasi, Video Materi, Pelatihan, Modul Belajar, Dokumen.</li>
                         <li><b>Pengaturan</b>: User, Jabatan &amp; Hak Akses, Master Data.</li>
                         <li><b>Sistem</b> (super admin): Horizon dan Log Viewer.</li>
                     </ul>
                     <div class="pg-note">Menu hanya muncul bila jabatan Anda punya izinnya. Semua dropdown bisa dicari dengan mengetik. Tombol <b>Keluar</b> ada di menu nama Anda (kanan atas).</div>
+                    <h3>Import, export &amp; notifikasi</h3>
+                    <p>Import dan export (user, rekap pelatihan, rekap modul) diproses di belakang layar, jadi Anda tidak perlu menunggu di halaman. Setelah selesai, hasilnya masuk ke menu <b>Notifikasi</b> (ikon lonceng di kanan atas), dan dikirim juga ke WhatsApp serta email bila No. HP / email Anda terisi. File export diunduh dari menu Notifikasi dan tersedia selama 7 hari.</p>
                 </div>
 
                 {{-- 2 --}}
@@ -157,7 +159,7 @@
                         <li><b>Import/Export → Download Template</b>, isi filenya.</li>
                         <li><b>Import User (Excel)</b>, pilih file, klik <b>Import</b>.</li>
                     </ol>
-                    <p>Baris yang gagal ditampilkan nomornya; perbaiki lalu impor ulang (tidak membuat duplikat).</p>
+                    <p>Import berjalan di belakang layar. Hasilnya dan nomor baris yang gagal muncul di menu <b>Notifikasi</b>; perbaiki lalu impor ulang (tidak membuat duplikat).</p>
                     <details class="pg-more">
                         <summary>Detail untuk super admin: cakupan data, Import JSON, Sinkronisasi DnD</summary>
                         <div>
@@ -165,7 +167,7 @@
                                 <li><b>Akses Data</b> (khusus jabatan ADMIN): <b>Semua Badan Usaha</b> = super admin; <b>Badan Usaha Tertentu</b> = hanya area yang dipilih. Minimal harus ada satu super admin.</li>
                                 <li>Pengguna non-admin yang boleh kelola user hanya melihat timnya sendiri (bawahan menurut approval line).</li>
                                 <li><b>Import JSON (Talenta)</b>: pilih file .json, klik <b>Import JSON</b>. User lama hanya diperbarui email dan No. HP-nya; user baru login lewat OTP. Cek dan lengkapi Area user baru setelahnya.</li>
-                                <li id="sync-dnd"><b>Sinkronisasi DnD</b>: mengambil data karyawan dari DnD. Periksa halaman preview, lalu klik <b>Proses Sinkronisasi</b>. Juga berjalan otomatis tiap hari.</li>
+                                <li id="sync-dnd"><b>Sinkronisasi DnD</b>: mengambil data karyawan dari DnD. Periksa halaman preview, lalu klik <b>Proses Sinkronisasi</b>; hasilnya dikirim ke menu <b>Notifikasi</b>. Juga berjalan otomatis tiap hari.</li>
                             </ul>
                         </div>
                     </details>
@@ -210,7 +212,7 @@
                     <h3>Setelah sesi</h3>
                     <ul>
                         <li><b>Nilai essay:</b> buka Lembar Jawaban peserta, isi <b>Nilai Essay</b>, klik <b>Simpan Nilai</b>.</li>
-                        <li><b>Rekap:</b> <b>Opsi → Export Rekap Nilai</b>.</li>
+                        <li><b>Rekap:</b> <b>Opsi → Export Rekap Nilai</b>, lalu unduh filenya dari menu <b>Notifikasi</b>.</li>
                         <li><b>Edit:</b> <b>Opsi → Edit Informasi Pelatihan</b>. Peserta yang dihapus dari daftar ikut terhapus datanya.</li>
                     </ul>
                 </div>
@@ -364,7 +366,7 @@
                         <li>Buka <b>Modul Belajar → Modul Saya</b>, pilih modul.</li>
                         <li>Kerjakan pretest, selesaikan semua materi, lalu kerjakan posttest.</li>
                     </ol>
-                    <p><b>Rekap</b> pada modul menampilkan nilai dan status lulus tiap peserta, bisa di-<b>Export Excel</b>.</p>
+                    <p><b>Rekap</b> pada modul menampilkan nilai dan status lulus tiap peserta, bisa di-<b>Export Excel</b> (filenya diunduh dari menu <b>Notifikasi</b>).</p>
                     <h3 id="mode-quizizz">Mode Game (Quizizz)</h3>
                     <p>Pilih <b>Game (Quizizz)</b> di <b>Mode Kuis</b> pada form video, dokumen, atau modul. Satu soal per layar dengan timer; nilai tetap dihitung dari jawaban benar.</p>
                     <figure class="pg-shot"><img src="/assets/panduan/kuis-mode-atur.gif" alt="Animasi: memilih Mode Game (Quizizz)" loading="lazy"><figcaption>Memilih Mode Game dan detik per soal.</figcaption></figure>

@@ -129,8 +129,11 @@ class LearningModuleManagementTest extends TestCase
             ->assertSee('Posttest ke-2');
 
         Excel::fake();
-        $this->actingAs($this->admin)->get(route('learning-module.export', $module))->assertOk();
-        Excel::assertDownloaded('rekap_modul_k3-dasar.xlsx', function (LearningModuleRekapExport $export) {
+        $this->actingAs($this->admin)->post(route('learning-module.export', $module))->assertSessionHas('info');
+
+        $path = $this->admin->notifications()->first()->data['download_path'];
+        $this->assertStringStartsWith('rekap_modul_k3-dasar_', basename($path));
+        Excel::assertStored($path, 'local', function (LearningModuleRekapExport $export) {
             [$rekap, $attempts] = $export->sheets();
 
             return count($attempts->array()) === 3 && $rekap->array()[6][2] === 'BUDI PESERTA';

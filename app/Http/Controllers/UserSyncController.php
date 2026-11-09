@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProcessDndSync;
+use App\Jobs\ProcessUserJsonImport;
 use App\Models\User;
 use App\Services\DndUserSyncService;
-use App\Services\UserJsonImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Attributes\Controllers\Authorize;
@@ -15,12 +16,11 @@ use Throwable;
 
 /**
  * Sumber data karyawan dari luar: sinkronisasi DnD (dengan preview) dan Import JSON (Talenta) seperti di DnD.
+ * Langkah yang berat (import dan menerapkan sinkronisasi) diproses di queue; hasilnya dikirim lewat notifikasi.
  */
 #[Authorize('import', User::class)]
 class UserSyncController extends Controller
 {
-    private const DIRECTORY = 'dnd-sync';
-
     public function __construct(private DndUserSyncService $sync) {}
 
     public function importJson(Request $request): RedirectResponse
@@ -29,20 +29,11 @@ class UserSyncController extends Controller
             'file' => ['required', 'file', 'extensions:json,txt', 'max:12288'],
         ]);
 
-        set_time_limit(300);
-        $result = UserJsonImportService::importFromContent($request->file('file')->get());
+        $path = $request->file('file')->storeAs('imports', Str::uuid().'.json', 'local');
 
-        $message = $result['message'];
-        if ($result['created_count'] > 0) {
-            $message .= " User baru: {$result['created_count']}.";
-        }
-        if ($result['error_count'] > 0) {
-            $message .= " Gagal: {$result['error_count']} baris.";
-        }
+        ProcessUserJsonImport::dispatch($request->user()->id, $path);
 
-        return to_route('user.index')
-            ->with($result['success'] && $result['error_count'] === 0 ? 'success' : 'error', $message)
-            ->with('importErrors', array_slice([...$result['errors'], ...$result['notices']], 0, 20));
+        return to_route('user.index')->with('info', ProcessUserJsonImport::QUEUED_MESSAGE);
     }
 
     public function preview(): RedirectResponse
@@ -56,7 +47,7 @@ class UserSyncController extends Controller
         }
 
         $token = (string) Str::uuid();
-        Storage::disk('local')->put(self::DIRECTORY.'/'.$token.'.json', json_encode($snapshot));
+        Storage::disk('local')->put(ProcessDndSync::snapshotPath($token), json_encode($snapshot));
 
         return to_route('user.dnd.show', $token);
     }
@@ -81,26 +72,13 @@ class UserSyncController extends Controller
     {
         $data = $request->validate(['token' => ['required', 'uuid']]);
 
-        $snapshot = $this->snapshot($data['token']);
-        if ($snapshot === null) {
+        if ($this->snapshot($data['token']) === null) {
             return to_route('user.index')->with('error', 'Sesi sinkronisasi sudah kedaluwarsa, silakan ulangi.');
         }
 
-        set_time_limit(300);
+        ProcessDndSync::dispatch($request->user()->id, $data['token']);
 
-        try {
-            $result = $this->sync->apply($snapshot);
-        } catch (Throwable $e) {
-            report($e);
-
-            return to_route('user.index')->with('error', 'Sinkronisasi DnD gagal: '.$e->getMessage());
-        }
-
-        Storage::disk('local')->delete(self::DIRECTORY.'/'.$data['token'].'.json');
-
-        return to_route('user.index')
-            ->with('success', "Sinkronisasi DnD selesai. Baru: {$result['created']}, diperbarui: {$result['updated']}, tidak berubah: {$result['unchanged']}.")
-            ->with('importErrors', array_slice($result['notices'], 0, 20));
+        return to_route('user.index')->with('info', 'Sinkronisasi DnD sedang diproses di belakang layar. Hasilnya akan dikirim ke menu Notifikasi, WhatsApp, dan email Anda.');
     }
 
     /**
@@ -108,7 +86,7 @@ class UserSyncController extends Controller
      */
     private function snapshot(string $token): ?array
     {
-        $path = self::DIRECTORY.'/'.$token.'.json';
+        $path = ProcessDndSync::snapshotPath($token);
 
         if (! Str::isUuid($token) || ! Storage::disk('local')->exists($path)) {
             return null;

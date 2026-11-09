@@ -43,9 +43,12 @@
                         <a class="dropdown-item" href="/training/{{ $training->id }}/edit">
                             <i class="fas fa-edit mr-2 text-muted"></i> Edit Informasi Pelatihan
                         </a>
-                        <a class="dropdown-item" href="/training/{{ $training->id }}/export">
-                            <i class="fas fa-file-excel mr-2 text-muted"></i> Export Rekap Nilai
-                        </a>
+                        <form action="{{ route('training.export', $training) }}" method="POST" class="m-0">
+                            @csrf
+                            <button type="submit" class="dropdown-item">
+                                <i class="fas fa-file-excel mr-2 text-muted"></i> Export Rekap Nilai
+                            </button>
+                        </form>
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="#" data-toggle="modal" data-target="#uploadTrainingVideoModal">
                             <i class="fas fa-video mr-2 text-muted"></i> Upload Video Materi

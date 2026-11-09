@@ -16,7 +16,10 @@
                         <div class="dropdown">
                             <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">Import/Export</button>
                             <div class="dropdown-menu dropdown-menu-right">
-                                <a class="dropdown-item" href="{{ route('user.export') }}">Export User</a>
+                                <form action="{{ route('user.export') }}" method="POST" class="m-0">
+                                    @csrf
+                                    <button type="submit" class="dropdown-item">Export User</button>
+                                </form>
                                 <a class="dropdown-item" href="{{ route('user.template') }}">Download Template</a>
                                 <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="#" data-toggle="modal" data-target="#importExcel">Import User (Excel)</a>
@@ -29,16 +32,6 @@
             </x-page-header>
 
             <x-flash />
-            @if ($importErrors = Session::get('importErrors'))
-                <div class="alert alert-light">
-                    <strong>Catatan:</strong>
-                    <ul class="mb-0 pl-3">
-                        @foreach ($importErrors as $line)
-                            <li>{{ $line }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
 
             <ul class="nav nav-tabs mb-3">
                 <li class="nav-item">

@@ -9,6 +9,7 @@ use App\Http\Controllers\DokumenTypeController;
 use App\Http\Controllers\LearningModuleController;
 use App\Http\Controllers\LearningModulePortalController;
 use App\Http\Controllers\LearningModuleQuestionController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TrainingController;
@@ -57,6 +58,15 @@ Route::middleware('auth')->group(function () {
     Route::post('video/{video}/comments', [VideoController::class, 'storeComment'])->name('video.comments.store');
     Route::delete('video/comments/{comment}', [VideoController::class, 'destroyComment'])->name('video.comments.destroy');
 
+    // # NOTIFIKASI (kotak masuk milik user sendiri)
+    Route::controller(NotificationController::class)->prefix('notifikasi')->name('notifications.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('unread-count', 'unreadCount')->name('unread-count');
+        Route::post('read-all', 'markAllRead')->name('read-all');
+        Route::get('{notification}/download', 'download')->whereUuid('notification')->name('download');
+        Route::delete('{notification}', 'destroy')->whereUuid('notification')->name('destroy');
+    });
+
     // # DASHBOARD
     Route::get('dashboard', [DashboardController::class, 'index'])->middleware('can:view-dashboard')->name('dashboard');
 
@@ -84,7 +94,7 @@ Route::middleware('auth')->group(function () {
 
     // # USERS (authorized by UserPolicy)
     Route::controller(UserController::class)->prefix('user')->name('user.')->group(function () {
-        Route::get('export', 'export')->name('export');
+        Route::post('export', 'export')->name('export');
         Route::get('template', 'template')->name('template');
         Route::post('import', 'import')->name('import');
         Route::get('approvers', 'approvers')->name('approvers');
@@ -126,7 +136,7 @@ Route::middleware('auth')->group(function () {
                 Route::post('reset-attendance/{participant}', 'resetParticipantAttendance')->name('reset-attendance');
                 Route::post('update-attendance/{participant}', 'updateParticipantAttendance')->name('update-attendance');
                 Route::post('grade-essay/{quizResult}', 'gradeEssay')->name('grade-essay');
-                Route::get('export', 'export')->name('export');
+                Route::post('export', 'export')->name('export');
                 Route::get('live-stats', 'liveStats')->name('live-stats');
                 Route::post('attach-document', 'attachDocument')->name('attach-document');
                 Route::post('detach-document/{document}', 'detachDocument')->name('detach-document');
@@ -185,7 +195,7 @@ Route::middleware('auth')->group(function () {
         });
 
         Route::controller(LearningModuleController::class)->group(function () {
-            Route::get('export', 'export')->name('export');
+            Route::post('export', 'export')->name('export');
             Route::get('participants/{user}', 'participant')->withoutScopedBindings()->withTrashed()->name('participant');
         });
     };

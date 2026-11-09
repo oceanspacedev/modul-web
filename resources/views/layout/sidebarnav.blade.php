@@ -19,6 +19,16 @@
                 </li>
                 @endcan
 
+                <li class="nav-item">
+                    <a href="{{ route('notifications.index') }}" class="nav-link {{ ($active ?? '') === 'notifications' ? 'active' : '' }}">
+                        <i class="nav-icon far fa-bell"></i>
+                        <p>
+                            Notifikasi
+                            <span class="right badge badge-primary" data-notification-count @if ($unreadNotificationCount === 0) hidden @endif>{{ $unreadNotificationCount > 99 ? '99+' : $unreadNotificationCount }}</span>
+                        </p>
+                    </a>
+                </li>
+
                 @can('view-videos')
                 <li class="nav-item">
                     <a href="/video" class="nav-link {{ ($active ?? '') === 'video' ? 'active' : '' }}">
