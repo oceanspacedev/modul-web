@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\TrainingQuestionTemplate;
+use App\Http\Requests\ReviseAiQuestionRequest;
 use App\Http\Requests\TrainingQuestionRequest;
 use App\Imports\TrainingQuestionImport;
 use App\Jobs\GenerateExportFile;
@@ -339,6 +340,26 @@ class TrainingQuestionController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 422);
+        }
+    }
+
+    /**
+     * Rewrite one question in the AI review step (question only, answers only, or everything) from its own text.
+     */
+    public function reviseAiQuestion(ReviseAiQuestionRequest $request, Training $training): JsonResponse
+    {
+        try {
+            $question = (new GeminiQuestionService($request->api_key))->reviseQuestion(
+                $request->validated('question'),
+                $request->validated('part'),
+                $request->validated('instruction')
+            );
+
+            return response()->json(['success' => true, 'question' => $question]);
+        } catch (Exception $e) {
+            report($e);
+
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
     }
 

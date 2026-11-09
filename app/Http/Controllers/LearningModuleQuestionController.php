@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Exports\LearningModuleQuestionTemplate;
 use App\Http\Requests\LearningModuleQuestionRequest;
+use App\Http\Requests\ReviseAiQuestionRequest;
 use App\Imports\LearningModuleQuestionImport;
 use App\Jobs\GenerateExportFile;
 use App\Jobs\GenerateLearningModuleQuestions;
 use App\Models\LearningModule;
 use App\Models\LearningModuleItem;
 use App\Models\LearningModuleQuestion;
+use App\Services\GeminiQuestionService;
 use App\Services\MaterialQuizService;
 use App\Support\QuizImage;
 use Exception;
@@ -151,6 +153,26 @@ class LearningModuleQuestionController extends Controller
         }
 
         return response()->json($result);
+    }
+
+    /**
+     * Ubah satu soal di langkah review AI (pertanyaan saja, jawaban saja, atau semuanya) dari teks soal itu sendiri.
+     */
+    public function reviseAi(ReviseAiQuestionRequest $request, LearningModule $module): JsonResponse
+    {
+        try {
+            $question = (new GeminiQuestionService)->reviseQuestion(
+                [...$request->validated('question'), 'type' => 'multiple_choice'],
+                $request->validated('part'),
+                $request->validated('instruction')
+            );
+
+            return response()->json(['success' => true, 'question' => $question]);
+        } catch (Exception $e) {
+            report($e);
+
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
     }
 
     /**

@@ -67,4 +67,72 @@ class GeminiQuestionServiceTest extends TestCase
 
         (new GeminiQuestionService('test-key'))->generateQuestions([$document], 1);
     }
+
+    private const CURRENT_QUESTION = [
+        'type' => 'multiple_choice',
+        'question' => 'Apa langkah pertama SOP?',
+        'option_a' => 'Cuci tangan', 'option_b' => 'Makan', 'option_c' => 'Tidur', 'option_d' => 'Pulang', 'option_e' => 'Lari',
+        'correct_answer' => 'a',
+        'explanation' => 'Lihat SOP.',
+    ];
+
+    private function fakeRevision(array $revised): void
+    {
+        Http::fake([
+            'generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [['content' => ['parts' => [['text' => '```json'.json_encode($revised).'```']]]]],
+            ]),
+        ]);
+    }
+
+    public function test_revising_only_the_question_keeps_the_answers(): void
+    {
+        $this->fakeRevision([
+            'question' => 'Langkah apa yang dilakukan paling awal menurut SOP?',
+            'option_a' => 'Diubah', 'option_b' => 'Diubah', 'correct_answer' => 'c', 'explanation' => 'Pembahasan baru.',
+        ]);
+
+        $revised = (new GeminiQuestionService('test-key'))->reviseQuestion(self::CURRENT_QUESTION, 'question', 'perjelas kalimatnya');
+
+        $this->assertSame('Langkah apa yang dilakukan paling awal menurut SOP?', $revised['question']);
+        $this->assertSame('Cuci tangan', $revised['option_a']);
+        $this->assertSame('a', $revised['correct_answer']);
+        $this->assertSame('Pembahasan baru.', $revised['explanation']);
+        Http::assertSentCount(1);
+        Http::assertSent(fn (Request $request) => str_contains($request['contents'][0]['parts'][0]['text'], 'Apa langkah pertama SOP?')
+            && str_contains($request['contents'][0]['parts'][0]['text'], 'perjelas kalimatnya'));
+    }
+
+    public function test_revising_only_the_answers_keeps_the_question(): void
+    {
+        $this->fakeRevision([
+            'question' => 'Pertanyaan yang tidak diminta diubah',
+            'option_a' => 'Pulang', 'option_b' => 'Cuci tangan', 'option_c' => 'Tidur', 'option_d' => 'Makan', 'option_e' => 'Lari',
+            'correct_answer' => 'B', 'explanation' => 'Cuci tangan dulu.',
+        ]);
+
+        $revised = (new GeminiQuestionService('test-key'))->reviseQuestion(self::CURRENT_QUESTION, 'answers');
+
+        $this->assertSame('Apa langkah pertama SOP?', $revised['question']);
+        $this->assertSame('Cuci tangan', $revised['option_b']);
+        $this->assertSame('b', $revised['correct_answer']);
+    }
+
+    public function test_revising_an_essay_keeps_its_answer_guide_as_text(): void
+    {
+        $this->fakeRevision([
+            'question' => 'Jelaskan langkah SOP cuci tangan!',
+            'correct_answer' => 'Basahi Tangan, Sabuni, Bilas',
+            'explanation' => 'Urutan sesuai SOP.',
+        ]);
+
+        $revised = (new GeminiQuestionService('test-key'))->reviseQuestion([
+            'type' => 'essay', 'question' => 'Sebutkan SOP cuci tangan', 'correct_answer' => 'Sabun', 'explanation' => '',
+        ], 'all');
+
+        $this->assertSame('essay', $revised['type']);
+        $this->assertSame('Jelaskan langkah SOP cuci tangan!', $revised['question']);
+        $this->assertSame('Basahi Tangan, Sabuni, Bilas', $revised['correct_answer']);
+        $this->assertNull($revised['option_a']);
+    }
 }

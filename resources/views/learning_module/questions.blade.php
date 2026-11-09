@@ -299,6 +299,7 @@
 
 @section('footer')
 @include('layout.partials.quiz-image-slot-script', ['uploadUrl' => $module->url('questions.upload-image')])
+@include('layout.partials.ai-revise-script')
 <script>
 $(function () {
     var csrf = '{{ csrf_token() }}';
@@ -419,8 +420,10 @@ $(function () {
                             '<input type="checkbox" class="custom-control-input ai-include" id="ai_inc_' + index + '" checked>' +
                             '<label class="custom-control-label font-weight-bold" for="ai_inc_' + index + '">Soal #' + (index + 1) + '</label>' +
                         '</div>' +
+                        aiReviseButton() +
                     '</div>' +
                     '<div class="card-body p-3">' +
+                        aiRevisePanel(index, false) +
                         '<label class="small font-weight-bold text-muted mb-1">Pertanyaan</label>' +
                         '<textarea class="form-control mb-2 ai-question" rows="2">' + escapeHtml(q.question) + '</textarea>' +
                         '<div class="ai-q-image">' + quizImageSlot('Tambah gambar soal') + '</div>' +
@@ -444,6 +447,33 @@ $(function () {
     }
 
     $('#aiQuestions').on('change', '.ai-include', updateSaveCount);
+
+    // "Ubah dengan AI" per kartu soal.
+    bindAiRevise(document.getElementById('aiQuestions'), {
+        url: '{{ $module->url('questions.revise-ai') }}',
+        cardSelector: '.ai-card',
+        read: function (card) {
+            var $card = $(card);
+            var q = {
+                question: $card.find('.ai-question').val(),
+                correct_answer: $card.find('.ai-key:checked').val() || 'a',
+                explanation: $card.find('.ai-explanation').val()
+            };
+            $card.find('.ai-opt').each(function () {
+                q['option_' + $(this).data('letter')] = $(this).val();
+            });
+            return q;
+        },
+        write: function (card, q) {
+            var $card = $(card);
+            $card.find('.ai-question').val(q.question || '');
+            $card.find('.ai-explanation').val(q.explanation || '');
+            $card.find('.ai-opt').each(function () {
+                $(this).val(q['option_' + $(this).data('letter')] || '');
+            });
+            $card.find('.ai-key[value="' + (q.correct_answer || 'a') + '"]').prop('checked', true).trigger('change');
+        }
+    });
     $('#aiQuestions').on('change', '.ai-key', function () {
         $(this).closest('.ai-card').find('.ai-option').removeClass('is-key');
         $(this).closest('.ai-option').addClass('is-key');

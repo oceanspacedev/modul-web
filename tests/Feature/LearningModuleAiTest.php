@@ -128,6 +128,39 @@ class LearningModuleAiTest extends TestCase
         $this->assertSame(1, $this->module->questions()->count());
     }
 
+    public function test_one_reviewed_question_can_be_revised_with_ai(): void
+    {
+        Http::fake([
+            'generativelanguage.googleapis.com/v1beta/models/*' => Http::response([
+                'candidates' => [['content' => ['parts' => [['text' => json_encode([
+                    'question' => 'APD apa yang wajib dipakai di area proyek?',
+                    'option_a' => 'Topi', 'option_b' => 'Helm', 'option_c' => 'Sandal', 'option_d' => 'Payung', 'option_e' => 'Jas',
+                    'correct_answer' => 'b', 'explanation' => 'Helm melindungi kepala.',
+                ])]]]]],
+            ]),
+        ]);
+        $current = ['question' => 'APD?', 'option_a' => 'Helm', 'option_b' => 'Topi', 'option_c' => '', 'correct_answer' => 'a', 'explanation' => ''];
+
+        $this->actingAs($this->admin)->postJson(route('learning-module.questions.revise-ai', $this->module), [
+            'question' => $current, 'part' => 'all', 'instruction' => 'buat lebih jelas',
+        ])->assertOk()->assertJson(['success' => true, 'question' => [
+            'question' => 'APD apa yang wajib dipakai di area proyek?', 'option_b' => 'Helm', 'correct_answer' => 'b',
+        ]]);
+
+        $this->actingAs($this->admin)->postJson(route('learning-module.questions.revise-ai', $this->module), [
+            'question' => $current, 'part' => 'semua',
+        ])->assertUnprocessable()->assertJsonValidationErrors('part');
+
+        config(['services.gemini.api_key' => null]);
+        $this->actingAs($this->admin)->postJson(route('learning-module.questions.revise-ai', $this->module), [
+            'question' => $current, 'part' => 'question',
+        ])->assertUnprocessable()->assertJson(['success' => false]);
+
+        // Hanya mengubah isi kartu tinjauan; belum ada soal yang tersimpan.
+        $this->assertSame(0, $this->module->questions()->count());
+        Http::assertSentCount(1);
+    }
+
     public function test_saving_ai_questions_returns_where_to_go_next(): void
     {
         $question = ['question' => 'APD?', 'option_a' => 'Helm', 'option_b' => 'Topi', 'correct_answer' => 'a'];

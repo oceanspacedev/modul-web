@@ -162,6 +162,7 @@ Route::middleware('auth')->group(function () {
                 Route::post('import-excel', 'importExcel')->name('import-excel');
                 Route::post('import-text', 'importText')->name('import-text');
                 Route::post('generate-ai', 'generateAiQuestions')->name('generate-ai');
+                Route::post('revise-ai', 'reviseAiQuestion')->name('revise-ai');
                 Route::post('upload-image', 'uploadImage')->name('upload-image');
                 Route::post('save-ai-batch', 'saveAiBatch')->name('save-ai-batch');
                 Route::post('delete-all', 'deleteAll')->name('delete-all');
@@ -196,6 +197,7 @@ Route::middleware('auth')->group(function () {
             Route::post('import-excel', 'importExcel')->name('import-excel');
             Route::post('generate-ai', 'generateAi')->name('generate-ai');
             Route::get('ai-status/{token}', 'aiStatus')->whereUuid('token')->name('ai-status');
+            Route::post('revise-ai', 'reviseAi')->name('revise-ai');
             Route::post('upload-image', 'uploadImage')->name('upload-image');
             Route::post('save-ai-batch', 'saveAiBatch')->name('save-ai-batch');
             Route::post('delete-all', 'deleteAll')->name('delete-all');

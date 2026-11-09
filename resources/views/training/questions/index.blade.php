@@ -622,6 +622,7 @@ KUNCI: Acuan poin jawaban peserta
 </div>
 
 @include('layout.partials.quiz-image-slot-script', ['uploadUrl' => route('training.questions.upload-image', $training)])
+@include('layout.partials.ai-revise-script')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // Dynamic switch for Type (Multiple Choice vs Essay)
@@ -898,6 +899,7 @@ document.addEventListener('DOMContentLoaded', function () {
             card.setAttribute('data-index', index);
 
             var isEssay = (q.type === 'essay');
+            card.setAttribute('data-type', isEssay ? 'essay' : 'multiple_choice');
 
             var cardHtml = '<div class="card-header">' +
                 '<div class="d-flex align-items-center gap-2">' +
@@ -909,10 +911,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         (isEssay ? 'Essay' : 'Pilihan Ganda') +
                     '</span>' +
                 '</div>' +
-                '<small class="text-muted">AI</small>' +
+                aiReviseButton() +
             '</div>';
 
             cardHtml += '<div class="card-body">' +
+                aiRevisePanel(index, isEssay) +
                 '<div class="form-group">' +
                     '<label>Pertanyaan</label>' +
                     '<textarea class="form-control ai-q-text" rows="3">' + escapeHtml(q.question) + '</textarea>' +
@@ -988,6 +991,51 @@ document.addEventListener('DOMContentLoaded', function () {
 
         updateSaveCount();
     }
+
+    // "Ubah dengan AI" per kartu soal.
+    bindAiRevise(aiQuestionsContainer, {
+        url: '{{ route('training.questions.revise-ai', $training) }}',
+        cardSelector: '.ai-q-card',
+        read: function(card) {
+            var isEssay = card.getAttribute('data-type') === 'essay';
+            var q = {
+                type: isEssay ? 'essay' : 'multiple_choice',
+                question: card.querySelector('.ai-q-text').value,
+                explanation: card.querySelector('.ai-q-explanation').value
+            };
+            if (isEssay) {
+                q.correct_answer = card.querySelector('.ai-essay-key').value;
+            } else {
+                ['a', 'b', 'c', 'd', 'e'].forEach(function(opt) {
+                    q['option_' + opt] = card.querySelector('.ai-opt-' + opt).value;
+                });
+                var key = card.querySelector('.ai-radio-key:checked');
+                q.correct_answer = key ? key.value : 'a';
+            }
+            return q;
+        },
+        write: function(card, q) {
+            card.querySelector('.ai-q-text').value = q.question || '';
+            card.querySelector('.ai-q-explanation').value = q.explanation || '';
+            if (card.getAttribute('data-type') === 'essay') {
+                card.querySelector('.ai-essay-key').value = q.correct_answer || '';
+            } else {
+                ['a', 'b', 'c', 'd', 'e'].forEach(function(opt) {
+                    card.querySelector('.ai-opt-' + opt).value = q['option_' + opt] || '';
+                });
+                var radio = card.querySelector('.ai-radio-key[value="' + (q.correct_answer || 'a') + '"]');
+                if (radio) {
+                    radio.checked = true;
+                    radio.dispatchEvent(new Event('change'));
+                }
+            }
+            card.querySelectorAll('.ai-q-text, .ai-q-explanation, .ai-essay-key').forEach(autoResize);
+        },
+        extra: function() {
+            var apiKey = document.getElementById('aiApiKeyOverride');
+            return apiKey && apiKey.value ? { api_key: apiKey.value } : {};
+        }
+    });
 
     function autoResize(el) {
         if (!el) return;
