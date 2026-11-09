@@ -6,6 +6,7 @@ use App\Models\LearningModule;
 use App\Models\LearningModuleItem;
 use App\Models\User;
 use App\Models\Video;
+use App\Services\MaterialQuizService;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -137,7 +138,7 @@ class LearningModuleAiTest extends TestCase
 
         // Video quiz: straight back to the video page, with the success message flashed.
         $video = Video::create(['title' => 'Video SOP', 'video_type' => 'link', 'video_link' => 'https://youtu.be/dQw4w9WgXcQ']);
-        $quiz = app(\App\Services\MaterialQuizService::class)->sync($video, ['pretest' => true, 'posttest' => false]);
+        $quiz = app(MaterialQuizService::class)->sync($video, ['pretest' => true, 'posttest' => false]);
 
         $this->actingAs($this->admin)->postJson($quiz->url('questions.save-ai-batch'), ['questions' => [$question]])
             ->assertOk()
