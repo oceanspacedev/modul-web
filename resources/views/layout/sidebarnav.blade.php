@@ -107,6 +107,15 @@
                 </li>
                 @endcanany
 
+                @canany(App\Http\Controllers\ScoreRecapController::PERMISSIONS)
+                <li class="nav-item">
+                    <a href="{{ route('score-recap.index') }}" class="nav-link {{ ($active ?? '') === 'score-recap' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-chart-line"></i>
+                        <p>Rekap Nilai</p>
+                    </a>
+                </li>
+                @endcanany
+
                 @canany(['manage-users', 'manage-roles', 'manage-master-data'])
                 <li class="nav-header">Pengaturan</li>
 

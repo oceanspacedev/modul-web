@@ -88,13 +88,14 @@
                     </ol>
                     <h3>Menu</h3>
                     <ul>
-                        <li><b>Menu</b>: Dashboard, Notifikasi, Video Materi, Pelatihan, Modul Belajar, Dokumen.</li>
+                        <li><b>Menu</b>: Dashboard, Notifikasi, Video Materi, Pelatihan, Modul Belajar, Dokumen, Rekap Nilai.</li>
                         <li><b>Pengaturan</b>: User, Jabatan &amp; Hak Akses, Master Data.</li>
                         <li><b>Sistem</b> (super admin): Horizon dan Log Viewer.</li>
                     </ul>
                     <div class="pg-note">Menu hanya muncul bila jabatan Anda punya izinnya. Semua dropdown bisa dicari dengan mengetik. Tombol <b>Keluar</b> ada di menu nama Anda (kanan atas).</div>
                     <h3>Import, export &amp; notifikasi</h3>
                     <p>Import dan export (user, rekap pelatihan, rekap modul, soal &amp; kunci jawaban) diproses di belakang layar, jadi Anda tidak perlu menunggu di halaman. Setelah selesai, hasilnya masuk ke menu <b>Notifikasi</b> (ikon lonceng di kanan atas), dan dikirim juga ke WhatsApp serta email bila No. HP / email Anda terisi. File export diunduh dari menu Notifikasi dan tersedia selama 7 hari.</p>
+                    <p><b>Rekap Nilai</b> (pengelola pelatihan/modul): pilih rentang tanggal, divisi (opsional), dan jenis nilai, lalu klik <b>Export Excel</b>. Hasilnya satu file berisi nilai banyak pelatihan dan pretest/posttest sekaligus.</p>
                 </div>
 
                 {{-- 2 --}}

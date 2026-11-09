@@ -12,6 +12,7 @@ use App\Http\Controllers\LearningModuleQuestionController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\ScoreRecapController;
 use App\Http\Controllers\TrainingController;
 use App\Http\Controllers\TrainingPortalController;
 use App\Http\Controllers\TrainingQuestionController;
@@ -65,6 +66,12 @@ Route::middleware('auth')->group(function () {
         Route::post('read-all', 'markAllRead')->name('read-all');
         Route::get('{notification}/download', 'download')->whereUuid('notification')->name('download');
         Route::delete('{notification}', 'destroy')->whereUuid('notification')->name('destroy');
+    });
+
+    // # REKAP NILAI GABUNGAN (bagian yang tampil mengikuti izin kelola, dicek di controller)
+    Route::controller(ScoreRecapController::class)->prefix('rekap-nilai')->name('score-recap.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('export', 'export')->name('export');
     });
 
     // # DASHBOARD
