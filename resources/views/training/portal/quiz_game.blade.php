@@ -428,6 +428,10 @@
             background: #ef4444;
             color: #ffffff;
         }
+        .feedback-saved {
+            background: #4338ca;
+            color: #ffffff;
+        }
 
         /* Essay Box */
         .kahoot-essay-box {
@@ -691,7 +695,7 @@
         </div>
 
         <div class="d-flex align-items-center" style="gap: 10px;">
-            <div class="streak-pill" id="streakBadge">
+            <div class="streak-pill" id="streakBadge" @unless($training->show_quiz_answers) style="display: none;" @endunless>
                 <i class="fas fa-fire mr-1 text-warning"></i> <span id="streakCount">0</span>
             </div>
             <span id="scoreBadge" style="display: none;">0</span>
@@ -815,20 +819,24 @@
 
             <!-- STAT SUMMARY MINI CARDS (JAWABAN BENAR & NILAI AKHIR) -->
             <div class="row justify-content-center mb-4">
+                @if($training->show_quiz_answers)
                 <div class="col-6">
                     <div class="stat-card-box p-3 bg-light rounded border text-center">
                         <span class="text-muted text-xs d-block mb-1 font-weight-bold text-uppercase">Jawaban Benar</span>
                         <h3 class="font-weight-bold text-success mb-0" id="finalAccuracy">0 / 0</h3>
                     </div>
                 </div>
+                @endif
                 <div class="col-6">
                     <div class="stat-card-box p-3 bg-light rounded border text-center">
                         <span class="text-muted text-xs d-block mb-1 font-weight-bold text-uppercase">Nilai Akhir</span>
-                        <h3 class="font-weight-bold text-primary mb-0" id="finalAcademicScore">0 / 100</h3>
+                        <h3 class="font-weight-bold text-primary mb-0" id="finalAcademicScore">{{ $training->show_quiz_answers ? '0' : '...' }} / 100</h3>
                     </div>
                 </div>
             </div>
-            <span id="finalGameScore" style="display: none;">0</span>
+            @if($training->show_quiz_answers)
+                <span id="finalGameScore" style="display: none;">0</span>
+            @endif
 
             <div class="d-flex justify-content-center mt-3">
                 <a href="/training/portal/{{ $participant->token }}" class="btn btn-primary px-5 py-2 font-weight-bold shadow-sm" style="background: #4338ca; border: none; border-radius: 12px; font-size: 1rem;">
@@ -848,13 +856,18 @@
     <!-- Data Injection -->
     <script>
         @php
+            $showAnswers = (bool) $training->show_quiz_answers;
+            // Kunci & pembahasan tidak dikirim ke browser bila jawaban disembunyikan.
             $gameQuestions = $questions->map(fn ($question) => [
-                ...$question->toArray(),
+                ...($showAnswers
+                    ? $question->toArray()
+                    : \Illuminate\Support\Arr::except($question->toArray(), ['correct_answer', 'explanation'])),
                 'question_image_url' => $question->imageUrl(),
                 'option_image_urls' => (object) $question->optionImageUrls(),
             ])->values();
         @endphp
         const QUIZ_QUESTIONS = @json($gameQuestions);
+        const SHOW_ANSWERS = @json($showAnswers);
         const PARTICIPANT_TOKEN = "{{ $participant->token }}";
         const CURRENT_USER_ID = {{ (int)$participant->user_id }};
         const CURRENT_USER_NAME = "{{ addslashes($participant->user->nama_lengkap) }}";
@@ -1115,10 +1128,27 @@
             clearInterval(timerInterval);
 
             const q = QUIZ_QUESTIONS[currentQuestionIndex];
+            answersData[q.id] = selectedKey;
+
+            if (!SHOW_ANSWERS) {
+                optionsGrid.querySelectorAll('.kahoot-btn').forEach(b => {
+                    b.disabled = true;
+                    if (b !== clickedBtn) b.classList.add('btn-dimmed');
+                });
+
+                playClickSound();
+                feedbackBanner.className = 'feedback-banner feedback-saved';
+                feedbackBanner.innerHTML = `<i class="fas fa-save mr-1"></i> Jawaban tersimpan`;
+                feedbackBanner.style.display = 'inline-block';
+
+                setTimeout(() => {
+                    loadQuestion(currentQuestionIndex + 1);
+                }, 1200);
+                return;
+            }
+
             const correctKey = (q.correct_answer || '').toLowerCase().trim();
             const isCorrect = (selectedKey === correctKey);
-
-            answersData[q.id] = selectedKey;
 
             // Audio & Visual Effects
             const allButtons = optionsGrid.querySelectorAll('.kahoot-btn');
@@ -1180,7 +1210,7 @@
             const allButtons = optionsGrid.querySelectorAll('.kahoot-btn');
             allButtons.forEach(b => {
                 b.disabled = true;
-                if (b.getAttribute('data-key') === correctKey) {
+                if (SHOW_ANSWERS && b.getAttribute('data-key') === correctKey) {
                     b.classList.add('btn-correct');
                 } else {
                     b.classList.add('btn-dimmed');
@@ -1202,7 +1232,7 @@
             answersData[q.id] = essayInput.value.trim();
 
             playCorrectSound();
-            feedbackBanner.className = 'feedback-banner feedback-correct';
+            feedbackBanner.className = SHOW_ANSWERS ? 'feedback-banner feedback-correct' : 'feedback-banner feedback-saved';
             feedbackBanner.innerHTML = `<i class="fas fa-save mr-1"></i> JAWABAN TERSIMPAN!`;
             feedbackBanner.style.display = 'block';
 
@@ -1353,7 +1383,8 @@
                 playFanfareSound();
             } catch(e) {}
 
-            try {
+            // Saat jawaban disembunyikan, nilai & podium menunggu respons server.
+            if (SHOW_ANSWERS) try {
                 const finalGameScoreElem = document.getElementById('finalGameScore');
                 if (finalGameScoreElem) finalGameScoreElem.textContent = score;
 
@@ -1412,6 +1443,11 @@
                     }).then(response => response.json())
                     .then(data => {
                         console.log('Quiz results successfully recorded!', data);
+                        if (!SHOW_ANSWERS && data && data.score !== undefined) {
+                            const finalAcadElem = document.getElementById('finalAcademicScore');
+                            if (finalAcadElem) finalAcadElem.textContent = `${Math.round(data.score)} / 100`;
+                            launchConfetti();
+                        }
                         if (data && data.leaderboard && data.leaderboard.length > 0) {
                             renderPodium(data.leaderboard);
                         }

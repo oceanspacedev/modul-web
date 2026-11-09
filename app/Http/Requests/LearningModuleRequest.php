@@ -21,7 +21,11 @@ class LearningModuleRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge(['shuffle_questions' => $this->boolean('shuffle_questions')]);
+        $this->merge([
+            'shuffle_questions' => $this->boolean('shuffle_questions'),
+            'pretest_shows_answers' => $this->boolean('pretest_shows_answers'),
+            'posttest_shows_answers' => $this->boolean('posttest_shows_answers'),
+        ]);
     }
 
     /**
@@ -36,6 +40,8 @@ class LearningModuleRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:5000'],
             'passing_score' => ['required', 'integer', 'min:0', 'max:100'],
             'shuffle_questions' => ['boolean'],
+            'pretest_shows_answers' => ['boolean'],
+            'posttest_shows_answers' => ['boolean'],
             'pretest_max_attempts' => ['nullable', 'integer', 'min:1', 'max:255'],
             'posttest_max_attempts' => ['nullable', 'integer', 'min:1', 'max:255'],
             'quiz_mode' => ['nullable', 'in:'.implode(',', LearningModule::MODES)],
@@ -103,7 +109,7 @@ class LearningModuleRequest extends FormRequest
     public function moduleData(): array
     {
         return [
-            ...$this->safe()->only(['title', 'description', 'passing_score', 'shuffle_questions']),
+            ...$this->safe()->only(['title', 'description', 'passing_score', 'shuffle_questions', 'pretest_shows_answers', 'posttest_shows_answers']),
             'pretest_max_attempts' => $this->validated('pretest_max_attempts'),
             'posttest_max_attempts' => $this->validated('posttest_max_attempts'),
             'quiz_mode' => $this->validated('quiz_mode') ?? LearningModule::MODE_FORMAL,

@@ -307,6 +307,21 @@ class TrainingController extends Controller
     }
 
     /**
+     * Quick toggle whether participants see right/wrong answers and the key after the quiz.
+     */
+    public function toggleQuizAnswers(Training $training): RedirectResponse
+    {
+        $newValue = ! $training->show_quiz_answers;
+        $training->update(['show_quiz_answers' => $newValue]);
+
+        $message = $newValue
+            ? 'Jawaban benar/salah dan kunci jawaban kini DITAMPILKAN ke peserta setelah mengerjakan kuis.'
+            : 'Jawaban benar/salah kini DISEMBUNYIKAN; peserta hanya melihat nilai.';
+
+        return back()->with('success', $message);
+    }
+
+    /**
      * Broadcast WhatsApp notification to all participants
      */
     public function broadcastWa(Training $training): RedirectResponse

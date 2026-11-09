@@ -113,7 +113,11 @@
         </div>
 
         <!-- REVIEW PERTANYAAN -->
-        @if($quizResult->answers)
+        @if(! $training->show_quiz_answers)
+        <div class="content-card p-4 text-center text-muted text-sm">
+            <i class="fas fa-eye-slash mr-1"></i> Rincian jawaban tidak ditampilkan untuk kuis ini.
+        </div>
+        @elseif($quizResult->answers)
         <div class="content-card p-4">
             <div class="content-card-header">Rincian Jawaban & Kunci</div>
 

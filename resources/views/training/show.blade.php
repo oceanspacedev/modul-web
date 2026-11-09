@@ -345,6 +345,22 @@
                                 </button>
                             </form>
                         </div>
+
+                        <!-- JAWABAN BENAR/SALAH -->
+                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
+                            <div class="min-w-0">
+                                <div class="text-sm font-weight-bold">Jawaban benar/salah: {{ $training->show_quiz_answers ? 'Ditampilkan' : 'Disembunyikan' }}</div>
+                                <div class="text-muted text-xs">
+                                    {{ $training->show_quiz_answers ? 'Peserta melihat rincian & kunci jawaban' : 'Peserta hanya melihat nilai' }}
+                                </div>
+                            </div>
+                            <form action="/training/{{ $training->id }}/toggle-quiz-answers" method="POST" class="m-0">
+                                @csrf
+                                <button type="submit" class="btn btn-default btn-xs text-nowrap">
+                                    {{ $training->show_quiz_answers ? 'Sembunyikan' : 'Tampilkan' }}
+                                </button>
+                            </form>
+                        </div>
                     </div>
 
                     <!-- TOMBOL BROADCAST WHATSAPP -->

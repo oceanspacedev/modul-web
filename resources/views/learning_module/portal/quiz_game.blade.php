@@ -91,8 +91,9 @@
         </div>
         <span class="nav-pill type-pill"><i class="fas fa-gamepad mr-1"></i> QUIZIZZ MODE</span>
         <div class="d-flex align-items-center" style="gap: 10px;">
-            <span class="nav-pill streak-pill" title="Jawaban benar beruntun"><i class="fas fa-fire mr-1"></i> <span id="streakCount">0</span></span>
-            <span class="nav-pill score-pill" title="Poin"><span id="scoreBadge">0</span>&nbsp;poin</span>
+            {{-- Poin & streak membocorkan benar/salah, jadi disembunyikan bila rincian jawaban tidak ditampilkan. --}}
+            <span class="nav-pill streak-pill" title="Jawaban benar beruntun" @unless($showsAnswers) hidden @endunless><i class="fas fa-fire mr-1"></i> <span id="streakCount">0</span></span>
+            <span class="nav-pill score-pill" title="Poin" @unless($showsAnswers) hidden @endunless><span id="scoreBadge">0</span>&nbsp;poin</span>
             <button type="button" class="btn-round" id="btnSoundToggle" title="Suara aktif"><i class="fas fa-volume-up" id="soundIcon"></i></button>
         </div>
     </header>
@@ -120,7 +121,11 @@
                 @else
                     Jawab setiap soal sebelum waktu habis. Setiap percobaan tetap tersimpan.
                 @endif
-                Setiap jawaban langsung dikunci dan hanya ditandai <b>Benar</b> atau <b>Salah</b>.
+                @if($showsAnswers)
+                    Setiap jawaban langsung dikunci dan hanya ditandai <b>Benar</b> atau <b>Salah</b>.
+                @else
+                    Setiap jawaban langsung dikunci. Nilai Anda tampil setelah semua soal selesai.
+                @endif
             </p>
 
             <div class="row justify-content-center mb-4 text-center">
@@ -167,7 +172,7 @@
             <h2 class="font-weight-bold mb-1">{{ $isPretest ? 'Pretest' : 'Posttest' }} Selesai!</h2>
             <p class="text-muted small mb-4" id="finishSubtitle"></p>
 
-            <div class="row justify-content-center mb-4 text-center">
+            <div class="row justify-content-center mb-4 text-center" @unless($showsAnswers) hidden @endunless>
                 <div class="col-6 col-md-3 mb-2"><div class="stat-box"><small>Jawaban Benar</small><strong class="h5 text-success" id="finalCorrect">0 / 0</strong></div></div>
                 <div class="col-6 col-md-3 mb-2"><div class="stat-box"><small>Nilai</small><strong class="h5 text-primary" id="finalScore">0</strong></div></div>
                 <div class="col-6 col-md-3 mb-2"><div class="stat-box"><small>Poin</small><strong class="h5" style="color: #6d28d9;" id="finalPoints">0</strong></div></div>
@@ -188,6 +193,8 @@
     (function () {
         const QUESTIONS = @json($gameQuestions);
         const ANSWERED = @json((object) $answered->all());
+        // false: server tidak mengirim benar/salah; tiap jawaban hanya "tersimpan" dan nilai dilihat di halaman hasil.
+        const SHOWS_ANSWERS = @json($showsAnswers);
         const QUESTION_TIME = {{ (int) $module->question_seconds }};
         const PASSING_SCORE = {{ (int) $module->passing_score }};
         const ANSWER_URL = @json($module->url('answer', ['phase' => $phase]));
@@ -226,6 +233,7 @@
         let score = 0, streak = 0, bestStreak = 0, correctCount = 0;
         QUESTIONS.forEach(q => {
             if (!(q.id in ANSWERED)) return;
+            if (!SHOWS_ANSWERS) return;
             if (ANSWERED[q.id]) { correctCount++; streak++; score += 1000; } else { streak = 0; }
             bestStreak = Math.max(bestStreak, streak);
         });
@@ -327,7 +335,9 @@
             else playClick();
 
             send(q.id, key, 0).then(data => {
-                if (data.correct) {
+                if (!SHOWS_ANSWERS) {
+                    if (key !== null) showBanner('wait', '<i class="fas fa-save mr-1"></i> JAWABAN TERSIMPAN');
+                } else if (data.correct) {
                     streak++; correctCount++;
                     bestStreak = Math.max(bestStreak, streak);
                     score += 1000 + Math.round(remaining * 25) + streak * 100;
@@ -389,14 +399,20 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
             const total = QUESTIONS.length;
+            if (!SHOWS_ANSWERS) {
+                $('finishSubtitle').textContent = 'Semua jawaban sudah terkunci. Simpan untuk melihat nilai Anda.';
+                $('btnFinish').textContent = 'Simpan & Lihat Nilai';
+            }
             const finalScore = total ? Math.round(correctCount / total * 10000) / 100 : 0;
             $('finalCorrect').textContent = `${correctCount} / ${total}`;
             $('finalScore').textContent = finalScore.toLocaleString('id-ID');
             $('finalPoints').textContent = score.toLocaleString('id-ID');
             $('finalStreak').textContent = bestStreak;
-            $('finishSubtitle').textContent = finalScore >= PASSING_SCORE
-                ? `Nilai Anda memenuhi nilai minimal lulus (${PASSING_SCORE}).`
-                : `Nilai minimal lulus: ${PASSING_SCORE}.`;
+            if (SHOWS_ANSWERS) {
+                $('finishSubtitle').textContent = finalScore >= PASSING_SCORE
+                    ? `Nilai Anda memenuhi nilai minimal lulus (${PASSING_SCORE}).`
+                    : `Nilai minimal lulus: ${PASSING_SCORE}.`;
+            }
             playFanfare();
             launchConfetti();
 
