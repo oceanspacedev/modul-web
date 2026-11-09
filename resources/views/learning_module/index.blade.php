@@ -90,7 +90,10 @@
                                                     {{ $module->is_published ? 'Tarik Publikasi' : 'Publikasikan' }}
                                                 </button>
                                             </form>
-                                            <a class="dropdown-item" href="{{ route('learning-module.export', $module) }}">Export Rekap Excel</a>
+                                            <form action="{{ route('learning-module.export', $module) }}" method="POST" class="m-0">
+                                                @csrf
+                                                <button type="submit" class="dropdown-item">Export Rekap Excel</button>
+                                            </form>
                                             <div class="dropdown-divider"></div>
                                             <form action="{{ route('learning-module.destroy', $module) }}" method="POST" class="m-0" onsubmit="return confirm('Hapus modul ini beserta riwayat nilainya dari daftar?')">
                                                 @csrf

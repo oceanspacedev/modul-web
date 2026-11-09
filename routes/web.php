@@ -9,8 +9,10 @@ use App\Http\Controllers\DokumenTypeController;
 use App\Http\Controllers\LearningModuleController;
 use App\Http\Controllers\LearningModulePortalController;
 use App\Http\Controllers\LearningModuleQuestionController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\ScoreRecapController;
 use App\Http\Controllers\TrainingController;
 use App\Http\Controllers\TrainingPortalController;
 use App\Http\Controllers\TrainingQuestionController;
@@ -57,6 +59,21 @@ Route::middleware('auth')->group(function () {
     Route::post('video/{video}/comments', [VideoController::class, 'storeComment'])->name('video.comments.store');
     Route::delete('video/comments/{comment}', [VideoController::class, 'destroyComment'])->name('video.comments.destroy');
 
+    // # NOTIFIKASI (kotak masuk milik user sendiri)
+    Route::controller(NotificationController::class)->prefix('notifikasi')->name('notifications.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('unread-count', 'unreadCount')->name('unread-count');
+        Route::post('read-all', 'markAllRead')->name('read-all');
+        Route::get('{notification}/download', 'download')->whereUuid('notification')->name('download');
+        Route::delete('{notification}', 'destroy')->whereUuid('notification')->name('destroy');
+    });
+
+    // # REKAP NILAI GABUNGAN (bagian yang tampil mengikuti izin kelola, dicek di controller)
+    Route::controller(ScoreRecapController::class)->prefix('rekap-nilai')->name('score-recap.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('export', 'export')->name('export');
+    });
+
     // # DASHBOARD
     Route::get('dashboard', [DashboardController::class, 'index'])->middleware('can:view-dashboard')->name('dashboard');
 
@@ -84,7 +101,7 @@ Route::middleware('auth')->group(function () {
 
     // # USERS (authorized by UserPolicy)
     Route::controller(UserController::class)->prefix('user')->name('user.')->group(function () {
-        Route::get('export', 'export')->name('export');
+        Route::post('export', 'export')->name('export');
         Route::get('template', 'template')->name('template');
         Route::post('import', 'import')->name('import');
         Route::get('approvers', 'approvers')->name('approvers');
@@ -120,13 +137,14 @@ Route::middleware('auth')->group(function () {
                 Route::post('toggle-attendance', 'toggleAttendance')->name('toggle-attendance');
                 Route::post('toggle-proof', 'toggleAttendanceProof')->name('toggle-proof');
                 Route::post('toggle-mode', 'toggleQuizMode')->name('toggle-mode');
+                Route::post('toggle-quiz-answers', 'toggleQuizAnswers')->name('toggle-quiz-answers');
                 Route::post('broadcast-wa', 'broadcastWa')->name('broadcast-wa');
                 Route::post('send-wa/{participant}', 'sendSingleWa')->name('send-single-wa');
                 Route::post('reset-quiz/{participant}', 'resetParticipantQuiz')->name('reset-quiz');
                 Route::post('reset-attendance/{participant}', 'resetParticipantAttendance')->name('reset-attendance');
                 Route::post('update-attendance/{participant}', 'updateParticipantAttendance')->name('update-attendance');
                 Route::post('grade-essay/{quizResult}', 'gradeEssay')->name('grade-essay');
-                Route::get('export', 'export')->name('export');
+                Route::post('export', 'export')->name('export');
                 Route::get('live-stats', 'liveStats')->name('live-stats');
                 Route::post('attach-document', 'attachDocument')->name('attach-document');
                 Route::post('detach-document/{document}', 'detachDocument')->name('detach-document');
@@ -141,9 +159,11 @@ Route::middleware('auth')->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::post('/', 'store')->name('store');
                 Route::get('template', 'downloadTemplate')->name('template');
+                Route::post('export', 'export')->name('export');
                 Route::post('import-excel', 'importExcel')->name('import-excel');
                 Route::post('import-text', 'importText')->name('import-text');
                 Route::post('generate-ai', 'generateAiQuestions')->name('generate-ai');
+                Route::post('revise-ai', 'reviseAiQuestion')->name('revise-ai');
                 Route::post('upload-image', 'uploadImage')->name('upload-image');
                 Route::post('save-ai-batch', 'saveAiBatch')->name('save-ai-batch');
                 Route::post('delete-all', 'deleteAll')->name('delete-all');
@@ -174,9 +194,11 @@ Route::middleware('auth')->group(function () {
             Route::get('/', 'index')->name('index');
             Route::post('/', 'store')->name('store');
             Route::get('template', 'downloadTemplate')->name('template');
+            Route::post('export', 'export')->name('export');
             Route::post('import-excel', 'importExcel')->name('import-excel');
             Route::post('generate-ai', 'generateAi')->name('generate-ai');
             Route::get('ai-status/{token}', 'aiStatus')->whereUuid('token')->name('ai-status');
+            Route::post('revise-ai', 'reviseAi')->name('revise-ai');
             Route::post('upload-image', 'uploadImage')->name('upload-image');
             Route::post('save-ai-batch', 'saveAiBatch')->name('save-ai-batch');
             Route::post('delete-all', 'deleteAll')->name('delete-all');
@@ -185,7 +207,7 @@ Route::middleware('auth')->group(function () {
         });
 
         Route::controller(LearningModuleController::class)->group(function () {
-            Route::get('export', 'export')->name('export');
+            Route::post('export', 'export')->name('export');
             Route::get('participants/{user}', 'participant')->withoutScopedBindings()->withTrashed()->name('participant');
         });
     };

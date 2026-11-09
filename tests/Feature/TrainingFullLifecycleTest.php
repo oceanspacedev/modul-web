@@ -11,6 +11,7 @@ use App\Models\TrainingQuestion;
 use App\Models\TrainingQuizResult;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use Tests\TestCase;
 
@@ -129,8 +130,13 @@ class TrainingFullLifecycleTest extends TestCase
         $toggleRes->assertSessionHas('success');
         $this->assertTrue((bool) $training->fresh()->is_quiz_active);
 
-        // 1.9 Export Excel / CSV
-        $exportRes = $this->actingAs($this->admin)->get("/training/{$training->id}/export");
+        // 1.9 Export Excel: generated in the background, then downloaded from the notification inbox
+        Storage::fake('local');
+        $this->actingAs($this->admin)->post("/training/{$training->id}/export")->assertSessionHas('info');
+        $notification = $this->admin->notifications()->firstOrFail();
+        Storage::disk('local')->assertExists($notification->data['download_path']);
+
+        $exportRes = $this->actingAs($this->admin)->get(route('notifications.download', $notification->id));
         $exportRes->assertStatus(200);
         $this->assertTrue(
             str_contains($exportRes->headers->get('Content-Type'), 'spreadsheet') ||

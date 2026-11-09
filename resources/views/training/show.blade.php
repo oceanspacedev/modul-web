@@ -43,9 +43,12 @@
                         <a class="dropdown-item" href="/training/{{ $training->id }}/edit">
                             <i class="fas fa-edit mr-2 text-muted"></i> Edit Informasi Pelatihan
                         </a>
-                        <a class="dropdown-item" href="/training/{{ $training->id }}/export">
-                            <i class="fas fa-file-excel mr-2 text-muted"></i> Export Rekap Nilai
-                        </a>
+                        <form action="{{ route('training.export', $training) }}" method="POST" class="m-0">
+                            @csrf
+                            <button type="submit" class="dropdown-item">
+                                <i class="fas fa-file-excel mr-2 text-muted"></i> Export Rekap Nilai
+                            </button>
+                        </form>
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="#" data-toggle="modal" data-target="#uploadTrainingVideoModal">
                             <i class="fas fa-video mr-2 text-muted"></i> Upload Video Materi
@@ -339,6 +342,22 @@
                                 @csrf
                                 <button type="submit" class="btn btn-default btn-xs text-nowrap">
                                     {{ $training->quiz_mode === 'game' ? 'Pindah ke Formal' : 'Pindah ke Game' }}
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- JAWABAN BENAR/SALAH -->
+                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
+                            <div class="min-w-0">
+                                <div class="text-sm font-weight-bold">Jawaban benar/salah: {{ $training->show_quiz_answers ? 'Ditampilkan' : 'Disembunyikan' }}</div>
+                                <div class="text-muted text-xs">
+                                    {{ $training->show_quiz_answers ? 'Peserta melihat rincian & kunci jawaban' : 'Peserta hanya melihat nilai' }}
+                                </div>
+                            </div>
+                            <form action="/training/{{ $training->id }}/toggle-quiz-answers" method="POST" class="m-0">
+                                @csrf
+                                <button type="submit" class="btn btn-default btn-xs text-nowrap">
+                                    {{ $training->show_quiz_answers ? 'Sembunyikan' : 'Tampilkan' }}
                                 </button>
                             </form>
                         </div>

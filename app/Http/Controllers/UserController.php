@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Exports\UserExport;
 use App\Exports\UserTemplate;
 use App\Http\Requests\ImportUserRequest;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
-use App\Imports\UserImport;
+use App\Jobs\GenerateExportFile;
+use App\Jobs\ProcessUserImport;
 use App\Models\Area;
 use App\Models\Divisi;
 use App\Models\Position;
@@ -24,11 +24,11 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Attributes\Controllers\Authorize;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Throwable;
 
 #[Authorize('viewAny', User::class, only: ['index', 'approvers', 'bulk'])]
 #[Authorize('import', User::class, only: ['export', 'template', 'import'])]
@@ -73,22 +73,12 @@ class UserController extends Controller
 
     public function import(ImportUserRequest $request): RedirectResponse
     {
-        $import = new UserImport;
+        $file = $request->file('file');
+        $path = $file->storeAs('imports', Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
 
-        try {
-            Excel::import($import, $request->file('file'));
-        } catch (Throwable $e) {
-            report($e);
+        ProcessUserImport::dispatch($request->user()->id, $path);
 
-            return to_route('user.index')->with('error', 'Gagal import user: '.$e->getMessage());
-        }
-
-        $errors = $import->errors();
-        $message = "Import selesai. Berhasil: {$import->successCount()} user.";
-
-        return to_route('user.index')
-            ->with($errors === [] ? 'success' : 'error', $errors === [] ? $message : $message.' Gagal: '.count($errors).' baris.')
-            ->with('importErrors', array_slice($errors, 0, 20));
+        return to_route('user.index')->with('info', ProcessUserImport::QUEUED_MESSAGE);
     }
 
     public function template(): BinaryFileResponse
@@ -96,9 +86,11 @@ class UserController extends Controller
         return Excel::download(new UserTemplate, 'user_template.xlsx');
     }
 
-    public function export(): BinaryFileResponse
+    public function export(Request $request): RedirectResponse
     {
-        return Excel::download(new UserExport, 'user_export.xlsx');
+        GenerateExportFile::dispatch($request->user()->id, GenerateExportFile::USERS);
+
+        return back()->with('info', GenerateExportFile::QUEUED_MESSAGE);
     }
 
     public function create(Request $request): View

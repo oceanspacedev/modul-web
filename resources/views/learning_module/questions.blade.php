@@ -17,6 +17,14 @@
                 <button type="button" class="btn btn-default" data-toggle="modal" data-target="#importExcelModal">
                     <i class="fas fa-file-import"></i> Import Excel / CSV
                 </button>
+                @if($questions->isNotEmpty())
+                    <form action="{{ $module->url('questions.export') }}" method="POST" class="m-0">
+                        @csrf
+                        <button type="submit" class="btn btn-default" title="Soal dan kunci jawaban, format sama dengan template">
+                            <i class="fas fa-file-export"></i> Export Soal
+                        </button>
+                    </form>
+                @endif
                 <button type="button" class="btn btn-default" data-toggle="modal" data-target="#addQuestionModal">
                     <i class="fas fa-plus"></i> Tambah Manual
                 </button>
@@ -118,7 +126,7 @@
                 <div class="modal fade" id="editModal_{{ $q->id }}" tabindex="-1" role="dialog" aria-hidden="true">
                     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
                         <div class="modal-content">
-                            <form action="{{ $module->url('questions.update', ['question' => $q]) }}" method="POST" enctype="multipart/form-data">
+                            <form action="{{ $module->url('questions.update', ['question' => $q]) }}" method="POST" enctype="multipart/form-data" class="ai-revise-form" data-question-id="{{ $q->id }}">
                                 @csrf
                                 @method('PUT')
                                 <div class="modal-header">
@@ -291,6 +299,7 @@
 
 @section('footer')
 @include('layout.partials.quiz-image-slot-script', ['uploadUrl' => $module->url('questions.upload-image')])
+@include('layout.partials.ai-revise-script')
 <script>
 $(function () {
     var csrf = '{{ csrf_token() }}';
@@ -411,8 +420,10 @@ $(function () {
                             '<input type="checkbox" class="custom-control-input ai-include" id="ai_inc_' + index + '" checked>' +
                             '<label class="custom-control-label font-weight-bold" for="ai_inc_' + index + '">Soal #' + (index + 1) + '</label>' +
                         '</div>' +
+                        aiReviseButton() +
                     '</div>' +
                     '<div class="card-body p-3">' +
+                        aiRevisePanel(index, false) +
                         '<label class="small font-weight-bold text-muted mb-1">Pertanyaan</label>' +
                         '<textarea class="form-control mb-2 ai-question" rows="2">' + escapeHtml(q.question) + '</textarea>' +
                         '<div class="ai-q-image">' + quizImageSlot('Tambah gambar soal') + '</div>' +
@@ -436,6 +447,67 @@ $(function () {
     }
 
     $('#aiQuestions').on('change', '.ai-include', updateSaveCount);
+
+    // "Ubah dengan AI" per kartu soal.
+    bindAiRevise(document.getElementById('aiQuestions'), {
+        url: '{{ $module->url('questions.revise-ai') }}',
+        statusUrl: function (token) { return statusUrlTemplate.replace('00000000-0000-0000-0000-000000000000', token); },
+        cardSelector: '.ai-card',
+        // AI membaca ulang materi yang dipilih saat membuat soal.
+        extra: function () {
+            return { item_ids: $('.ai-item:checked').map(function () { return parseInt(this.value, 10); }).get() };
+        },
+        read: function (card) {
+            var $card = $(card);
+            var q = {
+                question: $card.find('.ai-question').val(),
+                correct_answer: $card.find('.ai-key:checked').val() || 'a',
+                explanation: $card.find('.ai-explanation').val()
+            };
+            $card.find('.ai-opt').each(function () {
+                q['option_' + $(this).data('letter')] = $(this).val();
+            });
+            return q;
+        },
+        write: function (card, q) {
+            var $card = $(card);
+            $card.find('.ai-question').val(q.question || '');
+            $card.find('.ai-explanation').val(q.explanation || '');
+            $card.find('.ai-opt').each(function () {
+                $(this).val(q['option_' + $(this).data('letter')] || '');
+            });
+            $card.find('.ai-key[value="' + (q.correct_answer || 'a') + '"]').prop('checked', true).trigger('change');
+        }
+    });
+
+    // "Ubah dengan AI" di form edit soal tersimpan. Materi diambil server dari semua materi modul yang bisa dibaca AI.
+    @if($isGeminiConfigured)
+    document.querySelectorAll('form.ai-revise-form').forEach(function (form) {
+        mountAiRevise(form, 'edit_' + form.dataset.questionId);
+    });
+    bindAiRevise(document.body, {
+        url: '{{ $module->url('questions.revise-ai') }}',
+        statusUrl: function (token) { return statusUrlTemplate.replace('00000000-0000-0000-0000-000000000000', token); },
+        cardSelector: 'form.ai-revise-form',
+        collectOthers: false,
+        extra: function (form) { return { question_id: parseInt(form.dataset.questionId, 10) }; },
+        read: function (form) {
+            var q = {
+                question: form.elements.question.value,
+                correct_answer: form.elements.correct_answer.value,
+                explanation: form.elements.explanation.value
+            };
+            letters.forEach(function (letter) { q['option_' + letter] = form.elements['option_' + letter].value; });
+            return q;
+        },
+        write: function (form, q) {
+            form.elements.question.value = q.question || '';
+            form.elements.explanation.value = q.explanation || '';
+            letters.forEach(function (letter) { form.elements['option_' + letter].value = q['option_' + letter] || ''; });
+            form.elements.correct_answer.value = q.correct_answer || 'a';
+        }
+    });
+    @endif
     $('#aiQuestions').on('change', '.ai-key', function () {
         $(this).closest('.ai-card').find('.ai-option').removeClass('is-key');
         $(this).closest('.ai-option').addClass('is-key');

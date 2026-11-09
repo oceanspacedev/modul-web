@@ -81,8 +81,10 @@ class LearningModulePortalController extends Controller
         }
 
         // Mode Quizizz: kunci jawaban tidak pernah dikirim ke browser. Soal yang sudah dijawab (mis. setelah refresh)
-        // dikirim beserta hasil benar/salahnya agar permainan berlanjut dari soal berikutnya.
+        // dikirim beserta hasil benar/salahnya agar permainan berlanjut dari soal berikutnya; bila rincian jawaban
+        // disembunyikan, hanya ditandai sudah dijawab.
         $locked = $this->lockedAnswers($request, $module, $phase, $attemptNumber);
+        $showsAnswers = $module->showsAnswers($phase);
 
         return view('learning_module.portal.quiz_game', [
             ...$data,
@@ -94,13 +96,15 @@ class LearningModulePortalController extends Controller
                 'option_images' => (object) $question->optionImageUrls(),
             ])->values(),
             'answered' => $questions->filter(fn ($question) => array_key_exists($question->id, $locked))
-                ->mapWithKeys(fn ($question) => [$question->id => $this->isCorrect($question, $locked[$question->id])]),
+                ->mapWithKeys(fn ($question) => [$question->id => $showsAnswers ? $this->isCorrect($question, $locked[$question->id]) : true]),
+            'showsAnswers' => $showsAnswers,
         ]);
     }
 
     /**
-     * Mode Quizizz: mengunci jawaban satu soal dan membalas benar/salah saja (tanpa kunci jawaban). Jawaban pertama
-     * yang dipakai; mengirim ulang soal yang sama tidak mengubahnya. Jawaban kosong berarti waktu habis.
+     * Mode Quizizz: mengunci jawaban satu soal dan membalas benar/salah saja (tanpa kunci jawaban); bila rincian
+     * jawaban fase ini disembunyikan, benar/salah pun tidak dikirim. Jawaban pertama yang dipakai; mengirim ulang soal
+     * yang sama tidak mengubahnya. Jawaban kosong berarti waktu habis.
      */
     public function answer(Request $request, LearningModule $module, string $phase): JsonResponse
     {
@@ -129,7 +133,7 @@ class LearningModulePortalController extends Controller
         }
 
         return response()->json([
-            'correct' => $this->isCorrect($question, $locked[$question->id]),
+            ...($module->showsAnswers($phase) ? ['correct' => $this->isCorrect($question, $locked[$question->id])] : []),
             'answered' => count($locked),
         ]);
     }

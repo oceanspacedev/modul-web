@@ -40,6 +40,8 @@ class LearningModule extends Model
     protected $attributes = [
         'quiz_mode' => self::MODE_FORMAL,
         'question_seconds' => 30,
+        'pretest_shows_answers' => true,
+        'posttest_shows_answers' => true,
     ];
 
     protected function casts(): array
@@ -53,7 +55,17 @@ class LearningModule extends Model
             'has_posttest' => 'boolean',
             'pretest_max_attempts' => 'integer',
             'posttest_max_attempts' => 'integer',
+            'pretest_shows_answers' => 'boolean',
+            'posttest_shows_answers' => 'boolean',
         ];
+    }
+
+    /**
+     * Peserta melihat rincian jawaban (benar/salah + kunci) setelah fase ini selesai; kalau tidak, hanya nilainya.
+     */
+    public function showsAnswers(string $phase): bool
+    {
+        return $phase === LearningModuleAttempt::PHASE_PRETEST ? $this->pretest_shows_answers : $this->posttest_shows_answers;
     }
 
     /**

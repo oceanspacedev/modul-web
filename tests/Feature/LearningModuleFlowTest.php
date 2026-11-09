@@ -132,13 +132,20 @@ class LearningModuleFlowTest extends TestCase
             ->assertSee('Batas beban rak?');
     }
 
-    public function test_result_page_hides_answer_key_from_participant(): void
+    public function test_result_page_shows_the_answer_key_only_when_the_phase_allows_it(): void
     {
         $this->actingAs($this->staff)->post(route('learning.submit', [$this->module, 'pretest']), $this->answers('a', 'b'));
         $attempt = LearningModuleAttempt::sole();
 
         $this->actingAs($this->staff)->get(route('learning.attempt', [$this->module, $attempt]))
             ->assertOk()
+            ->assertSee('Rincian Jawaban');
+
+        $this->module->update(['pretest_shows_answers' => false]);
+
+        $this->actingAs($this->staff)->get(route('learning.attempt', [$this->module, $attempt]))
+            ->assertOk()
+            ->assertSee('Rincian jawaban tidak ditampilkan')
             ->assertDontSee('>Kunci<', false);
     }
 

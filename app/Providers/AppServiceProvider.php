@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
@@ -35,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureModels();
         $this->configureRateLimiting();
         $this->configureAuthorization();
+        $this->configureViews();
 
         Password::defaults(fn () => Password::min(8));
     }
@@ -90,6 +92,29 @@ class AppServiceProvider extends ServiceProvider
 
         // The participant portal polls its status every 5 seconds.
         RateLimiter::for('portal', fn (Request $request) => Limit::perMinute(120)->by('portal:'.$request->route('token').'|'.$request->ip()));
+    }
+
+    /**
+     * Data notifikasi untuk lonceng di topbar dan badge di sidebar (sekali query per request).
+     */
+    protected function configureViews(): void
+    {
+        View::composer(['layout.header', 'layout.sidebarnav'], function ($view) {
+            $user = auth()->user();
+            if (! $user) {
+                return;
+            }
+
+            $attributes = request()->attributes;
+            if (! $attributes->has('notification-summary')) {
+                $attributes->set('notification-summary', [
+                    'unreadNotificationCount' => $user->unreadNotifications()->count(),
+                    'latestNotifications' => $user->notifications()->limit(5)->get(),
+                ]);
+            }
+
+            $view->with($attributes->get('notification-summary'));
+        });
     }
 
     /**

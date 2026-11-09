@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Exports\LearningModuleQuestionTemplate;
 use App\Http\Requests\LearningModuleQuestionRequest;
+use App\Http\Requests\ReviseAiQuestionRequest;
 use App\Imports\LearningModuleQuestionImport;
+use App\Jobs\GenerateExportFile;
 use App\Jobs\GenerateLearningModuleQuestions;
+use App\Jobs\ReviseLearningModuleQuestion;
 use App\Models\LearningModule;
 use App\Models\LearningModuleItem;
 use App\Models\LearningModuleQuestion;
@@ -81,6 +84,17 @@ class LearningModuleQuestionController extends Controller
         return Excel::download(new LearningModuleQuestionTemplate, 'template_soal_modul_'.Str::slug($module->title).'.xlsx');
     }
 
+    /**
+     * Bank soal beserta kunci jawaban (format template, bisa diimpor ulang ke modul lain), dibuat di belakang layar;
+     * filenya dikirim lewat menu Notifikasi.
+     */
+    public function export(Request $request, LearningModule $module): RedirectResponse
+    {
+        GenerateExportFile::dispatch($request->user()->id, GenerateExportFile::LEARNING_MODULE_QUESTIONS, $module->id);
+
+        return back()->with('info', GenerateExportFile::QUEUED_MESSAGE);
+    }
+
     public function importExcel(Request $request, LearningModule $module): RedirectResponse
     {
         $request->validate([
@@ -139,6 +153,45 @@ class LearningModuleQuestionController extends Controller
         }
 
         return response()->json($result);
+    }
+
+    /**
+     * Ubah satu soal dengan AI (pertanyaan saja, jawaban saja, atau semuanya), dari langkah review AI atau dari form
+     * edit soal tersimpan (question_id). AI membaca ulang materi dan mengecek pertanyaannya belum ada, di queue seperti
+     * generateAi; hasilnya diambil lewat aiStatus.
+     */
+    public function reviseAi(ReviseAiQuestionRequest $request, LearningModule $module): JsonResponse
+    {
+        $validated = $request->validate([
+            'question_id' => ['nullable', 'integer', Rule::exists('learning_module_questions', 'id')->where('learning_module_id', $module->id)],
+            'item_ids' => 'required_without:question_id|array',
+            'item_ids.*' => ['integer', Rule::exists('learning_module_items', 'id')->where('learning_module_id', $module->id)],
+        ], ['item_ids.required_without' => 'Pilih minimal satu materi acuan.']);
+
+        // Form edit tidak memilih materi: pakai semua materi modul yang bisa dibaca AI (bila tidak ada, cukup dari teks soal).
+        $itemIds = filled($validated['item_ids'] ?? null)
+            ? $validated['item_ids']
+            : $module->availableItems()->filter(fn (LearningModuleItem $item) => GenerateLearningModuleQuestions::supports($item))->pluck('id')->all();
+
+        if (empty(config('services.gemini.api_key'))) {
+            return response()->json(['success' => false, 'message' => 'GEMINI_API_KEY belum dikonfigurasi.'], 422);
+        }
+
+        $token = (string) Str::uuid();
+        Cache::put(GenerateLearningModuleQuestions::cacheKey($token), ['status' => 'pending'], now()->addHours(2));
+
+        ReviseLearningModuleQuestion::dispatch(
+            $token,
+            $module->id,
+            $itemIds,
+            $request->validated('question'),
+            $request->validated('part'),
+            $request->validated('instruction'),
+            array_filter($request->validated('other_questions') ?? [], 'filled'),
+            $validated['question_id'] ?? null,
+        );
+
+        return response()->json(['success' => true, 'token' => $token]);
     }
 
     /**

@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Sleep;
+use Illuminate\Support\Str;
 use ZipArchive;
 
 class GeminiQuestionService
@@ -76,7 +77,24 @@ class GeminiQuestionService
             throw new Exception('GEMINI_API_KEY belum dikonfigurasi. Silakan masukkan API Key Gemini di pengaturan atau file .env!');
         }
 
-        if (empty($documents)) {
+        return $this->withMaterial($documents, function (array $parts, bool $hasVideo) use ($count, $type, $difficulty, $customPrompt) {
+            $parts[] = ['text' => $this->buildPromptText($count, $type, $difficulty, $customPrompt)];
+
+            return $this->parseResponse($this->callGeminiApi($parts, $hasVideo), $type);
+        });
+    }
+
+    /**
+     * Siapkan part Gemini untuk materi (video & dokumen), jalankan $callback($parts, $hasVideo), lalu hapus lagi
+     * video yang sempat diunggah ke Gemini.
+     *
+     * @param  array  $sources  List of Document and Video models
+     *
+     * @throws Exception
+     */
+    protected function withMaterial(array $sources, callable $callback): mixed
+    {
+        if (empty($sources)) {
             throw new Exception('Tidak ada dokumen yang dipilih sebagai acuan materi.');
         }
 
@@ -84,70 +102,45 @@ class GeminiQuestionService
         $uploadedFiles = [];
 
         try {
-            foreach ($documents as $source) {
+            foreach ($sources as $source) {
                 if ($source instanceof Video) {
                     $parts[] = $this->buildVideoPart($source, $uploadedFiles);
                 }
             }
+            $hasVideo = ! empty($parts);
 
-            return $this->generateFromParts(
-                $parts,
-                array_filter($documents, fn ($source) => ! $source instanceof Video),
-                $count,
-                $type,
-                $difficulty,
-                $customPrompt
-            );
+            foreach ($sources as $doc) {
+                if ($doc instanceof Video) {
+                    continue;
+                }
+
+                $filePath = $this->downloadDocument($doc);
+                if (! $filePath) {
+                    continue;
+                }
+
+                try {
+                    $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+                    $docPart = $this->buildFilePart($filePath, $ext, $doc->name);
+                } finally {
+                    @unlink($filePath);
+                }
+
+                if ($docPart) {
+                    $parts[] = $docPart;
+                }
+            }
+
+            if (empty($parts)) {
+                throw new Exception('File fisik dari dokumen yang dipilih tidak ditemukan pada storage server.');
+            }
+
+            return $callback($parts, $hasVideo);
         } finally {
             foreach ($uploadedFiles as $fileName) {
                 $this->deleteUploadedFile($fileName);
             }
         }
-    }
-
-    /**
-     * @param  array  $parts  Video parts that are already prepared
-     * @param  array  $documents  List of Document models
-     *
-     * @throws Exception
-     */
-    protected function generateFromParts(array $parts, array $documents, int $count, string $type, string $difficulty, ?string $customPrompt): array
-    {
-        $hasVideo = ! empty($parts);
-
-        // Attach documents to prompt parts
-        foreach ($documents as $doc) {
-            $filePath = $this->downloadDocument($doc);
-            if (! $filePath) {
-                continue;
-            }
-
-            try {
-                $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-                $docPart = $this->buildFilePart($filePath, $ext, $doc->name);
-            } finally {
-                @unlink($filePath);
-            }
-
-            if ($docPart) {
-                $parts[] = $docPart;
-            }
-        }
-
-        if (empty($parts)) {
-            throw new Exception('File fisik dari dokumen yang dipilih tidak ditemukan pada storage server.');
-        }
-
-        // Build prompt instruction
-        $promptText = $this->buildPromptText($count, $type, $difficulty, $customPrompt);
-        $parts[] = [
-            'text' => $promptText,
-        ];
-
-        // Call Gemini API
-        $response = $this->callGeminiApi($parts, $hasVideo);
-
-        return $this->parseResponse($response, $type);
     }
 
     /**
@@ -539,12 +532,228 @@ class GeminiQuestionService
      */
     protected function parseResponse(array $response, string $type): array
     {
+        $decoded = $this->decodeJsonText($response);
+        if (! $decoded || ! isset($decoded['questions']) || ! is_array($decoded['questions'])) {
+            // Check if returned directly as array
+            if (is_array($decoded) && isset($decoded[0]['question'])) {
+                $questionsList = $decoded;
+            } else {
+                throw new Exception('Format keluaran AI tidak dapat diproses sebagai daftar soal. Silakan coba lagi.');
+            }
+        } else {
+            $questionsList = $decoded['questions'];
+        }
+
+        $sanitized = array_values(array_filter(array_map(
+            fn ($q) => is_array($q) ? $this->sanitizeQuestion($q, $type) : null,
+            $questionsList
+        )));
+
+        if (empty($sanitized)) {
+            throw new Exception('AI tidak menghasilkan butir soal yang valid dari dokumen tersebut.');
+        }
+
+        return $sanitized;
+    }
+
+    /**
+     * Ubah satu soal hasil AI dari teks soal itu sendiri (tanpa membaca ulang materi).
+     *
+     * Bila $sources diisi, AI membaca ulang materinya (dokumen/video) supaya soal hasil ubahan tetap sesuai materi.
+     * Pertanyaan baru dicek terhadap $otherQuestions (soal lain di tinjauan + soal yang sudah tersimpan); bila masih
+     * mirip, AI diminta sekali lagi, dan bila tetap mirip soal yang dimaksud dikembalikan di 'similar_to'.
+     *
+     * @param  array  $question  Soal saat ini: type, question, option_a..e, correct_answer, explanation
+     * @param  string  $part  'question' (pertanyaan saja), 'answers' (pilihan/kunci saja) atau 'all'
+     * @param  array  $sources  List of Document and Video models
+     * @param  array<int, string>  $otherQuestions  Teks pertanyaan lain yang tidak boleh sama
+     * @return array{question: array, similar_to: ?string} Soal hasil ubahan; bagian yang tidak diminta diubah tetap seperti semula
+     *
+     * @throws Exception
+     */
+    public function reviseQuestion(array $question, string $part, ?string $instruction = null, array $sources = [], array $otherQuestions = []): array
+    {
+        if (! $this->isConfigured()) {
+            throw new Exception('GEMINI_API_KEY belum dikonfigurasi. Silakan masukkan API Key Gemini di pengaturan atau file .env!');
+        }
+
+        $type = ($question['type'] ?? 'multiple_choice') === 'essay' ? 'essay' : 'multiple_choice';
+        $current = $this->sanitizeQuestion($question, $type);
+        if (! $current) {
+            throw new Exception('Pertanyaan wajib diisi sebelum diubah dengan AI.');
+        }
+
+        // Pilihan jawaban saja: pertanyaannya tidak berubah, jadi tidak perlu dicek kemiripannya.
+        $otherQuestions = $part === 'answers' ? [] : array_slice(array_values(array_unique(array_filter(
+            array_map(fn ($text) => trim((string) $text), $otherQuestions)
+        ))), 0, 150);
+
+        $revise = function (array $materialParts, bool $hasVideo) use ($current, $part, $instruction, $type, $otherQuestions) {
+            $similarTo = null;
+
+            // Hanya "Semuanya" yang bisa menghindari soal kembar (boleh ganti konsep); "Pertanyaan saja" harus tetap
+            // cocok dengan pilihan jawabannya, jadi soal kembar cukup dilaporkan tanpa diminta ulang.
+            for ($attempt = 0; $attempt < ($part === 'all' ? 2 : 1); $attempt++) {
+                $prompt = $this->buildRevisePromptText($current, $part, $instruction, ! empty($materialParts), $otherQuestions, $similarTo);
+                ['question' => $revised, 'duplicate_of' => $duplicateOf] = $this->mergeRevision(
+                    $current, $this->callGeminiApi([...$materialParts, ['text' => $prompt]], $hasVideo), $part, $type
+                );
+
+                // Teksnya mirip, atau AI sendiri melaporkan maknanya sama dengan soal lain (dicocokkan ke daftar yang
+                // benar-benar ada supaya laporan karangan AI tidak ikut).
+                $similarTo = $this->findSimilarQuestion($revised['question'], $otherQuestions)
+                    ?? (filled($duplicateOf) ? $this->findSimilarQuestion($duplicateOf, $otherQuestions) : null);
+                if (! $similarTo) {
+                    break;
+                }
+            }
+
+            return ['question' => $revised, 'similar_to' => $similarTo];
+        };
+
+        return empty($sources) ? $revise([], false) : $this->withMaterial($sources, $revise);
+    }
+
+    /**
+     * Gabungkan jawaban AI ke soal semula: hanya bagian yang diminta yang diganti. 'duplicate_of' berisi soal lain
+     * yang menurut AI masih ditanyakan hal yang sama (kosong bila tidak ada).
+     *
+     * @return array{question: array, duplicate_of: string}
+     *
+     * @throws Exception
+     */
+    protected function mergeRevision(array $current, array $response, string $part, string $type): array
+    {
+        $decoded = $this->decodeJsonText($response);
+        $decoded = isset($decoded['questions'][0]) ? $decoded['questions'][0] : $decoded;
+        $revised = is_array($decoded) ? $this->sanitizeQuestion([
+            // Pertanyaan yang tidak diminta diubah boleh tidak dikirim balik oleh AI.
+            'question' => $current['question'],
+            ...$decoded,
+        ], $type) : null;
+
+        if (! $revised) {
+            throw new Exception('Format keluaran AI tidak dapat diproses sebagai soal. Silakan coba lagi.');
+        }
+
+        $changed = match ($part) {
+            'question' => ['question', 'explanation'],
+            'answers' => ['option_a', 'option_b', 'option_c', 'option_d', 'option_e', 'correct_answer', 'explanation'],
+            default => array_keys($revised),
+        };
+
+        return [
+            'question' => [...$current, ...array_intersect_key($revised, array_flip($changed))],
+            'duplicate_of' => trim((string) ($decoded['duplicate_of'] ?? '')),
+        ];
+    }
+
+    /**
+     * Pertanyaan di $others yang sama atau sangat mirip dengan $text (abaikan huruf besar, tanda baca, spasi).
+     */
+    protected function findSimilarQuestion(string $text, array $others): ?string
+    {
+        $normalize = fn (string $value) => trim(preg_replace('/\s+/u', ' ', preg_replace('/[^\p{L}\p{N}]+/u', ' ', mb_strtolower($value))));
+        $needle = $normalize($text);
+
+        foreach ($others as $other) {
+            $candidate = $normalize($other);
+            if ($candidate === '') {
+                continue;
+            }
+
+            similar_text($needle, $candidate, $percent);
+            if ($candidate === $needle || $percent >= 85) {
+                return $other;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<int, string>  $otherQuestions
+     */
+    protected function buildRevisePromptText(array $question, string $part, ?string $instruction, bool $hasMaterial = false, array $otherQuestions = [], ?string $tooSimilarTo = null): string
+    {
+        $isEssay = $question['type'] === 'essay';
+        $current = $isEssay
+            ? array_intersect_key($question, array_flip(['question', 'correct_answer', 'explanation']))
+            : array_intersect_key($question, array_flip(['question', 'option_a', 'option_b', 'option_c', 'option_d', 'option_e', 'correct_answer', 'explanation']));
+
+        $prompt = "Anda adalah seorang instruktur pelatihan profesional dan pembuat materi ujian berpengalaman.\n\n";
+        $prompt .= 'Berikut satu soal '.($isEssay ? 'Essay / Uraian' : 'Pilihan Ganda')." yang perlu diperbaiki:\n";
+        $prompt .= json_encode($current, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)."\n\n";
+        $prompt .= "TUGAS:\n";
+
+        $prompt .= match ($part) {
+            'question' => "Tulis ulang HANYA kalimat pertanyaan (kolom 'question') agar lebih jelas dan tidak ambigu. "
+                .($isEssay
+                    ? 'Pedoman kunci jawaban yang ada harus tetap sesuai dengan pertanyaan baru.'
+                    : 'Pilihan jawaban dan kunci jawaban yang ada TIDAK diubah dan harus tetap benar untuk pertanyaan baru.')
+                ." Sesuaikan 'explanation' bila perlu.\n",
+            'answers' => 'Pertanyaan TIDAK diubah. '
+                .($isEssay
+                    ? "Susun ulang pedoman kunci jawaban (kolom 'correct_answer', berisi poin-poin kunci / rubrik penilaian singkat) beserta 'explanation'.\n"
+                    : "Susun ulang 5 pilihan jawaban (option_a s/d option_e), kunci jawaban, dan 'explanation'. Pilihan pengecoh harus masuk akal, relevan, dan panjang kalimatnya seimbang.\n"),
+            default => 'Tulis ulang seluruh soal (pertanyaan, '.($isEssay ? 'pedoman kunci jawaban' : 'pilihan jawaban, kunci jawaban').', dan pembahasan) tentang konsep yang sama'
+                .($otherQuestions && $hasMaterial ? ', kecuali konsep itu sudah ditanyakan di daftar soal lain di bawah; bila begitu pilih konsep lain dari materi' : '')
+                .".\n",
+        };
+
+        if (filled($instruction)) {
+            $prompt .= "\nInstruksi khusus trainer: {$instruction}\n";
+        }
+
+        if ($otherQuestions) {
+            $prompt .= $part === 'all'
+                ? "\nSOAL LAIN YANG SUDAH ADA (pertanyaan baru TIDAK BOLEH sama, mirip, atau menanyakan hal yang sama dengan salah satu soal ini):\n"
+                : "\nSOAL LAIN YANG SUDAH ADA (JANGAN mengubah makna pertanyaan demi menghindari soal ini; pilihan jawaban dan kunci harus tetap cocok. Cukup periksa apakah pertanyaan menanyakan hal yang sama dengan salah satunya):\n";
+            foreach ($otherQuestions as $other) {
+                $prompt .= '- '.Str::limit($other, 300)."\n";
+            }
+        }
+
+        if ($tooSimilarTo) {
+            $prompt .= "\nPERHATIAN: hasil sebelumnya terlalu mirip dengan soal yang sudah ada: \"".Str::limit($tooSimilarTo, 300)."\". Buat pertanyaan yang menanyakan hal berbeda.\n";
+        }
+
+        $prompt .= "\nKETENTUAN:\n";
+        $prompt .= $hasMaterial
+            ? "1. Baca ulang materi yang dilampirkan (dokumen dan/atau video). Soal HARUS sesuai fakta dalam materi tersebut; periksa kembali bahwa kunci jawaban benar menurut materi.\n"
+            : "1. Tetap berpegang pada fakta dan konsep yang ada di soal semula; jangan mengarang fakta baru.\n";
+        if ($isEssay) {
+            $prompt .= "2. Kolom 'correct_answer' berisi poin-poin kunci jawaban / rubrik penilaian singkat.\n";
+        } else {
+            $prompt .= "2. Sediakan tepat 5 pilihan (option_a s/d option_e) dan isi 'correct_answer' dengan huruf kecil ('a', 'b', 'c', 'd', atau 'e').\n";
+        }
+        $prompt .= "3. Sertakan 'explanation' singkat 1-2 kalimat.\n";
+
+        if ($otherQuestions) {
+            $prompt .= "4. Isi 'duplicate_of' dengan salinan persis salah satu soal dari daftar SOAL LAIN bila pertanyaan baru masih menanyakan hal yang sama dengannya (misalnya karena bagian lain tidak boleh diubah); isi string kosong \"\" bila tidak ada.\n";
+        }
+
+        $prompt .= "\nFORMAT OUTPUT (WAJIB JSON MURNI, SATU OBJEK DENGAN SKEMA BERIKUT):\n";
+        $prompt .= ($isEssay
+            ? '{"question": "...", "correct_answer": "...", "explanation": "..."'
+            : '{"question": "...", "option_a": "...", "option_b": "...", "option_c": "...", "option_d": "...", "option_e": "...", "correct_answer": "a", "explanation": "..."')
+            .($otherQuestions ? ', "duplicate_of": ""}' : '}');
+
+        return $prompt."\n";
+    }
+
+    /**
+     * Ambil teks JSON dari respons Gemini (buang pagar ```json bila ada) lalu decode.
+     *
+     * @throws Exception
+     */
+    protected function decodeJsonText(array $response): mixed
+    {
         $rawText = $response['candidates'][0]['content']['parts'][0]['text'] ?? null;
         if (! $rawText) {
             throw new Exception('Google Gemini tidak mengembalikan respons teks yang valid.');
         }
 
-        // Clean markdown backticks if any
         $cleanJson = trim($rawText);
         if (str_starts_with($cleanJson, '```json')) {
             $cleanJson = substr($cleanJson, 7);
@@ -557,50 +766,45 @@ class GeminiQuestionService
         $cleanJson = trim($cleanJson);
 
         $decoded = json_decode($cleanJson, true);
-        if (! $decoded || ! isset($decoded['questions']) || ! is_array($decoded['questions'])) {
-            // Check if returned directly as array
-            if (is_array($decoded) && isset($decoded[0]['question'])) {
-                $questionsList = $decoded;
-            } else {
-                Log::error('Failed to parse Gemini JSON: '.$cleanJson);
-                throw new Exception('Format keluaran AI tidak dapat diproses sebagai daftar soal. Silakan coba lagi.');
-            }
-        } else {
-            $questionsList = $decoded['questions'];
+        if ($decoded === null) {
+            Log::error('Failed to parse Gemini JSON: '.$cleanJson);
         }
 
-        $sanitized = [];
-        foreach ($questionsList as $i => $q) {
-            $questionText = trim($q['question'] ?? '');
-            if (empty($questionText)) {
-                continue;
-            }
+        return $decoded;
+    }
 
-            $correctAnswer = strtolower(trim($q['correct_answer'] ?? 'a'));
-            if ($type === 'multiple_choice') {
-                if (! in_array($correctAnswer, ['a', 'b', 'c', 'd', 'e'])) {
-                    $correctAnswer = 'a';
-                }
-            }
-
-            $sanitized[] = [
-                'type' => $type,
-                'question' => $questionText,
-                'option_a' => ($type === 'multiple_choice') ? trim($q['option_a'] ?? '') : null,
-                'option_b' => ($type === 'multiple_choice') ? trim($q['option_b'] ?? '') : null,
-                'option_c' => ($type === 'multiple_choice') ? trim($q['option_c'] ?? '') : null,
-                'option_d' => ($type === 'multiple_choice') ? trim($q['option_d'] ?? '') : null,
-                'option_e' => ($type === 'multiple_choice') ? trim($q['option_e'] ?? '') : null,
-                'option_f' => null,
-                'correct_answer' => $correctAnswer,
-                'explanation' => trim($q['explanation'] ?? ''),
-            ];
+    /**
+     * Rapikan satu butir soal dari AI; null bila pertanyaannya kosong.
+     */
+    protected function sanitizeQuestion(array $q, string $type): ?array
+    {
+        $questionText = trim((string) ($q['question'] ?? ''));
+        if ($questionText === '') {
+            return null;
         }
 
-        if (empty($sanitized)) {
-            throw new Exception('AI tidak menghasilkan butir soal yang valid dari dokumen tersebut.');
+        $isMultipleChoice = $type === 'multiple_choice';
+        $correctAnswer = trim((string) ($q['correct_answer'] ?? 'a'));
+        if ($isMultipleChoice) {
+            $correctAnswer = strtolower($correctAnswer);
+            if (! in_array($correctAnswer, ['a', 'b', 'c', 'd', 'e'])) {
+                $correctAnswer = 'a';
+            }
         }
 
-        return $sanitized;
+        $option = fn (string $letter) => $isMultipleChoice ? trim((string) ($q['option_'.$letter] ?? '')) : null;
+
+        return [
+            'type' => $type,
+            'question' => $questionText,
+            'option_a' => $option('a'),
+            'option_b' => $option('b'),
+            'option_c' => $option('c'),
+            'option_d' => $option('d'),
+            'option_e' => $option('e'),
+            'option_f' => null,
+            'correct_answer' => $correctAnswer,
+            'explanation' => trim((string) ($q['explanation'] ?? '')),
+        ];
     }
 }

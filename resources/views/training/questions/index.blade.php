@@ -11,13 +11,19 @@
                 </a>
                 <div class="dropdown">
                     <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        Import
+                        Import / Export
                     </button>
                     <div class="dropdown-menu dropdown-menu-right">
                         <a class="dropdown-item" href="javascript:void(0)" data-toggle="modal" data-target="#importTextModal">Import Teks Cepat</a>
                         <a class="dropdown-item" href="javascript:void(0)" data-toggle="modal" data-target="#importExcelModal">Import Excel / CSV</a>
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="/training/{{ $training->id }}/questions/template">Download Template</a>
+                        @if($questions->isNotEmpty())
+                            <form action="{{ route('training.questions.export', $training) }}" method="POST" class="m-0">
+                                @csrf
+                                <button type="submit" class="dropdown-item">Export Soal &amp; Kunci Jawaban</button>
+                            </form>
+                        @endif
                     </div>
                 </div>
                 <button type="button" class="btn btn-default" data-toggle="modal" data-target="#addQuestionModal">
@@ -136,7 +142,7 @@
                 <div class="modal fade" id="editModal_{{ $q->id }}" tabindex="-1" role="dialog" aria-hidden="true">
                     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
                         <div class="modal-content">
-                            <form action="{{ route('training.questions.update', [$training, $q]) }}" method="POST" enctype="multipart/form-data">
+                            <form action="{{ route('training.questions.update', [$training, $q]) }}" method="POST" enctype="multipart/form-data" class="ai-revise-form" data-question-id="{{ $q->id }}">
                                 @method('PUT')
                                 @csrf
                                 <div class="modal-header">
@@ -616,6 +622,7 @@ KUNCI: Acuan poin jawaban peserta
 </div>
 
 @include('layout.partials.quiz-image-slot-script', ['uploadUrl' => route('training.questions.upload-image', $training)])
+@include('layout.partials.ai-revise-script')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // Dynamic switch for Type (Multiple Choice vs Essay)
@@ -779,11 +786,8 @@ document.addEventListener('DOMContentLoaded', function () {
         hideAiError();
     });
 
-    // TRIGGER AI GENERATE
-    document.getElementById('btnTriggerAiGenerate').addEventListener('click', function() {
-        hideAiError();
-
-        // 1. Gather documents
+    // Dokumen acuan yang dipilih (pelatihan + dokumen lain); dipakai saat generate dan saat "Ubah dengan AI".
+    function selectedAiDocIds() {
         var docIds = [];
         document.querySelectorAll('.ai-doc-checkbox:checked').forEach(function(cb) {
             docIds.push(cb.value);
@@ -792,6 +796,15 @@ document.addEventListener('DOMContentLoaded', function () {
         otherDocs.forEach(function(id) {
             if (docIds.indexOf(id) === -1) docIds.push(id);
         });
+        return docIds;
+    }
+
+    // TRIGGER AI GENERATE
+    document.getElementById('btnTriggerAiGenerate').addEventListener('click', function() {
+        hideAiError();
+
+        // 1. Gather documents
+        var docIds = selectedAiDocIds();
 
         if (docIds.length === 0) {
             showAiError('Silakan pilih minimal 1 dokumen materi acuan terlebih dahulu!');
@@ -892,6 +905,7 @@ document.addEventListener('DOMContentLoaded', function () {
             card.setAttribute('data-index', index);
 
             var isEssay = (q.type === 'essay');
+            card.setAttribute('data-type', isEssay ? 'essay' : 'multiple_choice');
 
             var cardHtml = '<div class="card-header">' +
                 '<div class="d-flex align-items-center gap-2">' +
@@ -903,10 +917,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         (isEssay ? 'Essay' : 'Pilihan Ganda') +
                     '</span>' +
                 '</div>' +
-                '<small class="text-muted">AI</small>' +
+                aiReviseButton() +
             '</div>';
 
             cardHtml += '<div class="card-body">' +
+                aiRevisePanel(index, isEssay) +
                 '<div class="form-group">' +
                     '<label>Pertanyaan</label>' +
                     '<textarea class="form-control ai-q-text" rows="3">' + escapeHtml(q.question) + '</textarea>' +
@@ -982,6 +997,93 @@ document.addEventListener('DOMContentLoaded', function () {
 
         updateSaveCount();
     }
+
+    // "Ubah dengan AI" per kartu soal.
+    bindAiRevise(aiQuestionsContainer, {
+        url: '{{ route('training.questions.revise-ai', $training) }}',
+        cardSelector: '.ai-q-card',
+        read: function(card) {
+            var isEssay = card.getAttribute('data-type') === 'essay';
+            var q = {
+                type: isEssay ? 'essay' : 'multiple_choice',
+                question: card.querySelector('.ai-q-text').value,
+                explanation: card.querySelector('.ai-q-explanation').value
+            };
+            if (isEssay) {
+                q.correct_answer = card.querySelector('.ai-essay-key').value;
+            } else {
+                ['a', 'b', 'c', 'd', 'e'].forEach(function(opt) {
+                    q['option_' + opt] = card.querySelector('.ai-opt-' + opt).value;
+                });
+                var key = card.querySelector('.ai-radio-key:checked');
+                q.correct_answer = key ? key.value : 'a';
+            }
+            return q;
+        },
+        write: function(card, q) {
+            card.querySelector('.ai-q-text').value = q.question || '';
+            card.querySelector('.ai-q-explanation').value = q.explanation || '';
+            if (card.getAttribute('data-type') === 'essay') {
+                card.querySelector('.ai-essay-key').value = q.correct_answer || '';
+            } else {
+                ['a', 'b', 'c', 'd', 'e'].forEach(function(opt) {
+                    card.querySelector('.ai-opt-' + opt).value = q['option_' + opt] || '';
+                });
+                var radio = card.querySelector('.ai-radio-key[value="' + (q.correct_answer || 'a') + '"]');
+                if (radio) {
+                    radio.checked = true;
+                    radio.dispatchEvent(new Event('change'));
+                }
+            }
+            card.querySelectorAll('.ai-q-text, .ai-q-explanation, .ai-essay-key').forEach(autoResize);
+        },
+        // AI membaca ulang dokumen acuan yang dipilih saat membuat soal.
+        extra: function() {
+            var apiKey = document.getElementById('aiApiKeyOverride');
+            return Object.assign({ document_ids: selectedAiDocIds() }, apiKey && apiKey.value ? { api_key: apiKey.value } : {});
+        }
+    });
+
+    // "Ubah dengan AI" di form edit soal tersimpan. Materi diambil server dari dokumen pelatihan ini.
+    document.querySelectorAll('form.ai-revise-form').forEach(function(form) {
+        mountAiRevise(form, 'edit_' + form.dataset.questionId);
+    });
+    bindAiRevise(document.body, {
+        url: '{{ route('training.questions.revise-ai', $training) }}',
+        cardSelector: 'form.ai-revise-form',
+        collectOthers: false,
+        read: function(form) {
+            var isEssay = form.elements.type.value === 'essay';
+            var q = {
+                type: isEssay ? 'essay' : 'multiple_choice',
+                question: form.elements.question.value,
+                explanation: form.elements.explanation.value,
+                correct_answer: form.querySelector(isEssay ? '.essay-input' : '.select-key').value,
+                // Opsi F tidak dibuat AI; disimpan di sini supaya "Kembalikan" ikut memulihkannya.
+                option_f: form.elements.option_f.value
+            };
+            ['a', 'b', 'c', 'd', 'e'].forEach(function(opt) { q['option_' + opt] = form.elements['option_' + opt].value; });
+            return q;
+        },
+        write: function(form, q, part) {
+            form.elements.question.value = q.question || '';
+            form.elements.explanation.value = q.explanation || '';
+            if (form.elements.type.value === 'essay') {
+                form.querySelector('.essay-input').value = q.correct_answer || '';
+                return;
+            }
+            ['a', 'b', 'c', 'd', 'e'].forEach(function(opt) { form.elements['option_' + opt].value = q['option_' + opt] || ''; });
+            // AI menyusun 5 pilihan (A–E); opsi F lama dikosongkan bila pilihan jawaban ikut diubah.
+            if (part !== 'question') {
+                form.elements.option_f.value = q.option_f || '';
+            }
+            form.querySelector('.select-key').value = q.correct_answer || 'a';
+        },
+        extra: function(form) {
+            var apiKey = document.getElementById('aiApiKeyOverride');
+            return Object.assign({ question_id: parseInt(form.dataset.questionId, 10) }, apiKey && apiKey.value ? { api_key: apiKey.value } : {});
+        }
+    });
 
     function autoResize(el) {
         if (!el) return;

@@ -11,3 +11,4 @@ Artisan::command('inspire', function () {
 Schedule::command('training:send-reminders')->everyFifteenMinutes();
 Schedule::command('dnd:sync-users')->dailyAt(config('services.dnd.sync_time'))->withoutOverlapping();
 Schedule::command('horizon:snapshot')->everyFiveMinutes();
+Schedule::command('notifications:prune')->dailyAt('02:00');

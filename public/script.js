@@ -157,3 +157,25 @@ $(document).ready(function () {
     });
 });
 
+
+// Badge notifikasi (lonceng topbar & menu sidebar) diperbarui tiap menit, supaya hasil import/export yang
+// selesai di belakang layar langsung terlihat tanpa memuat ulang halaman.
+$(function () {
+    var $badges = $("[data-notification-count]");
+    if (!$badges.length) {
+        return;
+    }
+
+    function refresh() {
+        if (document.hidden) {
+            return;
+        }
+        $.getJSON("/notifikasi/unread-count").done(function (data) {
+            var count = data.count || 0;
+            $badges.text(count > 99 ? "99+" : count).prop("hidden", count === 0);
+        });
+    }
+
+    setInterval(refresh, 60000);
+    document.addEventListener("visibilitychange", refresh);
+});

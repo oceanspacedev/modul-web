@@ -9,6 +9,8 @@
     $quizPretestMax = old('quiz.pretest_max_attempts', $quiz ? $quiz->pretest_max_attempts : 1);
     $quizPosttestMax = old('quiz.posttest_max_attempts', $quiz?->posttest_max_attempts);
     $quizPassing = old('quiz.passing_score', $quiz?->passing_score ?? 70);
+    $quizPretestAnswers = (bool) old('quiz.pretest_shows_answers', $quiz?->pretest_shows_answers ?? true);
+    $quizPosttestAnswers = (bool) old('quiz.posttest_shows_answers', $quiz?->posttest_shows_answers ?? true);
     $quizAsCard = $card ?? false;
 @endphp
 <div class="{{ $quizAsCard ? 'card' : 'border rounded p-3 mb-3 bg-light' }} material-quiz-fields">
@@ -37,6 +39,12 @@
             <div id="quizPretestMax" class="{{ $quizPretest ? '' : 'd-none' }}">
                 <label for="quiz_pretest_max">Batas percobaan</label>
                 <input type="number" min="1" max="255" class="form-control" id="quiz_pretest_max" name="quiz[pretest_max_attempts]" value="{{ $quizPretestMax }}" placeholder="Kosong = tanpa batas">
+                <input type="hidden" name="quiz[pretest_shows_answers]" value="0">
+                <div class="custom-control custom-switch mt-2">
+                    <input type="checkbox" class="custom-control-input" id="quiz_pretest_shows_answers" name="quiz[pretest_shows_answers]" value="1" {{ $quizPretestAnswers ? 'checked' : '' }}>
+                    <label class="custom-control-label" for="quiz_pretest_shows_answers">Tampilkan jawaban benar/salah setelah selesai</label>
+                </div>
+                <small class="form-text text-muted">Mati = peserta hanya melihat nilai.</small>
             </div>
         </div>
         <div class="col-md-6 mb-2">
@@ -48,6 +56,12 @@
             <div id="quizPosttestMax" class="{{ $quizPosttest ? '' : 'd-none' }}">
                 <label for="quiz_posttest_max">Batas percobaan</label>
                 <input type="number" min="1" max="255" class="form-control" id="quiz_posttest_max" name="quiz[posttest_max_attempts]" value="{{ $quizPosttestMax }}" placeholder="Kosong = tanpa batas">
+                <input type="hidden" name="quiz[posttest_shows_answers]" value="0">
+                <div class="custom-control custom-switch mt-2">
+                    <input type="checkbox" class="custom-control-input" id="quiz_posttest_shows_answers" name="quiz[posttest_shows_answers]" value="1" {{ $quizPosttestAnswers ? 'checked' : '' }}>
+                    <label class="custom-control-label" for="quiz_posttest_shows_answers">Tampilkan jawaban benar/salah setelah selesai</label>
+                </div>
+                <small class="form-text text-muted">Mati = peserta hanya melihat nilai.</small>
             </div>
         </div>
     </div>

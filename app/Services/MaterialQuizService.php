@@ -25,6 +25,8 @@ class MaterialQuizService
             'quiz' => ['nullable', 'array'],
             'quiz.pretest' => ['boolean'],
             'quiz.posttest' => ['boolean'],
+            'quiz.pretest_shows_answers' => ['boolean'],
+            'quiz.posttest_shows_answers' => ['boolean'],
             'quiz.pretest_max_attempts' => ['nullable', 'integer', 'min:1', 'max:255'],
             'quiz.posttest_max_attempts' => ['nullable', 'integer', 'min:1', 'max:255'],
             'quiz.passing_score' => ['nullable', 'integer', 'min:0', 'max:100'],
@@ -72,6 +74,9 @@ class MaterialQuizService
             'passing_score' => $settings['passing_score'] ?? 70,
             'quiz_mode' => $settings['mode'] ?? LearningModule::MODE_FORMAL,
             'question_seconds' => $settings['question_seconds'] ?? 30,
+            // Form lama tanpa field ini: rincian jawaban tetap ditampilkan seperti sebelumnya.
+            'pretest_shows_answers' => (bool) ($settings['pretest_shows_answers'] ?? true),
+            'posttest_shows_answers' => (bool) ($settings['posttest_shows_answers'] ?? true),
             'deleted_at' => null,
         ])->save();
 

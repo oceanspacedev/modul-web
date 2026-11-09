@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Training;
 use App\Models\TrainingParticipant;
 use Carbon\Carbon;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -42,15 +43,7 @@ class WhatsAppService
             return ['status' => false, 'message' => 'Nomor WhatsApp tidak valid atau kosong'];
         }
 
-        $rawUrl = config('services.whatsapp.url');
         $token = config('services.whatsapp.token');
-
-        if (! preg_match('/^https?:\/\//i', $rawUrl)) {
-            $baseUrl = 'https://'.$rawUrl;
-        } else {
-            $baseUrl = $rawUrl;
-        }
-        $endpoint = rtrim($baseUrl, '/').'/api/v1/messages';
 
         $appName = config('app.name', 'Modul');
         $message = "*KODE OTP LOGIN - {$appName}*\n\n"
@@ -78,36 +71,8 @@ class WhatsAppService
             ];
         }
 
-        $idempotencyKey = 'otp-'.$formattedPhone.'-'.time().'-'.Str::random(4);
-
-        $payload = [
-            'recipient' => [
-                'type' => 'phone',
-                'value' => $formattedPhone,
-            ],
-            'message' => [
-                'type' => 'text',
-                'text' => $message,
-            ],
-            'purpose' => 'otp',
-            'mode' => 'sync',
-            'route_key' => 'default',
-            'idempotency_key' => $idempotencyKey,
-            'expires_at' => now()->addMinutes(10)->toIso8601String(),
-            'client_reference' => 'otp-'.time(),
-        ];
-
         try {
-            $response = Http::withHeaders([
-                'Accept' => 'application/json',
-                'Authorization' => 'Bearer '.$token,
-                'Idempotency-Key' => $idempotencyKey,
-                'Content-Type' => 'application/json',
-            ])->withOptions([
-                'curl' => [
-                    CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
-                ],
-            ])->connectTimeout(5)->timeout(15)->retry(2, 500)->post($endpoint, $payload);
+            $response = self::post($formattedPhone, $message, 'otp', 'otp', 'otp-'.time(), now()->addMinutes(10));
 
             if ($response->successful()) {
                 Log::info("WAGHub OTP successfully sent to [{$formattedPhone}]");
@@ -213,16 +178,7 @@ class WhatsAppService
 
         $message = self::buildInvitationMessage($training, $participant);
 
-        // Configuration supports both legacy lowercase and uppercase env names.
-        $rawUrl = config('services.whatsapp.url');
         $token = config('services.whatsapp.token');
-
-        if (! preg_match('/^https?:\/\//i', $rawUrl)) {
-            $baseUrl = 'https://'.$rawUrl;
-        } else {
-            $baseUrl = $rawUrl;
-        }
-        $endpoint = rtrim($baseUrl, '/').'/api/v1/messages';
 
         // If no token configured, simulate and log
         if (empty($token)) {
@@ -235,36 +191,15 @@ class WhatsAppService
             return ['status' => true, 'message' => 'Simulasi sukses (token belum diisi)'];
         }
 
-        $idempotencyKey = 'trn-'.$training->id.'-'.$participant->id.'-'.time().'-'.Str::random(4);
-
-        $payload = [
-            'recipient' => [
-                'type' => 'phone',
-                'value' => $phone,
-            ],
-            'message' => [
-                'type' => 'text',
-                'text' => $message,
-            ],
-            'purpose' => 'otp',
-            'mode' => 'sync',
-            'route_key' => 'default',
-            'idempotency_key' => $idempotencyKey,
-            'expires_at' => now()->addDays(7)->toIso8601String(),
-            'client_reference' => 'trn-'.$training->id.'-'.$participant->id,
-        ];
-
         try {
-            $response = Http::withHeaders([
-                'Accept' => 'application/json',
-                'Authorization' => 'Bearer '.$token,
-                'Idempotency-Key' => $idempotencyKey,
-                'Content-Type' => 'application/json',
-            ])->withOptions([
-                'curl' => [
-                    CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
-                ],
-            ])->connectTimeout(5)->timeout(15)->retry(2, 500)->post($endpoint, $payload);
+            $response = self::post(
+                $phone,
+                $message,
+                'otp',
+                'trn-'.$training->id.'-'.$participant->id,
+                'trn-'.$training->id.'-'.$participant->id,
+                now()->addDays(7),
+            );
 
             if ($response->successful()) {
                 $participant->update([
@@ -300,5 +235,93 @@ class WhatsAppService
 
             return ['status' => false, 'message' => $errorMsg];
         }
+    }
+
+    /**
+     * Kirim pesan teks bebas (mis. notifikasi proses selesai). Tanpa token, pesan hanya dicatat di log saat
+     * local/testing.
+     *
+     * @return array{status: bool, message: string, simulated?: bool}
+     */
+    public static function sendText(string $phone, string $text, string $reference = 'notif'): array
+    {
+        $formattedPhone = self::formatPhoneNumber($phone);
+        if (! $formattedPhone) {
+            return ['status' => false, 'message' => 'Nomor WhatsApp tidak valid atau kosong'];
+        }
+
+        if (empty(config('services.whatsapp.token'))) {
+            if (! app()->environment(['local', 'testing'])) {
+                Log::error('WAGHub gateway token is not configured.');
+
+                return ['status' => false, 'message' => 'Gateway WhatsApp belum dikonfigurasi.'];
+            }
+
+            Log::info("WAGHub Simulated to [{$formattedPhone}]:
+".$text);
+
+            return ['status' => true, 'message' => 'Simulasi sukses (token gateway belum diisi di .env)', 'simulated' => true];
+        }
+
+        try {
+            // Purpose 'otp' sama seperti undangan pelatihan: rute pengiriman yang sudah diizinkan di WAGHub.
+            $response = self::post($formattedPhone, $text, 'otp', $reference, $reference, now()->addDay());
+        } catch (\Throwable $th) {
+            Log::error('WAGHub send exception: '.$th->getMessage());
+
+            return ['status' => false, 'message' => $th->getMessage()];
+        }
+
+        if ($response->successful()) {
+            return ['status' => true, 'message' => 'Pesan WA berhasil dikirim'];
+        }
+
+        $errorMsg = $response->json('message') ?? ('HTTP Error '.$response->status());
+        Log::error('WAGHub send error: '.$errorMsg, ['response' => $response->body()]);
+
+        return ['status' => false, 'message' => $errorMsg];
+    }
+
+    /**
+     * Satu panggilan ke endpoint pesan WAGHub. Pemanggil yang menafsirkan respons dan menangani exception.
+     */
+    private static function post(
+        string $phone,
+        string $text,
+        string $purpose,
+        string $keyPrefix,
+        string $clientReference,
+        Carbon $expiresAt,
+    ): Response {
+        $rawUrl = (string) config('services.whatsapp.url');
+        $baseUrl = preg_match('/^https?:\/\//i', $rawUrl) ? $rawUrl : 'https://'.$rawUrl;
+        $endpoint = rtrim($baseUrl, '/').'/api/v1/messages';
+        $idempotencyKey = $keyPrefix.'-'.$phone.'-'.time().'-'.Str::random(4);
+
+        return Http::withHeaders([
+            'Accept' => 'application/json',
+            'Authorization' => 'Bearer '.config('services.whatsapp.token'),
+            'Idempotency-Key' => $idempotencyKey,
+            'Content-Type' => 'application/json',
+        ])->withOptions([
+            'curl' => [
+                CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+            ],
+        ])->connectTimeout(5)->timeout(15)->retry(2, 500)->post($endpoint, [
+            'recipient' => [
+                'type' => 'phone',
+                'value' => $phone,
+            ],
+            'message' => [
+                'type' => 'text',
+                'text' => $text,
+            ],
+            'purpose' => $purpose,
+            'mode' => 'sync',
+            'route_key' => 'default',
+            'idempotency_key' => $idempotencyKey,
+            'expires_at' => $expiresAt->toIso8601String(),
+            'client_reference' => $clientReference,
+        ]);
     }
 }

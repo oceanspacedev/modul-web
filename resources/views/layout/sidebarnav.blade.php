@@ -19,6 +19,16 @@
                 </li>
                 @endcan
 
+                <li class="nav-item">
+                    <a href="{{ route('notifications.index') }}" class="nav-link {{ ($active ?? '') === 'notifications' ? 'active' : '' }}">
+                        <i class="nav-icon far fa-bell"></i>
+                        <p>
+                            Notifikasi
+                            <span class="right badge badge-primary" data-notification-count @if ($unreadNotificationCount === 0) hidden @endif>{{ $unreadNotificationCount > 99 ? '99+' : $unreadNotificationCount }}</span>
+                        </p>
+                    </a>
+                </li>
+
                 @can('view-videos')
                 <li class="nav-item">
                     <a href="/video" class="nav-link {{ ($active ?? '') === 'video' ? 'active' : '' }}">
@@ -93,6 +103,15 @@
                     <a href="/document" class="nav-link {{ ($active ?? '') === 'document' ? 'active' : '' }}">
                         <i class="nav-icon far fa-file-alt"></i>
                         <p>Dokumen</p>
+                    </a>
+                </li>
+                @endcanany
+
+                @canany(App\Http\Controllers\ScoreRecapController::PERMISSIONS)
+                <li class="nav-item">
+                    <a href="{{ route('score-recap.index') }}" class="nav-link {{ ($active ?? '') === 'score-recap' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-chart-line"></i>
+                        <p>Rekap Nilai</p>
                     </a>
                 </li>
                 @endcanany

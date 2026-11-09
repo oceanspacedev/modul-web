@@ -120,11 +120,23 @@
                                     <label for="pretest_max_attempts">Batas Percobaan Pretest</label>
                                     <input type="number" id="pretest_max_attempts" name="pretest_max_attempts" class="form-control" min="1" max="255"
                                         value="{{ old('pretest_max_attempts', $module->exists ? $module->pretest_max_attempts : 1) }}" placeholder="Tanpa batas">
+                                    <div class="custom-control custom-switch mt-2">
+                                        <input type="checkbox" class="custom-control-input" id="pretest_shows_answers" name="pretest_shows_answers" value="1"
+                                            {{ old('pretest_shows_answers', $module->pretest_shows_answers) ? 'checked' : '' }}>
+                                        <label class="custom-control-label" for="pretest_shows_answers">Tampilkan jawaban benar/salah setelah pretest</label>
+                                    </div>
+                                    <small class="form-text text-muted">Mati = peserta hanya melihat nilai.</small>
                                 </div>
                                 <div class="col-sm-6 form-group">
                                     <label for="posttest_max_attempts">Batas Percobaan Posttest</label>
                                     <input type="number" id="posttest_max_attempts" name="posttest_max_attempts" class="form-control" min="1" max="255"
                                         value="{{ old('posttest_max_attempts', $module->posttest_max_attempts) }}" placeholder="Tanpa batas">
+                                    <div class="custom-control custom-switch mt-2">
+                                        <input type="checkbox" class="custom-control-input" id="posttest_shows_answers" name="posttest_shows_answers" value="1"
+                                            {{ old('posttest_shows_answers', $module->posttest_shows_answers) ? 'checked' : '' }}>
+                                        <label class="custom-control-label" for="posttest_shows_answers">Tampilkan jawaban benar/salah setelah posttest</label>
+                                    </div>
+                                    <small class="form-text text-muted">Mati = peserta hanya melihat nilai.</small>
                                 </div>
                             </div>
 

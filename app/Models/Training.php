@@ -13,6 +13,10 @@ class Training extends Model
 
     protected $guarded = ['id'];
 
+    protected $attributes = [
+        'show_quiz_answers' => true,
+    ];
+
     /**
      * Get the attributes that should be cast.
      *
@@ -26,6 +30,7 @@ class Training extends Model
             'is_quiz_active' => 'boolean',
             'is_attendance_active' => 'boolean',
             'require_attendance_proof' => 'boolean',
+            'show_quiz_answers' => 'boolean',
         ];
     }
 

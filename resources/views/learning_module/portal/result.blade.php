@@ -68,14 +68,18 @@
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Rincian Jawaban</h3>
+        @if($module->showsAnswers($attempt->phase))
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Rincian Jawaban</h3>
+                </div>
+                <div class="card-body">
+                    @include('learning_module.partials.attempt-review', ['attempt' => $attempt, 'showKey' => true])
+                </div>
             </div>
-            <div class="card-body">
-                @include('learning_module.partials.attempt-review', ['attempt' => $attempt, 'showKey' => false])
-            </div>
-        </div>
+        @else
+            <p class="text-muted small text-center">Rincian jawaban tidak ditampilkan untuk {{ $attempt->isPretest() ? 'pretest' : 'posttest' }} ini.</p>
+        @endif
     </div>
 </section>
 @endsection

@@ -224,6 +224,20 @@ return [
             'timeout' => 900,
             'nice' => 0,
         ],
+
+        // Import/export berat (lihat app/Jobs): satu proses supaya import user tidak berjalan bersamaan.
+        'supervisor-heavy' => [
+            'connection' => 'redis-long',
+            'queue' => ['heavy'],
+            'balance' => false,
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 512,
+            'tries' => 1,
+            'timeout' => 900,
+            'nice' => 0,
+        ],
     ],
 
     'environments' => [
@@ -235,6 +249,7 @@ return [
                 'balanceCooldown' => 3,
             ],
             'supervisor-ai' => [],
+            'supervisor-heavy' => [],
         ],
 
         // Server staging berjalan dengan APP_ENV=staging; tanpa entri ini Horizon tidak menjalankan worker sama sekali.
@@ -245,6 +260,7 @@ return [
                 'balanceCooldown' => 3,
             ],
             'supervisor-ai' => [],
+            'supervisor-heavy' => [],
         ],
 
         'local' => [
@@ -252,6 +268,7 @@ return [
                 'maxProcesses' => 3,
             ],
             'supervisor-ai' => [],
+            'supervisor-heavy' => [],
         ],
     ],
 

@@ -458,12 +458,15 @@ class UserModuleDndTest extends TestCase
             ->assertSee('SITI DND')
             ->assertSee('PT DND JAKARTA');
 
-        // 2. Process: masters, users, jabatan and approval lines are applied.
+        // 2. Process (queued; the sync queue runs it inline): masters, users, jabatan and approval lines are applied.
         $this->actingAs($this->superAdmin())->post('/user/sync-dnd/process', ['token' => $token])
             ->assertRedirect('/user')
-            ->assertSessionHas('success');
+            ->assertSessionHas('info');
 
         Storage::disk('local')->assertMissing("dnd-sync/{$token}.json");
+        $notification = $this->superAdmin()->notifications()->first();
+        $this->assertSame('Sinkronisasi DnD selesai', $notification->data['title']);
+        $this->assertStringContainsString('Baru: 3, diperbarui: 1', $notification->data['message']);
 
         $newArea = Area::where('name', 'PT DND JAKARTA')->firstOrFail();
         $newDivisi = Divisi::where('name', 'SALES DND')->firstOrFail();
@@ -538,11 +541,16 @@ class UserModuleDndTest extends TestCase
             ['id_employee' => 'EMP-NEW2', 'first_name' => 'Siti', 'last_name' => 'Aminah', 'mobile_phone' => '12345', 'organization' => 'Finance', 'title' => 'Staff Accounting'],
         ]]];
 
+        Storage::fake('local');
         $file = UploadedFile::fake()->createWithContent('list-employee.json', json_encode($talenta));
 
         $this->actingAs($this->superAdmin())->post('/user/import-json', ['file' => $file])
             ->assertRedirect('/user')
-            ->assertSessionHas('success');
+            ->assertSessionHas('info');
+
+        // The upload is processed in the background, reported as a notification, then removed.
+        $this->assertSame([], Storage::disk('local')->allFiles('imports'));
+        $this->assertSame('Import JSON selesai', $this->superAdmin()->notifications()->first()->data['title']);
 
         $this->assertSame('lama@example.com', $existing->fresh()->email);
         $this->assertSame('081211110001', $existing->fresh()->no_hp);

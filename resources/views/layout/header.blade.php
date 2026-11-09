@@ -45,6 +45,32 @@
             </ul>
 
             <ul class="navbar-nav ml-auto align-items-center">
+                <li class="nav-item dropdown mr-2">
+                    <a href="#" class="nav-link topbar-toggle notification-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Notifikasi">
+                        <i class="far fa-bell"></i>
+                        <span class="notification-badge" data-notification-count @if ($unreadNotificationCount === 0) hidden @endif>{{ $unreadNotificationCount > 99 ? '99+' : $unreadNotificationCount }}</span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right notification-menu">
+                        <div class="notification-menu-header">
+                            <span>Notifikasi</span>
+                            @if ($unreadNotificationCount > 0)
+                                <form action="{{ route('notifications.read-all') }}" method="POST" class="m-0">
+                                    @csrf
+                                    <button type="submit" class="btn btn-link btn-sm p-0">Tandai semua dibaca</button>
+                                </form>
+                            @endif
+                        </div>
+                        @forelse ($latestNotifications as $notification)
+                            <a href="{{ route('notifications.index') }}" class="dropdown-item notification-menu-item {{ $notification->read_at ? '' : 'is-unread' }}">
+                                <span class="notification-menu-title text-truncate">{{ $notification->data['title'] ?? 'Notifikasi' }}</span>
+                                <span class="notification-menu-meta">{{ $notification->created_at->diffForHumans() }}</span>
+                            </a>
+                        @empty
+                            <div class="notification-menu-empty">Belum ada notifikasi.</div>
+                        @endforelse
+                        <a href="{{ route('notifications.index') }}" class="dropdown-item notification-menu-footer">Lihat semua notifikasi</a>
+                    </div>
+                </li>
                 <li class="nav-item dropdown">
                     <a href="#" class="nav-link user-menu-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         <span class="avatar">{{ $initials ?: 'U' }}</span>

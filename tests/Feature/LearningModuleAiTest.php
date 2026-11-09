@@ -128,6 +128,92 @@ class LearningModuleAiTest extends TestCase
         $this->assertSame(1, $this->module->questions()->count());
     }
 
+    public function test_one_reviewed_question_can_be_revised_with_ai(): void
+    {
+        Http::fake([
+            'generativelanguage.googleapis.com/v1beta/models/*' => Http::response([
+                'candidates' => [['content' => ['parts' => [['text' => json_encode([
+                    'question' => 'APD apa yang wajib dipakai di area proyek?',
+                    'option_a' => 'Topi', 'option_b' => 'Helm', 'option_c' => 'Sandal', 'option_d' => 'Payung', 'option_e' => 'Jas',
+                    'correct_answer' => 'b', 'explanation' => 'Helm melindungi kepala.',
+                ])]]]]],
+            ]),
+        ]);
+        $item = $this->addVideo(['video_type' => 'link', 'video_link' => 'https://youtu.be/dQw4w9WgXcQ']);
+        $this->module->questions()->create(['question' => 'Apa fungsi rambu kuning?', 'option_a' => 'Peringatan', 'option_b' => 'Larangan', 'correct_answer' => 'a', 'sort_order' => 1]);
+        $current = ['question' => 'APD?', 'option_a' => 'Helm', 'option_b' => 'Topi', 'option_c' => '', 'correct_answer' => 'a', 'explanation' => ''];
+
+        $token = $this->actingAs($this->admin)->postJson(route('learning-module.questions.revise-ai', $this->module), [
+            'question' => $current, 'part' => 'all', 'instruction' => 'buat lebih jelas',
+            'item_ids' => [$item->id], 'other_questions' => ['Kapan APD dipakai?'],
+        ])->assertOk()->json('token');
+
+        $this->actingAs($this->admin)->getJson(route('learning-module.questions.ai-status', [$this->module, $token]))
+            ->assertOk()->assertJson(['status' => 'done', 'similar_to' => null, 'question' => [
+                'question' => 'APD apa yang wajib dipakai di area proyek?', 'option_b' => 'Helm', 'correct_answer' => 'b',
+            ]]);
+
+        // Video dibaca ulang; soal lain di tinjauan dan soal yang sudah tersimpan dikirim supaya tidak muncul dua kali.
+        Http::assertSent(function (Request $request) {
+            $parts = $request['contents'][0]['parts'];
+
+            return ($parts[0]['file_data']['file_uri'] ?? null) === 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+                && str_contains($parts[1]['text'], 'Kapan APD dipakai?')
+                && str_contains($parts[1]['text'], 'Apa fungsi rambu kuning?');
+        });
+
+        $this->actingAs($this->admin)->postJson(route('learning-module.questions.revise-ai', $this->module), [
+            'question' => $current, 'part' => 'semua', 'item_ids' => [$item->id],
+        ])->assertUnprocessable()->assertJsonValidationErrors('part');
+
+        // Materi acuan wajib, karena AI selalu membaca ulang materi.
+        $this->actingAs($this->admin)->postJson(route('learning-module.questions.revise-ai', $this->module), [
+            'question' => $current, 'part' => 'all',
+        ])->assertUnprocessable()->assertJsonValidationErrors('item_ids');
+
+        config(['services.gemini.api_key' => null]);
+        $this->actingAs($this->admin)->postJson(route('learning-module.questions.revise-ai', $this->module), [
+            'question' => $current, 'part' => 'question', 'item_ids' => [$item->id],
+        ])->assertUnprocessable()->assertJson(['success' => false]);
+
+        // Hanya mengubah isi kartu tinjauan; tidak ada soal baru yang tersimpan.
+        $this->assertSame(1, $this->module->questions()->count());
+        Http::assertSentCount(1);
+    }
+
+    public function test_a_saved_question_can_be_revised_with_ai_from_its_edit_form(): void
+    {
+        $this->addVideo(['video_type' => 'link', 'video_link' => 'https://youtu.be/dQw4w9WgXcQ']);
+        $edited = $this->module->questions()->create(['question' => 'APD?', 'option_a' => 'Helm', 'option_b' => 'Topi', 'correct_answer' => 'a', 'sort_order' => 1]);
+        $this->module->questions()->create(['question' => 'Apa fungsi rambu kuning?', 'option_a' => 'Peringatan', 'option_b' => 'Larangan', 'correct_answer' => 'a', 'sort_order' => 2]);
+        // AI hanya merapikan kalimat; soal yang sedang diedit tidak boleh terhitung sebagai soal kembar.
+        Http::fake(['generativelanguage.googleapis.com/v1beta/models/*' => Http::response([
+            'candidates' => [['content' => ['parts' => [['text' => json_encode(['question' => 'APD?'])]]]]],
+        ])]);
+
+        $token = $this->actingAs($this->admin)->postJson(route('learning-module.questions.revise-ai', $this->module), [
+            'question' => ['question' => 'APD?', 'option_a' => 'Helm', 'option_b' => 'Topi', 'correct_answer' => 'a'],
+            'part' => 'question',
+            'question_id' => $edited->id,
+        ])->assertOk()->json('token');
+
+        $this->actingAs($this->admin)->getJson(route('learning-module.questions.ai-status', [$this->module, $token]))
+            ->assertOk()->assertJson(['status' => 'done', 'similar_to' => null]);
+
+        // Tanpa pilihan materi: semua materi modul yang bisa dibaca AI dipakai; soal tersimpan lain ikut dicek.
+        Http::assertSent(fn (Request $request) => ($request['contents'][0]['parts'][0]['file_data']['file_uri'] ?? null) === 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+            && str_contains($request['contents'][0]['parts'][1]['text'], 'Apa fungsi rambu kuning?'));
+        Http::assertSentCount(1);
+        $this->assertSame('APD?', $edited->fresh()->question);
+
+        // Soal milik modul lain ditolak.
+        $other = LearningModule::create(['title' => 'Lain', 'passing_score' => 70]);
+        $foreign = $other->questions()->create(['question' => 'X?', 'option_a' => 'A', 'option_b' => 'B', 'correct_answer' => 'a', 'sort_order' => 1]);
+        $this->actingAs($this->admin)->postJson(route('learning-module.questions.revise-ai', $this->module), [
+            'question' => ['question' => 'X?'], 'part' => 'all', 'question_id' => $foreign->id,
+        ])->assertUnprocessable()->assertJsonValidationErrors('question_id');
+    }
+
     public function test_saving_ai_questions_returns_where_to_go_next(): void
     {
         $question = ['question' => 'APD?', 'option_a' => 'Helm', 'option_b' => 'Topi', 'correct_answer' => 'a'];

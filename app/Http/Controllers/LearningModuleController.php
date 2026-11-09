@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Exports\LearningModuleRekapExport;
 use App\Http\Requests\LearningModuleRequest;
+use App\Jobs\GenerateExportFile;
 use App\Models\Divisi;
 use App\Models\Document;
 use App\Models\LearningModule;
@@ -15,10 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Attributes\Controllers\Authorize;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
-use Maatwebsite\Excel\Facades\Excel;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 #[Authorize('viewAny', LearningModule::class, only: ['index'])]
 #[Authorize('create', LearningModule::class, only: ['create', 'store'])]
@@ -159,9 +156,11 @@ class LearningModuleController extends Controller
             : 'Modul ditarik dan tidak lagi tampil untuk peserta.');
     }
 
-    public function export(LearningModule $module): BinaryFileResponse
+    public function export(Request $request, LearningModule $module): RedirectResponse
     {
-        return Excel::download(new LearningModuleRekapExport($module), 'rekap_modul_'.Str::slug($module->title).'.xlsx');
+        GenerateExportFile::dispatch($request->user()->id, GenerateExportFile::LEARNING_MODULE, $module->id);
+
+        return back()->with('info', GenerateExportFile::QUEUED_MESSAGE);
     }
 
     /**

@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Enums\TrainingStatus;
-use App\Exports\TrainingRekapExport;
 use App\Http\Requests\StoreTrainingRequest;
 use App\Http\Requests\UpdateTrainingRequest;
+use App\Jobs\GenerateExportFile;
 use App\Jobs\SendTrainingInvitation;
 use App\Models\Divisi;
 use App\Models\Document;
@@ -25,7 +25,6 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 #[Authorize('viewAny', Training::class, only: ['index'])]
 #[Authorize('create', Training::class, only: ['create', 'store'])]
@@ -308,6 +307,21 @@ class TrainingController extends Controller
     }
 
     /**
+     * Quick toggle whether participants see right/wrong answers and the key after the quiz.
+     */
+    public function toggleQuizAnswers(Training $training): RedirectResponse
+    {
+        $newValue = ! $training->show_quiz_answers;
+        $training->update(['show_quiz_answers' => $newValue]);
+
+        $message = $newValue
+            ? 'Jawaban benar/salah dan kunci jawaban kini DITAMPILKAN ke peserta setelah mengerjakan kuis.'
+            : 'Jawaban benar/salah kini DISEMBUNYIKAN; peserta hanya melihat nilai.';
+
+        return back()->with('success', $message);
+    }
+
+    /**
      * Broadcast WhatsApp notification to all participants
      */
     public function broadcastWa(Training $training): RedirectResponse
@@ -450,22 +464,13 @@ class TrainingController extends Controller
     }
 
     /**
-     * Export attendance and quiz results to Excel (.xlsx)
+     * Export attendance and quiz results to Excel (.xlsx) in the background; the file arrives as a notification.
      */
-    public function export(Training $training): BinaryFileResponse
+    public function export(Request $request, Training $training): RedirectResponse
     {
-        $training->load([
-            'trainer',
-            'participants.user.divisi',
-            'participants.quizResult',
-        ]);
+        GenerateExportFile::dispatch($request->user()->id, GenerateExportFile::TRAINING, $training->id);
 
-        $filename = 'rekap_pelatihan_'.Str::slug($training->title).'_'.date('Ymd_His').'.xlsx';
-
-        return Excel::download(
-            new TrainingRekapExport($training),
-            $filename
-        );
+        return back()->with('info', GenerateExportFile::QUEUED_MESSAGE);
     }
 
     /**

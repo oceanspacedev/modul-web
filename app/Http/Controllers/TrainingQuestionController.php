@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Exports\TrainingQuestionTemplate;
+use App\Http\Requests\ReviseAiQuestionRequest;
 use App\Http\Requests\TrainingQuestionRequest;
 use App\Imports\TrainingQuestionImport;
+use App\Jobs\GenerateExportFile;
 use App\Models\Document;
 use App\Models\Training;
 use App\Models\TrainingQuestion;
@@ -16,6 +18,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Attributes\Controllers\Authorize;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -51,6 +54,17 @@ class TrainingQuestionController extends Controller
         $filename = 'template_soal_kuis_'.Str::slug($training->title).'.xlsx';
 
         return Excel::download(new TrainingQuestionTemplate, $filename);
+    }
+
+    /**
+     * Export the question bank with answer keys (template format, re-importable) in the background;
+     * the file arrives in the notification inbox.
+     */
+    public function export(Request $request, Training $training): RedirectResponse
+    {
+        GenerateExportFile::dispatch($request->user()->id, GenerateExportFile::TRAINING_QUESTIONS, $training->id);
+
+        return back()->with('info', GenerateExportFile::QUEUED_MESSAGE);
     }
 
     /**
@@ -327,6 +341,46 @@ class TrainingQuestionController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 422);
+        }
+    }
+
+    /**
+     * Rewrite one question with AI (question only, answers only, or everything), from the AI review step or from the
+     * edit form of a saved question (question_id). The AI re-reads the documents and checks the new question against
+     * the other review cards and the saved questions.
+     */
+    public function reviseAiQuestion(ReviseAiQuestionRequest $request, Training $training): JsonResponse
+    {
+        $request->validate([
+            'question_id' => ['nullable', 'integer', Rule::exists('training_questions', 'id')->where('training_id', $training->id)],
+            'document_ids' => 'required_without:question_id|array',
+            'document_ids.*' => 'exists:documents,id',
+        ], ['document_ids.required_without' => 'Pilih minimal 1 dokumen materi acuan.']);
+
+        // The edit form picks no documents: use the training's own documents (none: from the question text only).
+        $documents = filled($request->document_ids)
+            ? Document::with('versions')->whereIn('id', $request->document_ids)->get()
+            : $training->documents()->with('versions')->get();
+
+        $savedQuestions = $training->questions()
+            ->when($request->question_id, fn ($query, $id) => $query->whereKeyNot($id))
+            ->pluck('question')
+            ->all();
+
+        try {
+            $result = (new GeminiQuestionService($request->api_key))->reviseQuestion(
+                $request->validated('question'),
+                $request->validated('part'),
+                $request->validated('instruction'),
+                $documents->all(),
+                [...($request->validated('other_questions') ?? []), ...$savedQuestions]
+            );
+
+            return response()->json(['success' => true, ...$result]);
+        } catch (Exception $e) {
+            report($e);
+
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
     }
 

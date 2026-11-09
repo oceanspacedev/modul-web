@@ -16,9 +16,12 @@
                 @unless($module->isOwned())
                     <a href="{{ route('learning-module.edit', $module) }}" class="btn btn-default">Edit Modul & Materi</a>
                 @endunless
-                <a href="{{ $module->url('export') }}" class="btn btn-primary">
-                    <i class="fas fa-file-excel"></i> Export Excel
-                </a>
+                <form action="{{ $module->url('export') }}" method="POST" class="m-0">
+                    @csrf
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-file-excel"></i> Export Excel
+                    </button>
+                </form>
             </x-slot:actions>
         </x-page-header>
     </div>
