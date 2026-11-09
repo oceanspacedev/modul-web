@@ -156,15 +156,22 @@ class LearningModuleQuestionController extends Controller
     }
 
     /**
-     * Ubah satu soal di langkah review AI (pertanyaan saja, jawaban saja, atau semuanya). AI membaca ulang materi yang
-     * dipilih dan mengecek pertanyaannya belum ada, di queue seperti generateAi; hasilnya diambil lewat aiStatus.
+     * Ubah satu soal dengan AI (pertanyaan saja, jawaban saja, atau semuanya), dari langkah review AI atau dari form
+     * edit soal tersimpan (question_id). AI membaca ulang materi dan mengecek pertanyaannya belum ada, di queue seperti
+     * generateAi; hasilnya diambil lewat aiStatus.
      */
     public function reviseAi(ReviseAiQuestionRequest $request, LearningModule $module): JsonResponse
     {
         $validated = $request->validate([
-            'item_ids' => 'required|array|min:1',
+            'question_id' => ['nullable', 'integer', Rule::exists('learning_module_questions', 'id')->where('learning_module_id', $module->id)],
+            'item_ids' => 'required_without:question_id|array',
             'item_ids.*' => ['integer', Rule::exists('learning_module_items', 'id')->where('learning_module_id', $module->id)],
-        ], ['item_ids.required' => 'Pilih minimal satu materi acuan.']);
+        ], ['item_ids.required_without' => 'Pilih minimal satu materi acuan.']);
+
+        // Form edit tidak memilih materi: pakai semua materi modul yang bisa dibaca AI (bila tidak ada, cukup dari teks soal).
+        $itemIds = filled($validated['item_ids'] ?? null)
+            ? $validated['item_ids']
+            : $module->availableItems()->filter(fn (LearningModuleItem $item) => GenerateLearningModuleQuestions::supports($item))->pluck('id')->all();
 
         if (empty(config('services.gemini.api_key'))) {
             return response()->json(['success' => false, 'message' => 'GEMINI_API_KEY belum dikonfigurasi.'], 422);
@@ -176,11 +183,12 @@ class LearningModuleQuestionController extends Controller
         ReviseLearningModuleQuestion::dispatch(
             $token,
             $module->id,
-            $validated['item_ids'],
+            $itemIds,
             $request->validated('question'),
             $request->validated('part'),
             $request->validated('instruction'),
             array_filter($request->validated('other_questions') ?? [], 'filled'),
+            $validated['question_id'] ?? null,
         );
 
         return response()->json(['success' => true, 'token' => $token]);

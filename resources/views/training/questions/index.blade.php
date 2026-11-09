@@ -142,7 +142,7 @@
                 <div class="modal fade" id="editModal_{{ $q->id }}" tabindex="-1" role="dialog" aria-hidden="true">
                     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
                         <div class="modal-content">
-                            <form action="{{ route('training.questions.update', [$training, $q]) }}" method="POST" enctype="multipart/form-data">
+                            <form action="{{ route('training.questions.update', [$training, $q]) }}" method="POST" enctype="multipart/form-data" class="ai-revise-form" data-question-id="{{ $q->id }}">
                                 @method('PUT')
                                 @csrf
                                 <div class="modal-header">
@@ -1041,6 +1041,47 @@ document.addEventListener('DOMContentLoaded', function () {
         extra: function() {
             var apiKey = document.getElementById('aiApiKeyOverride');
             return Object.assign({ document_ids: selectedAiDocIds() }, apiKey && apiKey.value ? { api_key: apiKey.value } : {});
+        }
+    });
+
+    // "Ubah dengan AI" di form edit soal tersimpan. Materi diambil server dari dokumen pelatihan ini.
+    document.querySelectorAll('form.ai-revise-form').forEach(function(form) {
+        mountAiRevise(form, 'edit_' + form.dataset.questionId);
+    });
+    bindAiRevise(document.body, {
+        url: '{{ route('training.questions.revise-ai', $training) }}',
+        cardSelector: 'form.ai-revise-form',
+        collectOthers: false,
+        read: function(form) {
+            var isEssay = form.elements.type.value === 'essay';
+            var q = {
+                type: isEssay ? 'essay' : 'multiple_choice',
+                question: form.elements.question.value,
+                explanation: form.elements.explanation.value,
+                correct_answer: form.querySelector(isEssay ? '.essay-input' : '.select-key').value,
+                // Opsi F tidak dibuat AI; disimpan di sini supaya "Kembalikan" ikut memulihkannya.
+                option_f: form.elements.option_f.value
+            };
+            ['a', 'b', 'c', 'd', 'e'].forEach(function(opt) { q['option_' + opt] = form.elements['option_' + opt].value; });
+            return q;
+        },
+        write: function(form, q, part) {
+            form.elements.question.value = q.question || '';
+            form.elements.explanation.value = q.explanation || '';
+            if (form.elements.type.value === 'essay') {
+                form.querySelector('.essay-input').value = q.correct_answer || '';
+                return;
+            }
+            ['a', 'b', 'c', 'd', 'e'].forEach(function(opt) { form.elements['option_' + opt].value = q['option_' + opt] || ''; });
+            // AI menyusun 5 pilihan (A–E); opsi F lama dikosongkan bila pilihan jawaban ikut diubah.
+            if (part !== 'question') {
+                form.elements.option_f.value = q.option_f || '';
+            }
+            form.querySelector('.select-key').value = q.correct_answer || 'a';
+        },
+        extra: function(form) {
+            var apiKey = document.getElementById('aiApiKeyOverride');
+            return Object.assign({ question_id: parseInt(form.dataset.questionId, 10) }, apiKey && apiKey.value ? { api_key: apiKey.value } : {});
         }
     });
 

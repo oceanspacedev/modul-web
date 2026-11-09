@@ -18,6 +18,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Attributes\Controllers\Authorize;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -344,23 +345,35 @@ class TrainingQuestionController extends Controller
     }
 
     /**
-     * Rewrite one question in the AI review step (question only, answers only, or everything). The AI re-reads the
-     * selected documents and checks the new question against the other review cards and the saved questions.
+     * Rewrite one question with AI (question only, answers only, or everything), from the AI review step or from the
+     * edit form of a saved question (question_id). The AI re-reads the documents and checks the new question against
+     * the other review cards and the saved questions.
      */
     public function reviseAiQuestion(ReviseAiQuestionRequest $request, Training $training): JsonResponse
     {
         $request->validate([
-            'document_ids' => 'required|array|min:1',
+            'question_id' => ['nullable', 'integer', Rule::exists('training_questions', 'id')->where('training_id', $training->id)],
+            'document_ids' => 'required_without:question_id|array',
             'document_ids.*' => 'exists:documents,id',
-        ], ['document_ids.required' => 'Pilih minimal 1 dokumen materi acuan.']);
+        ], ['document_ids.required_without' => 'Pilih minimal 1 dokumen materi acuan.']);
+
+        // The edit form picks no documents: use the training's own documents (none: from the question text only).
+        $documents = filled($request->document_ids)
+            ? Document::with('versions')->whereIn('id', $request->document_ids)->get()
+            : $training->documents()->with('versions')->get();
+
+        $savedQuestions = $training->questions()
+            ->when($request->question_id, fn ($query, $id) => $query->whereKeyNot($id))
+            ->pluck('question')
+            ->all();
 
         try {
             $result = (new GeminiQuestionService($request->api_key))->reviseQuestion(
                 $request->validated('question'),
                 $request->validated('part'),
                 $request->validated('instruction'),
-                Document::with('versions')->whereIn('id', $request->document_ids)->get()->all(),
-                [...($request->validated('other_questions') ?? []), ...$training->questions()->pluck('question')->all()]
+                $documents->all(),
+                [...($request->validated('other_questions') ?? []), ...$savedQuestions]
             );
 
             return response()->json(['success' => true, ...$result]);

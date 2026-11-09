@@ -25,6 +25,7 @@ class ReviseLearningModuleQuestion implements ShouldQueue
     /**
      * @param  array<int, int>  $itemIds
      * @param  array<int, string>  $otherQuestions  Pertanyaan soal lain di layar tinjauan
+     * @param  int|null  $questionId  Soal tersimpan yang sedang diedit; tidak dihitung sebagai soal kembar
      */
     public function __construct(
         public string $token,
@@ -34,6 +35,7 @@ class ReviseLearningModuleQuestion implements ShouldQueue
         public string $part,
         public ?string $instruction = null,
         public array $otherQuestions = [],
+        public ?int $questionId = null,
     ) {
         $this->onConnection(config('queue.ai_connection'));
     }
@@ -41,7 +43,10 @@ class ReviseLearningModuleQuestion implements ShouldQueue
     public function handle(): void
     {
         try {
-            $savedQuestions = LearningModuleQuestion::where('learning_module_id', $this->moduleId)->pluck('question')->all();
+            $savedQuestions = LearningModuleQuestion::where('learning_module_id', $this->moduleId)
+                ->when($this->questionId, fn ($query, $id) => $query->whereKeyNot($id))
+                ->pluck('question')
+                ->all();
 
             $result = (new GeminiQuestionService)->reviseQuestion(
                 [...$this->question, 'type' => 'multiple_choice'],

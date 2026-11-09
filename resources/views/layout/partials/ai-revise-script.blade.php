@@ -1,16 +1,19 @@
 {{--
     Dipasang sekali di halaman kelola soal (pelatihan & modul).
-    "Ubah dengan AI" untuk satu kartu di layar tinjauan soal AI: AI membaca ulang materi lalu menulis ulang pertanyaan
-    saja, jawaban saja, atau semuanya, dan mengecek pertanyaannya belum ada di soal lain. Gambar soal/pilihan tidak disentuh.
+    "Ubah dengan AI" untuk satu soal (kartu di layar tinjauan soal AI, atau form edit soal tersimpan): AI membaca ulang
+    materi lalu menulis ulang pertanyaan saja, jawaban saja, atau semuanya, dan mengecek pertanyaannya belum ada di soal
+    lain. Gambar soal/pilihan tidak disentuh.
     Pemakaian di JS:
       aiReviseButton()             -> tombol untuk header kartu
-      aiRevisePanel(index, essay)  -> panel pilihan + instruksi, taruh di awal badan kartu
-      bindAiRevise(container, { url, cardSelector, read(card), write(card, q), extra(), statusUrl(token) })
-        read      : nilai soal saat ini dari kartu {type?, question, option_a..e, correct_answer, explanation}
-        write     : isi kartu dengan soal hasil AI (juga dipakai untuk "Kembalikan")
-        extra     : field tambahan untuk request: materi acuan (document_ids / item_ids), api_key
-        statusUrl : (opsional) bila server menjawab {token}, hasil diambil dengan polling ke alamat ini
-    Pertanyaan kartu lain dikirim sebagai other_questions supaya AI tidak membuat soal yang sama.
+      aiRevisePanel(key, essay)    -> panel pilihan + instruksi, taruh di awal badan kartu
+      mountAiRevise(form, key)     -> pasang tombol + panel di awal .modal-body form edit
+      bindAiRevise(container, { url, cardSelector, read(card), write(card, q, part), extra(card), statusUrl(token), collectOthers })
+        read          : nilai soal saat ini dari kartu {type?, question, option_a..e, correct_answer, explanation}
+        write         : isi kartu dengan soal hasil AI (juga dipakai untuk "Kembalikan", dengan part 'all')
+        extra         : field tambahan untuk request: materi acuan (document_ids / item_ids), question_id, api_key
+        statusUrl     : (opsional) bila server menjawab {token}, hasil diambil dengan polling ke alamat ini
+        collectOthers : (default true) kirim pertanyaan kartu lain sebagai other_questions supaya AI tidak membuat
+                        soal yang sama; form edit memakai false karena server sudah membandingkan dengan soal tersimpan.
 --}}
 <script>
 (function () {
@@ -50,9 +53,15 @@
         '</div>';
     };
 
+    window.mountAiRevise = function (form, key) {
+        var body = form.querySelector('.modal-body');
+        body.insertAdjacentHTML('afterbegin',
+            '<div class="d-flex justify-content-end mb-2">' + window.aiReviseButton() + '</div>' + window.aiRevisePanel(key, false));
+    };
+
     window.bindAiRevise = function (container, options) {
-        function panelOf(el) {
-            return el.closest(options.cardSelector).querySelector('.ai-revise-panel');
+        function panelOf(card) {
+            return card.querySelector('.ai-revise-panel');
         }
 
         function setStatus(panel, text, error, warning) {
@@ -112,9 +121,15 @@
         }
 
         container.addEventListener('click', function (e) {
+            // Satu halaman bisa punya beberapa pengikatan (kartu tinjauan & form edit): tangani milik sendiri saja.
+            var card = e.target.closest(options.cardSelector);
+            if (!card || !container.contains(card)) {
+                return;
+            }
+
             var toggle = e.target.closest('.ai-revise-toggle');
             if (toggle) {
-                var panel = panelOf(toggle);
+                var panel = panelOf(card);
                 panel.classList.toggle('d-none');
                 if (!panel.classList.contains('d-none')) {
                     panel.querySelector('.ai-revise-instruction').focus();
@@ -124,13 +139,12 @@
 
             var undo = e.target.closest('.ai-revise-undo');
             if (undo) {
-                var undoCard = undo.closest(options.cardSelector);
-                if (undoCard._aiReviseBefore) {
-                    options.write(undoCard, undoCard._aiReviseBefore);
-                    undoCard._aiReviseBefore = null;
+                if (card._aiReviseBefore) {
+                    options.write(card, card._aiReviseBefore, 'all');
+                    card._aiReviseBefore = null;
                 }
                 undo.classList.add('d-none');
-                setStatus(panelOf(undo), 'Soal dikembalikan seperti sebelum diubah.');
+                setStatus(panelOf(card), 'Soal dikembalikan seperti sebelum diubah.');
                 return;
             }
 
@@ -139,8 +153,7 @@
                 return;
             }
 
-            var card = run.closest(options.cardSelector);
-            var runPanel = panelOf(run);
+            var runPanel = panelOf(card);
             var question = options.read(card);
             if (!question.question || !String(question.question).trim()) {
                 setStatus(runPanel, '', 'Isi pertanyaan dulu sebelum diubah dengan AI.');
@@ -148,12 +161,13 @@
             }
 
             var checkedPart = runPanel.querySelector('.ai-revise-part:checked');
+            var part = checkedPart ? checkedPart.value : 'all';
             var body = Object.assign({
                 question: question,
-                part: checkedPart ? checkedPart.value : 'all',
+                part: part,
                 instruction: runPanel.querySelector('.ai-revise-instruction').value.trim() || null,
-                other_questions: otherQuestions(card)
-            }, options.extra ? options.extra() : {});
+                other_questions: options.collectOthers === false ? [] : otherQuestions(card)
+            }, options.extra ? options.extra(card) : {});
 
             var originalHtml = run.innerHTML;
             var seconds = 0;
@@ -166,7 +180,7 @@
             postJson(body).then(function (data) {
                 // Simpan isi kartu tepat sebelum ditimpa, untuk tombol "Kembalikan".
                 card._aiReviseBefore = options.read(card);
-                options.write(card, data.question);
+                options.write(card, data.question, part);
                 runPanel.querySelector('.ai-revise-undo').classList.remove('d-none');
                 clearInterval(timer);
                 setStatus(runPanel, 'Soal sudah diubah AI. Periksa lagi sebelum disimpan.', null, data.similar_to

@@ -181,6 +181,39 @@ class LearningModuleAiTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    public function test_a_saved_question_can_be_revised_with_ai_from_its_edit_form(): void
+    {
+        $this->addVideo(['video_type' => 'link', 'video_link' => 'https://youtu.be/dQw4w9WgXcQ']);
+        $edited = $this->module->questions()->create(['question' => 'APD?', 'option_a' => 'Helm', 'option_b' => 'Topi', 'correct_answer' => 'a', 'sort_order' => 1]);
+        $this->module->questions()->create(['question' => 'Apa fungsi rambu kuning?', 'option_a' => 'Peringatan', 'option_b' => 'Larangan', 'correct_answer' => 'a', 'sort_order' => 2]);
+        // AI hanya merapikan kalimat; soal yang sedang diedit tidak boleh terhitung sebagai soal kembar.
+        Http::fake(['generativelanguage.googleapis.com/v1beta/models/*' => Http::response([
+            'candidates' => [['content' => ['parts' => [['text' => json_encode(['question' => 'APD?'])]]]]],
+        ])]);
+
+        $token = $this->actingAs($this->admin)->postJson(route('learning-module.questions.revise-ai', $this->module), [
+            'question' => ['question' => 'APD?', 'option_a' => 'Helm', 'option_b' => 'Topi', 'correct_answer' => 'a'],
+            'part' => 'question',
+            'question_id' => $edited->id,
+        ])->assertOk()->json('token');
+
+        $this->actingAs($this->admin)->getJson(route('learning-module.questions.ai-status', [$this->module, $token]))
+            ->assertOk()->assertJson(['status' => 'done', 'similar_to' => null]);
+
+        // Tanpa pilihan materi: semua materi modul yang bisa dibaca AI dipakai; soal tersimpan lain ikut dicek.
+        Http::assertSent(fn (Request $request) => ($request['contents'][0]['parts'][0]['file_data']['file_uri'] ?? null) === 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+            && str_contains($request['contents'][0]['parts'][1]['text'], 'Apa fungsi rambu kuning?'));
+        Http::assertSentCount(1);
+        $this->assertSame('APD?', $edited->fresh()->question);
+
+        // Soal milik modul lain ditolak.
+        $other = LearningModule::create(['title' => 'Lain', 'passing_score' => 70]);
+        $foreign = $other->questions()->create(['question' => 'X?', 'option_a' => 'A', 'option_b' => 'B', 'correct_answer' => 'a', 'sort_order' => 1]);
+        $this->actingAs($this->admin)->postJson(route('learning-module.questions.revise-ai', $this->module), [
+            'question' => ['question' => 'X?'], 'part' => 'all', 'question_id' => $foreign->id,
+        ])->assertUnprocessable()->assertJsonValidationErrors('question_id');
+    }
+
     public function test_saving_ai_questions_returns_where_to_go_next(): void
     {
         $question = ['question' => 'APD?', 'option_a' => 'Helm', 'option_b' => 'Topi', 'correct_answer' => 'a'];

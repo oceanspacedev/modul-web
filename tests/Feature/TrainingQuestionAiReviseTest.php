@@ -83,6 +83,24 @@ class TrainingQuestionAiReviseTest extends TestCase
             && str_contains($request['contents'][0]['parts'][1]['text'], 'Jelaskan fungsi helm!'));
     }
 
+    public function test_a_saved_question_is_revised_from_the_training_documents(): void
+    {
+        $this->training->documents()->attach($this->document->id);
+        $edited = $this->training->questions()->create(['type' => 'essay', 'question' => 'Pertanyaan yang tidak diminta diubah', 'correct_answer' => 'Helm']);
+        $this->training->questions()->create(['type' => 'essay', 'question' => 'Jelaskan fungsi helm!', 'correct_answer' => 'Melindungi kepala']);
+
+        // Jawaban palsu Gemini memakai teks yang sama dengan soal yang diedit: tidak boleh dianggap kembar dengan dirinya.
+        $this->actingAs($this->admin)->postJson(route('training.questions.revise-ai', $this->training), [
+            'question' => ['type' => 'essay', 'question' => 'Pertanyaan yang tidak diminta diubah', 'correct_answer' => 'Helm'],
+            'part' => 'all',
+            'question_id' => $edited->id,
+        ])->assertOk()->assertJson(['success' => true, 'similar_to' => null]);
+
+        Http::assertSent(fn (Request $request) => str_contains($request['contents'][0]['parts'][0]['text'], 'APD wajib: helm, rompi, sepatu safety.')
+            && str_contains($request['contents'][0]['parts'][1]['text'], 'Jelaskan fungsi helm!'));
+        Http::assertSentCount(1);
+    }
+
     public function test_custom_api_key_from_the_modal_is_used(): void
     {
         $this->actingAs($this->admin)->postJson(route('training.questions.revise-ai', $this->training), [

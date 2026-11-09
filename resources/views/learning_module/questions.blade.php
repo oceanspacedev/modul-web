@@ -126,7 +126,7 @@
                 <div class="modal fade" id="editModal_{{ $q->id }}" tabindex="-1" role="dialog" aria-hidden="true">
                     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
                         <div class="modal-content">
-                            <form action="{{ $module->url('questions.update', ['question' => $q]) }}" method="POST" enctype="multipart/form-data">
+                            <form action="{{ $module->url('questions.update', ['question' => $q]) }}" method="POST" enctype="multipart/form-data" class="ai-revise-form" data-question-id="{{ $q->id }}">
                                 @csrf
                                 @method('PUT')
                                 <div class="modal-header">
@@ -479,6 +479,35 @@ $(function () {
             $card.find('.ai-key[value="' + (q.correct_answer || 'a') + '"]').prop('checked', true).trigger('change');
         }
     });
+
+    // "Ubah dengan AI" di form edit soal tersimpan. Materi diambil server dari semua materi modul yang bisa dibaca AI.
+    @if($isGeminiConfigured)
+    document.querySelectorAll('form.ai-revise-form').forEach(function (form) {
+        mountAiRevise(form, 'edit_' + form.dataset.questionId);
+    });
+    bindAiRevise(document.body, {
+        url: '{{ $module->url('questions.revise-ai') }}',
+        statusUrl: function (token) { return statusUrlTemplate.replace('00000000-0000-0000-0000-000000000000', token); },
+        cardSelector: 'form.ai-revise-form',
+        collectOthers: false,
+        extra: function (form) { return { question_id: parseInt(form.dataset.questionId, 10) }; },
+        read: function (form) {
+            var q = {
+                question: form.elements.question.value,
+                correct_answer: form.elements.correct_answer.value,
+                explanation: form.elements.explanation.value
+            };
+            letters.forEach(function (letter) { q['option_' + letter] = form.elements['option_' + letter].value; });
+            return q;
+        },
+        write: function (form, q) {
+            form.elements.question.value = q.question || '';
+            form.elements.explanation.value = q.explanation || '';
+            letters.forEach(function (letter) { form.elements['option_' + letter].value = q['option_' + letter] || ''; });
+            form.elements.correct_answer.value = q.correct_answer || 'a';
+        }
+    });
+    @endif
     $('#aiQuestions').on('change', '.ai-key', function () {
         $(this).closest('.ai-card').find('.ai-option').removeClass('is-key');
         $(this).closest('.ai-option').addClass('is-key');
