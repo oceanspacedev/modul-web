@@ -15,6 +15,10 @@ return [
 
     'default' => env('QUEUE_CONNECTION', 'database'),
 
+    // Koneksi untuk job AI yang lama (GenerateLearningModuleQuestions). Di server (redis) memakai "redis-long";
+    // di lokal/tes ikut koneksi default (mis. sync).
+    'ai_connection' => env('AI_QUEUE_CONNECTION', env('QUEUE_CONNECTION', 'database') === 'redis' ? 'redis-long' : env('QUEUE_CONNECTION', 'database')),
+
     /*
     |--------------------------------------------------------------------------
     | Queue Connections
@@ -69,6 +73,17 @@ return [
             'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
             'queue' => env('REDIS_QUEUE', 'default'),
             'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),
+            'block_for' => null,
+            'after_commit' => false,
+        ],
+
+        // Job AI Modul Belajar (unggah + analisis video) bisa berjalan belasan menit; retry_after harus melebihi
+        // timeout job agar job yang masih berjalan tidak diambil worker lain.
+        'redis-long' => [
+            'driver' => 'redis',
+            'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
+            'queue' => 'ai',
+            'retry_after' => (int) env('REDIS_LONG_QUEUE_RETRY_AFTER', 960),
             'block_for' => null,
             'after_commit' => false,
         ],

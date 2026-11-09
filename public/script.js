@@ -1,95 +1,104 @@
-$(document).ready(function () {
-    $(".select2").select2();
-    $subdiv = $(".addusersubdivisi");
-    if ($subdiv.find("option").length === 0) {
-        $subdiv.append('<option value="">---Choose Divisi First--</option>');
+// Semua dropdown (<select>) bisa diketik untuk mencari (Select2), termasuk
+// yang ditambahkan lewat JS belakangan. Untuk tetap memakai dropdown bawaan
+// browser, beri <select> (atau pembungkusnya) atribut data-native-select.
+// Di dalam modal Bootstrap, daftar pilihannya ditempel ke modal itu supaya
+// kolom pencariannya tetap bisa diketik (focus trap modal).
+var SEARCHABLE_SELECT = "select";
+var NATIVE_SELECT_AREA = "[data-native-select], .phpdebugbar";
+
+window.initSearchableSelects = function (scope) {
+    if (!$.fn.select2) {
+        return;
     }
-    $(".adduserdivisi").change(function (e) {
-        var $divisiId = $(this).val();
-        var $currentSubdiv = $(this).closest("form").find(".addusersubdivisi").length
-            ? $(this).closest("form").find(".addusersubdivisi")
-            : $(".addusersubdivisi");
+    var selects = $(scope || document)
+        .find(SEARCHABLE_SELECT)
+        .addBack(SEARCHABLE_SELECT)
+        .filter(function () {
+            // Yang sudah dipasang (mis. oleh skrip halaman) tidak diulang.
+            return !$(this).hasClass("select2-hidden-accessible") && !$(this).closest(NATIVE_SELECT_AREA).length;
+        })
+        .get();
+    var batch = 50;
 
-        if (!$divisiId) {
-            $currentSubdiv.empty();
-            $currentSubdiv.append(
-                '<option value="">---Choose Divisi First--</option>'
-            );
-        } else {
-            $currentSubdiv.empty();
-            $currentSubdiv.append('<option value="">Loading...</option>');
-            $.ajax({
-                type: "GET",
-                url: "/subdivisi/get/" + $divisiId,
-                success: function (data) {
-                    $currentSubdiv.empty();
-                    if (data && data.length > 0) {
-                        $currentSubdiv.append('<option value="">--Choose Sub Divisi--</option>');
-                        $.each(data, function (index, value) {
-                            $currentSubdiv.append(
-                                '<option value="' +
-                                    value.id +
-                                    '">' +
-                                    value.name +
-                                    "</option>"
-                            );
-                        });
-                    } else {
-                        $currentSubdiv.append('<option value="">- Tidak ada sub divisi -</option>');
-                    }
-                },
-                error: function (xhr, status, error) {
-                    console.error("Gagal memuat sub divisi:", error);
-                    $currentSubdiv.empty();
-                    $currentSubdiv.append('<option value="">- Gagal memuat sub divisi -</option>');
-                }
-            });
+    function init(select) {
+        var $select = $(select);
+        if ($select.hasClass("select2-hidden-accessible") || !document.body.contains(select)) {
+            return;
         }
-    });
-
-    $(".edituserdivisi").change(function (e) {
-        var $divisiId = $(this).val();
-        var $subdivedit = $(this).closest("form").find(".editusersubdivisi").length
-            ? $(this).closest("form").find(".editusersubdivisi")
-            : $(".editusersubdivisi");
-
-        if (!$divisiId) {
-            $subdivedit.empty();
-            $subdivedit.append(
-                '<option value="">---Choose Divisi First--</option>'
-            );
-        } else {
-            $subdivedit.empty();
-            $subdivedit.append('<option value="">Loading...</option>');
-            $.ajax({
-                type: "GET",
-                url: "/subdivisi/get/" + $divisiId,
-                success: function (data) {
-                    $subdivedit.empty();
-                    if (data && data.length > 0) {
-                        $subdivedit.append('<option value="">--Choose Sub Divisi--</option>');
-                        $.each(data, function (index, value) {
-                            $subdivedit.append(
-                                '<option value="' +
-                                    value.id +
-                                    '">' +
-                                    value.name +
-                                    "</option>"
-                            );
-                        });
-                    } else {
-                        $subdivedit.append('<option value="">- Tidak ada sub divisi -</option>');
-                    }
-                },
-                error: function (xhr, status, error) {
-                    console.error("Gagal memuat sub divisi:", error);
-                    $subdivedit.empty();
-                    $subdivedit.append('<option value="">- Gagal memuat sub divisi -</option>');
-                }
-            });
+        var $modal = $select.closest(".modal");
+        var options = {
+            width: select.style.width || "100%",
+            dropdownParent: $modal.length ? $modal : $(document.body),
+        };
+        // Pilihan ganda mencari lewat kotaknya sendiri; tanpa placeholder kotak
+        // itu terlihat seperti isian kosong. (Atur sendiri lewat data-placeholder.)
+        if (select.multiple && !$select.data("placeholder")) {
+            options.placeholder = "Ketik untuk mencari...";
         }
-    });
+        $select.select2(options);
+    }
 
+    // Batch pertama langsung, sisanya bertahap supaya halaman dengan
+    // ratusan dropdown (mis. satu per baris tabel) tidak macet saat dibuka.
+    (function next(start) {
+        selects.slice(start, start + batch).forEach(init);
+        if (start + batch < selects.length) {
+            setTimeout(function () {
+                next(start + batch);
+            }, 0);
+        }
+    })(0);
+};
+
+// Select2 4.0.13 + jQuery 3.6 tidak memindahkan kursor ke kolom pencarian
+// saat dropdown dibuka, jadi user harus klik dulu sebelum bisa mengetik.
+$(document).on("select2:open", function (e) {
+    var select2 = $(e.target).data("select2");
+    var field = select2 && select2.dropdown && select2.dropdown.$search;
+    if (field && field.length) {
+        setTimeout(function () {
+            field[0].focus();
+        }, 0);
+    }
+});
+
+// Select2 mengabarkan perubahan pilihan lewat jQuery .trigger("change"), yang
+// tidak sampai ke listener addEventListener("change") biasa. Untuk dropdown
+// Select2, kirim event change native: listener jQuery, native, dan atribut
+// onchange semuanya tetap jalan, masing-masing sekali.
+$.event.special.change = $.extend({}, $.event.special.change, {
+    trigger: function (event) {
+        if (
+            this.nodeName === "SELECT" &&
+            $(this).hasClass("select2-hidden-accessible") &&
+            !event.namespace &&
+            arguments.length === 1
+        ) {
+            this.dispatchEvent(new Event("change", { bubbles: true }));
+            return false;
+        }
+    },
+});
+
+$(document).ready(function () {
+    initSearchableSelects();
+
+    // Dropdown yang muncul belakangan (baris tabel, form dari JS) ikut dipasang.
+    if (window.MutationObserver) {
+        new MutationObserver(function (mutations) {
+            var added = [];
+            mutations.forEach(function (mutation) {
+                mutation.addedNodes.forEach(function (node) {
+                    if (node.nodeType === 1 && (node.nodeName === "SELECT" || node.querySelector("select"))) {
+                        added.push(node);
+                    }
+                });
+            });
+            if (added.length) {
+                initSearchableSelects(added);
+            }
+        }).observe(document.body, { childList: true, subtree: true });
+    }
     $(".viewoption").click(function (e) {
         var $option = $("#options");
         $option.empty();

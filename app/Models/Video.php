@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
+use App\Support\StorageUrl;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class Video extends Model
 {
@@ -69,10 +70,26 @@ class Video extends Model
     public function getVideoUrlAttribute()
     {
         if ($this->video_type === 'file') {
-            return $this->video_file ? Storage::url($this->video_file) : '';
+            return $this->video_file ? StorageUrl::for($this->video_file) : '';
         }
 
         return $this->video_link ?: '';
+    }
+
+    /**
+     * YouTube video ID of a link video (standard, short, embed, shorts URLs), or null.
+     */
+    public function youtubeId(): ?string
+    {
+        if ($this->video_type !== 'link' || empty($this->video_link)) {
+            return null;
+        }
+
+        if (preg_match('/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/|youtube\.com\/shorts\/)([^"&?\/ ]{11})/i', trim($this->video_link), $matches)) {
+            return $matches[1];
+        }
+
+        return null;
     }
 
     /**
@@ -87,9 +104,7 @@ class Video extends Model
         $url = trim($this->video_link);
 
         // 1. YouTube (Standard, Short, Embed, Shorts)
-        if (preg_match('/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/|youtube\.com\/shorts\/)([^"&?\/ ]{11})/i', $url, $matches)) {
-            $youtubeId = $matches[1];
-
+        if ($youtubeId = $this->youtubeId()) {
             return "https://www.youtube.com/embed/{$youtubeId}?autoplay=1&rel=0";
         }
 
@@ -134,18 +149,30 @@ class Video extends Model
     {
         // Custom uploaded thumbnail
         if (! empty($this->thumbnail)) {
-            return Storage::url($this->thumbnail);
+            return StorageUrl::for($this->thumbnail);
         }
 
         // Auto YouTube thumbnail
-        if ($this->video_type === 'link' && ! empty($this->video_link)) {
-            if (preg_match('/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/|youtube\.com\/shorts\/)([^"&?\/ ]{11})/i', $this->video_link, $matches)) {
-                $youtubeId = $matches[1];
-
-                return "https://img.youtube.com/vi/{$youtubeId}/hqdefault.jpg";
-            }
+        if ($youtubeId = $this->youtubeId()) {
+            return "https://img.youtube.com/vi/{$youtubeId}/hqdefault.jpg";
         }
 
         return null;
+    }
+
+    /**
+     * Kuis pretest/posttest milik video ini (LearningModule tersembunyi).
+     */
+    public function quizModule(): MorphOne
+    {
+        return $this->morphOne(LearningModule::class, 'source');
+    }
+
+    /**
+     * Kuis yang sedang aktif (pretest atau posttest nyala dan sudah ada soal); butuh relasi quizModule.
+     */
+    public function activeQuiz(): ?LearningModule
+    {
+        return $this->quizModule?->is_published ? $this->quizModule : null;
     }
 }

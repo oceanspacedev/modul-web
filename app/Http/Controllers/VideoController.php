@@ -7,6 +7,8 @@ use App\Http\Requests\StoreVideoRequest;
 use App\Http\Requests\UpdateVideoRequest;
 use App\Models\Video;
 use App\Models\VideoComment;
+use App\Services\MaterialQuizService;
+use App\Support\LearningModuleProgress;
 use App\Support\SafeRedirect;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,21 +16,25 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Routing\Attributes\Controllers\Authorize;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 #[Authorize('create', Video::class, only: ['create', 'store'])]
-#[Authorize('update', 'video', only: ['edit', 'update'])]
+#[Authorize('update', 'video', only: ['edit', 'update', 'source'])]
 #[Authorize('delete', 'video', only: ['destroy'])]
 #[Authorize('create', VideoComment::class, only: ['storeComment'])]
 #[Authorize('delete', 'comment', only: ['destroyComment'])]
 class VideoController extends Controller
 {
+    public function __construct(private MaterialQuizService $materialQuiz) {}
+
     /**
      * Display a listing of videos (public).
      */
     public function index(Request $request): View
     {
-        $query = Video::query()->latest();
+        $query = Video::with('quizModule')->latest();
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -47,14 +53,35 @@ class VideoController extends Controller
     }
 
     /**
-     * Show single video player page (public).
+     * Show single video player page (public). A video with an active pretest/posttest needs a signed-in user, and
+     * the pretest (when enabled) comes before the video for everyone; video managers can open ?preview=1 to check
+     * the video without taking it.
      */
-    public function show(Video $video): View
+    public function show(Request $request, Video $video): View|RedirectResponse
     {
         $video->load([
             'training',
+            'quizModule.items.materialable',
             'comments' => fn ($q) => $q->with(['user.divisi', 'replies.user.divisi']),
         ]);
+
+        $quiz = $video->activeQuiz();
+        $quizProgress = null;
+
+        if ($quiz) {
+            if (! $request->user()) {
+                return to_route('login', ['redirect' => $request->getRequestUri()]);
+            }
+
+            $quizProgress = LearningModuleProgress::for($quiz, $request->user());
+
+            $isPreview = $request->boolean('preview') && $request->user()->can('update', $video);
+
+            if ($quizProgress->needsPretest() && ! $isPreview) {
+                return redirect($quiz->url('quiz', ['phase' => 'pretest']))
+                    ->with('info', 'Kerjakan pretest terlebih dahulu sebelum menonton video ini.');
+            }
+        }
 
         $video->increment('views_count');
 
@@ -62,7 +89,9 @@ class VideoController extends Controller
             'title' => $video->title,
             'active' => 'video',
             'video' => $video,
-            'otherVideos' => Video::whereKeyNot($video->id)->latest()->take(6)->get(),
+            'quiz' => $quiz,
+            'quizProgress' => $quizProgress,
+            'otherVideos' => Video::with('quizModule')->whereKeyNot($video->id)->latest()->take(6)->get(),
         ]);
     }
 
@@ -90,7 +119,7 @@ class VideoController extends Controller
         $isLink = $request->validated('video_type') === 'link';
         $videoFile = $request->file('video_file');
         $videoPath = ! $isLink && $videoFile ? $this->storeUpload($videoFile, 'videos') : null;
-        $thumbnailPath = $request->hasFile('thumbnail') ? $this->storeUpload($request->file('thumbnail'), 'videos/thumbnails') : null;
+        $thumbnailPath = $request->hasFile('thumbnail') ? $this->storeUpload($request->file('thumbnail'), 'videos/thumbnails', 'thumbnail') : null;
 
         $attributes = [
             'title' => $request->validated('title'),
@@ -121,13 +150,19 @@ class VideoController extends Controller
             return redirect($redirectTo)->with('success', 'Video materi pelatihan berhasil diperbarui!');
         }
 
-        Video::create([
+        $video = Video::create([
             ...$attributes,
             'training_id' => $request->validated('training_id'),
             'video_file' => $videoPath,
             'thumbnail' => $thumbnailPath,
             'file_size' => $videoPath ? $this->formatBytes($videoFile->getSize()) : null,
         ]);
+
+        $quiz = $this->materialQuiz->sync($video, $request->validated('quiz'));
+        if ($this->materialQuiz->needsQuestions($quiz)) {
+            return redirect($quiz->url('questions.index'))
+                ->with('success', 'Video berhasil diunggah! Tambahkan soal agar pretest/posttest aktif.');
+        }
 
         return redirect($redirectTo)->with('success', 'Video materi pelatihan berhasil diunggah!');
     }
@@ -138,7 +173,19 @@ class VideoController extends Controller
             'title' => 'Edit Video: '.$video->title,
             'active' => 'video',
             'video' => $video,
+            'quiz' => $video->quizModule,
         ]);
+    }
+
+    /**
+     * The uploaded file streamed through the app (same origin), so the edit form can grab a frame as cover; a
+     * signed storage URL on another domain cannot be drawn to a canvas.
+     */
+    public function source(Video $video): StreamedResponse
+    {
+        abort_unless($video->isFile() && $video->video_file && Storage::exists($video->video_file), 404);
+
+        return Storage::response($video->video_file);
     }
 
     public function update(UpdateVideoRequest $request, Video $video): RedirectResponse
@@ -154,18 +201,26 @@ class VideoController extends Controller
             $video->video_link = null;
 
             if ($request->hasFile('video_file')) {
+                $newPath = $this->storeUpload($request->file('video_file'), 'videos');
                 $this->deleteStoredFile($video->video_file);
                 $video->file_size = $this->formatBytes($request->file('video_file')->getSize());
-                $video->video_file = $this->storeUpload($request->file('video_file'), 'videos');
+                $video->video_file = $newPath;
             }
         }
 
         if ($request->hasFile('thumbnail')) {
+            $newPath = $this->storeUpload($request->file('thumbnail'), 'videos/thumbnails', 'thumbnail');
             $this->deleteStoredFile($video->thumbnail);
-            $video->thumbnail = $this->storeUpload($request->file('thumbnail'), 'videos/thumbnails');
+            $video->thumbnail = $newPath;
         }
 
         $video->save();
+
+        $quiz = $this->materialQuiz->sync($video, $request->validated('quiz'));
+        if ($this->materialQuiz->needsQuestions($quiz)) {
+            return redirect($quiz->url('questions.index'))
+                ->with('success', 'Video berhasil diperbarui! Tambahkan soal agar pretest/posttest aktif.');
+        }
 
         return to_route('video.index')->with('success', 'Video berhasil diperbarui!');
     }
@@ -175,6 +230,8 @@ class VideoController extends Controller
         $this->deleteStoredFile($video->video_file);
         $this->deleteStoredFile($video->thumbnail);
 
+        // Riwayat nilai kuis video tetap tersimpan (soft delete).
+        $video->quizModule()->first()?->delete();
         $video->delete();
 
         return to_route('video.index')->with('success', 'Video berhasil dihapus!');
@@ -214,10 +271,20 @@ class VideoController extends Controller
 
     /**
      * Store with a random name and an extension derived from the file contents, not the client name.
+     * The disk does not throw on write failures, so a false result is turned into a form error
+     * instead of saving a video record without a file.
      */
-    private function storeUpload(UploadedFile $file, string $directory): string
+    private function storeUpload(UploadedFile $file, string $directory, string $field = 'video_file'): string
     {
-        return $file->storeAs($directory, Str::random(20).'.'.$file->extension());
+        $path = $file->storeAs($directory, Str::random(20).'.'.$file->extension());
+
+        if ($path === false) {
+            throw ValidationException::withMessages([
+                $field => 'File gagal disimpan ke storage server. Silakan coba lagi atau hubungi administrator.',
+            ]);
+        }
+
+        return $path;
     }
 
     private function deleteStoredFile(?string $path): void

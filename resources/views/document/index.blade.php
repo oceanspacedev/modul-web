@@ -2,192 +2,238 @@
 
 @section('content')
     <section class="content-header">
-        <!-- Main content -->
-        <section class="content">
-            <div class="container-fluid">
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap" style="gap: 12px;">
-                                <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.2rem;">
-                                    Data Dokumen
-                                </h3>
-                                <div class="card-tools m-0 d-flex align-items-center" style="gap: 8px;">
-                                    @can('create', App\Models\Document::class)
-                                        <a href="{{ route('document.create') }}" class="btn btn-sm btn-primary">
-                                            Tambah Dokumen
-                                        </a>
-                                    @endcan
-                                </div>
-                            </div>
+        <div class="container-fluid">
+            <x-page-header title="Dokumen" subtitle="Dokumen per divisi dan jabatan, lengkap dengan riwayat versi dan kuisnya." eyebrow="Konten">
+                <x-slot:actions>
+                    @can('create', App\Models\Document::class)
+                        <a href="{{ route('document.create') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Tambah Dokumen
+                        </a>
+                    @endcan
+                </x-slot:actions>
+            </x-page-header>
 
-                            <!-- Dedicated Filter & Search Bar -->
-                            <div class="filter-toolbar">
-                                <form action="{{ route('document.index') }}" method="GET" class="d-flex flex-wrap align-items-center justify-content-end" style="gap: 12px;">
-                                    <div class="filter-group">
-                                        <div class="filter-group-icon">
-                                            <i class="fas fa-building text-muted"></i>
-                                        </div>
-                                        <select class="custom-select" name="divisi_id" id="divisi_id" onchange="this.form.submit()">
-                                            <option value="">Semua Divisi</option>
-                                            @foreach ($divisis as $divisi)
-                                                <option value="{{ $divisi->id }}" {{ request('divisi_id') == $divisi->id ? 'selected' : '' }}>{{ $divisi->name }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="filter-group">
-                                        <div class="filter-group-icon">
-                                            <i class="fas fa-tags text-muted"></i>
-                                        </div>
-                                        <select class="custom-select" name="doctype_id" id="doctype_id" onchange="this.form.submit()">
-                                            <option value="">Semua Type</option>
-                                            @foreach ($doctypes as $doctype)
-                                                <option value="{{ $doctype->id }}" {{ request('doctype_id') == $doctype->id ? 'selected' : '' }}>{{ $doctype->name }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="filter-search" style="width: 260px;">
-                                        <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama dokumen...">
-                                        <button type="submit" title="Cari Dokumen">
-                                            <i class="fas fa-search"></i>
+            <x-flash />
+
+            @can('restore', App\Models\Document::class)
+                <ul class="nav nav-tabs mb-3">
+                    <li class="nav-item">
+                        <a class="nav-link {{ $trashed ? '' : 'active' }}" href="{{ route('document.index', request()->except('tab')) }}">Dokumen</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ $trashed ? 'active' : '' }}" href="{{ route('document.index', [...request()->except('tab'), 'tab' => 'terhapus']) }}">
+                            <i class="fas fa-trash-restore"></i> Terhapus
+                        </a>
+                    </li>
+                </ul>
+            @endcan
+
+            <div class="card">
+                <!-- Filter & Search Bar -->
+                <div class="card-header filter-toolbar">
+                    <form action="{{ route('document.index') }}" method="GET" class="d-flex flex-wrap align-items-center justify-content-end gap-2 w-100 m-0">
+                        @if ($trashed)
+                            <input type="hidden" name="tab" value="terhapus">
+                        @endif
+                        <div class="filter-group">
+                            <div class="filter-group-icon">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <select class="custom-select select2" name="divisi_id" id="divisi_id" style="width: 100%;" onchange="this.form.submit()">
+                                <option value="">Semua Divisi</option>
+                                @foreach ($divisis as $divisi)
+                                    <option value="{{ $divisi->id }}" {{ request('divisi_id') == $divisi->id ? 'selected' : '' }}>{{ $divisi->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <div class="filter-group-icon">
+                                <i class="fas fa-tags"></i>
+                            </div>
+                            <select class="custom-select select2" name="doctype_id" id="doctype_id" style="width: 100%;" onchange="this.form.submit()">
+                                <option value="">Semua Tipe</option>
+                                @foreach ($doctypes as $doctype)
+                                    <option value="{{ $doctype->id }}" {{ request('doctype_id') == $doctype->id ? 'selected' : '' }}>{{ $doctype->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <x-search-field placeholder="Cari dokumen..." style="width: 260px; max-width: 100%;"
+                            :clear-url="route('document.index', request()->except(['search', 'page']))" />
+                        @if (request('divisi_id') || request('doctype_id') || request('search'))
+                            <a href="{{ route('document.index', $trashed ? ['tab' => 'terhapus'] : []) }}" class="btn btn-default" title="Reset Filter">
+                                Reset
+                            </a>
+                        @endif
+                    </form>
+                </div>
+
+                <div class="card-body table-responsive p-0" style="max-height: 560px;">
+                    <table class="table table-head-fixed text-nowrap">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">No</th>
+                                <th>Nama Dokumen</th>
+                                <th>Divisi</th>
+                                <th>Jabatan</th>
+                                <th>Tipe Dokumen</th>
+                                <th>Versi</th>
+                                <th>Status</th>
+                                <th class="text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($documents as $document)
+                                <tr>
+                                    <td class="text-muted">{{ $loop->iteration }}</td>
+                                    @php
+                                        $quiz = $document->activeQuiz();
+                                        $quizSettings = $document->quizModule && ($document->quizModule->has_pretest || $document->quizModule->has_posttest) ? $document->quizModule : null;
+                                    @endphp
+                                    <td>
+                                        <strong>{{ $document->name }}</strong>
+                                        @if($quiz)
+                                            <div class="mt-1">
+                                                @if($quiz->has_pretest)<span class="badge badge-secondary">Pretest</span>@endif
+                                                @if($quiz->has_posttest)<span class="badge badge-secondary">Posttest</span>@endif
+                                            </div>
+                                        @elseif($quizSettings)
+                                            @can('update', $document)
+                                                <div class="mt-1"><span class="badge badge-secondary">Kuis belum ada soal</span></div>
+                                            @endcan
+                                        @endif
+                                    </td>
+                                    <td>{{ $document->divisi->name }}</td>
+                                    <td>{{ $document->role->name ?? 'SEMUA JABATAN' }}</td>
+                                    <td>{{ $document->dokumentype->name }}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-xs btn-default"
+                                            onclick="openDocumentHistory('{{ $document->id }}')" title="Klik untuk lihat riwayat versi">
+                                            v{{ $document->version ?? 1 }}
                                         </button>
-                                    </div>
-                                    @if (request('divisi_id') || request('doctype_id') || request('search'))
-                                        <div>
-                                            <a href="{{ route('document.index') }}" class="btn btn-sm btn-outline-secondary" title="Reset Filter" style="height: 38px; display: inline-flex; align-items: center; border-radius: 10px;">
-                                                <i class="fas fa-undo mr-1"></i> Reset
-                                            </a>
-                                        </div>
-                                    @endif
-                                </form>
-                            </div>
-
-                        @if ($message = Session::get('success'))
-                            <div class="alert alert-success alert-dismissible fade show mx-3 mt-3 mb-0" role="alert">
-                                <strong>{{ $message }}</strong>
-                            </div>
-                        @endif
-                        @if ($message = Session::get('error'))
-                            <div class="alert alert-danger alert-dismissible fade show mx-3 mt-3 mb-0" role="alert">
-                                <strong>{{ $message }}</strong>
-                            </div>
-                        @endif
-                        @include('layout.partials.validation-errors')
-                        <!-- /.card-header -->
-                        <div class="card-body table-responsive p-0" style="height: 500px;">
-                            <table class="table table-head-fixed text-nowrap">
-                                <thead>
-                                    <tr>
-                                        <th>No</th>
-                                        <th>Document Name</th>
-                                        <th>Divisi</th>
-                                        <th>Sub Divisi</th>
-                                        <th>Job Level</th>
-                                        <th>Document Type</th>
-                                        <th>Versi</th>
-                                        <th>Status</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($documents as $document)
-                                        <tr>
-                                            <td>{{ $loop->iteration }}</td>
-                                            <td><strong>{{ $document->name }}</strong></td>
-                                            <td>{{ $document->divisi->name }}</td>
-                                            <td>{{ $document->subdivisi->name ?? '-' }}</td>
-                                            <td>{{ $document->joblevel->name }}</td>
-                                            <td>{{ $document->dokumentype->name }}</td>
-                                            <td>
-                                                <button type="button" class="btn btn-xs btn-default font-weight-bold"
-                                                    onclick="openDocumentHistory('{{ $document->id }}')" title="Klik untuk lihat riwayat versi">
-                                                    v{{ $document->version ?? 1 }}
-                                                </button>
-                                            </td>
-                                            <td>
-                                                @if ($document->deleted_at)
-                                                    <span class="badge badge-secondary">NONAKTIF</span>
-                                                @else
-                                                    <span class="badge badge-success">AKTIF</span>
-                                                @endif
-                                            </td>
-                                            <td>
-                                                <div class="d-inline-flex align-items-center" style="gap: 4px;">
-                                                    <a href="{{ $document->file_url }}" target='_blank' class="btn btn-default btn-xs" title="Buka File Dokumen">
-                                                        Buka
-                                                    </a>
-                                                    <div class="dropdown">
-                                                        <button class="btn btn-default btn-xs dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                                            Aksi
-                                                        </button>
-                                                        <div class="dropdown-menu dropdown-menu-right shadow-sm border text-sm" style="font-size: 0.85rem;">
-                                                            <a class="dropdown-item py-1" href="javascript:void(0)" onclick="openDocumentHistory('{{ $document->id }}')">
-                                                                Riwayat Versi
+                                    </td>
+                                    <td>
+                                        @if ($document->trashed())
+                                            <span class="badge badge-danger">TERHAPUS</span>
+                                            <div class="small text-muted mt-1">{{ $document->deleted_at->format('d M Y, H:i') }}</div>
+                                        @elseif ($document->is_active)
+                                            <span class="badge badge-success">AKTIF</span>
+                                        @else
+                                            <span class="badge badge-secondary">NONAKTIF</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-right">
+                                        <div class="d-inline-flex align-items-center gap-1">
+                                            @if($quiz && $document->is_active)
+                                                {{-- Dokumen ber-kuis dibuka lewat halaman pretest -> dokumen -> posttest, juga oleh pengelola (ada tombol pratinjau di sana). --}}
+                                                <a href="{{ $quiz->url('show') }}" class="btn btn-default btn-xs" title="Buka dokumen beserta pretest/posttest">
+                                                    Buka
+                                                </a>
+                                            @else
+                                                <a href="{{ $document->file_url }}" target='_blank' class="btn btn-default btn-xs" title="Buka File Dokumen">
+                                                    Buka
+                                                </a>
+                                            @endif
+                                            @if ($trashed)
+                                                <form action="{{ route('document.restore', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Pulihkan dokumen '.$document->name.'? Dokumen kembali ke daftar beserta kuis pretest/posttest-nya.'))">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <button type="submit" class="btn btn-default btn-xs" title="Kembalikan dokumen ke daftar">
+                                                        <i class="fas fa-trash-restore"></i> Pulihkan
+                                                    </button>
+                                                </form>
+                                            @else
+                                                <div class="dropdown">
+                                                    <button class="btn btn-default btn-xs dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        Aksi
+                                                    </button>
+                                                    <div class="dropdown-menu dropdown-menu-right">
+                                                        <a class="dropdown-item" href="javascript:void(0)" onclick="openDocumentHistory('{{ $document->id }}')">
+                                                            Riwayat Versi
+                                                        </a>
+                                                        @can('update', $document)
+                                                            <a class="dropdown-item" href="{{ route('document.edit', $document) }}">
+                                                                Edit Dokumen
                                                             </a>
-                                                            @can('update', $document)
-                                                                <a class="dropdown-item py-1" href="{{ route('document.edit', $document) }}">
-                                                                    Edit Dokumen
+                                                            @if($quizSettings)
+                                                                <a class="dropdown-item" href="{{ $quizSettings->url('questions.index') }}">
+                                                                    Soal Pretest/Posttest
                                                                 </a>
-                                                                <div class="dropdown-divider my-1"></div>
-                                                                @if ($document->deleted_at)
-                                                                    <form action="{{ route('document.restore', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Mengaktifkan kembali dokumen '.$document->name.'?'))">
-                                                                        @csrf
-                                                                        @method('PATCH')
-                                                                        <button type="submit" class="dropdown-item py-1 text-success">Aktifkan Dokumen</button>
-                                                                    </form>
-                                                                @else
-                                                                    <form action="{{ route('document.destroy', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Apakah anda yakin menonaktifkan dokumen '.$document->name.'?'))">
-                                                                        @csrf
-                                                                        @method('DELETE')
-                                                                        <button type="submit" class="dropdown-item py-1 text-danger">Nonaktifkan Dokumen</button>
-                                                                    </form>
-                                                                @endif
-                                                            @endcan
-                                                        </div>
+                                                                <a class="dropdown-item" href="{{ $quizSettings->url('results') }}">
+                                                                    Rekap Nilai Kuis
+                                                                </a>
+                                                            @endif
+                                                            <div class="dropdown-divider"></div>
+                                                            @if ($document->is_active)
+                                                                <form action="{{ route('document.deactivate', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Apakah anda yakin menonaktifkan dokumen '.$document->name.'?'))">
+                                                                    @csrf
+                                                                    @method('PATCH')
+                                                                    <button type="submit" class="dropdown-item">Nonaktifkan Dokumen</button>
+                                                                </form>
+                                                            @else
+                                                                <form action="{{ route('document.activate', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Mengaktifkan kembali dokumen '.$document->name.'?'))">
+                                                                    @csrf
+                                                                    @method('PATCH')
+                                                                    <button type="submit" class="dropdown-item">Aktifkan Dokumen</button>
+                                                                </form>
+                                                            @endif
+                                                        @endcan
+                                                        @can('delete', $document)
+                                                            <form action="{{ route('document.destroy', $document) }}" method="POST" class="m-0" onsubmit="return confirm(@js('Hapus dokumen '.$document->name.'? Dokumen akan hilang dari daftar beserta kuis pretest/posttest-nya.'))">
+                                                                @csrf
+                                                                @method('DELETE')
+                                                                <button type="submit" class="dropdown-item text-danger">Hapus Dokumen</button>
+                                                            </form>
+                                                        @endcan
                                                     </div>
                                                 </div>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                        <!-- /.card-body -->
-                    </div>
-                    <!-- /.card -->
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="8">
+                                        @if ($trashed)
+                                            <x-empty-state icon="fa-trash-restore" title="Tidak ada dokumen yang dihapus." text="Dokumen yang dihapus akan muncul di sini dan bisa dipulihkan." />
+                                        @else
+                                            <x-empty-state icon="fa-file-alt" title="Belum ada dokumen" text="Dokumen yang ditambahkan akan muncul di sini." />
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        </section>
+        </div>
     </section>
 
     <!-- Modal Riwayat Versi Dokumen -->
     <div class="modal fade" id="documentHistoryModal" tabindex="-1" role="dialog" aria-labelledby="historyModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-            <div class="modal-content shadow-sm border-0">
-                <div class="modal-header bg-dark text-white py-2">
-                    <h5 class="modal-title font-weight-bold text-sm" id="historyModalLabel">
-                        <i class="fas fa-history mr-1"></i> Riwayat Dokumen
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="historyModalLabel">
+                        <i class="fas fa-history"></i> Riwayat Dokumen
                     </h5>
-                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">&times;</button>
                 </div>
-                <div class="modal-body p-3">
+                <div class="modal-body">
                     <div id="historyLoading" class="text-center py-4">
-                        <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+                        <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
                         <p class="small text-muted mt-2 mb-0">Memuat data...</p>
                     </div>
 
                     <div id="historyContent" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-light rounded border text-sm">
-                            <div><strong class="text-muted">Dokumen:</strong> <span id="histDocName" class="font-weight-bold ml-1"></span></div>
-                            <div><strong class="text-muted">Divisi:</strong> <span id="histDocDivisi" class="ml-1"></span></div>
-                            <div><strong class="text-muted">Versi Aktif:</strong> <span id="histDocVersion" class="badge badge-info ml-1"></span></div>
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 p-2 bg-light rounded border text-sm">
+                            <div><span class="text-muted">Dokumen:</span> <span id="histDocName" class="font-weight-bold ml-1"></span></div>
+                            <div><span class="text-muted">Divisi:</span> <span id="histDocDivisi" class="ml-1"></span></div>
+                            <div><span class="text-muted">Versi Aktif:</span> <span id="histDocVersion" class="badge badge-secondary ml-1"></span></div>
                         </div>
 
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-striped table-hover text-sm mb-0">
-                                <thead class="thead-light">
+                        <div class="table-frame table-responsive">
+                            <table class="table table-hover text-sm mb-0">
+                                <thead>
                                     <tr>
                                         <th style="width: 80px;" class="text-center">Versi</th>
                                         <th>File</th>
@@ -204,13 +250,13 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer py-2 justify-content-between">
+                <div class="modal-footer justify-content-between">
                     @can('create', App\Models\Document::class)
-                    <a href="#" id="histEditLink" class="btn btn-warning btn-sm">
-                        <i class="fas fa-edit mr-1"></i> Edit Dokumen
+                    <a href="#" id="histEditLink" class="btn btn-default">
+                        <i class="fas fa-edit"></i> Edit Dokumen
                     </a>
                     @endcan
-                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Tutup</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Tutup</button>
                 </div>
             </div>
         </div>
@@ -243,25 +289,22 @@
                 data.versions.forEach(function(ver, index) {
                     var isLatest = (index === 0);
                     var row = document.createElement('tr');
-                    if (isLatest) {
-                        row.classList.add('table-success');
-                    }
 
                     row.innerHTML = `
-                        <td class="text-center font-weight-bold">
+                        <td class="text-center">
                             <span class="badge ${isLatest ? 'badge-success' : 'badge-secondary'}">
                                 v${ver.version_number}
                             </span>
                         </td>
                         <td>
-                            <i class="fas fa-file-pdf text-danger mr-1"></i>
+                            <i class="fas fa-file-pdf text-muted mr-1"></i>
                             ${ver.file_name}
                         </td>
                         <td>${ver.change_note || '-'}</td>
                         <td>${ver.created_at}</td>
-                        <td><span class="badge badge-light border">${ver.created_by || 'Admin'}</span></td>
+                        <td class="text-muted">${ver.created_by || 'Admin'}</td>
                         <td class="text-center">
-                            <a href="${ver.file_url}" target="_blank" class="btn btn-xs btn-outline-primary" title="Buka File">
+                            <a href="${ver.file_url}" target="_blank" class="btn btn-xs btn-default" title="Buka File">
                                 <i class="fas fa-eye"></i> Buka
                             </a>
                         </td>
@@ -275,7 +318,7 @@
         })
         .catch(err => {
             console.error('Error fetching history:', err);
-            $('#historyLoading').html('<p class="text-danger text-center">Gagal memuat riwayat.</p>');
+            $('#historyLoading').html('<p class="text-danger text-center mb-0">Gagal memuat riwayat.</p>');
         });
     }
     </script>

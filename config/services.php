@@ -45,4 +45,14 @@ return [
         'token' => env('WAG_TOKEN'),
     ],
 
+    // Sumber data karyawan (REST API DnD /api/v1). Token Sanctum akun super admin DnD, atau login & password
+    // akun tersebut agar token diminta otomatis.
+    'dnd' => [
+        'url' => env('DND_API_URL'),
+        'token' => env('DND_API_TOKEN'),
+        'login' => env('DND_API_LOGIN'),
+        'password' => env('DND_API_PASSWORD'),
+        'sync_time' => env('DND_SYNC_TIME', '01:00'),
+    ],
+
 ];

@@ -6,6 +6,7 @@ use App\Models\Training;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Mockery;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
@@ -91,5 +92,24 @@ class ExampleTest extends TestCase
         $training->refresh();
         $this->assertNotNull($training->video);
         $this->assertEquals($training->title, $training->video->title);
+    }
+
+    public function test_video_upload_that_fails_to_store_does_not_create_an_empty_video()
+    {
+        $disk = Mockery::mock(Storage::fake('public'))->makePartial();
+        $disk->shouldReceive('putFileAs')->andReturnFalse();
+        Storage::set('public', $disk);
+
+        $user = User::first() ?? User::factory()->create();
+
+        $response = $this->actingAs($user)->from(route('video.create'))->post(route('video.store'), [
+            'title' => 'Video Gagal Simpan',
+            'video_type' => 'file',
+            'video_file' => UploadedFile::fake()->create('materi.mp4', 500, 'video/mp4'),
+        ]);
+
+        $response->assertRedirect(route('video.create'));
+        $response->assertSessionHasErrors('video_file');
+        $this->assertDatabaseMissing('videos', ['title' => 'Video Gagal Simpan']);
     }
 }

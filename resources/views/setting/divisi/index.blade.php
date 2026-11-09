@@ -2,69 +2,58 @@
 
 @section('content')
     <section class="content-header">
-        <!-- Main content -->
         <div class="container-fluid">
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                            <h3 class="card-title font-weight-bold text-dark m-0" style="font-size: 1.2rem;">
-                                Data Divisi
-                            </h3>
-                            <div class="card-tools m-0">
-                                <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#addDivisi">
-                                    Tambah Divisi
-                                </button>
-                            </div>
-                        </div>
-                        @if ($message = Session::get('success'))
-                            <div class="alert alert-success alert-dismissible fade show mx-3 mt-3 mb-0" role="alert">
-                                <strong>{{ $message }}</strong>
-                            </div>
-                        @endif
-                        @if ($message = Session::get('error'))
-                            <div class="alert alert-danger alert-dismissible fade show mx-3 mt-3 mb-0" role="alert">
-                                <strong>{{ $message }}</strong>
-                            </div>
-                        @endif
-                        @include('layout.partials.validation-errors')
-                        <!-- /.card-header -->
-                        <div class="card-body table-responsive p-0" style="height: 520px;">
-                            <table class="table table-head-fixed text-nowrap">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 70px;">No</th>
-                                        <th>Nama Divisi</th>
-                                        <th style="width: 120px;">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($divisis as $divisi)
-                                        <tr>
-                                            <td>{{ $loop->iteration }}</td>
-                                            <td><strong>{{ $divisi->name }}</strong></td>
-                                            <td>
-                                                <div class="d-flex align-items-center" style="gap: 4px;">
-                                                    <a href="{{ route('divisi.edit', $divisi) }}" class="btn btn-default btn-xs">
-                                                        Edit
-                                                    </a>
-                                                    <form action="{{ route('divisi.destroy', $divisi) }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Hapus divisi '.$divisi->name.'?'))">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="btn btn-default btn-xs text-danger">
-                                                            Hapus
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                        <!-- /.card-body -->
-                    </div>
-                    <!-- /.card -->
+            <x-page-header title="Divisi" subtitle="Divisi per area, kepala divisi, dan jumlah karyawannya." eyebrow="Pengaturan / Master Data">
+                <x-slot:actions>
+                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addDivisi">
+                        <i class="fas fa-plus"></i> Tambah Divisi
+                    </button>
+                </x-slot:actions>
+            </x-page-header>
+
+            <x-flash />
+
+            <div class="card">
+                <div class="card-body table-responsive p-0" style="max-height: 560px;">
+                    <table class="table table-head-fixed text-nowrap">
+                        <thead>
+                            <tr>
+                                <th style="width: 70px;">No</th>
+                                <th>Nama Divisi</th>
+                                <th>Area</th>
+                                <th>Kepala Divisi</th>
+                                <th>Jumlah Karyawan</th>
+                                <th style="width: 140px;" class="text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($divisis as $divisi)
+                                <tr>
+                                    <td class="text-muted">{{ $loop->iteration }}</td>
+                                    <td><strong>{{ $divisi->name }}</strong></td>
+                                    <td>{{ $divisi->area->name ?? '-' }}</td>
+                                    <td>{{ $divisi->manager->nama_lengkap ?? '-' }}</td>
+                                    <td>{{ $divisi->users_count }}</td>
+                                    <td class="text-right">
+                                        <div class="d-inline-flex align-items-center gap-1">
+                                            <a href="{{ route('divisi.edit', $divisi) }}" class="btn btn-default btn-xs">Edit</a>
+                                            <form action="{{ route('divisi.destroy', $divisi) }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Hapus divisi '.$divisi->name.'?'))">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-default btn-xs text-danger">Hapus</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6">
+                                        <x-empty-state icon="fa-sitemap" title="Belum ada divisi" text="Tambahkan divisi pertama untuk mengelompokkan karyawan." />
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -74,24 +63,43 @@
     <form action="{{ route('divisi.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="modal fade" id="addDivisi" tabindex="-1" aria-labelledby="addDivisiLabel" aria-hidden="true">
-            <div class="modal-dialog">
+            <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="addDivisiLabel">Add Divisi</h5>
+                        <h5 class="modal-title" id="addDivisiLabel">Tambah Divisi</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">&times;</button>
                     </div>
                     <div class="modal-body">
-                        <div class="col-12 mt-3">
-                            <label for="name" class="form-label">Nama Divisi</label>
+                        <div class="form-group">
+                            <label for="name">Nama Divisi</label>
                             <input class="form-control" type="text" id="name" name="name">
+                        </div>
+                        <div class="form-group">
+                            <label for="area_id">Area</label>
+                            <select class="custom-select select2" id="area_id" name="area_id" style="width: 100%;">
+                                <option value="">-- Tanpa Area --</option>
+                                @foreach ($areas as $area)
+                                    <option value="{{ $area->id }}">{{ $area->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group mb-0">
+                            <label for="manager_id">Kepala Divisi</label>
+                            <select class="custom-select select2" id="manager_id" name="manager_id" style="width: 100%;">
+                                <option value="">-- Belum Ada --</option>
+                                @foreach ($managers as $manager)
+                                    <option value="{{ $manager->id }}">{{ $manager->nama_lengkap }}</option>
+                                @endforeach
+                            </select>
+                            <small class="form-text text-muted">Disarankan sebagai approval line default karyawan divisi ini.</small>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Add</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan</button>
                     </div>
                 </div>
             </div>
         </div>
     </form>
-    <!-- /.content -->
 @endsection

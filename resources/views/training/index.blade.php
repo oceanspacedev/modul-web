@@ -3,89 +3,59 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h1 class="m-0 text-dark font-weight-bold" style="font-size: 1.5rem;">
-                Jadwal Pelatihan
-            </h1>
-            <a href="/training/create" class="btn btn-sm btn-success shadow-sm">
-                <i class="fas fa-plus mr-1"></i> Tambah Pelatihan
-            </a>
-        </div>
+        <x-page-header title="Jadwal Pelatihan" subtitle="Daftar sesi pelatihan beserta pemateri, jadwal, dan pesertanya." eyebrow="Pelatihan">
+            <x-slot:actions>
+                <a href="/training/create" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Tambah Pelatihan
+                </a>
+            </x-slot:actions>
+        </x-page-header>
     </div>
 </section>
 
 <section class="content">
     <div class="container-fluid">
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
-                {{ session('success') }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
+        <x-flash />
 
-        @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
-                {{ session('error') }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
-
-        <!-- MAIN CARD -->
-        <div class="card mb-4">
-            <div class="card-header py-3">
-                <div class="row align-items-center">
-                    <div class="col-md-7 mb-2 mb-md-0">
-                        <div class="btn-group btn-group-sm">
-                            <a href="/training" class="btn {{ !request('status') ? 'btn-secondary active' : 'btn-default' }}">Semua ({{ $stats['total'] }})</a>
-                            <a href="/training?status=scheduled" class="btn {{ request('status') === 'scheduled' ? 'btn-secondary active' : 'btn-default' }}">Dijadwalkan ({{ $stats['scheduled'] }})</a>
-                            <a href="/training?status=ongoing" class="btn {{ request('status') === 'ongoing' ? 'btn-secondary active' : 'btn-default' }}">Berlangsung ({{ $stats['ongoing'] }})</a>
-                            <a href="/training?status=completed" class="btn {{ request('status') === 'completed' ? 'btn-secondary active' : 'btn-default' }}">Selesai ({{ $stats['completed'] }})</a>
-                        </div>
-                    </div>
-                    <div class="col-md-5">
-                        <form action="/training" method="GET" class="d-flex justify-content-md-end">
-                            @if(request('status'))
-                                <input type="hidden" name="status" value="{{ request('status') }}">
-                            @endif
-                            <div class="input-group input-group-sm" style="max-width: 280px;">
-                                <input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Cari topik atau pemateri...">
-                                <div class="input-group-append">
-                                    <button type="submit" class="btn btn-default">
-                                        <i class="fas fa-search"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
+        <div class="card">
+            <div class="card-header filter-toolbar">
+                <div class="btn-group btn-group-sm filter-tabs">
+                    <a href="/training" class="btn {{ !request('status') ? 'btn-secondary active' : 'btn-default' }}">Semua ({{ $stats['total'] }})</a>
+                    <a href="/training?status=scheduled" class="btn {{ request('status') === 'scheduled' ? 'btn-secondary active' : 'btn-default' }}">Dijadwalkan ({{ $stats['scheduled'] }})</a>
+                    <a href="/training?status=ongoing" class="btn {{ request('status') === 'ongoing' ? 'btn-secondary active' : 'btn-default' }}">Berlangsung ({{ $stats['ongoing'] }})</a>
+                    <a href="/training?status=completed" class="btn {{ request('status') === 'completed' ? 'btn-secondary active' : 'btn-default' }}">Selesai ({{ $stats['completed'] }})</a>
                 </div>
+                <form action="/training" method="GET" class="ml-auto" role="search" style="width: 280px; max-width: 100%;">
+                    @if(request('status'))
+                        <input type="hidden" name="status" value="{{ request('status') }}">
+                    @endif
+                    <x-search-field placeholder="Cari pelatihan atau pemateri..."
+                        :clear-url="url('/training').(request('status') ? '?status='.request('status') : '')" />
+                </form>
             </div>
 
-            <div class="card-body p-0 table-responsive" style="min-height: 260px;">
-                <table class="table table-hover mb-0" style="font-size: 0.92rem;">
-                    <thead class="bg-light text-muted">
+            <div class="card-body table-responsive p-0">
+                <table class="table table-hover mb-0">
+                    <thead>
                         <tr>
-                            <th style="width: 60px; padding: 14px 16px;" class="text-center">No</th>
-                            <th style="padding: 14px 16px;">Topik Pelatihan</th>
-                            <th style="padding: 14px 16px;">Pemateri</th>
-                            <th style="padding: 14px 16px;">Jadwal</th>
-                            <th style="padding: 14px 16px;">Tautan Sesi</th>
-                            <th style="padding: 14px 16px;" class="text-center">Peserta</th>
-                            <th style="padding: 14px 16px;" class="text-center">Status</th>
-                            <th style="width: 140px; padding: 14px 16px;" class="text-center">Aksi</th>
+                            <th style="width: 60px;" class="text-center">No</th>
+                            <th>Topik Pelatihan</th>
+                            <th>Pemateri</th>
+                            <th>Jadwal</th>
+                            <th>Tautan Sesi</th>
+                            <th class="text-center">Peserta</th>
+                            <th class="text-center">Status</th>
+                            <th style="width: 140px;" class="text-right">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($trainings as $index => $t)
                         <tr>
-                            <td class="text-center align-middle text-muted" style="padding: 16px;">
+                            <td class="text-center text-muted">
                                 {{ $trainings->firstItem() + $index }}
                             </td>
-                            <td class="align-middle" style="padding: 16px;">
-                                <a href="/training/{{ $t->id }}" class="font-weight-bold text-dark d-block mb-1">
+                            <td>
+                                <a href="/training/{{ $t->id }}" class="font-weight-bold text-dark d-block">
                                     {{ $t->title }}
                                 </a>
                                 @if($t->description)
@@ -94,33 +64,33 @@
                                     </span>
                                 @endif
                             </td>
-                            <td class="align-middle" style="padding: 16px;">
-                                <span class="font-weight-600 text-dark d-block">{{ $t->trainer->full_name ?? '-' }}</span>
+                            <td>
+                                <span class="d-block">{{ $t->trainer->nama_lengkap ?? '-' }}</span>
                                 <span class="text-muted small">{{ $t->trainer->divisi->name ?? 'Divisi Umum' }}</span>
                             </td>
-                            <td class="align-middle" style="padding: 16px;">
+                            <td>
                                 <span class="d-block">{{ \Carbon\Carbon::parse($t->training_date)->format('d M Y') }}</span>
                                 <span class="text-muted small">{{ substr($t->start_time, 0, 5) }} - {{ substr($t->end_time, 0, 5) }} WIB</span>
                             </td>
-                            <td class="align-middle" style="padding: 16px;">
+                            <td>
                                 @if($t->zoom_link)
-                                    <a href="{{ $t->zoom_link }}" target="_blank" class="btn btn-xs btn-outline-primary px-2 py-1">
-                                        Buka Zoom
+                                    <a href="{{ $t->zoom_link }}" target="_blank" class="btn btn-default btn-xs">
+                                        <i class="fas fa-video"></i> Buka Zoom
                                     </a>
                                 @else
                                     <span class="text-muted small">-</span>
                                 @endif
                             </td>
-                            <td class="text-center align-middle" style="padding: 16px;">
-                                <span class="badge bg-light border px-2 py-1 text-dark">
+                            <td class="text-center">
+                                <span class="badge badge-secondary">
                                     {{ $t->participants->count() }} orang
                                 </span>
                             </td>
-                            <td class="text-center align-middle" style="padding: 16px;">
+                            <td class="text-center">
                                 <x-training-status-badge :status="$t->status" />
                             </td>
-                            <td class="text-center align-middle" style="padding: 14px;">
-                                <div class="d-inline-flex align-items-center" style="gap: 4px;">
+                            <td class="text-right">
+                                <div class="d-inline-flex align-items-center gap-1">
                                     <a href="/training/{{ $t->id }}" class="btn btn-default btn-xs">
                                         Detail
                                     </a>
@@ -128,21 +98,21 @@
                                         <button class="btn btn-default btn-xs dropdown-toggle" type="button" data-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false">
                                             Aksi
                                         </button>
-                                        <div class="dropdown-menu dropdown-menu-right shadow-sm border text-sm" style="font-size: 0.85rem;">
-                                            <a class="dropdown-item py-1" href="/training/{{ $t->id }}/questions">
+                                        <div class="dropdown-menu dropdown-menu-right">
+                                            <a class="dropdown-item" href="/training/{{ $t->id }}/questions">
                                                 Kelola Soal Kuis
                                             </a>
-                                            <a class="dropdown-item py-1 btn-upload-video-shortcut" href="javascript:void(0)" data-toggle="modal" data-target="#uploadTrainingVideoModal" data-id="{{ $t->id }}" data-title="{{ addslashes($t->title) }}" data-date="{{ \Carbon\Carbon::parse($t->training_date)->format('d F Y') }}">
+                                            <a class="dropdown-item btn-upload-video-shortcut" href="javascript:void(0)" data-toggle="modal" data-target="#uploadTrainingVideoModal" data-id="{{ $t->id }}" data-title="{{ addslashes($t->title) }}" data-date="{{ \Carbon\Carbon::parse($t->training_date)->format('d F Y') }}">
                                                 Upload Video Materi
                                             </a>
-                                            <a class="dropdown-item py-1" href="/training/{{ $t->id }}/edit">
+                                            <a class="dropdown-item" href="/training/{{ $t->id }}/edit">
                                                 Edit Pelatihan
                                             </a>
-                                            <div class="dropdown-divider my-1"></div>
+                                            <div class="dropdown-divider"></div>
                                             <form action="{{ route('training.destroy', $t) }}" method="POST" class="m-0" onsubmit="return confirm('Hapus jadwal pelatihan ini?')">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="dropdown-item py-1 text-danger">Hapus Pelatihan</button>
+                                                <button type="submit" class="dropdown-item text-danger">Hapus Pelatihan</button>
                                             </form>
                                         </div>
                                     </div>
@@ -151,11 +121,12 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="8" class="text-center py-5 text-muted">
-                                <p class="mb-2">Belum ada data jadwal pelatihan yang tersedia.</p>
-                                <a href="/training/create" class="btn btn-sm btn-primary">
-                                    Tambah Pelatihan Baru
-                                </a>
+                            <td colspan="8">
+                                <x-empty-state icon="fa-chalkboard-teacher" title="Belum ada jadwal pelatihan" text="Buat sesi pelatihan pertama untuk mulai mengundang peserta.">
+                                    <a href="/training/create" class="btn btn-primary">
+                                        <i class="fas fa-plus"></i> Tambah Pelatihan
+                                    </a>
+                                </x-empty-state>
                             </td>
                         </tr>
                         @endforelse
@@ -164,7 +135,7 @@
             </div>
 
             @if($trainings->hasPages())
-                <div class="card-footer bg-white border-top py-3 d-flex justify-content-end">
+                <div class="card-footer d-flex justify-content-end">
                     {{ $trainings->withQueryString()->links() }}
                 </div>
             @endif
@@ -175,60 +146,45 @@
 {{-- MODAL UPLOAD VIDEO MATERI PELATIHAN (INDEX SHORTCUT) --}}
 <div class="modal fade" id="uploadTrainingVideoModal" tabindex="-1" role="dialog" aria-labelledby="uploadTrainingVideoModalLabel" aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-        <div class="modal-content shadow border-0" style="border-radius: 14px;">
-            <div class="modal-header bg-white border-bottom py-3">
-                <div class="d-flex align-items-center">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-danger text-white mr-2" style="width: 38px; height: 38px;">
-                        <i class="fas fa-video"></i>
-                    </div>
-                    <div>
-                        <h5 class="modal-title font-weight-bold text-dark mb-0" id="uploadTrainingVideoModalLabel">Upload Video Materi Pelatihan</h5>
-                        <small class="text-muted">Video akan otomatis masuk ke Galeri Video Materi dengan judul pelatihan ini.</small>
-                    </div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="uploadTrainingVideoModalLabel">Upload Video Materi Pelatihan</h5>
+                    <small class="text-muted">Video akan otomatis masuk ke Galeri Video Materi dengan judul pelatihan ini.</small>
                 </div>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">&times;</button>
             </div>
             <form action="{{ route('video.store') }}" method="POST" enctype="multipart/form-data" id="uploadTrainingVideoIndexForm">
                 @csrf
                 <input type="hidden" name="training_id" id="indexModalTrainingId" value="">
                 <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
 
-                <div class="modal-body p-4">
+                <div class="modal-body">
                     {{-- Judul Video Otomatis --}}
-                    <div class="form-group mb-3">
-                        <label class="font-weight-bold text-dark">
-                            Judul Video Materi <span class="text-danger">*</span>
-                        </label>
+                    <div class="form-group">
+                        <label for="indexModalVideoTitle">Judul Video Materi <span class="text-danger">*</span></label>
                         <input type="text" name="title" id="indexModalVideoTitle" class="form-control" required placeholder="Judul video...">
-                        <small class="text-muted">
-                            <i class="fas fa-magic text-primary mr-1"></i> Terisi otomatis sesuai judul sesi pelatihan yang dipilih.
-                        </small>
+                        <small class="text-muted">Terisi otomatis sesuai judul sesi pelatihan yang dipilih.</small>
                     </div>
 
                     {{-- Pilihan Tipe Video: Upload File vs Tautan Link --}}
-                    <div class="form-group mb-3">
-                        <label class="font-weight-bold text-dark d-block">Sumber Video <span class="text-danger">*</span></label>
-                        <div class="d-flex p-2 bg-light rounded border" style="gap: 20px;">
+                    <div class="form-group">
+                        <label class="d-block">Sumber Video <span class="text-danger">*</span></label>
+                        <div class="d-flex flex-wrap gap-3">
                             <div class="custom-control custom-radio">
                                 <input type="radio" id="indexTypeFile" name="video_type" value="file" class="custom-control-input" checked onchange="toggleVideoTypeInIndex('file')">
-                                <label class="custom-control-label font-weight-bold" for="indexTypeFile" style="cursor: pointer;">
-                                    <i class="fas fa-file-video text-danger mr-1"></i> Upload File Video
-                                </label>
+                                <label class="custom-control-label" for="indexTypeFile">Upload file video</label>
                             </div>
                             <div class="custom-control custom-radio">
                                 <input type="radio" id="indexTypeLink" name="video_type" value="link" class="custom-control-input" onchange="toggleVideoTypeInIndex('link')">
-                                <label class="custom-control-label font-weight-bold" for="indexTypeLink" style="cursor: pointer;">
-                                    <i class="fab fa-youtube text-danger mr-1"></i> Tautan / Link (YouTube / Drive / Zoom)
-                                </label>
+                                <label class="custom-control-label" for="indexTypeLink">Tautan / link (YouTube, Drive, Zoom)</label>
                             </div>
                         </div>
                     </div>
 
                     {{-- Group 1: File Input --}}
-                    <div class="form-group mb-3" id="indexFileInputGroup">
-                        <label class="font-weight-bold text-dark">Pilih File Video Rekaman <span class="text-danger">*</span></label>
+                    <div class="form-group" id="indexFileInputGroup">
+                        <label for="indexVideoFileInput">File Video Rekaman <span class="text-danger">*</span></label>
                         <div class="custom-file">
                             <input type="file" name="video_file" id="indexVideoFileInput" class="custom-file-input" accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-matroska" required onchange="updateIndexFileName(this)">
                             <label class="custom-file-label" id="indexVideoFileLabel" for="indexVideoFileInput">Pilih file video (MP4, MKV, WEBM, MOV)...</label>
@@ -237,21 +193,21 @@
                     </div>
 
                     {{-- Group 2: Link Input --}}
-                    <div class="form-group mb-3" id="indexLinkInputGroup" style="display: none;">
-                        <label class="font-weight-bold text-dark">URL / Tautan Video <span class="text-danger">*</span></label>
+                    <div class="form-group" id="indexLinkInputGroup" style="display: none;">
+                        <label for="indexVideoLinkInput">URL / Tautan Video <span class="text-danger">*</span></label>
                         <input type="url" name="video_link" id="indexVideoLinkInput" class="form-control" placeholder="https://www.youtube.com/watch?v=... atau https://drive.google.com/file/d/...">
                         <small class="text-muted">Mendukung link YouTube, Zoom Cloud Recording, atau Google Drive.</small>
                     </div>
 
                     {{-- Deskripsi Otomatis --}}
-                    <div class="form-group mb-3">
-                        <label class="font-weight-bold text-dark">Deskripsi & Catatan Sesi (Opsional)</label>
+                    <div class="form-group">
+                        <label for="indexModalVideoDesc">Deskripsi & Catatan Sesi <span class="text-muted">(opsional)</span></label>
                         <textarea name="description" id="indexModalVideoDesc" class="form-control" rows="3" placeholder="Rangkuman materi atau topik yang dibahas..."></textarea>
                     </div>
 
                     {{-- Thumbnail Cover (Opsional) --}}
                     <div class="form-group mb-0">
-                        <label class="font-weight-bold text-dark">Cover / Thumbnail Video (Opsional)</label>
+                        <label for="indexThumbInput">Cover / Thumbnail Video <span class="text-muted">(opsional)</span></label>
                         <div class="custom-file">
                             <input type="file" name="thumbnail" id="indexThumbInput" class="custom-file-input" accept="image/png,image/jpeg,image/webp" onchange="updateIndexThumbLabel(this)">
                             <label class="custom-file-label" id="indexThumbLabel" for="indexThumbInput">Pilih gambar thumbnail (JPG, PNG, WEBP)...</label>
@@ -260,12 +216,10 @@
                     </div>
                 </div>
 
-                <div class="modal-footer bg-light py-3 border-top d-flex justify-content-between">
-                    <button type="button" class="btn btn-secondary px-3" data-dismiss="modal">
-                        Batal
-                    </button>
-                    <button type="submit" class="btn btn-danger font-weight-bold px-4 shadow-sm" id="btnIndexSubmitVideo">
-                        <i class="fas fa-cloud-upload-alt mr-1"></i> Simpan & Publikasikan ke Video Materi
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary" id="btnIndexSubmitVideo">
+                        <i class="fas fa-cloud-upload-alt"></i> Simpan & Publikasikan
                     </button>
                 </div>
             </form>

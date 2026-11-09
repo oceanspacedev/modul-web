@@ -1,220 +1,138 @@
 @extends('layout.main_template')
 
 @section('content')
+<style>
+    .dash-chart { position: relative; height: 230px; width: 100%; }
+    .dash-chart-sm { position: relative; height: 210px; width: 100%; }
+    .dash-legend-dot { display: inline-block; width: 8px; height: 8px; border-radius: 9999px; margin-right: 6px; }
+    .dash-legend-dot.is-1 { background: var(--primary-600); }
+    .dash-legend-dot.is-2 { background: var(--gray-400); }
+    .dash-legend-dot.is-3 { background: var(--gray-300); }
+    .dash-legend-dot.is-4 { background: var(--gray-200); }
+    .dash-kpi-value { font-family: var(--font-heading); font-size: 1.125rem; font-weight: 600; color: var(--gray-950); }
+    .dash-thumb { width: 58px; height: 40px; border-radius: var(--radius-md); overflow: hidden; background: var(--gray-100); }
+    .dash-row + .dash-row { border-top: 1px solid var(--ring); }
+</style>
+
 <div class="content-header">
     <div class="container-fluid">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-                <h1 class="m-0 font-weight-bold" style="font-size: 1.5rem; color: #0f172a; letter-spacing: -0.02em;">
-                    Dashboard
-                </h1>
-                <p class="text-muted small mt-1 mb-0">Ringkasan seluruh modul, pelatihan, video, dan grafik analitik sistem.</p>
-            </div>
-            <div class="d-flex align-items-center">
-                <span class="badge border text-muted px-3 py-2 font-weight-normal shadow-sm" style="background: #ffffff; border-color: #e2e8f0 !important; font-size: 0.825rem; border-radius: 8px;">
-                    <i class="far fa-calendar-alt mr-1 text-primary"></i> {{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}
+        <x-page-header title="Dashboard" subtitle="Ringkasan seluruh modul, pelatihan, video, dan grafik analitik sistem.">
+            <x-slot:actions>
+                <span class="text-muted small">
+                    <i class="far fa-calendar-alt mr-1"></i> {{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}
                 </span>
-            </div>
-        </div>
+            </x-slot:actions>
+        </x-page-header>
     </div>
 </div>
 
 <section class="content">
     <div class="container-fluid">
-        {{-- Flash Alerts --}}
-        @if ($message = Session::get('success'))
-            <div class="alert alert-success alert-dismissible fade show shadow-sm border-0" role="alert" style="border-radius: 10px;">
-                <i class="fas fa-check-circle mr-1"></i> {{ $message }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
-        @if ($message = Session::get('error'))
-            <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0" role="alert" style="border-radius: 10px;">
-                <i class="fas fa-exclamation-circle mr-1"></i> {{ $message }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
+        <x-flash />
 
-        {{-- =========================================================
-             STAT METRIC CARDS (8 CARDS - MODERN BALANCED ACCENTS)
-             ========================================================= --}}
+        {{-- Ringkasan angka --}}
         <div class="row">
-            {{-- 1. Total User --}}
-            <div class="col-xl-3 col-md-6 col-12 mb-3">
-                <div class="card h-100 border-0 shadow-sm" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
-                    <a href="/user" class="text-decoration-none text-reset">
-                        <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                            <div>
-                                <small class="text-uppercase font-weight-bold" style="letter-spacing: 0.04em; font-size: 0.75rem; color: #64748b;">Total Pengguna</small>
-                                <h3 class="font-weight-bold mb-1 mt-1" style="font-size: 1.75rem; color: #0f172a;">{{ $data['totalUser'] }}</h3>
-                                <span class="badge border" style="background: #f8fafc; border-color: #e2e8f0 !important; color: #2563eb; font-size: 0.725rem;">
-                                    <i class="fas fa-arrow-right mr-1"></i> Kelola User
-                                </span>
-                            </div>
-                            <div class="d-flex align-items-center justify-content-center rounded-circle border" style="width: 50px; height: 50px; background: #eff6ff; border-color: #dbeafe !important; color: #2563eb;">
-                                <i class="fas fa-users" style="font-size: 1.25rem;"></i>
-                            </div>
-                        </div>
-                    </a>
-                </div>
+            <div class="col-xl-4 col-sm-6 mb-3">
+                <a href="/user" class="stat-tile">
+                    <span class="stat-tile-icon"><i class="fas fa-users"></i></span>
+                    <div class="min-w-0">
+                        <p class="stat-tile-label">Total Pengguna</p>
+                        <p class="stat-tile-value">{{ $data['totalUser'] }}</p>
+                        <p class="stat-tile-hint">Kelola user</p>
+                    </div>
+                </a>
             </div>
 
-            {{-- 2. Total Pelatihan --}}
-            <div class="col-xl-3 col-md-6 col-12 mb-3">
-                <div class="card h-100 border-0 shadow-sm" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
-                    <a href="/training" class="text-decoration-none text-reset">
-                        <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                            <div>
-                                <small class="text-uppercase font-weight-bold" style="letter-spacing: 0.04em; font-size: 0.75rem; color: #64748b;">Jadwal Pelatihan</small>
-                                <h3 class="font-weight-bold mb-1 mt-1" style="font-size: 1.75rem; color: #0f172a;">{{ $data['totalTraining'] }}</h3>
-                                <span class="badge border" style="background: #f0f9ff; border-color: #e0f2fe !important; color: #0284c7; font-size: 0.725rem;">
-                                    <i class="fas fa-clock mr-1"></i> {{ $data['ongoingTraining'] }} Berlangsung
-                                </span>
-                            </div>
-                            <div class="d-flex align-items-center justify-content-center rounded-circle border" style="width: 50px; height: 50px; background: #f0f9ff; border-color: #e0f2fe !important; color: #0284c7;">
-                                <i class="fas fa-chalkboard-teacher" style="font-size: 1.25rem;"></i>
-                            </div>
-                        </div>
-                    </a>
-                </div>
+            <div class="col-xl-4 col-sm-6 mb-3">
+                <a href="/training" class="stat-tile">
+                    <span class="stat-tile-icon"><i class="fas fa-chalkboard-teacher"></i></span>
+                    <div class="min-w-0">
+                        <p class="stat-tile-label">Jadwal Pelatihan</p>
+                        <p class="stat-tile-value">{{ $data['totalTraining'] }}</p>
+                        <p class="stat-tile-hint">{{ $data['ongoingTraining'] }} berlangsung</p>
+                    </div>
+                </a>
             </div>
 
-            {{-- 3. Total Video Materi --}}
-            <div class="col-xl-3 col-md-6 col-12 mb-3">
-                <div class="card h-100 border-0 shadow-sm" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
-                    <a href="/video" class="text-decoration-none text-reset">
-                        <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                            <div>
-                                <small class="text-uppercase font-weight-bold" style="letter-spacing: 0.04em; font-size: 0.75rem; color: #64748b;">Video Materi</small>
-                                <h3 class="font-weight-bold mb-1 mt-1" style="font-size: 1.75rem; color: #0f172a;">{{ $data['totalVideo'] }}</h3>
-                                <span class="badge border" style="background: #fff1f2; border-color: #ffe4e6 !important; color: #e11d48; font-size: 0.725rem;">
-                                    <i class="fas fa-play mr-1"></i> Buka Galeri
-                                </span>
-                            </div>
-                            <div class="d-flex align-items-center justify-content-center rounded-circle border" style="width: 50px; height: 50px; background: #fff1f2; border-color: #ffe4e6 !important; color: #e11d48;">
-                                <i class="fas fa-play-circle" style="font-size: 1.25rem;"></i>
-                            </div>
-                        </div>
-                    </a>
-                </div>
+            <div class="col-xl-4 col-sm-6 mb-3">
+                <a href="/video" class="stat-tile">
+                    <span class="stat-tile-icon"><i class="fas fa-play-circle"></i></span>
+                    <div class="min-w-0">
+                        <p class="stat-tile-label">Video Materi</p>
+                        <p class="stat-tile-value">{{ $data['totalVideo'] }}</p>
+                        <p class="stat-tile-hint">Buka galeri</p>
+                    </div>
+                </a>
             </div>
 
-            {{-- 4. Total Peserta Pelatihan --}}
-            <div class="col-xl-3 col-md-6 col-12 mb-3">
-                <div class="card h-100 border-0 shadow-sm" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
-                    <a href="/training" class="text-decoration-none text-reset">
-                        <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                            <div>
-                                <small class="text-uppercase font-weight-bold" style="letter-spacing: 0.04em; font-size: 0.75rem; color: #64748b;">Peserta Pelatihan</small>
-                                <h3 class="font-weight-bold mb-1 mt-1" style="font-size: 1.75rem; color: #0f172a;">{{ $data['totalParticipant'] }}</h3>
-                                <span class="badge border" style="background: #ecfdf5; border-color: #d1fae5 !important; color: #059669; font-size: 0.725rem;">
-                                    <i class="fas fa-check-circle mr-1"></i> Terdaftar
-                                </span>
-                            </div>
-                            <div class="d-flex align-items-center justify-content-center rounded-circle border" style="width: 50px; height: 50px; background: #ecfdf5; border-color: #d1fae5 !important; color: #059669;">
-                                <i class="fas fa-user-graduate" style="font-size: 1.25rem;"></i>
-                            </div>
-                        </div>
-                    </a>
-                </div>
+            <div class="col-xl-4 col-sm-6 mb-3">
+                <a href="/training" class="stat-tile">
+                    <span class="stat-tile-icon"><i class="fas fa-user-graduate"></i></span>
+                    <div class="min-w-0">
+                        <p class="stat-tile-label">Peserta Pelatihan</p>
+                        <p class="stat-tile-value">{{ $data['totalParticipant'] }}</p>
+                        <p class="stat-tile-hint">Terdaftar</p>
+                    </div>
+                </a>
             </div>
 
-            {{-- 5. Total Dokumen Modul --}}
-            <div class="col-xl-3 col-md-6 col-12 mb-3">
-                <div class="card h-100 border-0 shadow-sm" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
-                    <a href="/document" class="text-decoration-none text-reset">
-                        <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                            <div>
-                                <small class="text-uppercase font-weight-bold" style="letter-spacing: 0.04em; font-size: 0.75rem; color: #64748b;">Dokumen Modul</small>
-                                <h3 class="font-weight-bold mb-1 mt-1" style="font-size: 1.75rem; color: #0f172a;">{{ $data['totalDocument'] }}</h3>
-                                <span class="badge border" style="background: #fffbeb; border-color: #fef3c7 !important; color: #d97706; font-size: 0.725rem;">
-                                    <i class="fas fa-folder-open mr-1"></i> Lihat Dokumen
-                                </span>
-                            </div>
-                            <div class="d-flex align-items-center justify-content-center rounded-circle border" style="width: 50px; height: 50px; background: #fffbeb; border-color: #fef3c7 !important; color: #d97706;">
-                                <i class="fas fa-file-alt" style="font-size: 1.25rem;"></i>
-                            </div>
-                        </div>
-                    </a>
-                </div>
+            <div class="col-xl-4 col-sm-6 mb-3">
+                <a href="/document" class="stat-tile">
+                    <span class="stat-tile-icon"><i class="fas fa-file-alt"></i></span>
+                    <div class="min-w-0">
+                        <p class="stat-tile-label">Dokumen Modul</p>
+                        <p class="stat-tile-value">{{ $data['totalDocument'] }}</p>
+                        <p class="stat-tile-hint">Lihat dokumen</p>
+                    </div>
+                </a>
             </div>
 
-            {{-- 6. Hasil Evaluasi Kuis --}}
-            <div class="col-xl-3 col-md-6 col-12 mb-3">
-                <div class="card h-100 border-0 shadow-sm" style="border: 1px solid #e2e8f0 !important; border-radius: 12px; background: #ffffff;">
-                    <a href="/training" class="text-decoration-none text-reset">
-                        <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                            <div>
-                                <small class="text-uppercase font-weight-bold" style="letter-spacing: 0.04em; font-size: 0.75rem; color: #64748b;">Hasil Evaluasi Kuis</small>
-                                <h3 class="font-weight-bold mb-1 mt-1" style="font-size: 1.75rem; color: #0f172a;">{{ $data['totalQuizResult'] }}</h3>
-                                <span class="badge border" style="background: #f5f3ff; border-color: #ede9fe !important; color: #7c3aed; font-size: 0.725rem;">
-                                    <i class="fas fa-chart-line mr-1"></i> Rata-rata: {{ $data['quizAvgScore'] }}
-                                </span>
-                            </div>
-                            <div class="d-flex align-items-center justify-content-center rounded-circle border" style="width: 50px; height: 50px; background: #f5f3ff; border-color: #ede9fe !important; color: #7c3aed;">
-                                <i class="fas fa-clipboard-check" style="font-size: 1.25rem;"></i>
-                            </div>
-                        </div>
-                    </a>
-                </div>
+            <div class="col-xl-4 col-sm-6 mb-3">
+                <a href="/training" class="stat-tile">
+                    <span class="stat-tile-icon"><i class="fas fa-clipboard-check"></i></span>
+                    <div class="min-w-0">
+                        <p class="stat-tile-label">Hasil Evaluasi Kuis</p>
+                        <p class="stat-tile-value">{{ $data['totalQuizResult'] }}</p>
+                        <p class="stat-tile-hint">Rata-rata: {{ $data['quizAvgScore'] }}</p>
+                    </div>
+                </a>
             </div>
         </div>
 
-        {{-- =========================================================
-             SECTION: GRAFIK & ANALITIK (CLEAN & BALANCED MODERN AESTHETIC)
-             ========================================================= --}}
+        {{-- Grafik & analitik --}}
         <div class="row mt-2">
-            {{-- Kolom Kiri: Grafik Pelatihan & Grafik Evaluasi Kuis --}}
-            <div class="col-lg-7 mb-4">
+            {{-- Kolom kiri --}}
+            <div class="col-lg-7">
                 {{-- 1. Grafik Peserta Pelatihan --}}
-                <div class="card shadow-sm border-0 mb-4" style="border: 1px solid #e2e8f0 !important; border-radius: 14px; background: #ffffff;">
-                    <div class="card-header bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center" style="border-color: #f1f5f9 !important;">
-                        <div class="d-flex align-items-center mr-2">
-                            <h6 class="m-0 font-weight-bold" style="color: #0f172a;">
-                                <i class="fas fa-chart-bar mr-2 text-primary"></i> Grafik Peserta Sesi Pelatihan
-                            </h6>
-                            <span class="badge border ml-2" style="background: #f8fafc; border-color: #e2e8f0 !important; color: #64748b; font-size: 0.75rem;">
-                                {{ $data['totalTraining'] }} Sesi
-                            </span>
-                        </div>
-                        <div class="d-flex align-items-center mt-2 mt-sm-0">
-                            <ul class="nav nav-pills card-header-pills mr-2 custom-theme-pills" role="tablist">
-                                <li class="nav-item">
-                                    <a class="nav-link active py-1 px-3 shadow-none font-weight-bold" data-toggle="pill" href="#tab-pelatihan-chart" role="tab" style="font-size: 0.75rem; border-radius: 6px;">
-                                        <i class="fas fa-chart-bar mr-1"></i> Grafik
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 shadow-none font-weight-bold" data-toggle="pill" href="#tab-pelatihan-table" role="tab" style="font-size: 0.75rem; border-radius: 6px;">
-                                        <i class="fas fa-list mr-1"></i> Tabel
-                                    </a>
-                                </li>
-                            </ul>
-                            <a href="/training" class="btn btn-sm btn-outline-primary" style="border-radius: 6px; font-size: 0.75rem;">
-                                Kelola <i class="fas fa-arrow-right ml-1"></i>
-                            </a>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-chart-bar"></i> Peserta per Sesi Pelatihan
+                            <span class="badge badge-secondary">{{ $data['totalTraining'] }} Sesi</span>
+                        </h3>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="nav btn-group filter-tabs" role="tablist">
+                                <a class="btn active" data-toggle="pill" href="#tab-pelatihan-chart" role="tab">Grafik</a>
+                                <a class="btn" data-toggle="pill" href="#tab-pelatihan-table" role="tab">Tabel</a>
+                            </div>
+                            <a href="/training" class="btn btn-default btn-sm">Kelola</a>
                         </div>
                     </div>
-                    <div class="card-body p-3">
+                    <div class="card-body p-0">
                         <div class="tab-content">
                             {{-- Tab 1: Grafik Batang --}}
                             <div class="tab-pane fade show active" id="tab-pelatihan-chart" role="tabpanel">
                                 @if(count($data['chartTrainingLabels']) === 0)
-                                    <div class="text-center py-4" style="color: #94a3b8;">
-                                        <i class="fas fa-chart-bar fa-2x mb-2" style="opacity: 0.3;"></i>
-                                        <p class="mb-0 small">Belum ada data pelatihan untuk ditampilkan dalam grafik.</p>
-                                    </div>
+                                    <x-empty-state icon="fa-chart-bar" title="Belum ada data pelatihan" text="Grafik muncul setelah ada jadwal pelatihan dengan peserta." />
                                 @else
-                                    <div style="position: relative; height: 230px; width: 100%;">
-                                        <canvas id="chartPelatihan"></canvas>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top small" style="border-color: #f1f5f9 !important; font-size: 0.775rem; color: #64748b;">
-                                        <span><i class="fas fa-info-circle mr-1 text-primary"></i> Menampilkan jumlah peserta terdaftar pada setiap sesi pelatihan</span>
-                                        <span class="font-weight-bold" style="color: #1e293b;">{{ $data['totalParticipant'] }} Total Peserta</span>
+                                    <div class="card-body">
+                                        <div class="dash-chart">
+                                            <canvas id="chartPelatihan"></canvas>
+                                        </div>
+                                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 small text-muted">
+                                            <span>Jumlah peserta terdaftar pada setiap sesi pelatihan</span>
+                                            <span class="text-heading font-weight-bold text-dark">{{ $data['totalParticipant'] }} total peserta</span>
+                                        </div>
                                     </div>
                                 @endif
                             </div>
@@ -222,46 +140,37 @@
                             {{-- Tab 2: Tabel Ringkasan --}}
                             <div class="tab-pane fade" id="tab-pelatihan-table" role="tabpanel">
                                 @if($data['recentTrainings']->isEmpty())
-                                    <div class="text-center py-4" style="color: #94a3b8;">
-                                        <i class="fas fa-calendar-times fa-2x mb-2" style="opacity: 0.4;"></i>
-                                        <p class="mb-0 small">Belum ada jadwal pelatihan yang dibuat.</p>
-                                    </div>
+                                    <x-empty-state icon="fa-calendar-times" title="Belum ada jadwal pelatihan" text="Jadwal pelatihan yang dibuat akan tampil di sini." />
                                 @else
                                     <div class="table-responsive">
-                                        <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                                            <thead style="background: #f8fafc; color: #64748b;">
+                                        <table class="table table-hover mb-0">
+                                            <thead>
                                                 <tr>
-                                                    <th class="border-0 px-2 py-2">Judul Pelatihan</th>
-                                                    <th class="border-0 px-2 py-2">Pemateri</th>
-                                                    <th class="border-0 px-2 py-2">Tanggal</th>
-                                                    <th class="border-0 px-2 py-2 text-center">Status</th>
+                                                    <th>Judul Pelatihan</th>
+                                                    <th>Pemateri</th>
+                                                    <th>Tanggal</th>
+                                                    <th class="text-center">Status</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 @foreach($data['recentTrainings'] as $t)
                                                     <tr>
-                                                        <td class="px-2 py-2">
-                                                            <a href="{{ url('/training/' . $t->id) }}" class="font-weight-bold text-decoration-none" style="color: #0f172a;">
+                                                        <td>
+                                                            <a href="{{ url('/training/' . $t->id) }}" class="font-weight-bold text-dark">
                                                                 {{ Str::limit($t->title, 28) }}
                                                             </a>
-                                                            <div class="small" style="font-size: 0.725rem; color: #94a3b8;">
+                                                            <div class="small text-muted">
                                                                 {{ $t->participants->count() }} Peserta &bull; {{ $t->questions->count() }} Soal
                                                             </div>
                                                         </td>
-                                                        <td class="px-2 py-2" style="color: #64748b;">
-                                                            {{ $t->trainer ? $t->trainer->full_name : '-' }}
+                                                        <td class="text-muted">
+                                                            {{ $t->trainer ? $t->trainer->nama_lengkap : '-' }}
                                                         </td>
-                                                        <td class="px-2 py-2" style="color: #64748b;">
+                                                        <td class="text-muted">
                                                             {{ $t->training_date ? $t->training_date->format('d M Y') : '-' }}
                                                         </td>
-                                                        <td class="px-2 py-2 text-center">
-                                                            @if($t->status === App\Enums\TrainingStatus::Ongoing)
-                                                                <span class="badge border" style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0; padding: 4px 8px;">Berlangsung</span>
-                                                            @elseif($t->status === App\Enums\TrainingStatus::Completed)
-                                                                <span class="badge border" style="background: #f1f5f9; color: #475569; border-color: #cbd5e1; padding: 4px 8px;">Selesai</span>
-                                                            @else
-                                                                <span class="badge border" style="background: #eff6ff; color: #1e40af; border-color: #bfdbfe; padding: 4px 8px;">Terjadwal</span>
-                                                            @endif
+                                                        <td class="text-center">
+                                                            <x-training-status-badge :status="$t->status" />
                                                         </td>
                                                     </tr>
                                                 @endforeach
@@ -275,60 +184,45 @@
                 </div>
 
                 {{-- 2. Grafik Distribusi Nilai & Evaluasi Kuis --}}
-                <div class="card shadow-sm border-0" style="border: 1px solid #e2e8f0 !important; border-radius: 14px; background: #ffffff;">
-                    <div class="card-header bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center" style="border-color: #f1f5f9 !important;">
-                        <div class="d-flex align-items-center mr-2">
-                            <h6 class="m-0 font-weight-bold" style="color: #0f172a;">
-                                <i class="fas fa-poll mr-2" style="color: #7c3aed;"></i> Grafik Distribusi Nilai Evaluasi Kuis
-                            </h6>
-                            <span class="badge border ml-2" style="background: #f8fafc; border-color: #e2e8f0 !important; color: #64748b; font-size: 0.75rem;">
-                                {{ $data['totalQuizResult'] }} Peserta
-                            </span>
-                        </div>
-                        <div class="d-flex align-items-center mt-2 mt-sm-0">
-                            <ul class="nav nav-pills card-header-pills mr-2 custom-theme-pills" role="tablist">
-                                <li class="nav-item">
-                                    <a class="nav-link active py-1 px-3 shadow-none font-weight-bold" data-toggle="pill" href="#tab-kuis-chart" role="tab" style="font-size: 0.75rem; border-radius: 6px;">
-                                        <i class="fas fa-chart-bar mr-1"></i> Grafik
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 shadow-none font-weight-bold" data-toggle="pill" href="#tab-kuis-table" role="tab" style="font-size: 0.75rem; border-radius: 6px;">
-                                        <i class="fas fa-list mr-1"></i> Riwayat
-                                    </a>
-                                </li>
-                            </ul>
-                            <a href="/training" class="btn btn-sm btn-outline-secondary" style="border-radius: 6px; font-size: 0.75rem; border-color: #cbd5e1; color: #475569;">
-                                Hasil <i class="fas fa-arrow-right ml-1"></i>
-                            </a>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-poll"></i> Distribusi Nilai Evaluasi Kuis
+                            <span class="badge badge-secondary">{{ $data['totalQuizResult'] }} Peserta</span>
+                        </h3>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="nav btn-group filter-tabs" role="tablist">
+                                <a class="btn active" data-toggle="pill" href="#tab-kuis-chart" role="tab">Grafik</a>
+                                <a class="btn" data-toggle="pill" href="#tab-kuis-table" role="tab">Riwayat</a>
+                            </div>
+                            <a href="/training" class="btn btn-default btn-sm">Hasil</a>
                         </div>
                     </div>
-                    <div class="card-body p-3">
+                    <div class="card-body p-0">
                         <div class="tab-content">
                             {{-- Tab 1: Grafik Distribusi Skor --}}
                             <div class="tab-pane fade show active" id="tab-kuis-chart" role="tabpanel">
                                 @if($data['totalQuizResult'] === 0)
-                                    <div class="text-center py-4" style="color: #94a3b8;">
-                                        <i class="fas fa-clipboard-list fa-2x mb-2" style="opacity: 0.3;"></i>
-                                        <p class="mb-0 small">Belum ada evaluasi kuis yang dikerjakan oleh peserta.</p>
-                                    </div>
+                                    <x-empty-state icon="fa-clipboard-list" title="Belum ada evaluasi kuis" text="Grafik muncul setelah peserta mengerjakan kuis." />
                                 @else
-                                    <div style="position: relative; height: 230px; width: 100%;">
-                                        <canvas id="chartQuizScore"></canvas>
-                                    </div>
-                                    {{-- KPI Skor Strip --}}
-                                    <div class="row text-center mt-3 pt-3 border-top" style="border-color: #f1f5f9 !important;">
-                                        <div class="col-4 border-right" style="border-color: #f1f5f9 !important;">
-                                            <small class="text-uppercase d-block" style="font-size: 0.7rem; color: #64748b;">Rata-rata Skor</small>
-                                            <span class="font-weight-bold" style="font-size: 1.15rem; color: #0f172a;">{{ $data['quizAvgScore'] }}</span>
+                                    <div class="card-body">
+                                        <div class="dash-chart">
+                                            <canvas id="chartQuizScore"></canvas>
                                         </div>
-                                        <div class="col-4 border-right" style="border-color: #f1f5f9 !important;">
-                                            <small class="text-uppercase d-block" style="font-size: 0.7rem; color: #64748b;">Skor Tertinggi</small>
-                                            <span class="font-weight-bold text-success" style="font-size: 1.15rem;">{{ $data['quizMaxScore'] }}</span>
-                                        </div>
-                                        <div class="col-4">
-                                            <small class="text-uppercase d-block" style="font-size: 0.7rem; color: #64748b;">Skor Terendah</small>
-                                            <span class="font-weight-bold text-danger" style="font-size: 1.15rem;">{{ $data['quizMinScore'] }}</span>
+                                        {{-- KPI Skor --}}
+                                        <div class="row text-center mt-3 pt-3 border-top">
+                                            <div class="col-4">
+                                                <p class="stat-tile-label">Rata-rata Skor</p>
+                                                <span class="dash-kpi-value">{{ $data['quizAvgScore'] }}</span>
+                                            </div>
+                                            <div class="col-4">
+                                                <p class="stat-tile-label">Skor Tertinggi</p>
+                                                <span class="dash-kpi-value">{{ $data['quizMaxScore'] }}</span>
+                                            </div>
+                                            <div class="col-4">
+                                                <p class="stat-tile-label">Skor Terendah</p>
+                                                <span class="dash-kpi-value">{{ $data['quizMinScore'] }}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 @endif
@@ -337,39 +231,34 @@
                             {{-- Tab 2: Tabel Riwayat Pengerjaan --}}
                             <div class="tab-pane fade" id="tab-kuis-table" role="tabpanel">
                                 @if($data['recentQuizResults']->isEmpty())
-                                    <div class="text-center py-4" style="color: #94a3b8;">
-                                        <i class="fas fa-clipboard-list fa-2x mb-2" style="opacity: 0.4;"></i>
-                                        <p class="mb-0 small">Belum ada evaluasi kuis yang dikerjakan.</p>
-                                    </div>
+                                    <x-empty-state icon="fa-clipboard-list" title="Belum ada evaluasi kuis" text="Riwayat pengerjaan kuis akan tampil di sini." />
                                 @else
                                     <div class="table-responsive">
-                                        <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                                            <thead style="background: #f8fafc; color: #64748b;">
+                                        <table class="table table-hover mb-0">
+                                            <thead>
                                                 <tr>
-                                                    <th class="border-0 px-2 py-2">Peserta</th>
-                                                    <th class="border-0 px-2 py-2">Pelatihan</th>
-                                                    <th class="border-0 px-2 py-2 text-center">Nilai</th>
-                                                    <th class="border-0 px-2 py-2 text-center">Waktu</th>
+                                                    <th>Peserta</th>
+                                                    <th>Pelatihan</th>
+                                                    <th class="text-center">Nilai</th>
+                                                    <th class="text-center">Waktu</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 @foreach($data['recentQuizResults'] as $res)
                                                     <tr>
-                                                        <td class="px-2 py-2">
-                                                            <span class="font-weight-bold" style="color: #0f172a;">
-                                                                {{ $res->participant && $res->participant->user ? $res->participant->user->full_name : 'Peserta' }}
+                                                        <td>
+                                                            <span class="font-weight-bold">
+                                                                {{ $res->participant && $res->participant->user ? $res->participant->user->nama_lengkap : 'Peserta' }}
                                                             </span>
                                                         </td>
-                                                        <td class="px-2 py-2" style="color: #64748b;">
+                                                        <td class="text-muted">
                                                             {{ $res->training ? Str::limit($res->training->title, 24) : '-' }}
                                                         </td>
-                                                        <td class="px-2 py-2 text-center">
+                                                        <td class="text-center">
                                                             @php $score = round($res->score ?? 0); @endphp
-                                                            <span class="badge border font-weight-bold" style="background: {{ $score >= 70 ? '#ecfdf5' : '#fef2f2' }}; color: {{ $score >= 70 ? '#059669' : '#dc2626' }}; border-color: {{ $score >= 70 ? '#a7f3d0' : '#fecaca' }}; padding: 4px 8px;">
-                                                                {{ $score }}
-                                                            </span>
+                                                            <span class="badge {{ $score >= 70 ? 'badge-success' : 'badge-danger' }}">{{ $score }}</span>
                                                         </td>
-                                                        <td class="px-2 py-2 text-center small" style="color: #94a3b8;">
+                                                        <td class="text-center small text-muted">
                                                             {{ $res->created_at ? $res->created_at->diffForHumans() : '-' }}
                                                         </td>
                                                     </tr>
@@ -384,49 +273,32 @@
                 </div>
             </div>
 
-            {{-- Kolom Kanan: Grafik Video Penonton & Grafik Komposisi Master Data --}}
-            <div class="col-lg-5 mb-4">
+            {{-- Kolom kanan --}}
+            <div class="col-lg-5">
                 {{-- 3. Grafik Popularitas Video Materi --}}
-                <div class="card shadow-sm border-0 mb-4" style="border: 1px solid #e2e8f0 !important; border-radius: 14px; background: #ffffff;">
-                    <div class="card-header bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center" style="border-color: #f1f5f9 !important;">
-                        <div class="d-flex align-items-center mr-2">
-                            <h6 class="m-0 font-weight-bold" style="color: #0f172a;">
-                                <i class="fas fa-play-circle mr-2 text-danger"></i> Grafik Penonton Video Materi
-                            </h6>
-                        </div>
-                        <div class="d-flex align-items-center mt-2 mt-sm-0">
-                            <ul class="nav nav-pills card-header-pills mr-2 custom-theme-pills" role="tablist">
-                                <li class="nav-item">
-                                    <a class="nav-link active py-1 px-3 shadow-none font-weight-bold" data-toggle="pill" href="#tab-video-chart" role="tab" style="font-size: 0.75rem; border-radius: 6px;">
-                                        <i class="fas fa-chart-bar mr-1"></i> Grafik
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 shadow-none font-weight-bold" data-toggle="pill" href="#tab-video-list" role="tab" style="font-size: 0.75rem; border-radius: 6px;">
-                                        <i class="fas fa-list mr-1"></i> Daftar
-                                    </a>
-                                </li>
-                            </ul>
-                            <a href="/video" class="btn btn-sm btn-outline-danger" style="border-radius: 6px; font-size: 0.75rem;">
-                                Galeri <i class="fas fa-arrow-right ml-1"></i>
-                            </a>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-play-circle"></i> Penonton Video Materi</h3>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="nav btn-group filter-tabs" role="tablist">
+                                <a class="btn active" data-toggle="pill" href="#tab-video-chart" role="tab">Grafik</a>
+                                <a class="btn" data-toggle="pill" href="#tab-video-list" role="tab">Daftar</a>
+                            </div>
+                            <a href="/video" class="btn btn-default btn-sm">Galeri</a>
                         </div>
                     </div>
-                    <div class="card-body p-3">
+                    <div class="card-body p-0">
                         <div class="tab-content">
                             {{-- Tab 1: Grafik Horizontal Bar Penonton Video --}}
                             <div class="tab-pane fade show active" id="tab-video-chart" role="tabpanel">
                                 @if(count($data['chartVideoLabels']) === 0)
-                                    <div class="text-center py-4" style="color: #94a3b8;">
-                                        <i class="fas fa-film fa-2x mb-2" style="opacity: 0.3;"></i>
-                                        <p class="mb-0 small">Belum ada video materi yang diunggah.</p>
-                                    </div>
+                                    <x-empty-state icon="fa-film" title="Belum ada video materi" text="Video yang diunggah akan tampil di grafik ini." />
                                 @else
-                                    <div style="position: relative; height: 230px; width: 100%;">
-                                        <canvas id="chartVideoViews"></canvas>
-                                    </div>
-                                    <div class="text-center mt-2 pt-2 border-top small" style="border-color: #f1f5f9 !important; font-size: 0.775rem; color: #64748b;">
-                                        <i class="far fa-eye mr-1 text-danger"></i> Peringkat video materi berdasarkan jumlah tayangan terbanyak
+                                    <div class="card-body">
+                                        <div class="dash-chart">
+                                            <canvas id="chartVideoViews"></canvas>
+                                        </div>
+                                        <p class="small text-muted text-center mt-3 mb-0">Peringkat video materi berdasarkan jumlah tayangan terbanyak</p>
                                     </div>
                                 @endif
                             </div>
@@ -434,34 +306,31 @@
                             {{-- Tab 2: Daftar Video --}}
                             <div class="tab-pane fade" id="tab-video-list" role="tabpanel">
                                 @if($data['recentVideos']->isEmpty())
-                                    <div class="text-center py-4" style="color: #94a3b8;">
-                                        <i class="fas fa-film fa-2x mb-2" style="opacity: 0.4;"></i>
-                                        <p class="mb-0 small">Belum ada video materi yang diunggah.</p>
-                                    </div>
+                                    <x-empty-state icon="fa-film" title="Belum ada video materi" text="Video yang diunggah akan tampil di sini." />
                                 @else
-                                    <div class="list-group list-group-flush">
+                                    <div>
                                         @foreach($data['recentVideos'] as $vid)
-                                            <div class="d-flex align-items-center py-2 px-1 border-bottom" style="border-color: #f1f5f9 !important;">
-                                                <div class="position-relative mr-3 rounded overflow-hidden flex-shrink-0" style="width: 58px; height: 40px; background: #1e293b;">
+                                            <div class="dash-row d-flex align-items-center px-3 py-2">
+                                                <div class="dash-thumb position-relative mr-3 flex-shrink-0">
                                                     @if($vid->thumbnail_url)
                                                         <img src="{{ $vid->thumbnail_url }}" alt="{{ $vid->title }}" class="w-100 h-100" style="object-fit: cover;">
                                                     @else
-                                                        <div class="w-100 h-100 d-flex align-items-center justify-content-center" style="background: #334155;">
-                                                            <i class="fas fa-play text-white-50" style="font-size: 12px;"></i>
+                                                        <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted small">
+                                                            <i class="fas fa-play"></i>
                                                         </div>
                                                     @endif
                                                 </div>
-                                                <div class="flex-grow-1 overflow-hidden pr-2">
-                                                    <a href="{{ route('video.show', $vid->id) }}" class="d-block font-weight-bold text-truncate text-decoration-none" style="font-size: 0.85rem; color: #0f172a;" title="{{ $vid->title }}">
+                                                <div class="flex-grow-1 min-w-0 pr-2">
+                                                    <a href="{{ route('video.show', $vid->id) }}" class="d-block font-weight-bold text-truncate text-dark small" title="{{ $vid->title }}">
                                                         {{ $vid->title }}
                                                     </a>
-                                                    <div class="small d-flex align-items-center" style="font-size: 0.725rem; color: #64748b;">
-                                                        <span class="mr-2"><i class="far fa-eye mr-1 text-danger"></i> {{ $vid->views_count }} views</span>
-                                                        <span><i class="far fa-clock mr-1"></i> {{ $vid->created_at->format('d M') }}</span>
+                                                    <div class="small text-muted">
+                                                        <span class="mr-2"><i class="far fa-eye mr-1"></i>{{ $vid->views_count }} views</span>
+                                                        <span><i class="far fa-clock mr-1"></i>{{ $vid->created_at->format('d M') }}</span>
                                                     </div>
                                                 </div>
-                                                <a href="{{ route('video.show', $vid->id) }}" class="btn btn-sm btn-light border flex-shrink-0" title="Tonton Video" style="border-radius: 6px; padding: 4px 8px; border-color: #cbd5e1; color: #e11d48;">
-                                                    <i class="fas fa-play" style="font-size: 0.75rem;"></i>
+                                                <a href="{{ route('video.show', $vid->id) }}" class="btn btn-default btn-xs flex-shrink-0" title="Tonton Video">
+                                                    <i class="fas fa-play"></i>
                                                 </a>
                                             </div>
                                         @endforeach
@@ -473,102 +342,64 @@
                 </div>
 
                 {{-- 4. Grafik Komposisi Modul & Master Data --}}
-                <div class="card shadow-sm border-0" style="border: 1px solid #e2e8f0 !important; border-radius: 14px; background: #ffffff;">
-                    <div class="card-header bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center" style="border-color: #f1f5f9 !important;">
-                        <div class="d-flex align-items-center mr-2">
-                            <h6 class="m-0 font-weight-bold" style="color: #0f172a;">
-                                <i class="fas fa-chart-pie mr-2 text-info"></i> Komposisi Konten Sistem
-                            </h6>
-                        </div>
-                        <div class="d-flex align-items-center mt-2 mt-sm-0">
-                            <ul class="nav nav-pills card-header-pills mr-2 custom-theme-pills" role="tablist">
-                                <li class="nav-item">
-                                    <a class="nav-link active py-1 px-3 shadow-none font-weight-bold" data-toggle="pill" href="#tab-komposisi-chart" role="tab" style="font-size: 0.75rem; border-radius: 6px;">
-                                        <i class="fas fa-chart-pie mr-1"></i> Donat
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 shadow-none font-weight-bold" data-toggle="pill" href="#tab-komposisi-detail" role="tab" style="font-size: 0.75rem; border-radius: 6px;">
-                                        <i class="fas fa-sitemap mr-1"></i> Detail
-                                    </a>
-                                </li>
-                            </ul>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-chart-pie"></i> Komposisi Konten Sistem</h3>
+                        <div class="nav btn-group filter-tabs" role="tablist">
+                            <a class="btn active" data-toggle="pill" href="#tab-komposisi-chart" role="tab">Donat</a>
+                            <a class="btn" data-toggle="pill" href="#tab-komposisi-detail" role="tab">Detail</a>
                         </div>
                     </div>
-                    <div class="card-body p-3">
+                    <div class="card-body p-0">
                         <div class="tab-content">
                             {{-- Tab 1: Grafik Donat Komposisi --}}
                             <div class="tab-pane fade show active" id="tab-komposisi-chart" role="tabpanel">
-                                <div style="position: relative; height: 210px; width: 100%;">
-                                    <canvas id="chartContentComposition"></canvas>
-                                </div>
-                                <div class="d-flex flex-wrap justify-content-center mt-3 pt-2 border-top text-center" style="gap: 8px; border-color: #f1f5f9 !important;">
-                                    <span class="badge border px-2 py-1" style="background: #fff1f2; border-color: #ffe4e6; color: #be123c; font-size: 0.725rem;">
-                                        <span class="d-inline-block rounded-circle mr-1" style="width: 8px; height: 8px; background: #e11d48;"></span> Video: {{ $data['totalVideo'] }}
-                                    </span>
-                                    <span class="badge border px-2 py-1" style="background: #fffbeb; border-color: #fef3c7; color: #b45309; font-size: 0.725rem;">
-                                        <span class="d-inline-block rounded-circle mr-1" style="width: 8px; height: 8px; background: #d97706;"></span> Dokumen: {{ $data['totalDocument'] }}
-                                    </span>
-                                    <span class="badge border px-2 py-1" style="background: #f0f9ff; border-color: #e0f2fe; color: #0369a1; font-size: 0.725rem;">
-                                        <span class="d-inline-block rounded-circle mr-1" style="width: 8px; height: 8px; background: #0284c7;"></span> Pelatihan: {{ $data['totalTraining'] }}
-                                    </span>
-                                    <span class="badge border px-2 py-1" style="background: #f8fafc; border-color: #e2e8f0; color: #334155; font-size: 0.725rem;">
-                                        <span class="d-inline-block rounded-circle mr-1" style="width: 8px; height: 8px; background: #0f172a;"></span> Divisi: {{ $data['totalDivisi'] }}
-                                    </span>
+                                <div class="card-body">
+                                    <div class="dash-chart-sm">
+                                        <canvas id="chartContentComposition"></canvas>
+                                    </div>
+                                    <div class="d-flex flex-wrap justify-content-center gap-3 mt-3 pt-3 border-top small text-muted">
+                                        <span class="d-inline-flex align-items-center"><span class="dash-legend-dot is-1"></span>Video: {{ $data['totalVideo'] }}</span>
+                                        <span class="d-inline-flex align-items-center"><span class="dash-legend-dot is-2"></span>Dokumen: {{ $data['totalDocument'] }}</span>
+                                        <span class="d-inline-flex align-items-center"><span class="dash-legend-dot is-3"></span>Pelatihan: {{ $data['totalTraining'] }}</span>
+                                        <span class="d-inline-flex align-items-center"><span class="dash-legend-dot is-4"></span>Divisi: {{ $data['totalDivisi'] }}</span>
+                                    </div>
                                 </div>
                             </div>
 
                             {{-- Tab 2: Detail Master Data Organisasi --}}
                             <div class="tab-pane fade" id="tab-komposisi-detail" role="tabpanel">
-                                <div class="d-flex justify-content-between align-items-center py-2 border-bottom" style="border-color: #f1f5f9 !important;">
-                                    <div class="d-flex align-items-center">
-                                        <span class="d-inline-flex align-items-center justify-content-center rounded mr-3 border" style="width: 36px; height: 36px; background: #eff6ff; border-color: #dbeafe; color: #2563eb;">
-                                            <i class="fas fa-city"></i>
-                                        </span>
-                                        <div>
-                                            <h6 class="mb-0 font-weight-bold" style="font-size: 0.885rem; color: #0f172a;">Divisi Perusahaan</h6>
-                                            <small style="color: #64748b;">Struktur divisi induk</small>
+                                <div class="dash-row d-flex justify-content-between align-items-center px-3 py-3">
+                                    <div class="d-flex align-items-center min-w-0">
+                                        <span class="stat-tile-icon mr-3"><i class="fas fa-city"></i></span>
+                                        <div class="min-w-0">
+                                            <p class="mb-0 font-weight-bold small text-dark">Divisi Perusahaan</p>
+                                            <p class="mb-0 small text-muted">Struktur divisi induk</p>
                                         </div>
                                     </div>
-                                    <div class="text-right">
-                                        <a href="/divisi" class="badge border px-3 py-2 font-weight-bold" style="font-size: 0.85rem; border-radius: 8px; background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe;">
-                                            {{ $data['totalDivisi'] }} Divisi
-                                        </a>
-                                    </div>
+                                    <a href="/divisi" class="btn btn-default btn-sm flex-shrink-0">{{ $data['totalDivisi'] }} Divisi</a>
                                 </div>
 
-                                <div class="d-flex justify-content-between align-items-center py-2 border-bottom" style="border-color: #f1f5f9 !important;">
-                                    <div class="d-flex align-items-center">
-                                        <span class="d-inline-flex align-items-center justify-content-center rounded mr-3 border" style="width: 36px; height: 36px; background: #f0f9ff; border-color: #e0f2fe; color: #0284c7;">
-                                            <i class="fas fa-building"></i>
-                                        </span>
-                                        <div>
-                                            <h6 class="mb-0 font-weight-bold" style="font-size: 0.885rem; color: #0f172a;">Sub Divisi</h6>
-                                            <small style="color: #64748b;">Unit & departemen tim</small>
+                                <div class="dash-row d-flex justify-content-between align-items-center px-3 py-3">
+                                    <div class="d-flex align-items-center min-w-0">
+                                        <span class="stat-tile-icon mr-3"><i class="fas fa-building"></i></span>
+                                        <div class="min-w-0">
+                                            <p class="mb-0 font-weight-bold small text-dark">Posisi</p>
+                                            <p class="mb-0 small text-muted">Posisi kerja karyawan</p>
                                         </div>
                                     </div>
-                                    <div class="text-right">
-                                        <a href="/subdivisi" class="badge border px-3 py-2 font-weight-bold" style="font-size: 0.85rem; border-radius: 8px; background: #f0f9ff; color: #0369a1; border-color: #bae6fd;">
-                                            {{ $data['totalSubDivisi'] }} Sub Divisi
-                                        </a>
-                                    </div>
+                                    <a href="/position" class="btn btn-default btn-sm flex-shrink-0">{{ $data['totalPosition'] }} Posisi</a>
                                 </div>
 
-                                <div class="d-flex justify-content-between align-items-center py-2" style="border-color: #f1f5f9 !important;">
-                                    <div class="d-flex align-items-center">
-                                        <span class="d-inline-flex align-items-center justify-content-center rounded mr-3 border" style="width: 36px; height: 36px; background: #fffbeb; border-color: #fef3c7; color: #d97706;">
-                                            <i class="fas fa-bookmark"></i>
-                                        </span>
-                                        <div>
-                                            <h6 class="mb-0 font-weight-bold" style="font-size: 0.885rem; color: #0f172a;">Tipe Dokumen</h6>
-                                            <small style="color: #64748b;">Kategori dokumen sistem</small>
+                                <div class="dash-row d-flex justify-content-between align-items-center px-3 py-3">
+                                    <div class="d-flex align-items-center min-w-0">
+                                        <span class="stat-tile-icon mr-3"><i class="fas fa-bookmark"></i></span>
+                                        <div class="min-w-0">
+                                            <p class="mb-0 font-weight-bold small text-dark">Tipe Dokumen</p>
+                                            <p class="mb-0 small text-muted">Kategori dokumen sistem</p>
                                         </div>
                                     </div>
-                                    <div class="text-right">
-                                        <a href="/dokumentype" class="badge border px-3 py-2 font-weight-bold" style="font-size: 0.85rem; border-radius: 8px; background: #fffbeb; color: #b45309; border-color: #fde68a;">
-                                            {{ $data['totalDokumenType'] }} Tipe
-                                        </a>
-                                    </div>
+                                    <a href="/dokumentype" class="btn btn-default btn-sm flex-shrink-0">{{ $data['totalDokumenType'] }} Tipe</a>
                                 </div>
                             </div>
                         </div>
@@ -578,25 +409,6 @@
         </div>
     </div>
 </section>
-
-<style>
-/* Modern Balanced Theme Pills */
-.custom-theme-pills .nav-link {
-    background: #f1f5f9;
-    color: #475569;
-    border: 1px solid #e2e8f0;
-    transition: all 0.2s ease;
-}
-.custom-theme-pills .nav-link:hover {
-    background: #e2e8f0;
-    color: #0f172a;
-}
-.custom-theme-pills .nav-link.active {
-    background: #1e293b !important;
-    color: #ffffff !important;
-    border-color: #1e293b !important;
-}
-</style>
 @endsection
 
 @section('footer')
@@ -605,11 +417,11 @@
 <script>
 $(document).ready(function() {
     // Global Chart.js styling
-    Chart.defaults.global.defaultFontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
-    Chart.defaults.global.defaultFontColor = '#64748b';
+    Chart.defaults.global.defaultFontFamily = "'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif";
+    Chart.defaults.global.defaultFontColor = '#71717a';
 
     // -------------------------------------------------------------
-    // 1. Chart Peserta Pelatihan (Bar Chart - Sapphire / Indigo)
+    // 1. Chart Peserta Pelatihan (Bar Chart - primary pink)
     // -------------------------------------------------------------
     var ctxPelatihan = document.getElementById('chartPelatihan');
     if (ctxPelatihan) {
@@ -623,10 +435,10 @@ $(document).ready(function() {
                 datasets: [{
                     label: 'Jumlah Peserta',
                     data: dataPelatihan,
-                    backgroundColor: 'rgba(37, 99, 235, 0.85)',
-                    borderColor: '#2563eb',
-                    borderWidth: 1.5,
-                    hoverBackgroundColor: '#1d4ed8',
+                    backgroundColor: '#ff4da6',
+                    borderWidth: 0,
+                    hoverBackgroundColor: '#e6007a',
+                    maxBarThickness: 40,
                     borderRadius: 6
                 }]
             },
@@ -635,9 +447,9 @@ $(document).ready(function() {
                 maintainAspectRatio: false,
                 legend: { display: false },
                 tooltips: {
-                    backgroundColor: '#0f172a',
+                    backgroundColor: '#18181b',
                     titleFontColor: '#ffffff',
-                    bodyFontColor: '#cbd5e1',
+                    bodyFontColor: '#d4d4d8',
                     cornerRadius: 8,
                     xPadding: 12,
                     yPadding: 10,
@@ -650,14 +462,14 @@ $(document).ready(function() {
                 scales: {
                     xAxes: [{
                         gridLines: { display: false, drawBorder: false },
-                        ticks: { fontColor: '#64748b', fontSize: 11 }
+                        ticks: { fontColor: '#71717a', fontSize: 11 }
                     }],
                     yAxes: [{
-                        gridLines: { color: '#f1f5f9', zeroLineColor: '#e2e8f0', drawBorder: false },
+                        gridLines: { color: '#f4f4f5', zeroLineColor: '#e4e4e7', drawBorder: false },
                         ticks: {
                             beginAtZero: true,
                             precision: 0,
-                            fontColor: '#64748b',
+                            fontColor: '#71717a',
                             fontSize: 11
                         }
                     }]
@@ -687,19 +499,15 @@ $(document).ready(function() {
                 datasets: [{
                     label: 'Peserta',
                     data: dataQuiz,
+                    // Semantic: success / primary / warning / fail
                     backgroundColor: [
-                        'rgba(16, 185, 129, 0.85)', // emerald
-                        'rgba(59, 130, 246, 0.85)',  // blue
-                        'rgba(245, 158, 11, 0.85)',  // amber
-                        'rgba(244, 63, 94, 0.85)'    // rose
+                        '#059669', // Sangat Baik - green
+                        '#ff4da6', // Baik - primary pink
+                        '#d97706', // Cukup - amber
+                        '#dc2626'  // Kurang - red
                     ],
-                    borderColor: [
-                        '#10b981',
-                        '#3b82f6',
-                        '#f59e0b',
-                        '#f43f5e'
-                    ],
-                    borderWidth: 1.5,
+                    borderWidth: 0,
+                    maxBarThickness: 40,
                     borderRadius: 6
                 }]
             },
@@ -708,9 +516,9 @@ $(document).ready(function() {
                 maintainAspectRatio: false,
                 legend: { display: false },
                 tooltips: {
-                    backgroundColor: '#0f172a',
+                    backgroundColor: '#18181b',
                     titleFontColor: '#ffffff',
-                    bodyFontColor: '#cbd5e1',
+                    bodyFontColor: '#d4d4d8',
                     cornerRadius: 8,
                     xPadding: 12,
                     yPadding: 10,
@@ -723,14 +531,14 @@ $(document).ready(function() {
                 scales: {
                     xAxes: [{
                         gridLines: { display: false, drawBorder: false },
-                        ticks: { fontColor: '#64748b', fontSize: 10 }
+                        ticks: { fontColor: '#71717a', fontSize: 10 }
                     }],
                     yAxes: [{
-                        gridLines: { color: '#f1f5f9', zeroLineColor: '#e2e8f0', drawBorder: false },
+                        gridLines: { color: '#f4f4f5', zeroLineColor: '#e4e4e7', drawBorder: false },
                         ticks: {
                             beginAtZero: true,
                             precision: 0,
-                            fontColor: '#64748b',
+                            fontColor: '#71717a',
                             fontSize: 11
                         }
                     }]
@@ -740,7 +548,7 @@ $(document).ready(function() {
     }
 
     // -------------------------------------------------------------
-    // 3. Chart Popularitas Video (Horizontal Bar - Ruby / Rose)
+    // 3. Chart Popularitas Video (Horizontal Bar - primary pink)
     // -------------------------------------------------------------
     var ctxVideo = document.getElementById('chartVideoViews');
     if (ctxVideo) {
@@ -754,10 +562,10 @@ $(document).ready(function() {
                 datasets: [{
                     label: 'Total Views',
                     data: dataVideo,
-                    backgroundColor: 'rgba(225, 29, 72, 0.85)',
-                    borderColor: '#e11d48',
-                    borderWidth: 1.5,
-                    hoverBackgroundColor: '#be123c',
+                    backgroundColor: '#ff4da6',
+                    borderWidth: 0,
+                    hoverBackgroundColor: '#e6007a',
+                    maxBarThickness: 24,
                     borderRadius: 6
                 }]
             },
@@ -766,9 +574,9 @@ $(document).ready(function() {
                 maintainAspectRatio: false,
                 legend: { display: false },
                 tooltips: {
-                    backgroundColor: '#0f172a',
+                    backgroundColor: '#18181b',
                     titleFontColor: '#ffffff',
-                    bodyFontColor: '#cbd5e1',
+                    bodyFontColor: '#d4d4d8',
                     cornerRadius: 8,
                     xPadding: 12,
                     yPadding: 10,
@@ -780,17 +588,17 @@ $(document).ready(function() {
                 },
                 scales: {
                     xAxes: [{
-                        gridLines: { color: '#f1f5f9', zeroLineColor: '#e2e8f0', drawBorder: false },
+                        gridLines: { color: '#f4f4f5', zeroLineColor: '#e4e4e7', drawBorder: false },
                         ticks: {
                             beginAtZero: true,
                             precision: 0,
-                            fontColor: '#64748b',
+                            fontColor: '#71717a',
                             fontSize: 11
                         }
                     }],
                     yAxes: [{
                         gridLines: { display: false, drawBorder: false },
-                        ticks: { fontColor: '#64748b', fontSize: 10 }
+                        ticks: { fontColor: '#71717a', fontSize: 10 }
                     }]
                 }
             }
@@ -798,7 +606,7 @@ $(document).ready(function() {
     }
 
     // -------------------------------------------------------------
-    // 4. Chart Komposisi Konten Sistem (Doughnut - Harmonious Palette)
+    // 4. Chart Komposisi Konten Sistem (Doughnut - blue + zinc grays)
     // -------------------------------------------------------------
     var ctxContent = document.getElementById('chartContentComposition');
     if (ctxContent) {
@@ -812,10 +620,10 @@ $(document).ready(function() {
                 datasets: [{
                     data: dataContent,
                     backgroundColor: [
-                        '#e11d48', // video ruby
-                        '#d97706', // document amber
-                        '#0284c7', // training sky
-                        '#0f172a'  // divisi slate
+                        '#ff4da6', // video - primary
+                        '#a1a1aa', // dokumen - zinc 400
+                        '#d4d4d8', // pelatihan - zinc 300
+                        '#e4e4e7'  // divisi - zinc 200
                     ],
                     borderWidth: 2,
                     borderColor: '#ffffff'
@@ -829,9 +637,9 @@ $(document).ready(function() {
                     display: false
                 },
                 tooltips: {
-                    backgroundColor: '#0f172a',
+                    backgroundColor: '#18181b',
                     titleFontColor: '#ffffff',
-                    bodyFontColor: '#cbd5e1',
+                    bodyFontColor: '#d4d4d8',
                     cornerRadius: 8,
                     xPadding: 12,
                     yPadding: 10,

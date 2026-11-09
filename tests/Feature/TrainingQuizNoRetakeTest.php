@@ -20,19 +20,17 @@ class TrainingQuizNoRetakeTest extends TestCase
     {
         parent::setUp();
 
-        $this->admin = User::where('username', 'admin')->first() ?? User::factory()->create([
+        $this->admin = User::where('username', 'admin')->first() ?? User::factory()->admin()->create([
             'username' => 'admin',
-            'job_level_id' => 1,
         ]);
 
         $divisi = Divisi::first() ?? Divisi::create(['name' => 'Divisi Test']);
 
         $this->participantUser = User::create([
             'username' => 'peserta_noretake_'.uniqid(),
-            'full_name' => 'Peserta No Retake',
+            'nama_lengkap' => 'Peserta No Retake',
             'email' => 'noretake_'.uniqid().'@example.com',
             'password' => bcrypt('password'),
-            'job_level_id' => 2,
             'divisi_id' => $divisi->id,
         ]);
     }

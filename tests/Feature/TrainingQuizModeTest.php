@@ -20,19 +20,17 @@ class TrainingQuizModeTest extends TestCase
     {
         parent::setUp();
 
-        $this->admin = User::where('username', 'admin')->first() ?? User::factory()->create([
+        $this->admin = User::where('username', 'admin')->first() ?? User::factory()->admin()->create([
             'username' => 'admin',
-            'job_level_id' => 1,
         ]);
 
         $divisi = Divisi::first() ?? Divisi::create(['name' => 'Divisi Test']);
 
         $this->participantUser = User::create([
             'username' => 'peserta_mode_'.uniqid(),
-            'full_name' => 'Peserta Uji Mode',
+            'nama_lengkap' => 'Peserta Uji Mode',
             'email' => 'mode_'.uniqid().'@example.com',
             'password' => bcrypt('password'),
-            'job_level_id' => 2,
             'divisi_id' => $divisi->id,
         ]);
     }

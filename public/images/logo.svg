@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+    <rect width="512" height="512" rx="108" fill="#ff4da6"/>
+    <g fill="#FFFFFF">
+        <!-- Letter M built from stacked bars: two posts, the inner diagonals step down into a V. -->
+        <!-- Row 1: post tops -->
+        <path d="M 116 112 H 186 V 152 H 116 Z"/>
+        <path d="M 326 112 H 396 V 152 H 326 Z"/>
+        <!-- Row 2: posts step inward (start of the diagonals) -->
+        <path d="M 116 174 H 228 V 214 H 116 Z"/>
+        <path d="M 284 174 H 396 V 214 H 284 Z"/>
+        <!-- Row 3: posts + the two diagonals closing in -->
+        <path d="M 116 236 H 186 V 276 H 116 Z"/>
+        <path d="M 208 236 H 304 V 276 H 208 Z"/>
+        <path d="M 326 236 H 396 V 276 H 326 Z"/>
+        <!-- Row 4: posts + bottom of the V -->
+        <path d="M 116 298 H 186 V 338 H 116 Z"/>
+        <path d="M 236 298 H 276 V 338 H 236 Z"/>
+        <path d="M 326 298 H 396 V 338 H 326 Z"/>
+        <!-- Row 5: post feet -->
+        <path d="M 116 360 H 186 V 400 H 116 Z"/>
+        <path d="M 326 360 H 396 V 400 H 326 Z"/>
+    </g>
+</svg>

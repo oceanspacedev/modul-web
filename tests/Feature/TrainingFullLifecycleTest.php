@@ -28,10 +28,9 @@ class TrainingFullLifecycleTest extends TestCase
 
         $this->admin = User::where('username', 'admin')->first();
         if (! $this->admin) {
-            $this->admin = User::factory()->create([
+            $this->admin = User::factory()->admin()->create([
                 'username' => 'admin',
                 'password' => bcrypt('complete123'),
-                'job_level_id' => 1,
             ]);
         }
 
@@ -39,19 +38,17 @@ class TrainingFullLifecycleTest extends TestCase
 
         $this->participantUser1 = User::create([
             'username' => 'peserta_1_'.uniqid(),
-            'full_name' => 'Peserta Lifecycle Satu',
+            'nama_lengkap' => 'Peserta Lifecycle Satu',
             'email' => 'peserta1_'.uniqid().'@example.com',
             'password' => bcrypt('password'),
-            'job_level_id' => 2,
             'divisi_id' => $divisi->id,
         ]);
 
         $this->participantUser2 = User::create([
             'username' => 'peserta_2_'.uniqid(),
-            'full_name' => 'Peserta Lifecycle Dua',
+            'nama_lengkap' => 'Peserta Lifecycle Dua',
             'email' => 'peserta2_'.uniqid().'@example.com',
             'password' => bcrypt('password'),
-            'job_level_id' => 2,
             'divisi_id' => $divisi->id,
         ]);
     }
@@ -93,7 +90,7 @@ class TrainingFullLifecycleTest extends TestCase
         $showRes = $this->actingAs($this->admin)->get("/training/{$training->id}");
         $showRes->assertStatus(200);
         $showRes->assertSee('Pelatihan CRUD Test System');
-        $showRes->assertSee($this->participantUser1->full_name);
+        $showRes->assertSee($this->participantUser1->nama_lengkap);
 
         // 1.5 Access Edit Page
         $editPageRes = $this->actingAs($this->admin)->get("/training/{$training->id}/edit");
@@ -327,7 +324,7 @@ KUNCI: Menjadi unit kerja yang transparan, akuntabel, dan adaptif.';
         $portalRes = $this->get("/training/portal/{$token}");
         $portalRes->assertStatus(200);
         $portalRes->assertSee('Training Simulasi Peserta & Penilaian');
-        $portalRes->assertSee($this->participantUser1->full_name);
+        $portalRes->assertSee($this->participantUser1->nama_lengkap);
 
         // 3.4 Participant Submit Attendance
         $attendRes = $this->post("/training/portal/{$token}/attendance", [

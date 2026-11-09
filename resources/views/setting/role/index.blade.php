@@ -1,243 +1,469 @@
 @extends('layout.main_template')
 
 @section('content')
+@php
+    $totalPermissions = $permissions->count();
+    $isAdminRole = fn ($role) => $role->name === 'ADMIN';
+    $roleGrants = $roles->mapWithKeys(fn ($role) => [
+        $role->id => $isAdminRole($role) ? $permissions->pluck('name')->flip() : $role->permissions->pluck('name')->flip(),
+    ]);
+@endphp
+
 <section class="content-header">
     <div class="container-fluid">
-        <div class="row mb-2 align-items-center">
-            <div class="col-sm-6">
-                <h1 class="m-0 font-weight-bold" style="font-size: 1.4rem;">
-                    Manajemen Role & Hak Akses
-                </h1>
-                <small class="text-muted">Kelola peran pengguna dan tentukan fitur apa saja yang dapat diakses oleh setiap role.</small>
-            </div>
-            <div class="col-sm-6 text-sm-right mt-2 mt-sm-0">
-                <a href="{{ route('roles.create') }}" class="btn btn-primary btn-sm font-weight-bold">
-                    Tambah Role Baru
+        <x-page-header title="Jabatan & Hak Akses" subtitle="Kelola jabatan dan tentukan fitur apa saja yang dapat diakses oleh setiap jabatan." eyebrow="Pengaturan">
+            <x-slot:actions>
+                <a href="{{ route('roles.create') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Tambah Jabatan
                 </a>
-            </div>
-        </div>
+            </x-slot:actions>
+        </x-page-header>
     </div>
 </section>
 
 <section class="content">
     <div class="container-fluid">
-        {{-- Flash Messages --}}
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
-        @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                {{ session('error') }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
+        <x-flash />
 
-        {{-- SUMMARY STATS --}}
-        <div class="row mb-3">
-            <div class="col-md-4 col-sm-6 col-12">
-                <div class="info-box shadow-none border">
-                    <div class="info-box-content">
-                        <span class="info-box-text text-muted">Total Role Terdaftar</span>
-                        <span class="info-box-number h4 font-weight-bold mb-0 text-dark">{{ $roles->count() }} Role</span>
+        {{-- RINGKASAN --}}
+        <div class="row">
+            <div class="col-md-4 col-12 mb-3">
+                <div class="stat-tile">
+                    <span class="stat-tile-icon"><i class="fas fa-user-tag"></i></span>
+                    <div>
+                        <p class="stat-tile-label">Jabatan</p>
+                        <p class="stat-tile-value">{{ $roles->count() }}</p>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4 col-sm-6 col-12">
-                <div class="info-box shadow-none border">
-                    <div class="info-box-content">
-                        <span class="info-box-text text-muted">Fitur / Permission</span>
-                        <span class="info-box-number h4 font-weight-bold mb-0 text-dark">{{ $permissions->count() }} Hak Akses</span>
+            <div class="col-md-4 col-12 mb-3">
+                <div class="stat-tile">
+                    <span class="stat-tile-icon"><i class="fas fa-key"></i></span>
+                    <div>
+                        <p class="stat-tile-label">Hak Akses Fitur</p>
+                        <p class="stat-tile-value">{{ $totalPermissions }}</p>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4 col-sm-6 col-12">
-                <div class="info-box shadow-none border">
-                    <div class="info-box-content">
-                        <span class="info-box-text text-muted">Pengguna Aktif</span>
-                        <span class="info-box-number h4 font-weight-bold mb-0 text-dark">{{ $users->count() }} User</span>
+            <div class="col-md-4 col-12 mb-3">
+                <div class="stat-tile">
+                    <span class="stat-tile-icon"><i class="fas fa-users"></i></span>
+                    <div>
+                        <p class="stat-tile-label">Pengguna</p>
+                        <p class="stat-tile-value">{{ $users->count() }}</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        {{-- NAVIGATION TABS --}}
-        <div class="card card-primary card-outline card-outline-tabs shadow-sm border-0">
-            <div class="card-header p-0 border-bottom-0">
-                <ul class="nav nav-tabs" id="roleTab" role="tablist">
-                    <li class="nav-item">
-                        <a class="nav-link active font-weight-bold" id="roles-tab" data-toggle="pill" href="#tab-roles" role="tab" aria-controls="tab-roles" aria-selected="true">
-                            Daftar Role & Hak Akses Fitur ({{ $roles->count() }})
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link font-weight-bold" id="users-tab" data-toggle="pill" href="#tab-users" role="tab" aria-controls="tab-users" aria-selected="false">
-                            Penetapan Role Pengguna ({{ $users->count() }})
-                        </a>
-                    </li>
-                </ul>
-            </div>
+        {{-- TAB --}}
+        <ul class="nav nav-tabs mb-3" id="roleTab" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="roles-tab" data-toggle="tab" href="#tab-roles" role="tab" aria-controls="tab-roles" aria-selected="true">
+                    Daftar Jabatan & Hak Akses Fitur <span class="badge badge-secondary">{{ $roles->count() }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="users-tab" data-toggle="tab" href="#tab-users" role="tab" aria-controls="tab-users" aria-selected="false">
+                    Penetapan Jabatan Pengguna <span class="badge badge-secondary">{{ $users->count() }}</span>
+                </a>
+            </li>
+        </ul>
 
-            <div class="card-body p-4">
-                <div class="tab-content" id="roleTabContent">
-                    {{-- TAB 1: DAFTAR ROLE --}}
-                    <div class="tab-pane fade show active" id="tab-roles" role="tabpanel" aria-labelledby="roles-tab">
-                        <div class="row">
-                            @foreach($roles as $role)
-                                <div class="col-lg-4 col-md-6 mb-4">
-                                    <div class="card h-100 shadow-sm border" style="border-radius: 12px; overflow: hidden;">
-                                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
-                                            <div class="d-flex align-items-center">
-                                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white mr-2 {{ $role->name === 'Admin' ? 'bg-danger' : ($role->name === 'Trainer' ? 'bg-success' : 'bg-primary') }}" style="width: 36px; height: 36px;">
-                                                    <i class="fas {{ $role->name === 'Admin' ? 'fa-shield-alt' : ($role->name === 'Trainer' ? 'fa-chalkboard-teacher' : 'fa-user-tag') }}"></i>
-                                                </div>
-                                                <h5 class="font-weight-bold mb-0 text-dark">{{ $role->name }}</h5>
-                                            </div>
-                                            <span class="badge badge-light border font-weight-bold px-2 py-1">
-                                                {{ $role->users->count() }} Pengguna
-                                            </span>
-                                        </div>
-                                        <div class="card-body py-3">
-                                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                                <span class="text-muted small font-weight-bold text-uppercase">Hak Akses Fitur:</span>
-                                                <span class="badge badge-info px-2 py-1">
-                                                    {{ $role->name === 'Admin' ? 'Akses Penuh (Semua)' : $role->permissions->count() . ' / ' . $permissions->count() . ' Fitur' }}
-                                                </span>
-                                            </div>
-                                            
-                                            <div class="p-2 bg-light rounded border mb-3" style="max-height: 170px; overflow-y: auto;">
-                                                @if($role->name === 'Admin')
-                                                    <div class="text-success small font-weight-bold py-2 text-center">
-                                                        <i class="fas fa-check-double mr-1"></i> Administrator memiliki akses ke seluruh fitur sistem
-                                                    </div>
-                                                @elseif($role->permissions->isEmpty())
-                                                    <div class="text-muted small py-2 text-center">
-                                                        Belum ada hak akses yang dipilih.
-                                                    </div>
-                                                @else
-                                                    <div class="d-flex flex-wrap" style="gap: 5px;">
-                                                        @foreach($role->permissions as $perm)
-                                                            <span class="badge badge-white border text-dark text-xs p-1" title="{{ $perm->name }}">
-                                                                <i class="fas fa-check text-success mr-1"></i> {{ $perm->name }}
-                                                            </span>
-                                                        @endforeach
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        </div>
-                                        <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center py-2">
-                                            <a href="{{ route('roles.edit', $role->id) }}" class="btn btn-default btn-sm font-weight-bold flex-grow-1 mr-1">
-                                                Atur Hak Akses
-                                            </a>
-                                            @if(!in_array($role->name, ['Admin', 'Staff', 'Trainer']))
-                                                <form action="{{ route('roles.destroy', $role->id) }}" method="POST" class="d-inline" onsubmit="return confirm(@js('Hapus role '.$role->name.'?'))">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Hapus Role">
-                                                        <i class="fas fa-trash-alt"></i>
-                                                    </button>
-                                                </form>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
+        <div class="tab-content" id="roleTabContent">
+            {{-- TAB 1: JABATAN & HAK AKSES --}}
+            <div class="tab-pane fade show active" id="tab-roles" role="tabpanel" aria-labelledby="roles-tab">
+                <div class="role-toolbar">
+                    <p class="text-muted small mb-0">
+                        {{ $roles->count() }} jabatan &middot; {{ $totalPermissions }} hak akses fitur. ADMIN selalu mendapat semua hak akses.
+                    </p>
+                    <div class="btn-group filter-tabs" role="group" aria-label="Tampilan">
+                        <button type="button" class="btn active" data-role-view="table" aria-pressed="true">
+                            <i class="fas fa-table mr-1"></i> Tabel
+                        </button>
+                        <button type="button" class="btn" data-role-view="cards" aria-pressed="false">
+                            <i class="fas fa-th-large mr-1"></i> Kartu
+                        </button>
                     </div>
+                </div>
 
-                    {{-- TAB 2: PENETAPAN ROLE PENGGUNA --}}
-                    <div class="tab-pane fade" id="tab-users" role="tabpanel" aria-labelledby="users-tab">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span class="text-muted small">Atur role untuk masing-masing pengguna agar mendapatkan izin fitur sesuai perannya.</span>
-                            <input type="text" id="searchUserTable" class="form-control form-control-sm" placeholder="Cari nama / username..." style="width: 250px;">
+                {{-- TAMPILAN TABEL --}}
+                <div data-role-panel="table">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="min-w-0">
+                                <h3 class="card-title">Daftar Jabatan</h3>
+                                <p class="section-subtitle">Diurutkan dari level tertinggi.</p>
+                            </div>
                         </div>
-
-                        <div class="table-responsive">
-                            <table class="table table-hover border" id="userRoleTable" style="font-size: 0.92rem;">
-                                <thead class="bg-light text-muted">
+                        <div class="card-body table-responsive p-0">
+                            <table class="table table-hover text-nowrap mb-0">
+                                <thead>
                                     <tr>
-                                        <th style="width: 50px;" class="text-center">No</th>
-                                        <th>Nama Lengkap</th>
-                                        <th>Username / Kontak</th>
-                                        <th>Divisi</th>
-                                        <th>Role Spatie Saat Ini</th>
-                                        <th style="width: 280px;" class="text-center">Ubah Role</th>
+                                        <th>Jabatan</th>
+                                        <th class="text-center" style="width: 90px;">Level</th>
+                                        <th>Persetujuan Atasan</th>
+                                        <th class="text-center" style="width: 110px;">Pengguna</th>
+                                        <th style="width: 220px;">Hak Akses</th>
+                                        <th class="text-right" style="width: 170px;">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($users as $index => $u)
-                                    <tr>
-                                        <td class="text-center align-middle text-muted">{{ $index + 1 }}</td>
-                                        <td class="align-middle">
-                                            <strong class="text-dark d-block">{{ $u->full_name }}</strong>
-                                            <span class="text-muted small">ID: {{ $u->id_karyawan ?? '-' }}</span>
-                                        </td>
-                                        <td class="align-middle text-muted">
-                                            <span>{{ $u->username }}</span>
-                                            @if($u->no_wa)
-                                                <span class="d-block small text-success"><i class="fab fa-whatsapp mr-1"></i>{{ $u->no_wa }}</span>
-                                            @endif
-                                        </td>
-                                        <td class="align-middle text-muted">
-                                            {{ $u->divisi->name ?? '-' }}
-                                        </td>
-                                        <td class="align-middle">
-                                            @forelse($u->roles as $r)
-                                                <span class="badge border px-2 py-1 {{ $r->name === 'Admin' ? 'bg-light text-danger border-danger' : ($r->name === 'Trainer' ? 'bg-light text-success border-success' : 'bg-light text-primary border-primary') }}">
-                                                    {{ $r->name }}
-                                                </span>
-                                            @empty
-                                                <span class="badge badge-light border text-muted px-2 py-1">Belum Ada Role</span>
-                                            @endforelse
-                                        </td>
-                                        <td class="align-middle text-center">
-                                            <form action="{{ route('roles.assign') }}" method="POST" class="d-flex align-items-center justify-content-center" style="gap: 6px;">
-                                                @csrf
-                                                <input type="hidden" name="user_id" value="{{ $u->id }}">
-                                                <select name="role" class="form-control form-control-sm" style="width: 140px;">
-                                                    @foreach($roles as $r)
-                                                        <option value="{{ $r->name }}" {{ $u->hasRole($r->name) ? 'selected' : '' }}>
-                                                            {{ $r->name }}
-                                                        </option>
-                                                    @endforeach
-                                                </select>
-                                                <button type="submit" class="btn btn-primary btn-sm font-weight-bold px-2">
-                                                    Simpan
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
+                                    @foreach ($roles as $role)
+                                        @php($granted = $isAdminRole($role) ? $totalPermissions : $role->permissions->count())
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="role-avatar {{ $isAdminRole($role) ? 'is-admin' : '' }}">
+                                                        <i class="fas {{ $isAdminRole($role) ? 'fa-shield-alt' : 'fa-user-tag' }}"></i>
+                                                    </span>
+                                                    <div>
+                                                        <strong class="d-block">{{ $role->name }}</strong>
+                                                        <span class="text-muted small">{{ $role->isBuiltIn() ? 'Bawaan' : 'Kustom' }}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">{{ $role->level ?? '-' }}</td>
+                                            <td>
+                                                @if ($role->requires_approval)
+                                                    <span class="badge badge-warning">Wajib</span>
+                                                @else
+                                                    <span class="text-muted">Tidak</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-center">
+                                                <a href="{{ route('user.index', ['role_id' => $role->id]) }}" class="text-reset" title="Lihat pengguna dengan jabatan {{ $role->name }}">
+                                                    {{ $role->users_count }}
+                                                </a>
+                                            </td>
+                                            <td>
+                                                <div class="perm-meter">
+                                                    <div class="perm-meter-bar">
+                                                        <span style="width: {{ $totalPermissions ? round($granted / $totalPermissions * 100) : 0 }}%;"></span>
+                                                    </div>
+                                                    <span class="perm-meter-label">
+                                                        {{ $isAdminRole($role) ? 'Semua' : $granted.' / '.$totalPermissions }}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td class="text-right">
+                                                <div class="d-inline-flex align-items-center gap-1">
+                                                    <a href="{{ route('roles.edit', $role->id) }}" class="btn btn-default btn-xs">Atur Hak Akses</a>
+                                                    @unless ($role->isBuiltIn())
+                                                        <form action="{{ route('roles.destroy', $role->id) }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Hapus jabatan '.$role->name.'?'))">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="btn btn-default btn-xs text-danger" title="Hapus jabatan">
+                                                                <i class="fas fa-trash-alt"></i>
+                                                            </button>
+                                                        </form>
+                                                    @endunless
+                                                </div>
+                                            </td>
+                                        </tr>
                                     @endforeach
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="min-w-0">
+                                <h3 class="card-title">Matriks Hak Akses</h3>
+                                <p class="section-subtitle">Fitur yang dapat diakses setiap jabatan. Klik nama jabatan untuk mengubah hak aksesnya.</p>
+                            </div>
+                        </div>
+                        <div class="card-body table-responsive p-0">
+                            <table class="table perm-matrix mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="perm-matrix-feature">Fitur</th>
+                                        @foreach ($roles as $role)
+                                            <th class="text-center">
+                                                <a href="{{ route('roles.edit', $role->id) }}" class="perm-matrix-role">{{ $role->name }}</a>
+                                                <span class="d-block text-muted small font-weight-normal">Level {{ $role->level ?? '-' }}</span>
+                                            </th>
+                                        @endforeach
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($permissionGroups as $groupName => $group)
+                                        <tr class="perm-matrix-group">
+                                            <td class="perm-matrix-feature">
+                                                <i class="{{ $group['icon'] }} {{ $group['color'] }} mr-1"></i> {{ $groupName }}
+                                            </td>
+                                            <td colspan="{{ $roles->count() }}"></td>
+                                        </tr>
+                                        @foreach ($group['permissions'] as $permName => $label)
+                                            <tr>
+                                                <td class="perm-matrix-feature">
+                                                    <span class="d-block">{{ $label }}</span>
+                                                    @if ($label !== $permName)
+                                                        <code class="perm-slug">{{ $permName }}</code>
+                                                    @endif
+                                                </td>
+                                                @foreach ($roles as $role)
+                                                    <td class="text-center align-middle">
+                                                        @if (isset($roleGrants[$role->id][$permName]))
+                                                            <i class="fas fa-check-circle perm-yes" title="{{ $role->name }}: boleh"></i>
+                                                            <span class="sr-only">Ya</span>
+                                                        @else
+                                                            <span class="perm-no" title="{{ $role->name }}: tidak">&ndash;</span>
+                                                            <span class="sr-only">Tidak</span>
+                                                        @endif
+                                                    </td>
+                                                @endforeach
+                                            </tr>
+                                        @endforeach
+                                    @endforeach
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td class="perm-matrix-feature"><strong>Total</strong></td>
+                                        @foreach ($roles as $role)
+                                            <td class="text-center"><strong>{{ $roleGrants[$role->id]->count() }}</strong><span class="text-muted"> / {{ $totalPermissions }}</span></td>
+                                        @endforeach
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- TAMPILAN KARTU --}}
+                <div data-role-panel="cards" hidden>
+                    <div class="row">
+                        @foreach ($roles as $role)
+                            @php($granted = $roleGrants[$role->id]->count())
+                            <div class="col-xl-4 col-md-6 mb-4">
+                                <div class="card role-card h-100 mb-0">
+                                    <div class="card-header">
+                                        <div class="d-flex align-items-center gap-2 min-w-0">
+                                            <span class="role-avatar {{ $isAdminRole($role) ? 'is-admin' : '' }}">
+                                                <i class="fas {{ $isAdminRole($role) ? 'fa-shield-alt' : 'fa-user-tag' }}"></i>
+                                            </span>
+                                            <div class="min-w-0">
+                                                <h3 class="card-title">{{ $role->name }}</h3>
+                                                <div class="text-muted small">
+                                                    Level {{ $role->level ?? '-' }}
+                                                    @if ($role->requires_approval)
+                                                        &middot; Wajib atasan
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <a href="{{ route('user.index', ['role_id' => $role->id]) }}" class="badge badge-secondary">
+                                            {{ $role->users_count }} pengguna
+                                        </a>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-baseline mb-1">
+                                            <span class="eyebrow">Hak akses fitur</span>
+                                            <span class="small font-weight-bold">
+                                                {{ $isAdminRole($role) ? 'Semua' : $granted.' / '.$totalPermissions }}
+                                            </span>
+                                        </div>
+                                        <div class="perm-meter-bar mb-3">
+                                            <span style="width: {{ $totalPermissions ? round($granted / $totalPermissions * 100) : 0 }}%;"></span>
+                                        </div>
+
+                                        <ul class="role-module-list">
+                                            @foreach ($permissionGroups as $groupName => $group)
+                                                @php($moduleTotal = count($group['permissions']))
+                                                @php($moduleGranted = collect(array_keys($group['permissions']))->filter(fn ($p) => isset($roleGrants[$role->id][$p]))->count())
+                                                <li class="{{ $moduleGranted ? '' : 'is-off' }}"
+                                                    title="{{ collect($group['permissions'])->filter(fn ($l, $p) => isset($roleGrants[$role->id][$p]))->implode(', ') ?: 'Tidak ada akses' }}">
+                                                    <span class="role-module-name"><i class="{{ $group['icon'] }} fa-fw"></i> {{ $groupName }}</span>
+                                                    <span class="role-module-count">{{ $moduleGranted }}/{{ $moduleTotal }}</span>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                    <div class="card-footer d-flex align-items-center gap-2">
+                                        <a href="{{ route('roles.edit', $role->id) }}" class="btn btn-default btn-sm flex-grow-1">Atur Hak Akses</a>
+                                        @unless ($role->isBuiltIn())
+                                            <form action="{{ route('roles.destroy', $role->id) }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Hapus jabatan '.$role->name.'?'))">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-default btn-sm text-danger" title="Hapus jabatan">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
+                                            </form>
+                                        @endunless
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+
+            {{-- TAB 2: PENETAPAN JABATAN PENGGUNA --}}
+            <div class="tab-pane fade" id="tab-users" role="tabpanel" aria-labelledby="users-tab">
+                <div class="card">
+                    <div class="card-header filter-toolbar">
+                        <div class="role-user-filters w-100">
+                            <div class="filter-group">
+                                <div class="filter-group-icon"><i class="fas fa-user-tag"></i></div>
+                                <select id="filterUserRole" class="custom-select select2" aria-label="Jabatan" style="width: 100%;">
+                                    <option value="">Semua jabatan</option>
+                                    @foreach ($roles as $r)
+                                        <option value="{{ $r->name }}">{{ $r->name }}</option>
+                                    @endforeach
+                                    <option value="__trainer">Trainer</option>
+                                    <option value="__none">Belum ada jabatan</option>
+                                </select>
+                            </div>
+                            <div class="search-field">
+                                <i class="fas fa-search search-field-icon" aria-hidden="true"></i>
+                                <input type="search" id="searchUserTable" placeholder="Cari nama, username, ID, No. HP, divisi..." aria-label="Cari pengguna" autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="px-3 py-2 border-bottom bg-light text-muted small">
+                        Hak akses mengikuti jabatan. Centang <strong>Trainer</strong> untuk memberi akses tambahan kelola training, video, dan dokumen.
+                    </div>
+
+                    <div class="card-body table-responsive p-0">
+                        <table class="table table-hover mb-0" id="userRoleTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px;" class="text-center">No</th>
+                                    <th>Nama Lengkap</th>
+                                    <th>Username / Kontak</th>
+                                    <th>Divisi</th>
+                                    <th>Jabatan Saat Ini</th>
+                                    <th class="text-right">Ubah Jabatan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($users as $u)
+                                    <tr data-roles="{{ $u->roles->pluck('name')->implode('|') }}"
+                                        data-trainer="{{ $u->isTrainer() ? 1 : 0 }}"
+                                        data-search="{{ Str::lower(implode(' ', [$u->nama_lengkap, $u->username, $u->employee_id, $u->no_hp, $u->divisi->name ?? ''])) }}">
+                                        <td class="text-center text-muted row-number">{{ $loop->iteration }}</td>
+                                        <td>
+                                            <strong class="d-block">{{ $u->nama_lengkap }}</strong>
+                                            <span class="text-muted small">ID: {{ $u->employee_id ?? '-' }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="d-block">{{ $u->username }}</span>
+                                            @if ($u->no_hp)
+                                                <span class="text-muted small"><i class="fab fa-whatsapp mr-1"></i>{{ $u->no_hp }}</span>
+                                            @endif
+                                        </td>
+                                        <td class="text-muted">{{ $u->divisi->name ?? '-' }}</td>
+                                        <td>
+                                            <div class="d-flex flex-wrap gap-1">
+                                                @forelse ($u->roles as $r)
+                                                    <span class="badge {{ $r->name === 'ADMIN' ? 'badge-danger' : 'badge-primary' }}">{{ $r->name }}</span>
+                                                @empty
+                                                    <span class="badge badge-secondary">Belum ada jabatan</span>
+                                                @endforelse
+                                                @if ($u->isTrainer())
+                                                    <span class="badge badge-success">TRAINER</span>
+                                                @endif
+                                            </div>
+                                        </td>
+                                        <td class="text-right">
+                                            <form action="{{ route('roles.assign') }}" method="POST" class="role-assign-form m-0">
+                                                @csrf
+                                                <input type="hidden" name="user_id" value="{{ $u->id }}">
+                                                <select name="role" class="form-control form-control-sm select2" style="width: 140px;" aria-label="Jabatan {{ $u->nama_lengkap }}">
+                                                    @foreach ($roles as $r)
+                                                        <option value="{{ $r->name }}" @selected($u->hasRole($r->name))>{{ $r->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <input type="hidden" name="trainer" value="0">
+                                                <div class="custom-control custom-checkbox">
+                                                    <input type="checkbox" class="custom-control-input" id="trainer{{ $u->id }}" name="trainer" value="1" @checked($u->isTrainer())>
+                                                    <label class="custom-control-label small" for="trainer{{ $u->id }}">Trainer</label>
+                                                </div>
+                                                <button type="submit" class="btn btn-default btn-sm">Simpan</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                                <tr id="userRoleEmpty" hidden>
+                                    <td colspan="6">
+                                        <x-empty-state icon="fa-search" title="Pengguna tidak ditemukan" text="Coba ubah kata kunci atau filter jabatan." />
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer text-muted small">
+                        Menampilkan <span id="userRoleShown">{{ $users->count() }}</span> dari {{ $users->count() }} pengguna
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
+@endsection
 
+@section('footer')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('searchUserTable');
-    const table = document.getElementById('userRoleTable');
-    if (searchInput && table) {
-        searchInput.addEventListener('keyup', function() {
-            const val = this.value.toLowerCase();
-            const rows = table.querySelectorAll('tbody tr');
-            rows.forEach(function(row) {
-                const text = row.innerText.toLowerCase();
-                row.style.display = text.indexOf(val) > -1 ? '' : 'none';
+    $(function () {
+        function store(key, value) {
+            try { localStorage.setItem(key, value); } catch (e) {}
+        }
+        function read(key) {
+            try { return localStorage.getItem(key); } catch (e) { return null; }
+        }
+
+        // Tampilan tabel / kartu, diingat per browser.
+        function showView(view) {
+            $('[data-role-view]').each(function () {
+                const on = this.dataset.roleView === view;
+                $(this).toggleClass('active', on).attr('aria-pressed', on);
             });
+            $('[data-role-panel]').each(function () {
+                this.hidden = this.dataset.rolePanel !== view;
+            });
+        }
+        $('[data-role-view]').on('click', function () {
+            showView(this.dataset.roleView);
+            store('roles.view', this.dataset.roleView);
         });
-    }
-});
+        showView(read('roles.view') === 'cards' ? 'cards' : 'table');
+
+        // Kembali ke tab terakhir (mis. setelah Simpan di Penetapan Jabatan).
+        $('#roleTab a[data-toggle="tab"]').on('shown.bs.tab', function () {
+            sessionStorage.setItem('roles.tab', this.getAttribute('href'));
+        });
+        let lastTab = location.hash || null;
+        try { lastTab = lastTab || sessionStorage.getItem('roles.tab'); } catch (e) {}
+        if (lastTab && $('#roleTab a[href="' + lastTab + '"]').length) {
+            $('#roleTab a[href="' + lastTab + '"]').tab('show');
+        }
+
+        // Cari & filter pengguna.
+        const $rows = $('#userRoleTable tbody tr[data-search]');
+        function filterUsers() {
+            const term = ($('#searchUserTable').val() || '').toLowerCase().trim();
+            const role = $('#filterUserRole').val() || '';
+            let shown = 0;
+            $rows.each(function () {
+                const roles = this.dataset.roles ? this.dataset.roles.split('|') : [];
+                let matchRole = true;
+                if (role === '__trainer') matchRole = this.dataset.trainer === '1';
+                else if (role === '__none') matchRole = roles.length === 0;
+                else if (role) matchRole = roles.indexOf(role) !== -1;
+                const match = matchRole && (!term || this.dataset.search.indexOf(term) !== -1);
+                this.hidden = !match;
+                if (match) {
+                    shown++;
+                    $(this).find('.row-number').text(shown);
+                }
+            });
+            $('#userRoleShown').text(shown);
+            $('#userRoleEmpty').prop('hidden', shown > 0);
+        }
+        $('#searchUserTable').on('input', filterUsers);
+        $('#filterUserRole').on('change', filterUsers);
+    });
 </script>
 @endsection

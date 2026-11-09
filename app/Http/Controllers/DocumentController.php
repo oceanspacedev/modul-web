@@ -8,8 +8,9 @@ use App\Models\Divisi;
 use App\Models\Document;
 use App\Models\DocumentVersion;
 use App\Models\DokumenType;
-use App\Models\JobLevel;
-use App\Models\SubDivisi;
+use App\Models\Role;
+use App\Models\User;
+use App\Services\MaterialQuizService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,17 +22,24 @@ use Illuminate\View\View;
 #[Authorize('viewAny', Document::class, only: ['index'])]
 #[Authorize('view', 'document', only: ['history'])]
 #[Authorize('create', Document::class, only: ['create', 'store'])]
-#[Authorize('update', 'document', only: ['edit', 'update'])]
+#[Authorize('update', 'document', only: ['edit', 'update', 'deactivate', 'activate'])]
 #[Authorize('delete', 'document', only: ['destroy'])]
 #[Authorize('restore', 'document', only: ['restore'])]
 class DocumentController extends Controller
 {
+    public function __construct(private MaterialQuizService $materialQuiz) {}
+
     public function index(Request $request): View
     {
         $divisis = Divisi::all();
         $doctypes = DokumenType::all();
 
-        $query = Document::with(['divisi', 'subdivisi', 'joblevel', 'dokumentype', 'versions'])->withTrashed();
+        // Tab "Terhapus" menampilkan dokumen yang di-soft delete agar bisa dipulihkan (khusus pengelola dokumen).
+        $trashed = $request->query('tab') === 'terhapus' && $request->user()->can('restore', Document::class);
+
+        $query = Document::with(['divisi', 'role', 'dokumentype', 'versions', 'quizModule'])
+            ->withInactive()
+            ->when($trashed, fn ($query) => $query->onlyTrashed());
 
         if ($request->filled('divisi_id')) {
             $query->where('divisi_id', $request->divisi_id);
@@ -45,7 +53,7 @@ class DocumentController extends Controller
             $query->where('name', 'like', '%'.$request->search.'%');
         }
 
-        $documents = $query->orderBy('name')->get();
+        $documents = $query->when($trashed, fn ($query) => $query->latest('deleted_at'), fn ($query) => $query->orderBy('name'))->get();
 
         return view('document.index', [
             'title' => 'Documents',
@@ -53,6 +61,7 @@ class DocumentController extends Controller
             'divisis' => $divisis,
             'doctypes' => $doctypes,
             'documents' => $documents,
+            'trashed' => $trashed,
         ]);
     }
 
@@ -63,7 +72,7 @@ class DocumentController extends Controller
             'active' => 'document',
             'divisis' => Divisi::all(),
             'documentypes' => DokumenType::all(),
-            'joblevels' => JobLevel::all()->except(1),
+            'roles' => $this->targetRoles(),
         ]);
     }
 
@@ -75,15 +84,16 @@ class DocumentController extends Controller
         $path = Str::slug($fileName).'-v1-'.time().'.'.$file->extension();
         $fileSize = $this->formatBytes($file->getSize());
         $changeNote = $request->validated('change_note') ?: 'Versi Awal Dokumen';
-        $userName = $request->user()->full_name;
+        $userName = $request->user()->nama_lengkap;
 
         $file->storeAs('dokumen', $path);
 
-        DB::transaction(function () use ($request, $file, $fileName, $path, $fileSize, $changeNote, $userName) {
-            foreach ($request->validated('job_level_id') as $jobLevelId) {
+        $quizzes = DB::transaction(function () use ($request, $file, $fileName, $path, $fileSize, $changeNote, $userName) {
+            $quizzes = [];
+            foreach ($request->validated('role_id') as $roleId) {
                 $document = Document::create([
-                    ...$request->safe()->only(['document_type', 'divisi_id', 'sub_divisi_id']),
-                    'job_level_id' => $jobLevelId,
+                    ...$request->safe()->only(['document_type', 'divisi_id']),
+                    'role_id' => $roleId ?: null,
                     'name' => strtoupper($fileName),
                     'path' => $path,
                     'version' => 1,
@@ -97,18 +107,33 @@ class DocumentController extends Controller
                     'change_note' => $changeNote,
                     'created_by' => $userName,
                 ]);
+
+                $quizzes[] = $this->materialQuiz->sync($document, $request->validated('quiz'));
             }
+
+            return array_values(array_filter($quizzes));
         });
 
-        return to_route('document.index')->with('success', 'Berhasil menambahkan dokumen baru (Versi 1)');
+        // Setiap dokumen (satu per jabatan) punya bank soal sendiri.
+        if (count($quizzes) === 1 && $this->materialQuiz->needsQuestions($quizzes[0])) {
+            return redirect($quizzes[0]->url('questions.index'))
+                ->with('success', 'Berhasil menambahkan dokumen baru (Versi 1). Tambahkan soal agar pretest/posttest aktif.');
+        }
+
+        return to_route('document.index')->with('success', count($quizzes) > 1
+            ? 'Berhasil menambahkan dokumen baru (Versi 1). Tambahkan soal pretest/posttest lewat menu Aksi pada setiap dokumen.'
+            : 'Berhasil menambahkan dokumen baru (Versi 1)');
     }
 
     /**
-     * Version history of a document, loaded by the history modal on the index page.
+     * Version history of a document, loaded by the history modal on the index page. While the document has an
+     * active pretest/posttest, participants get no direct file links (they open it through the quiz page).
      */
-    public function history(Document $document): JsonResponse
+    public function history(Request $request, Document $document): JsonResponse
     {
-        $document->load(['versions', 'divisi', 'joblevel']);
+        $document->load(['versions', 'divisi', 'role', 'quizModule']);
+        $quiz = $document->activeQuiz();
+        $hideFiles = $quiz && $request->user()->cannot('update', $document);
 
         return response()->json([
             'document' => [
@@ -116,14 +141,14 @@ class DocumentController extends Controller
                 'name' => $document->name,
                 'version' => $document->version ?? 1,
                 'divisi' => $document->divisi->name ?? '-',
-                'joblevel' => $document->joblevel->name ?? '-',
+                'jabatan' => $document->role->name ?? 'SEMUA JABATAN',
                 'path' => $document->path,
             ],
             'versions' => $document->versions->map(fn (DocumentVersion $version) => [
                 'id' => $version->id,
                 'version_number' => $version->version_number,
                 'file_name' => $version->file_name,
-                'file_url' => $version->file_url,
+                'file_url' => $hideFiles ? $quiz->url('show') : $version->file_url,
                 'file_size' => $version->file_size ?: '-',
                 'change_note' => $version->change_note ?: 'Tidak ada catatan revisi',
                 'created_by' => $version->created_by ?: 'Admin',
@@ -134,16 +159,16 @@ class DocumentController extends Controller
 
     public function edit(Document $document): View
     {
-        $document->load(['versions', 'divisi', 'subdivisi', 'joblevel', 'dokumentype']);
+        $document->load(['versions', 'divisi', 'role', 'dokumentype']);
 
         return view('document.edit', [
             'title' => 'Documents',
             'active' => 'document',
             'divisis' => Divisi::all(),
-            'subdivisis' => SubDivisi::all(),
             'documentypes' => DokumenType::all(),
-            'joblevels' => JobLevel::all()->except(1),
+            'roles' => $this->targetRoles(),
             'document' => $document,
+            'quiz' => $document->quizModule,
         ]);
     }
 
@@ -152,9 +177,9 @@ class DocumentController extends Controller
      */
     public function update(UpdateDocumentRequest $request, Document $document): RedirectResponse
     {
-        $userName = $request->user()->full_name;
-        $metadata = $request->safe()->only(['divisi_id', 'sub_divisi_id', 'job_level_id', 'document_type']);
-        $metadata['sub_divisi_id'] ??= null;
+        $userName = $request->user()->nama_lengkap;
+        $metadata = $request->safe()->only(['divisi_id', 'document_type']);
+        $metadata['role_id'] = (int) $request->validated('role_id') ?: null;
 
         // Ensure baseline version 1 exists in history
         if (! $document->versions()->exists()) {
@@ -172,7 +197,7 @@ class DocumentController extends Controller
         if (! $request->hasFile('file')) {
             $document->update($metadata);
 
-            return to_route('document.index')->with('success', 'Berhasil memperbarui informasi dokumen');
+            return $this->afterUpdate($document, $request, 'Berhasil memperbarui informasi dokumen');
         }
 
         $file = $request->file('file');
@@ -200,27 +225,66 @@ class DocumentController extends Controller
             ]);
         });
 
-        return to_route('document.index')->with('success', 'Berhasil memperbarui dokumen ke Versi '.$nextVersion.' (file versi lama tersimpan di riwayat)');
+        return $this->afterUpdate($document, $request, 'Berhasil memperbarui dokumen ke Versi '.$nextVersion.' (file versi lama tersimpan di riwayat)');
     }
 
     /**
-     * Deactivate (soft delete) a document.
+     * Simpan pengaturan pretest/posttest; arahkan ke halaman soal bila kuis dinyalakan tetapi belum ada soal.
      */
-    public function destroy(Document $document): RedirectResponse
+    private function afterUpdate(Document $document, UpdateDocumentRequest $request, string $message): RedirectResponse
     {
-        $document->delete();
+        $quiz = $this->materialQuiz->sync($document, $request->validated('quiz'));
+
+        if ($this->materialQuiz->needsQuestions($quiz)) {
+            return redirect($quiz->url('questions.index'))->with('success', $message.'. Tambahkan soal agar pretest/posttest aktif.');
+        }
+
+        return to_route('document.index')->with('success', $message);
+    }
+
+    /**
+     * Nonaktifkan dokumen: tersembunyi dari peserta, pelatihan, dan Modul Belajar, tetapi tetap tampil di daftar dokumen.
+     */
+    public function deactivate(Document $document): RedirectResponse
+    {
+        $document->update(['is_active' => false]);
 
         return to_route('document.index')->with('success', 'Berhasil menonaktifkan dokumen');
     }
 
+    public function activate(Document $document): RedirectResponse
+    {
+        $document->update(['is_active' => true]);
+
+        return to_route('document.index')->with('success', 'Berhasil mengaktifkan kembali dokumen');
+    }
+
     /**
-     * Reactivate a soft-deleted document.
+     * Hapus dokumen (soft delete): hilang dari daftar dokumen, tetapi data, file, dan riwayat versinya tetap tersimpan.
+     */
+    public function destroy(Document $document): RedirectResponse
+    {
+        DB::transaction(function () use ($document) {
+            // Riwayat nilai kuis dokumen tetap tersimpan (soft delete).
+            $document->quizModule()->first()?->delete();
+            $document->delete();
+        });
+
+        return to_route('document.index')->with('success', 'Berhasil menghapus dokumen '.$document->name);
+    }
+
+    /**
+     * Pulihkan dokumen yang dihapus beserta kuis pretest/posttest-nya (ikut terhapus saat dokumen dihapus).
+     * Status aktif/nonaktif dokumen tetap seperti sebelum dihapus.
      */
     public function restore(Document $document): RedirectResponse
     {
-        $document->restore();
+        DB::transaction(function () use ($document) {
+            $document->restore();
+            $document->quizModule()->onlyTrashed()->first()?->restore();
+        });
 
-        return to_route('document.index')->with('success', 'Berhasil mengaktifkan kembali dokumen');
+        return to_route('document.index', ['tab' => 'terhapus'])->with('success', 'Berhasil memulihkan dokumen '.$document->name);
     }
 
     /**
@@ -235,5 +299,13 @@ class DocumentController extends Controller
         $bytes /= pow(1024, $pow);
 
         return round($bytes, $precision).' '.$units[$pow];
+    }
+
+    /**
+     * Jabatan sasaran dokumen (tanpa ADMIN yang sudah bisa melihat semua dokumen).
+     */
+    private function targetRoles()
+    {
+        return Role::where('name', '!=', User::ROLE_ADMIN)->orderByDesc('level')->orderBy('name')->get();
     }
 }

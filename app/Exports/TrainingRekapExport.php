@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Training;
+use App\Support\StorageUrl;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithEvents;
@@ -38,7 +39,7 @@ class TrainingRekapExport implements FromArray, WithEvents, WithTitle
 
         $rows[] = ['REKAP HASIL PELATIHAN'];
         $rows[] = ['Topik Pelatihan', $training->title];
-        $rows[] = ['Pemateri',        $training->trainer->full_name ?? '-'];
+        $rows[] = ['Pemateri',        $training->trainer->nama_lengkap ?? '-'];
         $rows[] = ['Tanggal',         Carbon::parse($training->training_date)->format('d-m-Y')];
         $rows[] = ['Waktu',           substr($training->start_time, 0, 5).' - '.substr($training->end_time, 0, 5).' WIB'];
         $rows[] = ['Total Peserta',   $training->participants->count().' orang'];
@@ -78,16 +79,17 @@ class TrainingRekapExport implements FromArray, WithEvents, WithTitle
 
             $rows[] = [
                 $no++,
-                $user->id_karyawan ?? '-',
-                $user->full_name ?? '-',
+                $user->employee_id ?? '-',
+                $user->nama_lengkap ?? '-',
                 $user->divisi->name ?? '-',
-                $user->no_wa ?? '-',
+                $user->no_hp ?? '-',
                 $attendanceLabel,
                 $participant->attended_at
                     ? Carbon::parse($participant->attended_at)->format('d-m-Y H:i')
                     : '-',
+                // The spreadsheet is opened long after export, so sign the link for as long as S3 allows.
                 $participant->attendance_proof
-                    ? $participant->attendance_proof_url
+                    ? StorageUrl::for($participant->attendance_proof, StorageUrl::MAX_TTL_MINUTES)
                     : '-',
                 $quiz ? 'Sudah Mengerjakan' : 'Belum Mengerjakan',
                 $quiz ? (float) ($quiz->mc_score ?? $quiz->score) : 0,

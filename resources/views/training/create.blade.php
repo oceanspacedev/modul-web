@@ -3,104 +3,89 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <div class="row mb-3">
-            <div class="col-sm-6">
-                <h1 class="m-0 text-dark font-weight-bold" style="font-size: 1.5rem;">
-                    Tambah Pelatihan Baru
-                </h1>
-            </div>
-            <div class="col-sm-6 text-right">
-                <a href="/training" class="btn btn-default btn-sm">
-                    Kembali
+        <x-page-header title="Tambah Pelatihan Baru" subtitle="Jadwal, materi, dan peserta." eyebrow="Pelatihan / Jadwal">
+            <x-slot:actions>
+                <a href="/training" class="btn btn-default">
+                    <i class="fas fa-arrow-left"></i> Kembali
                 </a>
-            </div>
-        </div>
+            </x-slot:actions>
+        </x-page-header>
     </div>
 </section>
 
 <section class="content">
     <div class="container-fluid">
-        @if ($errors->any())
-            <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
-                <strong>Terdapat kesalahan pengisian:</strong>
-                <ul class="mb-0 pl-3 mt-1">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        @endif
+        <x-flash />
 
         <form action="/training" method="POST" id="trainingForm">
             @csrf
             <div class="row">
-                <!-- FORM DETAIL -->
-                <div class="col-lg-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-header py-3">
-                            <h3 class="card-title font-weight-bold">
-                                Informasi Pelatihan
-                            </h3>
+                <div class="col-lg-7">
+                    {{-- INFORMASI PELATIHAN --}}
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Informasi Pelatihan</h3>
                         </div>
-                        <div class="card-body p-4">
-                            <div class="form-group mb-4">
-                                <label for="title" class="font-weight-600 mb-2">Judul / Topik Pelatihan <span class="text-danger">*</span></label>
-                                <input type="text" id="title" name="title" class="form-control" value="{{ old('title') }}" 
-                                    placeholder="Contoh: Pengenalan Standar Operasional & Keamanan" required>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="title">Judul <span class="text-danger">*</span></label>
+                                <input type="text" id="title" name="title" class="form-control" value="{{ old('title') }}"
+                                    placeholder="Contoh: Pengenalan SOP Keamanan" required>
                             </div>
 
-                            <div class="form-group mb-4">
-                                <label for="trainer_id" class="font-weight-600 mb-2">Pemateri (Trainer) <span class="text-danger">*</span></label>
+                            <div class="form-group">
+                                <label for="trainer_id">Pemateri <span class="text-danger">*</span></label>
                                 <select id="trainer_id" name="trainer_id" class="form-control" required>
-                                    <option value="">-- Pilih Pemateri --</option>
+                                    <option value="">Pilih pemateri</option>
                                     @foreach($users as $u)
                                         <option value="{{ $u->id }}" {{ (old('trainer_id', auth()->id()) == $u->id) ? 'selected' : '' }}>
-                                            {{ $u->full_name }} ({{ $u->divisi->name ?? 'Divisi Umum' }})
+                                            {{ $u->nama_lengkap }} ({{ $u->divisi->name ?? 'Divisi Umum' }})
                                         </option>
                                     @endforeach
                                 </select>
                             </div>
 
-                            <div class="row mb-4">
-                                <div class="col-md-6 mb-3 mb-md-0">
-                                    <label for="training_date" class="font-weight-600 mb-2">Tanggal Pelaksanaan <span class="text-danger">*</span></label>
-                                    <input type="date" id="training_date" name="training_date" class="form-control" 
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label for="training_date">Tanggal <span class="text-danger">*</span></label>
+                                    <input type="date" id="training_date" name="training_date" class="form-control"
                                         value="{{ old('training_date', date('Y-m-d')) }}" required>
                                 </div>
-                                <div class="col-md-3 col-6">
-                                    <label for="start_time" class="font-weight-600 mb-2">Jam Mulai <span class="text-danger">*</span></label>
-                                    <input type="time" id="start_time" name="start_time" class="form-control" 
+                                <div class="form-group col-md-3 col-6">
+                                    <label for="start_time">Mulai <span class="text-danger">*</span></label>
+                                    <input type="time" id="start_time" name="start_time" class="form-control"
                                         value="{{ old('start_time', '09:00') }}" required>
                                 </div>
-                                <div class="col-md-3 col-6">
-                                    <label for="end_time" class="font-weight-600 mb-2">Jam Selesai <span class="text-danger">*</span></label>
-                                    <input type="time" id="end_time" name="end_time" class="form-control" 
+                                <div class="form-group col-md-3 col-6">
+                                    <label for="end_time">Selesai <span class="text-danger">*</span></label>
+                                    <input type="time" id="end_time" name="end_time" class="form-control"
                                         value="{{ old('end_time', '11:00') }}" required>
                                 </div>
                             </div>
 
-                            <div class="form-group mb-4">
-                                <label for="zoom_link" class="font-weight-600 mb-2">Tautan Zoom / Google Meet <span class="text-danger">*</span></label>
-                                <input type="url" id="zoom_link" name="zoom_link" class="form-control" 
+                            <div class="form-group">
+                                <label for="zoom_link">Link Meeting <span class="text-danger">*</span></label>
+                                <input type="url" id="zoom_link" name="zoom_link" class="form-control"
                                     value="{{ old('zoom_link') }}" placeholder="https://zoom.us/j/..." required>
-                                <small class="text-muted mt-1 d-block">Tautan ini akan dicantumkan pada pesan notifikasi peserta.</small>
                             </div>
 
-                            <div class="form-group mb-4">
-                                <label for="description" class="font-weight-600 mb-2">Deskripsi / Silabus Materi</label>
-                                <textarea id="description" name="description" class="form-control" rows="3" 
-                                    placeholder="Ringkasan materi atau catatan instruksi bagi peserta...">{{ old('description') }}</textarea>
+                            <div class="form-group mb-0">
+                                <label for="description">Deskripsi</label>
+                                <textarea id="description" name="description" class="form-control" rows="3"
+                                    placeholder="Opsional">{{ old('description') }}</textarea>
                             </div>
+                        </div>
+                    </div>
 
-                            <div class="form-group mb-4">
-                                <label for="documents" class="font-weight-600 mb-2 d-flex justify-content-between align-items-center">
-                                    <span>Dokumen Materi (SOP / Modul)</span>
-                                    <span class="badge badge-light border text-muted font-weight-normal">Opsional</span>
-                                </label>
-                                <select id="documents" name="documents[]" class="form-control select2" multiple="multiple" data-placeholder="-- Pilih dokumen materi acuan --">
+                    {{-- MATERI & MODE KUIS --}}
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Materi & Kuis</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="documents">Dokumen Materi</label>
+                                <select id="documents" name="documents[]" class="form-control select2" multiple="multiple" data-placeholder="Pilih dokumen (opsional)">
                                     @foreach($documents as $doc)
                                         <option value="{{ $doc->id }}" {{ (is_array(old('documents')) && in_array($doc->id, old('documents'))) ? 'selected' : '' }}>
                                             {{ $doc->name }} ({{ $doc->dokumentype->name ?? 'Dokumen' }})
@@ -109,124 +94,126 @@
                                 </select>
                             </div>
 
-                            <div class="form-group mb-4">
-                                <label class="font-weight-600 mb-2 d-block">Tampilan / Mode Kuis Peserta</label>
+                            <div class="form-group mb-0">
+                                <label class="d-block">Mode Kuis</label>
                                 <div class="row">
                                     <div class="col-md-6 mb-2 mb-md-0">
-                                        <div class="custom-control custom-radio p-3 border rounded h-100 bg-light">
-                                            <input type="radio" id="mode_formal" name="quiz_mode" value="formal" class="custom-control-input" {{ old('quiz_mode', 'formal') === 'formal' ? 'checked' : '' }}>
-                                            <label class="custom-control-label font-weight-bold text-dark d-block" for="mode_formal" style="cursor: pointer;">
-                                                <i class="fas fa-file-alt text-primary mr-1"></i> Mode Formal (Ujian)
-                                                <span class="d-block text-muted text-xs font-weight-normal mt-1">
-                                                    Formulir ujian lengkap, anti-cheat ketat, dan cocok untuk evaluasi akademik/essay.
-                                                </span>
-                                            </label>
+                                        <div class="border rounded p-3 h-100">
+                                            <div class="custom-control custom-radio">
+                                                <input type="radio" id="mode_formal" name="quiz_mode" value="formal" class="custom-control-input" {{ old('quiz_mode', 'formal') === 'formal' ? 'checked' : '' }}>
+                                                <label class="custom-control-label d-block" for="mode_formal">
+                                                    <strong class="d-block">Formal</strong>
+                                                    <span class="d-block text-muted small mt-1">Semua soal dalam satu halaman.</span>
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
-                                        <div class="custom-control custom-radio p-3 border rounded h-100 bg-light">
-                                            <input type="radio" id="mode_game" name="quiz_mode" value="game" class="custom-control-input" {{ old('quiz_mode') === 'game' ? 'checked' : '' }}>
-                                            <label class="custom-control-label font-weight-bold text-dark d-block" for="mode_game" style="cursor: pointer;">
-                                                <i class="fas fa-gamepad text-success mr-1"></i> Mode Game (Quizizz)
-                                                <span class="d-block text-muted text-xs font-weight-normal mt-1">
-                                                    1 soal per layar, tombol warna-warni, timer per soal, sound effect, dan podium juara.
-                                                </span>
-                                            </label>
+                                        <div class="border rounded p-3 h-100">
+                                            <div class="custom-control custom-radio">
+                                                <input type="radio" id="mode_game" name="quiz_mode" value="game" class="custom-control-input" {{ old('quiz_mode') === 'game' ? 'checked' : '' }}>
+                                                <label class="custom-control-label d-block" for="mode_game">
+                                                    <strong class="d-block">Game (Quizizz)</strong>
+                                                    <span class="d-block text-muted small mt-1">1 soal per layar dengan timer.</span>
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-
-                            <div class="form-group mb-0 pt-3 border-top">
-                                <div class="custom-control custom-checkbox mb-2">
-                                    <input type="checkbox" class="custom-control-input" id="is_attendance_active" name="is_attendance_active" value="1" {{ old('is_attendance_active') ? 'checked' : '' }}>
-                                    <label class="custom-control-label font-weight-bold" for="is_attendance_active">
-                                        Langsung buka akses presensi kehadiran peserta
-                                    </label>
-                                    <small class="form-text text-muted mt-0">Bisa dibuka/ditutup kapan saja oleh admin di halaman detail pelatihan.</small>
-                                </div>
-                                <div class="custom-control custom-checkbox mb-2">
-                                    <input type="checkbox" class="custom-control-input" id="require_attendance_proof" name="require_attendance_proof" value="1" {{ old('require_attendance_proof') ? 'checked' : '' }}>
-                                    <label class="custom-control-label font-weight-bold" for="require_attendance_proof">
-                                        Wajibkan peserta unggah screenshot bukti Zoom/Pelatihan
-                                    </label>
-                                    <small class="form-text text-muted mt-0">Peserta harus melampirkan screenshot layar Zoom saat konfirmasi kehadiran.</small>
-                                </div>
-                                <div class="custom-control custom-checkbox">
-                                    <input type="checkbox" class="custom-control-input" id="send_wa_now" name="send_wa_now" value="1" checked>
-                                    <label class="custom-control-label font-weight-bold" for="send_wa_now">
-                                        Kirim notifikasi WhatsApp ke peserta saat jadwal disimpan
-                                    </label>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- FORM PESERTA -->
-                <div class="col-lg-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-header py-3 d-flex align-items-center justify-content-between">
-                            <h3 class="card-title font-weight-bold">
-                                Pilih Peserta (<span id="selectedCountBadge">0</span> dipilih)
+                {{-- PESERTA --}}
+                <div class="col-lg-5">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                Peserta <span class="badge badge-secondary"><span id="selectedCountBadge">0</span> dipilih</span>
                             </h3>
-                            <div>
-                                <button type="button" id="btnSelectAll" class="btn btn-xs btn-default mr-1">Pilih Semua</button>
-                                <button type="button" id="btnDeselectAll" class="btn btn-xs btn-default">Batal Semua</button>
+                            <div class="card-tools d-flex gap-1">
+                                <button type="button" id="btnSelectAll" class="btn btn-xs btn-default">Pilih semua</button>
+                                <button type="button" id="btnDeselectAll" class="btn btn-xs btn-default">Kosongkan</button>
                             </div>
                         </div>
 
-                        <div class="card-body p-4">
-                            <div class="row mb-3">
-                                <div class="col-sm-6 mb-2 mb-sm-0">
-                                    <select id="filterDivisi" class="form-control form-control-sm">
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="form-group col-sm-6">
+                                    <select id="filterDivisi" class="form-control form-control-sm select2" aria-label="Divisi" style="width: 100%;">
                                         <option value="">Semua Divisi</option>
                                         @foreach($divisis as $div)
                                             <option value="{{ $div->id }}">{{ $div->name }} ({{ $div->users->count() }})</option>
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="col-sm-6">
-                                    <input type="text" id="searchParticipant" class="form-control form-control-sm" placeholder="Cari nama peserta...">
+                                <div class="form-group col-sm-6">
+                                    <input type="text" id="searchParticipant" class="form-control form-control-sm" placeholder="Cari peserta...">
                                 </div>
                             </div>
 
-                            <div class="border rounded p-2" style="height: 380px; overflow-y: auto; background-color: #fafbfc;">
+                            <div class="border rounded" style="max-height: 420px; overflow-y: auto;">
                                 @forelse($users as $user)
-                                <div class="participant-item d-flex align-items-center justify-content-between p-3 mb-2 bg-white border rounded"
-                                     data-name="{{ strtolower($user->full_name) }}"
-                                     data-idk="{{ strtolower($user->id_karyawan ?? '') }}"
+                                <div class="participant-item d-flex align-items-center justify-content-between px-3 py-2 border-bottom"
+                                     data-name="{{ strtolower($user->nama_lengkap) }}"
+                                     data-idk="{{ strtolower($user->employee_id ?? '') }}"
+                                     data-username="{{ strtolower($user->username ?? '') }}"
                                      data-divisi="{{ $user->divisi_id }}">
-                                    <div class="custom-control custom-checkbox">
+                                    <div class="custom-control custom-checkbox min-w-0">
                                         <input type="checkbox" name="participants[]" value="{{ $user->id }}"
                                                class="custom-control-input participant-checkbox" id="user_{{ $user->id }}"
                                                {{ is_array(old('participants')) && in_array($user->id, old('participants')) ? 'checked' : '' }}>
-                                        <label class="custom-control-label font-weight-normal text-dark ml-2" for="user_{{ $user->id }}" style="cursor: pointer;">
-                                            <strong class="d-block">{{ $user->full_name }}</strong>
+                                        <label class="custom-control-label" for="user_{{ $user->id }}">
+                                            <strong class="d-block text-dark">{{ $user->nama_lengkap }}</strong>
                                             <span class="text-muted small">
-                                                {{ $user->id_karyawan ?? '-' }} &bull; {{ $user->divisi->name ?? 'Divisi Umum' }}
+                                                {{ $user->divisi->name ?? 'Divisi Umum' }}
                                             </span>
                                         </label>
                                     </div>
-                                    <div class="text-right">
-                                        @if($user->no_wa)
-                                            <span class="text-muted small">{{ $user->no_wa }}</span>
-                                        @else
-                                            <span class="text-muted small font-italic">No WA -</span>
-                                        @endif
-                                    </div>
+                                    @unless($user->no_hp)
+                                        <span class="badge badge-secondary ml-2" title="Nomor WhatsApp belum diisi">Tanpa WA</span>
+                                    @endunless
                                 </div>
                                 @empty
-                                <div class="text-center py-4 text-muted">Belum ada data user.</div>
+                                <x-empty-state icon="fa-users" title="Belum ada data user" />
                                 @endforelse
                             </div>
                         </div>
+                    </div>
 
-                        <div class="card-footer bg-white border-top py-3 text-right">
-                            <a href="/training" class="btn btn-default mr-2">Batal</a>
-                            <button type="submit" class="btn btn-success px-4 font-weight-bold">
-                                Simpan Pelatihan
-                            </button>
+                    {{-- PRESENSI & NOTIFIKASI --}}
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Pengaturan</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="custom-control custom-switch mb-3">
+                                <input type="checkbox" class="custom-control-input" id="is_attendance_active" name="is_attendance_active" value="1" {{ old('is_attendance_active') ? 'checked' : '' }}>
+                                <label class="custom-control-label" for="is_attendance_active">
+                                    Buka presensi sekarang
+                                </label>
+                            </div>
+                            <div class="custom-control custom-switch mb-3">
+                                <input type="checkbox" class="custom-control-input" id="require_attendance_proof" name="require_attendance_proof" value="1" {{ old('require_attendance_proof') ? 'checked' : '' }}>
+                                <label class="custom-control-label" for="require_attendance_proof">
+                                    Wajib upload bukti screenshot
+                                </label>
+                            </div>
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="send_wa_now" name="send_wa_now" value="1" checked>
+                                <label class="custom-control-label" for="send_wa_now">
+                                    Kirim notifikasi WhatsApp
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- SIMPAN --}}
+                    <div class="card">
+                        <div class="card-body">
+                            <button type="submit" class="btn btn-primary btn-block">Simpan Pelatihan</button>
+                            <a href="/training" class="btn btn-default btn-block">Batal</a>
                         </div>
                     </div>
                 </div>
@@ -255,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('btnSelectAll').addEventListener('click', function() {
         items.forEach(item => {
-            if (item.style.display !== 'none') {
+            if (!item.classList.contains('d-none')) {
                 const cb = item.querySelector('.participant-checkbox');
                 if (cb) cb.checked = true;
             }
@@ -265,7 +252,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('btnDeselectAll').addEventListener('click', function() {
         items.forEach(item => {
-            if (item.style.display !== 'none') {
+            if (!item.classList.contains('d-none')) {
                 const cb = item.querySelector('.participant-checkbox');
                 if (cb) cb.checked = false;
             }
@@ -280,16 +267,16 @@ document.addEventListener('DOMContentLoaded', function() {
         items.forEach(item => {
             const name = item.getAttribute('data-name');
             const idk = item.getAttribute('data-idk');
+            const username = item.getAttribute('data-username');
             const itemDiv = item.getAttribute('data-divisi');
 
-            const matchSearch = (!search || name.includes(search) || idk.includes(search));
+            const matchSearch = (!search || name.includes(search) || idk.includes(search) || username.includes(search));
             const matchDiv = (!divId || itemDiv === divId);
 
-            if (matchSearch && matchDiv) {
-                item.style.display = 'flex';
-            } else {
-                item.style.display = 'none';
-            }
+            // .d-flex memakai !important, jadi baris disembunyikan lewat kelas d-none, bukan style.display.
+            const visible = matchSearch && matchDiv;
+            item.classList.toggle('d-flex', visible);
+            item.classList.toggle('d-none', !visible);
         });
     }
 
@@ -299,9 +286,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize select2 for documents
     if (typeof $ !== 'undefined' && $.fn.select2) {
         $('#documents').select2({
-            theme: 'bootstrap4',
             width: '100%',
-            placeholder: '-- Pilih satu atau beberapa dokumen materi --'
+            placeholder: 'Pilih dokumen (opsional)'
         });
     }
 });

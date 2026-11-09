@@ -1,18 +1,23 @@
 <?php
 
+use App\Http\Controllers\AreaController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DivisiController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DokumenTypeController;
-use App\Http\Controllers\JobLevelController;
+use App\Http\Controllers\LearningModuleController;
+use App\Http\Controllers\LearningModulePortalController;
+use App\Http\Controllers\LearningModuleQuestionController;
+use App\Http\Controllers\PositionController;
 use App\Http\Controllers\RoleController;
-use App\Http\Controllers\SubDivisiController;
 use App\Http\Controllers\TrainingController;
 use App\Http\Controllers\TrainingPortalController;
 use App\Http\Controllers\TrainingQuestionController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\UserSyncController;
 use App\Http\Controllers\VideoController;
+use App\Http\Middleware\EnsureLearningModuleContext;
 use Illuminate\Support\Facades\Route;
 
 // # AUTHENTICATION
@@ -48,7 +53,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::view('panduan', 'panduan.index', ['active' => 'panduan'])->name('panduan');
     Route::get('my-trainings', [TrainingPortalController::class, 'myTrainings'])->name('training.my-trainings');
-    Route::get('subdivisi/get/{divisi}', [SubDivisiController::class, 'byDivisi'])->name('subdivisi.by-divisi');
 
     Route::post('video/{video}/comments', [VideoController::class, 'storeComment'])->name('video.comments.store');
     Route::delete('video/comments/{comment}', [VideoController::class, 'destroyComment'])->name('video.comments.destroy');
@@ -57,21 +61,24 @@ Route::middleware('auth')->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->middleware('can:view-dashboard')->name('dashboard');
 
     // # VIDEO MANAGEMENT (authorized by VideoPolicy)
+    Route::get('video-manage/{video}/source', [VideoController::class, 'source'])->name('video.source');
     Route::resource('video-manage', VideoController::class)
         ->only(['create', 'store', 'edit', 'update', 'destroy'])
         ->parameters(['video-manage' => 'video'])
         ->names('video');
 
     // # DOCUMENTS (authorized by DocumentPolicy)
-    Route::get('document/{document}/history', [DocumentController::class, 'history'])->withTrashed()->name('document.history');
+    Route::get('document/{document}/history', [DocumentController::class, 'history'])->name('document.history');
+    Route::patch('document/{document}/deactivate', [DocumentController::class, 'deactivate'])->name('document.deactivate');
+    Route::patch('document/{document}/activate', [DocumentController::class, 'activate'])->name('document.activate');
     Route::patch('document/{document}/restore', [DocumentController::class, 'restore'])->withTrashed()->name('document.restore');
     Route::resource('document', DocumentController::class)->except('show');
 
     // # MASTER DATA
     Route::middleware('can:manage-master-data')->group(function () {
         Route::resource('divisi', DivisiController::class)->except(['create', 'show'])->parameters(['divisi' => 'divisi']);
-        Route::resource('subdivisi', SubDivisiController::class)->except(['create', 'show'])->parameters(['subdivisi' => 'subdivisi']);
-        Route::resource('joblevel', JobLevelController::class)->except(['create', 'show'])->parameters(['joblevel' => 'joblevel']);
+        Route::resource('area', AreaController::class)->except(['create', 'show']);
+        Route::resource('position', PositionController::class)->except(['create', 'show']);
         Route::resource('dokumentype', DokumenTypeController::class)->except(['create', 'show'])->parameters(['dokumentype' => 'dokumentype']);
     });
 
@@ -80,6 +87,12 @@ Route::middleware('auth')->group(function () {
         Route::get('export', 'export')->name('export');
         Route::get('template', 'template')->name('template');
         Route::post('import', 'import')->name('import');
+        Route::get('approvers', 'approvers')->name('approvers');
+        Route::post('bulk', 'bulk')->name('bulk');
+        Route::post('import-json', [UserSyncController::class, 'importJson'])->name('import-json');
+        Route::post('sync-dnd', [UserSyncController::class, 'preview'])->name('dnd.preview');
+        Route::get('sync-dnd/{token}', [UserSyncController::class, 'show'])->whereUuid('token')->name('dnd.show');
+        Route::post('sync-dnd/process', [UserSyncController::class, 'process'])->name('dnd.process');
         Route::get('{user}/edit', 'edit')->withTrashed()->name('edit');
         Route::patch('{user}/restore', 'restore')->withTrashed()->name('restore');
     });
@@ -92,7 +105,9 @@ Route::middleware('auth')->group(function () {
     });
 
     // # TRAINING MANAGEMENT (authorized by TrainingPolicy)
-    Route::resource('training', TrainingController::class)->whereNumber('training');
+    // no_store: tombol Back tidak menampilkan salinan lama form, jadi user yang baru dibuat ikut terdaftar.
+    Route::resource('training', TrainingController::class)->whereNumber('training')
+        ->middlewareFor(['create', 'edit'], 'cache.headers:no_store;private');
 
     Route::prefix('training/{training}')
         ->whereNumber('training')
@@ -112,6 +127,7 @@ Route::middleware('auth')->group(function () {
                 Route::post('update-attendance/{participant}', 'updateParticipantAttendance')->name('update-attendance');
                 Route::post('grade-essay/{quizResult}', 'gradeEssay')->name('grade-essay');
                 Route::get('export', 'export')->name('export');
+                Route::get('live-stats', 'liveStats')->name('live-stats');
                 Route::post('attach-document', 'attachDocument')->name('attach-document');
                 Route::post('detach-document/{document}', 'detachDocument')->name('detach-document');
                 Route::post('scan-zoom-ai', 'scanZoomAi')->name('scan-zoom-ai');
@@ -128,10 +144,76 @@ Route::middleware('auth')->group(function () {
                 Route::post('import-excel', 'importExcel')->name('import-excel');
                 Route::post('import-text', 'importText')->name('import-text');
                 Route::post('generate-ai', 'generateAiQuestions')->name('generate-ai');
+                Route::post('upload-image', 'uploadImage')->name('upload-image');
                 Route::post('save-ai-batch', 'saveAiBatch')->name('save-ai-batch');
                 Route::post('delete-all', 'deleteAll')->name('delete-all');
                 Route::put('{question}', 'update')->name('update');
                 Route::delete('{question}', 'destroy')->name('destroy');
             });
         });
+
+    // # MODUL BELAJAR & KUIS VIDEO/DOKUMEN (authorized by LearningModulePolicy)
+    // Controller yang sama dipasang di tiga alamat: Modul Belajar (modul-saya / learning-module), kuis video
+    // (video/kuis/...) dan kuis dokumen (document/kuis/...). EnsureLearningModuleContext menjaga modul tetap di
+    // alamat konteksnya sendiri.
+    $quizParticipantRoutes = function () {
+        Route::controller(LearningModulePortalController::class)->group(function () {
+            Route::get('/', 'show')->name('show');
+            Route::get('attempts/{attempt}', 'attempt')->name('attempt');
+            Route::get('items/{item}', 'item')->name('items.show');
+            Route::get('items/{item}/open', 'openDocument')->name('items.open');
+            Route::post('items/{item}/complete', 'completeItem')->name('items.complete');
+            Route::get('{phase}', 'quiz')->whereIn('phase', ['pretest', 'posttest'])->name('quiz');
+            Route::post('{phase}', 'submit')->whereIn('phase', ['pretest', 'posttest'])->name('submit');
+            Route::post('{phase}/answer', 'answer')->whereIn('phase', ['pretest', 'posttest'])->name('answer');
+        });
+    };
+
+    $quizManagementRoutes = function () {
+        Route::controller(LearningModuleQuestionController::class)->prefix('questions')->name('questions.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->name('store');
+            Route::get('template', 'downloadTemplate')->name('template');
+            Route::post('import-excel', 'importExcel')->name('import-excel');
+            Route::post('generate-ai', 'generateAi')->name('generate-ai');
+            Route::get('ai-status/{token}', 'aiStatus')->whereUuid('token')->name('ai-status');
+            Route::post('upload-image', 'uploadImage')->name('upload-image');
+            Route::post('save-ai-batch', 'saveAiBatch')->name('save-ai-batch');
+            Route::post('delete-all', 'deleteAll')->name('delete-all');
+            Route::put('{question}', 'update')->name('update');
+            Route::delete('{question}', 'destroy')->name('destroy');
+        });
+
+        Route::controller(LearningModuleController::class)->group(function () {
+            Route::get('export', 'export')->name('export');
+            Route::get('participants/{user}', 'participant')->withoutScopedBindings()->withTrashed()->name('participant');
+        });
+    };
+
+    $standalone = EnsureLearningModuleContext::class.':standalone';
+
+    Route::resource('learning-module', LearningModuleController::class)
+        ->parameters(['learning-module' => 'module'])
+        ->whereNumber('module')
+        ->middleware($standalone);
+
+    Route::prefix('learning-module/{module}')->whereNumber('module')->name('learning-module.')->middleware($standalone)->scopeBindings()
+        ->group(function () use ($quizManagementRoutes) {
+            Route::post('publish', [LearningModuleController::class, 'togglePublish'])->name('publish');
+            $quizManagementRoutes();
+        });
+
+    Route::get('modul-saya', [LearningModulePortalController::class, 'index'])->middleware('can:view-learning-modules')->name('learning.index');
+    Route::prefix('modul-saya/{module}')->whereNumber('module')->name('learning.')->middleware($standalone)->scopeBindings()
+        ->group($quizParticipantRoutes);
+
+    foreach (['video' => 'video-quiz.', 'document' => 'document-quiz.'] as $context => $name) {
+        Route::prefix($context.'/kuis/{module}')->whereNumber('module')->name($name)
+            ->middleware(EnsureLearningModuleContext::class.':'.$context)->scopeBindings()
+            ->group(function () use ($quizParticipantRoutes, $quizManagementRoutes) {
+                $quizParticipantRoutes();
+                $quizManagementRoutes();
+                Route::get('rekap', [LearningModuleController::class, 'show'])->name('results');
+            });
+    }
 });

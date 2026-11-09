@@ -61,14 +61,14 @@ class AuthController extends Controller
             $query->where('username', $loginInput);
 
             if (! empty($phoneCandidates)) {
-                $query->orWhereIn('no_wa', array_unique($phoneCandidates));
+                $query->orWhereIn('no_hp', array_unique($phoneCandidates));
 
                 if (strlen($digitsOnly) >= 7) {
-                    $query->orWhereRaw("REPLACE(REPLACE(REPLACE(no_wa, '-', ''), ' ', ''), '+', '') = ?", [$digitsOnly]);
+                    $query->orWhereRaw("REPLACE(REPLACE(REPLACE(no_hp, '-', ''), ' ', ''), '+', '') = ?", [$digitsOnly]);
                     if (str_starts_with($digitsOnly, '62')) {
-                        $query->orWhereRaw("REPLACE(REPLACE(REPLACE(no_wa, '-', ''), ' ', ''), '+', '') = ?", ['0'.substr($digitsOnly, 2)]);
+                        $query->orWhereRaw("REPLACE(REPLACE(REPLACE(no_hp, '-', ''), ' ', ''), '+', '') = ?", ['0'.substr($digitsOnly, 2)]);
                     } elseif (str_starts_with($digitsOnly, '0')) {
-                        $query->orWhereRaw("REPLACE(REPLACE(REPLACE(no_wa, '-', ''), ' ', ''), '+', '') = ?", ['62'.substr($digitsOnly, 1)]);
+                        $query->orWhereRaw("REPLACE(REPLACE(REPLACE(no_hp, '-', ''), ' ', ''), '+', '') = ?", ['62'.substr($digitsOnly, 1)]);
                     }
                 }
             }
@@ -94,6 +94,7 @@ class AuthController extends Controller
         if ($user && Hash::check($password, $user->password)) {
             Auth::login($user, $remember);
             $request->session()->regenerate();
+            $this->forgetQuizIntendedUrl($request);
 
             return redirect()->intended('dashboard');
         }
@@ -101,6 +102,29 @@ class AuthController extends Controller
         return back()->withInput($request->only('username'))->with([
             'error' => 'Username / Nomor WhatsApp atau Password salah.',
         ]);
+    }
+
+    /**
+     * A pretest/posttest page opened without a session (expired session, Back after logout, an old tab refreshed)
+     * becomes Laravel's intended URL. Landing on a question sheet right after login is confusing, so those go to the
+     * dashboard instead; other intended pages (e.g. a video opened from a link) are kept.
+     */
+    private function forgetQuizIntendedUrl(Request $request): void
+    {
+        $intended = $request->session()->get('url.intended');
+        if (! $intended) {
+            return;
+        }
+
+        try {
+            $routeName = app('router')->getRoutes()->match(Request::create($intended))->getName();
+        } catch (\Throwable) {
+            return;
+        }
+
+        if ($routeName !== null && str_ends_with($routeName, '.quiz')) {
+            $request->session()->forget('url.intended');
+        }
     }
 
     /**
@@ -121,14 +145,14 @@ class AuthController extends Controller
             ], 404);
         }
 
-        if (empty($user->no_wa)) {
+        if (empty($user->no_hp)) {
             return response()->json([
                 'status' => false,
                 'message' => 'Akun ini belum memiliki nomor WhatsApp terdaftar. Silakan masuk menggunakan password.',
             ], 422);
         }
 
-        $formattedPhone = WhatsAppService::formatPhoneNumber($user->no_wa);
+        $formattedPhone = WhatsAppService::formatPhoneNumber($user->no_hp);
         if (! $formattedPhone) {
             return response()->json([
                 'status' => false,
@@ -173,7 +197,7 @@ class AuthController extends Controller
         $sendResult = WhatsAppService::sendOtp(
             $formattedPhone,
             $otp,
-            $user->full_name ?: $user->username
+            $user->nama_lengkap ?: $user->username
         );
 
         if (! $sendResult['status']) {

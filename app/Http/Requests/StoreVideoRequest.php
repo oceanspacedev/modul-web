@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Services\MaterialQuizService;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreVideoRequest extends FormRequest
@@ -28,6 +29,7 @@ class StoreVideoRequest extends FormRequest
             'video_file' => ['exclude_unless:video_type,file', $this->videoFileRequirement(), 'file', 'mimes:mp4,webm,ogg,mov,mkv', 'max:2097152'], // 2 GB
             'thumbnail' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'redirect_to' => ['nullable', 'string', 'max:2000'],
+            ...MaterialQuizService::rules(),
         ];
     }
 
