@@ -227,6 +227,7 @@
                         <li><b>Import</b>: <b>Download Template</b>, isi, lalu <b>Import Excel / CSV</b>. Hapus baris contoh di template dulu. Atau <b>Import Teks Cepat</b> untuk menempel soal (klik <b>Isi Contoh</b> untuk melihat formatnya).</li>
                         <li><b>Buat Soal via AI</b>: pilih dokumen materi, atur jumlah soal, klik <b>Mulai Generate Soal</b>. Periksa hasilnya, lalu klik <b>Simpan</b>.</li>
                     </ul>
+                    <p><b>Export soal:</b> <b>Import / Export → Export Soal &amp; Kunci Jawaban</b> mengunduh semua soal beserta kuncinya dengan format yang sama seperti template, jadi bisa diedit lalu diimpor ke pelatihan lain. Gambar tidak ikut; soal bergambar ditandai di kolom <b>catatan</b>. Soal pretest/posttest modul, video, dan dokumen bisa di-export lewat tombol <b>Export Soal</b> di halaman soalnya.</p>
                     <h3 id="soal-gambar">Gambar pada soal</h3>
                     <ul>
                         <li>Klik <b>Tambah gambar soal</b> atau <b>Gambar A</b>, <b>Gambar B</b>, dst. (JPG/PNG/WEBP, maks. 5 MB).</li>

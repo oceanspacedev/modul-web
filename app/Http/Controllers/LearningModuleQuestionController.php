@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\LearningModuleQuestionsExport;
 use App\Exports\LearningModuleQuestionTemplate;
 use App\Http\Requests\LearningModuleQuestionRequest;
 use App\Imports\LearningModuleQuestionImport;
@@ -79,6 +80,14 @@ class LearningModuleQuestionController extends Controller
     public function downloadTemplate(LearningModule $module): BinaryFileResponse
     {
         return Excel::download(new LearningModuleQuestionTemplate, 'template_soal_modul_'.Str::slug($module->title).'.xlsx');
+    }
+
+    /**
+     * Bank soal beserta kunci jawaban, dengan format template supaya bisa diimpor ulang ke modul lain.
+     */
+    public function export(LearningModule $module): BinaryFileResponse
+    {
+        return Excel::download(new LearningModuleQuestionsExport($module), 'soal_modul_'.Str::slug($module->title).'.xlsx');
     }
 
     public function importExcel(Request $request, LearningModule $module): RedirectResponse

@@ -48,6 +48,14 @@ trait HasQuizImages
     }
 
     /**
+     * Soal punya gambar di pertanyaan atau di salah satu pilihannya.
+     */
+    public function hasImages(): bool
+    {
+        return filled($this->question_image) || array_filter($this->option_images ?? []) !== [];
+    }
+
+    /**
      * Pilihan dianggap terisi bila punya teks atau gambar.
      */
     public function hasOption(string $letter): bool

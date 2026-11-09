@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\TrainingQuestionsExport;
 use App\Exports\TrainingQuestionTemplate;
 use App\Http\Requests\TrainingQuestionRequest;
 use App\Imports\TrainingQuestionImport;
@@ -51,6 +52,14 @@ class TrainingQuestionController extends Controller
         $filename = 'template_soal_kuis_'.Str::slug($training->title).'.xlsx';
 
         return Excel::download(new TrainingQuestionTemplate, $filename);
+    }
+
+    /**
+     * Download the question bank with answer keys, in the template's format so it can be re-imported.
+     */
+    public function export(Training $training): BinaryFileResponse
+    {
+        return Excel::download(new TrainingQuestionsExport($training), 'soal_pelatihan_'.Str::slug($training->title).'.xlsx');
     }
 
     /**

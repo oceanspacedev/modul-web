@@ -11,13 +11,16 @@
                 </a>
                 <div class="dropdown">
                     <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        Import
+                        Import / Export
                     </button>
                     <div class="dropdown-menu dropdown-menu-right">
                         <a class="dropdown-item" href="javascript:void(0)" data-toggle="modal" data-target="#importTextModal">Import Teks Cepat</a>
                         <a class="dropdown-item" href="javascript:void(0)" data-toggle="modal" data-target="#importExcelModal">Import Excel / CSV</a>
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="/training/{{ $training->id }}/questions/template">Download Template</a>
+                        @if($questions->isNotEmpty())
+                            <a class="dropdown-item" href="{{ route('training.questions.export', $training) }}">Export Soal &amp; Kunci Jawaban</a>
+                        @endif
                     </div>
                 </div>
                 <button type="button" class="btn btn-default" data-toggle="modal" data-target="#addQuestionModal">
