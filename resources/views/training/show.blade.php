@@ -1457,6 +1457,10 @@ if (typeof $ !== 'undefined') {
 
     const MAX_SCREENSHOTS = 40;
     const SCAN_BATCH_SIZE = 10; // the server accepts at most 10 images per request
+    const SCAN_BATCH_MAX_BYTES = 600 * 1024; // base64 characters per request, below common 1 MB body limits
+    const SCAN_URL = @json(route('training.scan-zoom-ai', $training));
+    const SAVE_OFF_CAM_URL = @json(route('training.save-zoom-off-cam', $training));
+    const UPDATE_OFF_CAM_COUNT_URL = @json(route('training.update-offcam-count', [$training, '__PARTICIPANT__']));
 
     let selectedFiles = []; // array of { file, base64, origSize, compSize }
     let loadingInterval = null;
@@ -1760,12 +1764,8 @@ if (typeof $ !== 'undefined') {
                 if (subEl) subEl.textContent = loadingMessages[msgIdx];
             }, 3000);
 
-            // Send the screenshots in batches of 10 (server limit), one after another
-            const images = selectedFiles.map(item => item.base64);
-            const batches = [];
-            for (let i = 0; i < images.length; i += SCAN_BATCH_SIZE) {
-                batches.push(images.slice(i, i + SCAN_BATCH_SIZE));
-            }
+            // Send the screenshots in small batches, one after another
+            const batches = buildScanBatches(selectedFiles.map(item => item.base64));
             const titleEl = document.getElementById('zoomLoadingTitle');
 
             (async () => {
@@ -1780,28 +1780,10 @@ if (typeof $ !== 'undefined') {
                     }
 
                     try {
-                        const res = await fetch(`/training/${TRAINING_ID}/scan-zoom-ai`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': CSRF_TOKEN,
-                                'Accept': 'application/json'
-                            },
-                            body: JSON.stringify({ images: batches[b] })
-                        });
-                        const data = await res.json();
-
-                        if (!res.ok || !data.success) {
-                            failure = (data && data.message) ? data.message : 'Terjadi kendala saat memproses screenshot dengan AI.';
-                        } else {
-                            collected.push(...((data.data && data.data.off_cam_participants) || []));
-                        }
+                        collected.push(...await scanImages(batches[b]));
                     } catch (err) {
                         console.error(err);
-                        failure = 'Gagal terhubung ke server atau API Gemini. Silakan coba kembali.';
-                    }
-
-                    if (failure) {
+                        failure = err.message || 'Terjadi kendala saat memproses screenshot dengan AI.';
                         if (batches.length > 1) failure = `Batch ${b + 1}/${batches.length} gagal: ${failure}`;
                         break;
                     }
@@ -1833,6 +1815,72 @@ if (typeof $ !== 'undefined') {
                 }
             })();
         });
+    }
+
+    // Group images so each request stays small: web servers often reject bodies above ~1 MB
+    function buildScanBatches(images) {
+        const batches = [];
+        let current = [];
+        let currentBytes = 0;
+        images.forEach(img => {
+            if (current.length && (current.length >= SCAN_BATCH_SIZE || currentBytes + img.length > SCAN_BATCH_MAX_BYTES)) {
+                batches.push(current);
+                current = [];
+                currentBytes = 0;
+            }
+            current.push(img);
+            currentBytes += img.length;
+        });
+        if (current.length) batches.push(current);
+        return batches;
+    }
+
+    // Scan one batch. If the server says the request is too large, split it in half and retry.
+    async function scanImages(images) {
+        let res;
+        try {
+            res = await fetch(SCAN_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': CSRF_TOKEN,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ images })
+            });
+        } catch (err) {
+            throw new Error('Tidak bisa terhubung ke server. Periksa koneksi internet lalu coba lagi.');
+        }
+
+        if (res.status === 413 && images.length > 1) {
+            const half = Math.ceil(images.length / 2);
+            const first = await scanImages(images.slice(0, half));
+            const second = await scanImages(images.slice(half));
+            return first.concat(second);
+        }
+
+        let data = null;
+        try {
+            data = await res.json();
+        } catch (err) {
+            data = null;
+        }
+
+        if (res.ok && data && data.success) {
+            return (data.data && data.data.off_cam_participants) || [];
+        }
+
+        if (data && data.message) throw new Error(data.message);
+        throw new Error(describeHttpError(res.status));
+    }
+
+    function describeHttpError(status) {
+        if (status === 413) return 'Ukuran screenshot terlalu besar untuk server (HTTP 413). Minta admin server menaikkan batas upload.';
+        if (status === 419) return 'Sesi sudah habis (HTTP 419). Muat ulang halaman lalu coba lagi.';
+        if (status === 401 || status === 403) return `Akses ditolak (HTTP ${status}). Muat ulang halaman dan pastikan masih login.`;
+        if (status === 404) return 'Alamat pemindai tidak ditemukan (HTTP 404).';
+        if (status === 502 || status === 503 || status === 504) return `Server terlalu lama merespons (HTTP ${status}). Coba lagi dengan lebih sedikit screenshot.`;
+        return `Server mengembalikan error (HTTP ${status}). Coba lagi.`;
     }
 
     // Combine results from several batches: one row per matched participant (highest score wins),
@@ -2059,7 +2107,7 @@ if (typeof $ !== 'undefined') {
             btnConfirmSave.disabled = true;
             btnConfirmSave.innerHTML = '<span class="spinner-border spinner-border-sm mr-1"></span> Menyimpan data presensi...';
 
-            fetch(`/training/${TRAINING_ID}/save-zoom-off-cam`, {
+            fetch(SAVE_OFF_CAM_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2202,7 +2250,7 @@ if (typeof $ !== 'undefined') {
             if (btn.disabled) return;
             btn.disabled = true;
 
-            fetch(`/training/${TRAINING_ID}/update-offcam-count/${partId}`, {
+            fetch(UPDATE_OFF_CAM_COUNT_URL.replace('__PARTICIPANT__', encodeURIComponent(partId)), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
