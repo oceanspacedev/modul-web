@@ -71,47 +71,37 @@
         @php
             $questionCount = $training->questions->count();
             $participantCount = $training->participants->count();
-            $materialCount = $training->documents->count() + ($training->video ? 1 : 0);
             $isClosed = in_array($training->status, [App\Enums\TrainingStatus::Completed, App\Enums\TrainingStatus::Cancelled], true);
             $trainingSteps = [
                 [
-                    'label' => 'Daftarkan peserta',
-                    'hint' => $participantCount ? $participantCount.' peserta terdaftar.' : 'Pilih siapa saja yang ikut pelatihan ini.',
+                    'label' => 'Peserta', 'meta' => $participantCount.' peserta',
+                    'hint' => 'daftarkan peserta pelatihan.',
                     'done' => $participantCount > 0,
-                    'action' => 'Tambah Peserta',
-                    'url' => route('training.edit', $training).'#peserta',
+                    'action' => 'Tambah Peserta', 'url' => route('training.edit', $training).'#peserta',
                 ],
                 [
-                    'label' => 'Lampirkan materi',
-                    'hint' => $materialCount ? $materialCount.' materi terlampir.' : 'Dokumen materi juga dipakai AI untuk membuat soal.',
-                    'done' => $materialCount > 0,
-                    'optional' => true,
-                    'action' => 'Lampirkan Dokumen',
-                    'modal' => 'attachDocumentModal',
-                ],
-                [
-                    'label' => 'Siapkan soal kuis',
-                    'hint' => $questionCount ? $questionCount.' soal tersedia.' : 'Buat lewat AI dari dokumen, import, atau manual.',
+                    'label' => 'Soal', 'meta' => $questionCount.' soal',
+                    'hint' => 'siapkan soal kuis.',
                     'done' => $questionCount > 0,
-                    'action' => $questionCount ? 'Kelola Soal' : 'Buat Soal',
-                    'url' => route('training.questions.index', $training),
+                    'action' => 'Buat Soal', 'url' => route('training.questions.index', $training),
                 ],
                 [
-                    'label' => 'Buka presensi',
-                    'hint' => $training->is_attendance_active ? 'Presensi sedang dibuka.' : ($stats['attended'] > 0 ? $stats['attended'].' peserta sudah presensi.' : 'Buka saat sesi dimulai agar peserta bisa absen.'),
+                    'label' => 'Presensi',
+                    'hint' => 'buka presensi saat sesi dimulai.',
                     'done' => $training->is_attendance_active || $stats['attended'] > 0,
-                ] + ($training->is_attendance_active ? [] : ['action' => 'Buka Presensi', 'post' => route('training.toggle-attendance', $training)]),
+                    'action' => 'Buka Presensi', 'post' => route('training.toggle-attendance', $training),
+                ],
                 [
-                    'label' => 'Buka kuis',
-                    'hint' => $training->is_quiz_active ? 'Kuis sedang dibuka.' : ($stats['quizSubmitted'] > 0 ? $stats['quizSubmitted'].' peserta sudah mengerjakan.' : ($questionCount ? 'Buka setelah materi selesai disampaikan.' : 'Bisa dibuka setelah ada soal.')),
+                    'label' => 'Kuis',
+                    'hint' => 'buka kuis setelah materi selesai.',
                     'done' => $training->is_quiz_active || $stats['quizSubmitted'] > 0,
-                ] + ($training->is_quiz_active || ! $questionCount ? [] : ['action' => 'Buka Kuis', 'post' => route('training.toggle-quiz', $training)]),
+                    'action' => 'Buka Kuis', 'post' => route('training.toggle-quiz', $training),
+                ],
                 [
-                    'label' => 'Selesaikan & rekap',
-                    'hint' => 'Nilai soal essay bila ada, ubah status jadi Selesai, lalu Export Rekap Nilai.',
-                    'done' => $training->status === App\Enums\TrainingStatus::Completed,
-                    'action' => 'Export Rekap',
-                    'post' => route('training.export', $training),
+                    'label' => 'Rekap',
+                    'hint' => 'ubah status jadi Selesai, lalu export rekap nilai.',
+                    'done' => false,
+                    'action' => 'Export Rekap', 'post' => route('training.export', $training),
                 ],
             ];
         @endphp

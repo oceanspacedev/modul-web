@@ -63,7 +63,7 @@
             @empty
                 <div class="col-12">
                     <div class="card">
-                        <x-empty-state icon="fa-book-reader" title="Belum ada modul belajar" text="Modul muncul di sini setelah admin mempublikasikannya untuk divisi dan jabatan Anda. Hubungi admin bila Anda merasa seharusnya mendapat modul." />
+                        <x-empty-state icon="fa-book-reader" title="Belum ada modul belajar" text="Modul muncul di sini setelah dipublikasikan untuk divisi dan jabatan Anda." />
                     </div>
                 </div>
             @endforelse

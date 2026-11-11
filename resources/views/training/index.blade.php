@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Jadwal Pelatihan" subtitle="Alur: tambah pelatihan dan pilih peserta → siapkan soal kuis → saat sesi buka presensi, lalu buka kuis → rekap nilai." eyebrow="Pelatihan / Jadwal Pelatihan">
+        <x-page-header title="Jadwal Pelatihan" subtitle="Daftar sesi pelatihan beserta pemateri, jadwal, dan pesertanya." eyebrow="Pelatihan / Jadwal Pelatihan">
             <x-slot:actions>
                 <a href="/training/create" class="btn btn-primary">
                     <i class="fas fa-plus"></i> Tambah Pelatihan

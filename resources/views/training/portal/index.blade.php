@@ -64,10 +64,6 @@
             <h1 class="page-title mb-2" style="font-size: 1.375rem;">
                 {{ $training->title }}
             </h1>
-            <p class="text-muted small mb-3">
-                Cara mengikuti: (1) bergabung ke sesi lewat tautan Zoom sesuai jadwal, (2) isi presensi saat pemateri membukanya,
-                (3) kerjakan kuis setelah pemateri membukanya. Halaman ini memperbarui otomatis, tidak perlu di-refresh.
-            </p>
 
             <div class="row mb-3">
                 <div class="col-sm-6 mb-2">
@@ -292,7 +288,7 @@
                     </a>
                 @else
                     <div class="text-center py-4 text-muted" id="quizLockedMsg">
-                        Kuis belum dibuka. Pemateri akan membukanya setelah materi selesai; tombol "Mulai Kerjakan Kuis" muncul di sini otomatis.
+                        Kuis belum dibuka oleh pemateri.
                     </div>
                 @endif
                 </div>
@@ -452,7 +448,7 @@
             function buildQuizLockedHTML() {
                 return `
                     <div class="text-center py-4 text-muted">
-                        Kuis belum dibuka. Pemateri akan membukanya setelah materi selesai; tombol "Mulai Kerjakan Kuis" muncul di sini otomatis.
+                        Kuis belum dibuka oleh pemateri.
                     </div>`;
             }
 

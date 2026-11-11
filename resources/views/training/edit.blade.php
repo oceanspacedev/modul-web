@@ -147,10 +147,7 @@
                         </div>
 
                         <div class="card-body">
-                            <div class="alert alert-warning small py-2 px-3">
-                                Centang untuk menambah peserta. Peserta yang <strong>dihapus centangnya</strong> akan dikeluarkan beserta presensi dan nilai kuisnya.
-                                Peserta baru tidak otomatis dikirimi WhatsApp; kirim lewat <em>Broadcast WA</em> atau tombol WA per peserta di halaman pelatihan.
-                            </div>
+                            <p class="text-muted small mb-3">Menghapus centang peserta ikut menghapus presensi &amp; nilainya.</p>
                             <div class="form-row">
                                 <div class="form-group col-sm-6">
                                     <select id="filterDivisi" class="form-control form-control-sm select2" aria-label="Divisi" style="width: 100%;">

@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Tambah Pelatihan Baru" subtitle="Isi jadwal dan pilih peserta, lalu simpan. Setelah itu Anda diarahkan ke halaman pelatihan untuk menyiapkan soal kuis serta membuka presensi dan kuis saat sesi berjalan." :breadcrumbs="['Pelatihan' => null, 'Jadwal Pelatihan' => route('training.index'), 'Tambah' => null]">
+        <x-page-header title="Tambah Pelatihan Baru" subtitle="Jadwal, materi, dan peserta." :breadcrumbs="['Pelatihan' => null, 'Jadwal Pelatihan' => route('training.index'), 'Tambah' => null]">
             <x-slot:actions>
                 <a href="/training" class="btn btn-default">
                     <i class="fas fa-arrow-left"></i> Kembali

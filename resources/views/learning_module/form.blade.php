@@ -67,10 +67,9 @@
                         </div>
                         <div class="card-body">
                             @if($videos->isEmpty() && $documents->isEmpty())
-                                <div class="alert alert-warning small">
-                                    <strong>Belum ada video atau dokumen.</strong> Materi modul diambil dari Video Materi dan Dokumen,
-                                    jadi unggah dulu materinya. Modul ini tetap bisa disimpan sekarang dan materinya dipilih belakangan.
-                                    <div class="mt-2 d-flex flex-wrap gap-2">
+                                <div class="alert alert-warning small d-flex flex-wrap align-items-center gap-2">
+                                    <span class="mr-auto">Belum ada video atau dokumen untuk dipilih.</span>
+                                    <div class="d-flex flex-wrap gap-2">
                                         @can('create', \App\Models\Video::class)
                                             <a href="{{ route('video.create') }}" target="_blank" rel="noopener" class="btn btn-default btn-sm"><i class="fas fa-video"></i> Upload Video</a>
                                         @endcan
@@ -78,13 +77,11 @@
                                             <a href="{{ route('document.create') }}" target="_blank" rel="noopener" class="btn btn-default btn-sm"><i class="fas fa-file-upload"></i> Upload Dokumen</a>
                                         @endcan
                                     </div>
-                                    <div class="mt-2">Setelah mengunggah, muat ulang halaman ini agar materinya muncul di pilihan.</div>
                                 </div>
                             @endif
                             <p class="text-muted small mb-3">
                                 Pilih dari <a href="{{ route('video.index') }}" target="_blank" rel="noopener">Video Materi</a> dan
-                                <a href="{{ route('document.index') }}" target="_blank" rel="noopener">Dokumen</a>, lalu klik Tambah. Urutan di daftar = urutan belajar peserta;
-                                peserta menyelesaikan semua materi sebelum posttest. Minimal 1 materi agar modul bisa dipublikasikan.
+                                <a href="{{ route('document.index') }}" target="_blank" rel="noopener">Dokumen</a>. Urutan daftar = urutan belajar peserta.
                             </p>
 
                             <div class="d-flex gap-2 mb-3">
@@ -194,7 +191,7 @@
                                         <option value="{{ $role->id }}" {{ $selectedRoles->contains($role->id) ? 'selected' : '' }}>{{ $role->name }}</option>
                                     @endforeach
                                 </select>
-                                <small class="form-text text-muted">Kosongkan untuk semua divisi/jabatan. Modul hanya tampil di "Modul Saya" user yang divisi <em>dan</em> jabatannya cocok.</small>
+                                <small class="form-text text-muted">Kosongkan untuk semua divisi/jabatan.</small>
                             </div>
                         </div>
                     </div>

@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Kelola Modul" subtitle="Alur membuat modul: isi informasi & pilih materi → buat soal → publikasikan. Peserta mengerjakan pretest → materi → posttest." eyebrow="Modul Belajar / Kelola Modul">
+        <x-page-header title="Kelola Modul" subtitle="Pretest → materi video/dokumen → posttest." eyebrow="Modul Belajar / Kelola Modul">
             <x-slot:actions>
                 <a href="{{ route('learning-module.create') }}" class="btn btn-primary">
                     <i class="fas fa-plus"></i> Tambah Modul
@@ -75,9 +75,9 @@
                                     @php
                                         $missing = array_filter([$module->items_count ? null : 'materi', $module->questions_count ? null : 'soal']);
                                     @endphp
-                                    <span class="d-block text-muted text-xs mt-1">
-                                        {{ $missing ? 'Belum ada '.implode(' & ', $missing) : 'Siap dipublikasikan' }}
-                                    </span>
+                                    @if($missing)
+                                        <span class="d-block text-muted text-xs mt-1">Belum ada {{ implode(' & ', $missing) }}</span>
+                                    @endif
                                 @endif
                             </td>
                             <td class="text-right align-middle">

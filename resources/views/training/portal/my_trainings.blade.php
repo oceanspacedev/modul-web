@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Pelatihan Saya" subtitle="Klik Buka Sesi untuk bergabung ke Zoom, mengisi presensi, dan mengerjakan kuis. Kolom Yang Perlu Dilakukan menunjukkan langkah Anda berikutnya." eyebrow="Pelatihan / Pelatihan Saya" />
+        <x-page-header title="Pelatihan Saya" subtitle="Sesi pelatihan yang Anda ikuti beserta kehadiran dan nilai kuis." eyebrow="Pelatihan / Pelatihan Saya" />
     </div>
 </section>
 
@@ -21,7 +21,7 @@
                             <th>Jadwal Pelaksanaan</th>
                             <th class="text-center">Kehadiran</th>
                             <th class="text-center">Nilai Kuis</th>
-                            <th>Yang Perlu Dilakukan</th>
+                            <th>Langkah Anda</th>
                             <th class="text-right" style="width: 140px;">Aksi</th>
                         </tr>
                     </thead>
@@ -31,12 +31,12 @@
                             $t = $part->training;
                             $quiz = $part->quizResult;
                             [$todo, $todoClass, $needsAction] = match (true) {
-                                $t->status === App\Enums\TrainingStatus::Cancelled => ['Pelatihan dibatalkan', 'text-muted', false],
+                                $t->status === App\Enums\TrainingStatus::Cancelled => ['Dibatalkan', 'text-muted', false],
                                 $quiz !== null => ['Selesai', 'text-success', false],
-                                $t->is_attendance_active && $part->attendance_status === 'pending' => ['Isi presensi sekarang', 'text-primary font-weight-bold', true],
-                                (bool) $t->is_quiz_active => ['Kerjakan kuis sekarang', 'text-primary font-weight-bold', true],
-                                $t->status === App\Enums\TrainingStatus::Completed => ['Pelatihan sudah selesai', 'text-muted', false],
-                                default => ['Menunggu pemateri membuka presensi/kuis', 'text-muted', false],
+                                $t->is_attendance_active && $part->attendance_status === 'pending' => ['Isi presensi', 'text-primary font-weight-bold', true],
+                                (bool) $t->is_quiz_active => ['Kerjakan kuis', 'text-primary font-weight-bold', true],
+                                $t->status === App\Enums\TrainingStatus::Completed => ['Selesai', 'text-muted', false],
+                                default => ['Menunggu pemateri', 'text-muted', false],
                             };
                         @endphp
                         <tr>
@@ -84,7 +84,7 @@
                         @empty
                         <tr>
                             <td colspan="8">
-                                <x-empty-state icon="fa-chalkboard-teacher" title="Belum ada pelatihan" text="Anda belum terdaftar di pelatihan mana pun. Pelatihan muncul di sini setelah admin/pemateri mendaftarkan Anda sebagai peserta." />
+                                <x-empty-state icon="fa-chalkboard-teacher" title="Belum ada pelatihan" text="Anda belum terdaftar di pelatihan mana pun." />
                             </td>
                         </tr>
                         @endforelse

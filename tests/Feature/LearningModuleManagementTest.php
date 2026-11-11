@@ -160,14 +160,14 @@ class LearningModuleManagementTest extends TestCase
         $this->actingAs($this->admin)->get(route('learning-module.show', $module))
             ->assertOk()
             ->assertSee('Langkah menyiapkan modul')
-            ->assertSee('Bisa dipublikasikan setelah ada soal.')
+            ->assertSee('buat soal pretest/posttest.')
             ->assertSee('Butuh minimal 1 materi dan 1 soal');
 
         $module->questions()->create(['question' => 'APD utama?', 'option_a' => 'Helm', 'option_b' => 'Topi', 'correct_answer' => 'a']);
 
         $this->actingAs($this->admin)->get(route('learning-module.questions.index', $module))
             ->assertOk()
-            ->assertSee('Siap. Modul akan muncul di &quot;Modul Saya&quot; peserta sasaran.', false)
+            ->assertSee('publikasikan agar modul muncul di Modul Saya peserta.')
             ->assertDontSee('Butuh minimal 1 materi dan 1 soal');
 
         // Sudah dipublikasikan: checklist disembunyikan, tombol berganti jadi Tarik Publikasi.

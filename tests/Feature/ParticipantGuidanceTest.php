@@ -37,15 +37,15 @@ class ParticipantGuidanceTest extends TestCase
     {
         $this->actingAs($this->staff)->get(route('training.my-trainings'))
             ->assertOk()
-            ->assertSee('Yang Perlu Dilakukan')
-            ->assertSee('Menunggu pemateri membuka presensi/kuis');
+            ->assertSee('Langkah Anda')
+            ->assertSee('Menunggu pemateri');
 
         $this->training->update(['is_attendance_active' => true]);
-        $this->actingAs($this->staff)->get(route('training.my-trainings'))->assertSee('Isi presensi sekarang');
+        $this->actingAs($this->staff)->get(route('training.my-trainings'))->assertSee('Isi presensi');
 
         $this->participant->update(['attendance_status' => 'hadir']);
         $this->training->update(['is_quiz_active' => true]);
-        $this->actingAs($this->staff)->get(route('training.my-trainings'))->assertSee('Kerjakan kuis sekarang');
+        $this->actingAs($this->staff)->get(route('training.my-trainings'))->assertSee('Kerjakan kuis');
     }
 
     public function test_session_portal_numbers_the_steps(): void
@@ -53,7 +53,7 @@ class ParticipantGuidanceTest extends TestCase
         $this->get(route('training.portal', $this->participant->token))
             ->assertOk()
             ->assertSeeInOrder(['Langkah 1', 'Langkah 2', 'Presensi Kehadiran', 'Langkah 3', 'Kuis Evaluasi'])
-            ->assertSee('Kuis belum dibuka.');
+            ->assertSee('Kuis belum dibuka oleh pemateri.');
     }
 
     public function test_empty_module_list_explains_targeting(): void

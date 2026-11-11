@@ -55,10 +55,7 @@
                                         <option value="{{ $role->id }}" @selected(in_array((string) $role->id, array_map('strval', (array) old('role_id', [])), true))>{{ $role->name }}</option>
                                     @endforeach
                                 </select>
-                                <small class="form-text text-muted">
-                                    Pilih <strong>SEMUA JABATAN</strong> agar satu dokumen bisa dibuka semua jabatan. Bila memilih beberapa jabatan,
-                                    dibuat <strong>satu dokumen per jabatan</strong>, masing-masing dengan soal pretest/posttest sendiri.
-                                </small>
+                                <small class="form-text text-muted">Beberapa jabatan = satu dokumen per jabatan, masing-masing dengan soal sendiri.</small>
                             </div>
                             <div class="col-lg-3 form-group mb-0">
                                 <label for="divisi_id">Divisi <span class="text-danger">*</span></label>

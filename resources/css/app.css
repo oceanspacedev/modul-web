@@ -948,38 +948,39 @@ a.stat-tile:hover {
     text-underline-offset: 2px;
 }
 
-/* Setup steps checklist (x-setup-steps) */
-.setup-steps-count {
-    font-size: 0.8125rem;
-    font-weight: 500;
-    color: var(--gray-500);
-    white-space: nowrap;
-}
-
-.setup-steps-count.is-complete {
-    color: var(--success-700);
-}
-
+/* Setup stepper (x-setup-steps): one row of short labels + one "next step" bar */
 .setup-steps-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-    gap: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     list-style: none;
     margin: 0;
-    padding: 0;
+    padding: 0.875rem 1.25rem;
 }
 
 .setup-step {
+    flex: 1 1 0;
     display: flex;
-    gap: 0.75rem;
-    padding: 1rem 1.25rem;
-    border-right: 1px solid var(--ring);
-    box-shadow: 0 1px 0 var(--ring); /* separates wrapped rows; the card clips it on the last row */
+    align-items: center;
+    gap: 0.5rem;
     min-width: 0;
 }
 
 .setup-step:last-child {
-    border-right: 0;
+    flex: 0 0 auto;
+}
+
+/* connector line between steps */
+.setup-step:not(:last-child)::after {
+    content: "";
+    flex: 1 1 auto;
+    min-width: 0.75rem;
+    height: 1px;
+    background: var(--gray-200);
+}
+
+.setup-step.is-done:not(:last-child)::after {
+    background: var(--success-600);
 }
 
 .setup-step-marker {
@@ -987,59 +988,32 @@ a.stat-tile:hover {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     border-radius: 9999px;
     border: 1px solid var(--gray-300);
     background: #ffffff;
     color: var(--gray-500);
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     font-weight: 600;
-}
-
-.setup-step-body {
-    min-width: 0;
 }
 
 .setup-step-label {
-    margin: 0.2rem 0 0;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--gray-950);
-}
-
-.setup-step-hint {
-    margin: 0.15rem 0 0;
     font-size: 0.8125rem;
-    color: var(--gray-500);
-}
-
-.setup-step-tag {
-    margin-left: 0.25rem;
-    padding: 0.05rem 0.4rem;
-    border-radius: 9999px;
-    background: var(--gray-100);
-    color: var(--gray-500);
-    font-size: 0.6875rem;
     font-weight: 500;
-}
-
-.setup-step-action {
-    margin-top: 0.6rem;
+    color: var(--gray-500);
+    white-space: nowrap;
 }
 
 .setup-step.is-done .setup-step-marker {
     border-color: var(--success-600);
     background: var(--success-600);
     color: #ffffff;
+    font-size: 0.6875rem;
 }
 
 .setup-step.is-done .setup-step-label {
-    color: var(--gray-600);
-}
-
-.setup-step.is-current {
-    background: var(--primary-50);
+    color: var(--gray-700);
 }
 
 .setup-step.is-current .setup-step-marker {
@@ -1048,22 +1022,50 @@ a.stat-tile:hover {
     color: #ffffff;
 }
 
-.setup-step.is-todo .setup-step-label {
+.setup-step.is-current .setup-step-label {
+    color: var(--gray-950);
+    font-weight: 600;
+}
+
+.setup-steps-next {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    padding: 0.625rem 1.25rem;
+    border-top: 1px solid var(--ring);
+    background: var(--gray-50);
+}
+
+.setup-steps-next-text {
+    margin: 0;
+    font-size: 0.8125rem;
     color: var(--gray-600);
 }
 
-@media (max-width: 767.98px) {
+.setup-steps-next-label {
+    font-weight: 600;
+    color: var(--gray-950);
+}
+
+/* Phones: numbers only, plus the label of the current step */
+@media (max-width: 575.98px) {
     .setup-steps-list {
-        grid-template-columns: 1fr;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
     }
 
-    .setup-step {
-        border-right: 0;
-        border-bottom: 1px solid var(--ring);
+    .setup-step:not(.is-current) .setup-step-label {
+        display: none;
     }
 
-    .setup-step:last-child {
-        border-bottom: 0;
+    .setup-step.is-current {
+        flex: 0 0 auto;
+    }
+
+    .setup-steps-next {
+        padding: 0.625rem 1rem;
     }
 }
 
