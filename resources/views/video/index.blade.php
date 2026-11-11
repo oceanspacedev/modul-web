@@ -60,7 +60,7 @@
 
 <section class="content-header">
     <div class="@auth container-fluid @else container @endauth">
-        <x-page-header title="Galeri Video Materi" subtitle="Tonton dan pelajari video materi pembelajaran kapan saja." eyebrow="Konten">
+        <x-page-header title="Galeri Video Materi" subtitle="Tonton dan pelajari video materi pembelajaran kapan saja." eyebrow="Video Materi">
             @auth
                 @can('create', App\Models\Video::class)
                     <x-slot:actions>

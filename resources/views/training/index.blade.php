@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Jadwal Pelatihan" subtitle="Daftar sesi pelatihan beserta pemateri, jadwal, dan pesertanya." eyebrow="Pelatihan">
+        <x-page-header title="Jadwal Pelatihan" subtitle="Daftar sesi pelatihan beserta pemateri, jadwal, dan pesertanya." eyebrow="Pelatihan / Jadwal Pelatihan">
             <x-slot:actions>
                 <a href="/training/create" class="btn btn-primary">
                     <i class="fas fa-plus"></i> Tambah Pelatihan
@@ -83,7 +83,7 @@
                             </td>
                             <td class="text-center">
                                 <span class="badge badge-secondary">
-                                    {{ $t->participants->count() }} orang
+                                    {{ $t->participants_count }} orang
                                 </span>
                             </td>
                             <td class="text-center">

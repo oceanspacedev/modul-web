@@ -3,7 +3,7 @@
 @section('content')
     <section class="content-header">
         <div class="container-fluid">
-            <x-page-header title="Edit Dokumen" :subtitle="$document->name" eyebrow="Konten / Dokumen">
+            <x-page-header title="Edit Dokumen" :subtitle="$document->name" :breadcrumbs="['Dokumen' => route('document.index'), $document->name => null, 'Edit' => null]">
                 <x-slot:actions>
                     <span class="badge badge-secondary">v{{ $document->version ?? 1 }}</span>
                     <a href="{{ $document->file_url }}" target="_blank" class="btn btn-default">
@@ -77,7 +77,7 @@
                             </div>
                         </div>
 
-                        @include('learning_module.partials.material-quiz-fields', ['quiz' => $quiz])
+                        @include('learning_module.partials.quiz-rules-fields', ['quiz' => $quiz])
                     </div>
                     <div class="card-footer d-flex justify-content-end gap-2">
                         <a href="{{ route('document.index') }}" class="btn btn-default">Batal</a>

@@ -77,7 +77,7 @@ class TrainingQuizAnswersVisibilityTest extends TestCase
     public function test_admin_can_toggle_answer_visibility(): void
     {
         $this->actingAs($this->admin)
-            ->post("/training/{$this->training->id}/toggle-quiz-answers")
+            ->post(route('training.quiz-rules', $this->training), ['quiz' => ['posttest' => '1', 'posttest_max_attempts' => '1', 'posttest_shows_answers' => '0']])
             ->assertSessionHas('success');
 
         $this->assertFalse($this->training->fresh()->show_quiz_answers);
@@ -85,9 +85,10 @@ class TrainingQuizAnswersVisibilityTest extends TestCase
         $this->actingAs($this->admin)
             ->get("/training/{$this->training->id}")
             ->assertOk()
-            ->assertSee('Jawaban benar/salah: Disembunyikan');
+            ->assertSee('hasil nilai saja');
 
-        $this->actingAs($this->admin)->post("/training/{$this->training->id}/toggle-quiz-answers");
+        $this->actingAs($this->admin)
+            ->post(route('training.quiz-rules', $this->training), ['quiz' => ['posttest' => '1', 'posttest_max_attempts' => '1', 'posttest_shows_answers' => '1']]);
 
         $this->assertTrue($this->training->fresh()->show_quiz_answers);
     }

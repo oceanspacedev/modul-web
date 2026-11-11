@@ -196,7 +196,11 @@ return [
     |
     */
 
+    // "memory" (MB) adalah batas memori tiap proses worker: AppServiceProvider menjadikannya memory_limit PHP worker
+    // itu, dan Horizon me-restart worker yang menyentuhnya. Request web sendiri dibatasi 128MB di public/index.php,
+    // jadi pekerjaan yang butuh lebih harus lewat supervisor-ai atau supervisor-heavy.
     'defaults' => [
+        // Notifikasi, undangan WhatsApp, dan job ringan lain: sama dengan batas request web.
         'supervisor-1' => [
             'connection' => 'redis',
             'queue' => ['default'],
@@ -211,7 +215,8 @@ return [
             'nice' => 0,
         ],
 
-        // Job AI Modul Belajar: satu proses, batas waktu panjang (lihat koneksi redis-long di config/queue.php).
+        // Job AI (soal modul & pelatihan, scan off-cam Zoom): satu proses, batas waktu panjang (lihat koneksi redis-long
+        // di config/queue.php). 256MB karena PDF sampai 18MB dibaca utuh lalu dikirim sebagai base64 (puncak proses terukur ~100MB).
         'supervisor-ai' => [
             'connection' => 'redis-long',
             'queue' => ['ai'],
@@ -225,7 +230,8 @@ return [
             'nice' => 0,
         ],
 
-        // Import/export berat (lihat app/Jobs): satu proses supaya import user tidak berjalan bersamaan.
+        // Import/export berat (lihat app/Jobs): satu proses supaya import user tidak berjalan bersamaan. 512MB karena
+        // PhpSpreadsheet menyimpan seluruh sheet di memori (export 5.000 user terukur ~160MB).
         'supervisor-heavy' => [
             'connection' => 'redis-long',
             'queue' => ['heavy'],

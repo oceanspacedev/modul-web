@@ -3,7 +3,7 @@
 @section('content')
     <section class="content-header">
         <div class="container-fluid">
-            <x-page-header title="Dokumen" subtitle="Dokumen per divisi dan jabatan, lengkap dengan riwayat versi dan kuisnya." eyebrow="Konten">
+            <x-page-header title="Dokumen" subtitle="Dokumen per divisi dan jabatan, lengkap dengan riwayat versi dan kuisnya." eyebrow="Dokumen">
                 <x-slot:actions>
                     @can('create', App\Models\Document::class)
                         <a href="{{ route('document.create') }}" class="btn btn-primary">
@@ -116,9 +116,9 @@
                                             <span class="badge badge-danger">TERHAPUS</span>
                                             <div class="small text-muted mt-1">{{ $document->deleted_at->format('d M Y, H:i') }}</div>
                                         @elseif ($document->is_active)
-                                            <span class="badge badge-success">AKTIF</span>
+                                            <span class="badge badge-success">Aktif</span>
                                         @else
-                                            <span class="badge badge-secondary">NONAKTIF</span>
+                                            <span class="badge badge-secondary">Nonaktif</span>
                                         @endif
                                     </td>
                                     <td class="text-right">
@@ -196,7 +196,7 @@
                                         @if ($trashed)
                                             <x-empty-state icon="fa-trash-restore" title="Tidak ada dokumen yang dihapus." text="Dokumen yang dihapus akan muncul di sini dan bisa dipulihkan." />
                                         @else
-                                            <x-empty-state icon="fa-file-alt" title="Belum ada dokumen" text="Dokumen yang ditambahkan akan muncul di sini." />
+                                            <x-empty-state icon="fa-file-alt" title="Belum ada dokumen" text="Dokumen yang ditambahkan akan muncul di sini.">@can('create', \App\Models\Document::class)<a href="{{ route('document.create') }}" class="btn btn-primary btn-sm">Tambah Dokumen</a>@endcan</x-empty-state>
                                         @endif
                                     </td>
                                 </tr>

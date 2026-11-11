@@ -1,6 +1,7 @@
 {{--
     Pilihan mode pretest/posttest: formal (semua soal satu halaman) atau Quizizz (satu soal per layar, timer per soal).
-    Parameter: $modeName, $secondsName (nama field), $mode, $seconds (nilai saat ini), $idPrefix (unik per halaman).
+    Parameter: $modeName, $secondsName (nama field; null = tanpa field detik per soal), $mode, $seconds (nilai saat ini),
+    $idPrefix (unik per halaman).
 --}}
 @php
     $isGame = $mode === \App\Models\LearningModule::MODE_GAME;
@@ -31,12 +32,14 @@
             </div>
         </div>
     </div>
+    @if($secondsName)
     <div class="quiz-seconds mt-3 {{ $isGame ? '' : 'd-none' }}">
         <label for="{{ $idPrefix }}_question_seconds">Detik per soal</label>
         <input type="number" min="{{ \App\Models\LearningModule::MIN_QUESTION_SECONDS }}" max="{{ \App\Models\LearningModule::MAX_QUESTION_SECONDS }}"
             class="form-control" id="{{ $idPrefix }}_question_seconds" name="{{ $secondsName }}" value="{{ $seconds }}" style="max-width: 140px;">
         <small class="form-text text-muted">Waktu habis = soal dihitung salah.</small>
     </div>
+    @endif
 </div>
 
 <script>
@@ -44,8 +47,9 @@ document.addEventListener('DOMContentLoaded', function () {
     var box = document.querySelector('.quiz-mode-fields[data-prefix="{{ $idPrefix }}"]');
     if (!box) return;
     function refresh() {
-        var game = box.querySelector('.quiz-mode-radio[value=game]').checked;
-        box.querySelector('.quiz-seconds').classList.toggle('d-none', !game);
+        var seconds = box.querySelector('.quiz-seconds');
+        if (!seconds) return;
+        seconds.classList.toggle('d-none', !box.querySelector('.quiz-mode-radio[value=game]').checked);
     }
     box.querySelectorAll('.quiz-mode-radio').forEach(function (radio) { radio.addEventListener('change', refresh); });
 });

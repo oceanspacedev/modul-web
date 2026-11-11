@@ -32,7 +32,7 @@ class DashboardController extends Controller
         $totalTraining = Training::count();
         $ongoingTraining = Training::where('status', TrainingStatus::Ongoing)->count();
         $totalParticipant = TrainingParticipant::count();
-        $totalQuizResult = TrainingQuizResult::count();
+        $totalQuizResult = TrainingQuizResult::posttest()->count();
         $totalDivisi = Divisi::count();
         $totalPosition = Position::count();
         $totalDokumenType = DokumenType::count();
@@ -49,7 +49,7 @@ class DashboardController extends Controller
             ->get();
 
         // Recent quiz evaluation results
-        $recentQuizResults = TrainingQuizResult::with(['participant.user', 'training'])
+        $recentQuizResults = TrainingQuizResult::posttest()->with(['participant.user', 'training'])
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
@@ -66,30 +66,23 @@ class DashboardController extends Controller
             return $t->participants_count;
         })->values();
 
-        // Chart 2: Quiz Evaluation Score Distribution
-        $quizScores = TrainingQuizResult::pluck('score')->map(function ($s) {
-            return (float) $s;
-        });
+        // Chart 2: Quiz Evaluation Score Distribution, counted by the database so the page never loads every score.
+        $scoreStats = TrainingQuizResult::posttest()->toBase()
+            ->selectRaw('COUNT(*) as total, AVG(score) as average, MAX(score) as highest, MIN(score) as lowest')
+            ->selectRaw('SUM(CASE WHEN score >= 85 THEN 1 ELSE 0 END) as sangat_baik')
+            ->selectRaw('SUM(CASE WHEN score >= 70 AND score < 85 THEN 1 ELSE 0 END) as baik')
+            ->selectRaw('SUM(CASE WHEN score >= 55 AND score < 70 THEN 1 ELSE 0 END) as cukup')
+            ->selectRaw('SUM(CASE WHEN score < 55 THEN 1 ELSE 0 END) as kurang')
+            ->first();
         $scoreBuckets = [
-            'sangat_baik' => 0, // >= 85
-            'baik' => 0,        // 70 - 84
-            'cukup' => 0,       // 55 - 69
-            'kurang' => 0,      // < 55
+            'sangat_baik' => (int) $scoreStats->sangat_baik, // >= 85
+            'baik' => (int) $scoreStats->baik,               // 70 - 84
+            'cukup' => (int) $scoreStats->cukup,             // 55 - 69
+            'kurang' => (int) $scoreStats->kurang,           // < 55
         ];
-        foreach ($quizScores as $sc) {
-            if ($sc >= 85) {
-                $scoreBuckets['sangat_baik']++;
-            } elseif ($sc >= 70) {
-                $scoreBuckets['baik']++;
-            } elseif ($sc >= 55) {
-                $scoreBuckets['cukup']++;
-            } else {
-                $scoreBuckets['kurang']++;
-            }
-        }
-        $quizAvgScore = $quizScores->count() > 0 ? round($quizScores->avg(), 1) : 0;
-        $quizMaxScore = $quizScores->count() > 0 ? round($quizScores->max(), 1) : 0;
-        $quizMinScore = $quizScores->count() > 0 ? round($quizScores->min(), 1) : 0;
+        $quizAvgScore = $scoreStats->total > 0 ? round((float) $scoreStats->average, 1) : 0;
+        $quizMaxScore = $scoreStats->total > 0 ? round((float) $scoreStats->highest, 1) : 0;
+        $quizMinScore = $scoreStats->total > 0 ? round((float) $scoreStats->lowest, 1) : 0;
 
         // Chart 3: Video Views Popularity Chart Data
         $videosForChart = Video::orderBy('views_count', 'desc')

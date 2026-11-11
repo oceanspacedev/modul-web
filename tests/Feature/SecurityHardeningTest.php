@@ -94,7 +94,7 @@ class SecurityHardeningTest extends TestCase
         $this->assertNotSoftDeleted($document);
         $this->assertNull(Document::find($document->id), 'Dokumen nonaktif harus tersembunyi di luar halaman kelola.');
 
-        $this->actingAs($trainer)->get('/document')->assertOk()->assertSee('SOP PENJUALAN')->assertSee('NONAKTIF')->assertSee('Aktifkan Dokumen');
+        $this->actingAs($trainer)->get('/document')->assertOk()->assertSee('SOP PENJUALAN')->assertSee('Nonaktif')->assertSee('Aktifkan Dokumen');
         $this->actingAs($trainer)->get("/document/{$document->id}/edit")->assertOk();
 
         $this->actingAs($trainer)->patch("/document/{$document->id}/activate")->assertRedirect('/document');

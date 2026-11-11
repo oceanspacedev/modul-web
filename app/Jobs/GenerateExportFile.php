@@ -93,7 +93,7 @@ class GenerateExportFile extends BackgroundTask
      */
     private function training(): array
     {
-        $training = Training::with(['trainer', 'participants.user.divisi', 'participants.quizResult'])->findOrFail($this->modelId);
+        $training = Training::with(['trainer', 'participants.user.divisi', 'participants.quizResult', 'participants.pretestResult'])->findOrFail($this->modelId);
 
         return [
             new TrainingRekapExport($training),

@@ -62,8 +62,13 @@ class LearningModuleController extends Controller
             return $module;
         });
 
+        if (! $module->hasQuiz()) {
+            return to_route('learning-module.show', $module)
+                ->with('success', 'Modul tanpa kuis berhasil dibuat. Publikasikan agar tampil untuk peserta.');
+        }
+
         return to_route('learning-module.questions.index', $module)
-            ->with('success', 'Modul berhasil dibuat. Tambahkan soal pretest/posttest, lalu publikasikan modul.');
+            ->with('success', 'Modul berhasil dibuat. Tambahkan soal kuis, lalu publikasikan modul.');
     }
 
     /**
@@ -78,6 +83,7 @@ class LearningModuleController extends Controller
             'active' => $module->menuKey('learning-module'),
             'module' => $module,
             'participants' => LearningModuleProgress::forParticipants($module),
+            'targetCount' => $module->isOwned() ? null : $module->targetUsers()->count(),
         ]);
     }
 
@@ -119,12 +125,17 @@ class LearningModuleController extends Controller
             return back()->withInput()->withErrors(['items' => 'Modul yang sudah dipublikasikan harus memiliki minimal 1 materi.']);
         }
 
+        $turnsQuizOn = $request->boolean('has_pretest') || $request->boolean('has_posttest');
+        if ($module->is_published && $turnsQuizOn && ! $module->questions()->exists()) {
+            return back()->withInput()->withErrors(['quiz' => 'Modul yang sudah dipublikasikan butuh minimal 1 soal sebelum pretest/posttest dinyalakan.']);
+        }
+
         DB::transaction(function () use ($request, $module) {
             $module->update($request->moduleData());
             $this->syncRelations($module, $request);
         });
 
-        return to_route('learning-module.index')->with('success', 'Modul berhasil diperbarui.');
+        return to_route('learning-module.show', $module)->with('success', 'Modul berhasil diperbarui.');
     }
 
     public function destroy(LearningModule $module): RedirectResponse
@@ -144,8 +155,8 @@ class LearningModuleController extends Controller
         if (! $module->is_published) {
             $module->load('items.materialable')->loadCount('questions');
 
-            if ($module->questions_count === 0 || $module->availableItems()->isEmpty()) {
-                return back()->with('error', 'Modul belum bisa dipublikasikan: tambahkan minimal 1 materi dan 1 soal terlebih dahulu.');
+            if (($missing = $module->missingForPublish()) !== []) {
+                return back()->with('error', 'Modul belum bisa dipublikasikan: tambahkan minimal 1 '.implode(' dan 1 ', $missing).' terlebih dahulu.');
             }
         }
 

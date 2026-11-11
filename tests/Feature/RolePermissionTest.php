@@ -128,6 +128,37 @@ class RolePermissionTest extends TestCase
         $this->assertTrue($user->isTrainer());
     }
 
+    public function test_user_assignment_tab_is_paginated_and_filtered_on_the_server()
+    {
+        User::factory()->count(30)->staff()->create();
+        $budi = User::factory()->staff()->create(['nama_lengkap' => 'ZZ BUDI PENCARIAN', 'username' => 'budi.cari']);
+        $manager = User::factory()->jabatan('MANAGER')->create(['nama_lengkap' => 'ZZ SITI MANAGER']);
+        $trainer = User::factory()->staff()->create(['nama_lengkap' => 'ZZ TONO TRAINER']);
+        $trainer->setTrainer(true);
+        $noRole = User::factory()->create(['nama_lengkap' => 'ZZ TANPA JABATAN']);
+
+        // Halaman pertama hanya memuat 25 user; sisanya ada di halaman berikutnya.
+        $this->actingAs($this->admin())->get('/roles')
+            ->assertOk()
+            ->assertViewHas('users', fn ($users) => $users->count() === 25 && $users->total() === 35)
+            ->assertViewHas('totalUsers', 35)
+            ->assertDontSee('ZZ BUDI PENCARIAN')
+            ->assertSee('page=2#tab-users', false);
+        $this->actingAs($this->admin())->get('/roles?page=2')->assertOk()->assertSee('ZZ BUDI PENCARIAN');
+
+        $names = fn (string $query) => $this->actingAs($this->admin())->get('/roles?'.$query)->assertOk()
+            ->viewData('users')->pluck('nama_lengkap')->all();
+
+        $this->assertSame(['ZZ BUDI PENCARIAN'], $names('search=budi.cari'));
+        // Kartu ringkasan dan label tab tetap menghitung semua user saat tabel disaring.
+        $this->actingAs($this->admin())->get('/roles?search=budi.cari')->assertViewHas('totalUsers', 35);
+        $this->assertSame(['ZZ SITI MANAGER'], $names('role=MANAGER'));
+        $this->assertSame(['ZZ TONO TRAINER'], $names('role=__trainer'));
+        $this->assertSame(['ZZ TANPA JABATAN'], $names('role=__none'));
+        $this->assertSame([], $names('role=MANAGER&search=budi'));
+        $this->assertCount(25, $names('search=Test+Division'));
+    }
+
     public function test_only_super_admin_can_assign_admin_jabatan()
     {
         $roleManager = User::factory()->staff()->create();

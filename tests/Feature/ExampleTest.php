@@ -39,7 +39,7 @@ class ExampleTest extends TestCase
         $response->assertDontSee('Kuis Modul');
         $response->assertDontSee('Presensi Karyawan');
         $response->assertSee('chartPelatihan');
-        $response->assertSee('chartQuizScore');
+        $response->assertSee('Distribusi Nilai Evaluasi Kuis');
         $response->assertSee('chartVideoViews');
         $response->assertSee('chartContentComposition');
         $response->assertSee('Chart.bundle.min.js');

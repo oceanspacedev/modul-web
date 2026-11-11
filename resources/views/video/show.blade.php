@@ -38,7 +38,7 @@
 
 <section class="content-header">
     <div class="@auth container-fluid @else container @endauth">
-        <x-page-header :title="$video->title" eyebrow="Konten / Video">
+        <x-page-header :title="$video->title" :breadcrumbs="['Video Materi' => route('video.index'), $video->title => null]">
             <x-slot:actions>
                 <a href="{{ route('video.index') }}" class="btn btn-default">
                     <i class="fas fa-arrow-left"></i> Kembali ke Galeri

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Document;
 use App\Models\LearningModule;
 use App\Models\Video;
+use App\Support\QuizRules;
 
 /**
  * Kuis pretest/posttest yang dinyalakan langsung dari form Video Materi / Dokumen.
@@ -15,7 +16,7 @@ use App\Models\Video;
 class MaterialQuizService
 {
     /**
-     * Aturan validasi field quiz[...] dari partial learning_module.partials.material-quiz-fields.
+     * Aturan validasi field quiz[...] dari partial learning_module.partials.quiz-rules-fields.
      *
      * @return array<string, mixed>
      */
@@ -27,8 +28,9 @@ class MaterialQuizService
             'quiz.posttest' => ['boolean'],
             'quiz.pretest_shows_answers' => ['boolean'],
             'quiz.posttest_shows_answers' => ['boolean'],
-            'quiz.pretest_max_attempts' => ['nullable', 'integer', 'min:1', 'max:255'],
-            'quiz.posttest_max_attempts' => ['nullable', 'integer', 'min:1', 'max:255'],
+            'quiz.pretest_max_attempts' => QuizRules::attemptRules(),
+            'quiz.posttest_max_attempts' => QuizRules::attemptRules(),
+            'quiz.shuffle_questions' => ['boolean'],
             'quiz.passing_score' => ['nullable', 'integer', 'min:0', 'max:100'],
             'quiz.mode' => ['nullable', 'in:'.implode(',', LearningModule::MODES)],
             'quiz.question_seconds' => ['nullable', 'integer', 'min:'.LearningModule::MIN_QUESTION_SECONDS, 'max:'.LearningModule::MAX_QUESTION_SECONDS],
@@ -62,7 +64,6 @@ class MaterialQuizService
         $module ??= new LearningModule([
             'source_type' => $material->getMorphClass(),
             'source_id' => $material->getKey(),
-            'shuffle_questions' => true,
         ]);
 
         $module->fill([
@@ -72,6 +73,7 @@ class MaterialQuizService
             'pretest_max_attempts' => $settings['pretest_max_attempts'] ?? null,
             'posttest_max_attempts' => $settings['posttest_max_attempts'] ?? null,
             'passing_score' => $settings['passing_score'] ?? 70,
+            'shuffle_questions' => (bool) ($settings['shuffle_questions'] ?? $module->shuffle_questions ?? true),
             'quiz_mode' => $settings['mode'] ?? LearningModule::MODE_FORMAL,
             'question_seconds' => $settings['question_seconds'] ?? 30,
             // Form lama tanpa field ini: rincian jawaban tetap ditampilkan seperti sebelumnya.

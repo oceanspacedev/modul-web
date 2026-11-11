@@ -6,6 +6,7 @@ use App\Models\Document;
 use App\Models\LearningModule;
 use App\Models\LearningModuleItem;
 use App\Models\Video;
+use App\Support\QuizRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -19,9 +20,32 @@ class LearningModuleRequest extends FormRequest
         return true;
     }
 
+    /**
+     * Form memakai blok Aturan Kuis bersama (quiz[...]); di sini nilainya dipetakan ke kolom modul.
+     * Tanpa has_pretest/has_posttest (permintaan lama), kedua fase tetap nyala.
+     */
     protected function prepareForValidation(): void
     {
+        $quiz = $this->input('quiz');
+        if (is_array($quiz)) {
+            $this->merge(array_filter([
+                'has_pretest' => $quiz['pretest'] ?? null,
+                'has_posttest' => $quiz['posttest'] ?? null,
+                'passing_score' => $quiz['passing_score'] ?? null,
+                'shuffle_questions' => $quiz['shuffle_questions'] ?? null,
+                'pretest_shows_answers' => $quiz['pretest_shows_answers'] ?? null,
+                'posttest_shows_answers' => $quiz['posttest_shows_answers'] ?? null,
+                'quiz_mode' => $quiz['mode'] ?? null,
+                'question_seconds' => $quiz['question_seconds'] ?? null,
+            ], fn ($value) => $value !== null) + [
+                'pretest_max_attempts' => $quiz['pretest_max_attempts'] ?? null,
+                'posttest_max_attempts' => $quiz['posttest_max_attempts'] ?? null,
+            ]);
+        }
+
         $this->merge([
+            'has_pretest' => $this->has('has_pretest') ? $this->boolean('has_pretest') : true,
+            'has_posttest' => $this->has('has_posttest') ? $this->boolean('has_posttest') : true,
             'shuffle_questions' => $this->boolean('shuffle_questions'),
             'pretest_shows_answers' => $this->boolean('pretest_shows_answers'),
             'posttest_shows_answers' => $this->boolean('posttest_shows_answers'),
@@ -39,11 +63,13 @@ class LearningModuleRequest extends FormRequest
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
             'passing_score' => ['required', 'integer', 'min:0', 'max:100'],
+            'has_pretest' => ['boolean'],
+            'has_posttest' => ['boolean'],
             'shuffle_questions' => ['boolean'],
             'pretest_shows_answers' => ['boolean'],
             'posttest_shows_answers' => ['boolean'],
-            'pretest_max_attempts' => ['nullable', 'integer', 'min:1', 'max:255'],
-            'posttest_max_attempts' => ['nullable', 'integer', 'min:1', 'max:255'],
+            'pretest_max_attempts' => QuizRules::attemptRules(),
+            'posttest_max_attempts' => QuizRules::attemptRules(),
             'quiz_mode' => ['nullable', 'in:'.implode(',', LearningModule::MODES)],
             'question_seconds' => ['nullable', 'integer', 'min:'.LearningModule::MIN_QUESTION_SECONDS, 'max:'.LearningModule::MAX_QUESTION_SECONDS],
             'divisi_ids' => ['nullable', 'array'],
@@ -109,7 +135,7 @@ class LearningModuleRequest extends FormRequest
     public function moduleData(): array
     {
         return [
-            ...$this->safe()->only(['title', 'description', 'passing_score', 'shuffle_questions', 'pretest_shows_answers', 'posttest_shows_answers']),
+            ...$this->safe()->only(['title', 'description', 'passing_score', 'has_pretest', 'has_posttest', 'shuffle_questions', 'pretest_shows_answers', 'posttest_shows_answers']),
             'pretest_max_attempts' => $this->validated('pretest_max_attempts'),
             'posttest_max_attempts' => $this->validated('posttest_max_attempts'),
             'quiz_mode' => $this->validated('quiz_mode') ?? LearningModule::MODE_FORMAL,

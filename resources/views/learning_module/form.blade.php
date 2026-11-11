@@ -2,8 +2,8 @@
 
 @php
     $isEdit = $module->exists;
-    $materialLabels = $videos->mapWithKeys(fn ($v) => ['video:'.$v->id => 'Video: '.$v->title])
-        ->merge($documents->mapWithKeys(fn ($d) => ['document:'.$d->id => 'Dokumen: '.$d->name]));
+    $materialLabels = $videos->toBase()->mapWithKeys(fn ($v) => ['video:'.$v->id => 'Video: '.$v->title])
+        ->merge($documents->toBase()->mapWithKeys(fn ($d) => ['document:'.$d->id => 'Dokumen: '.$d->name]));
     $initialItems = collect(old('items', $selectedItems->map->key()->all()))
         ->filter(fn ($key) => $materialLabels->has($key))
         ->values();
@@ -14,9 +14,12 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header :title="$isEdit ? 'Edit Modul Belajar' : 'Tambah Modul Belajar'" :subtitle="$isEdit ? $module->title : 'Atur informasi modul, sasaran peserta, dan urutan materi.'" eyebrow="Modul Belajar / Kelola Modul">
+        <x-page-header :title="$isEdit ? 'Edit Modul Belajar' : 'Tambah Modul Belajar'" :subtitle="$isEdit ? $module->title : 'Atur informasi modul, sasaran peserta, dan urutan materi.'" 
+            :breadcrumbs="$isEdit
+                ? ['Modul Belajar' => null, 'Kelola Modul' => route('learning-module.index'), $module->title => route('learning-module.show', $module), 'Edit' => null]
+                : ['Modul Belajar' => null, 'Kelola Modul' => route('learning-module.index'), 'Tambah' => null]">
             <x-slot:actions>
-                <a href="{{ route('learning-module.index') }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
+                <a href="{{ $isEdit ? route('learning-module.show', $module) : route('learning-module.index') }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
             </x-slot:actions>
         </x-page-header>
     </div>
@@ -25,6 +28,9 @@
 <section class="content">
     <div class="container-fluid">
         @include('learning_module.partials.alerts')
+        @unless($module->is_published)
+            @include('learning_module.partials.setup-steps', ['page' => $isEdit ? 'edit' : 'create'])
+        @endunless
 
         <form action="{{ $isEdit ? route('learning-module.update', $module) : route('learning-module.store') }}" method="POST" id="moduleForm">
             @csrf
@@ -55,18 +61,31 @@
                     </div>
 
                     {{-- MATERI MODUL --}}
-                    <div class="card flex-grow-1">
+                    <div class="card flex-grow-1" id="materi">
                         <div class="card-header">
                             <h3 class="card-title">Materi Modul</h3>
                         </div>
                         <div class="card-body">
+                            @if($videos->isEmpty() && $documents->isEmpty())
+                                <div class="alert alert-warning small d-flex flex-wrap align-items-center gap-2">
+                                    <span class="mr-auto">Belum ada video atau dokumen untuk dipilih.</span>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        @can('create', \App\Models\Video::class)
+                                            <a href="{{ route('video.create') }}" target="_blank" rel="noopener" class="btn btn-default btn-sm"><i class="fas fa-video"></i> Upload Video</a>
+                                        @endcan
+                                        @can('create', \App\Models\Document::class)
+                                            <a href="{{ route('document.create') }}" target="_blank" rel="noopener" class="btn btn-default btn-sm"><i class="fas fa-file-upload"></i> Upload Dokumen</a>
+                                        @endcan
+                                    </div>
+                                </div>
+                            @endif
                             <p class="text-muted small mb-3">
-                                Pilih dari <a href="{{ route('video.index') }}" target="_blank">Video Materi</a> dan
-                                <a href="{{ route('document.index') }}" target="_blank">Dokumen</a>. Peserta menyelesaikan semua materi sebelum posttest.
+                                Pilih dari <a href="{{ route('video.index') }}" target="_blank" rel="noopener">Video Materi</a> dan
+                                <a href="{{ route('document.index') }}" target="_blank" rel="noopener">Dokumen</a>. Urutan daftar = urutan belajar peserta.
                             </p>
 
-                            <div class="d-flex gap-2 mb-3">
-                                <div class="flex-grow-1 min-w-0">
+                            <div class="mb-3">
+                                <div class="min-w-0">
                                     <select id="materialPicker" class="form-control" data-placeholder="Cari video atau dokumen...">
                                         <option value=""></option>
                                         <optgroup label="Video Materi">
@@ -81,74 +100,19 @@
                                         </optgroup>
                                     </select>
                                 </div>
-                                <button type="button" class="btn btn-default" id="btnAddMaterial"><i class="fas fa-plus"></i> Tambah</button>
                             </div>
 
                             <ul class="list-group" id="materialList"></ul>
                             <div class="border rounded" id="materialEmpty">
-                                <x-empty-state icon="fa-photo-video" title="Belum ada materi dipilih" text="Cari video atau dokumen di atas, lalu klik Tambah." class="py-4" />
+                                <x-empty-state icon="fa-photo-video" title="Belum ada materi dipilih" text="Cari video atau dokumen di atas." class="py-4" />
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="col-lg-5">
-                    {{-- PENGATURAN KUIS --}}
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Pengaturan Kuis</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-sm-6 form-group">
-                                    <label for="passing_score">KKM <span class="text-danger">*</span></label>
-                                    <input type="number" id="passing_score" name="passing_score" class="form-control" min="0" max="100"
-                                        value="{{ old('passing_score', $module->passing_score) }}" required>
-                                    <small class="form-text text-muted">Posttest lulus bila nilai &ge; KKM.</small>
-                                </div>
-                                <div class="col-sm-6 form-group d-flex align-items-center">
-                                    <div class="custom-control custom-switch mt-sm-3">
-                                        <input type="checkbox" class="custom-control-input" id="shuffle_questions" name="shuffle_questions" value="1"
-                                            {{ old('shuffle_questions', $module->shuffle_questions) ? 'checked' : '' }}>
-                                        <label class="custom-control-label" for="shuffle_questions">Acak urutan soal</label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-sm-6 form-group">
-                                    <label for="pretest_max_attempts">Batas Percobaan Pretest</label>
-                                    <input type="number" id="pretest_max_attempts" name="pretest_max_attempts" class="form-control" min="1" max="255"
-                                        value="{{ old('pretest_max_attempts', $module->exists ? $module->pretest_max_attempts : 1) }}" placeholder="Tanpa batas">
-                                    <div class="custom-control custom-switch mt-2">
-                                        <input type="checkbox" class="custom-control-input" id="pretest_shows_answers" name="pretest_shows_answers" value="1"
-                                            {{ old('pretest_shows_answers', $module->pretest_shows_answers) ? 'checked' : '' }}>
-                                        <label class="custom-control-label" for="pretest_shows_answers">Tampilkan jawaban benar/salah setelah pretest</label>
-                                    </div>
-                                    <small class="form-text text-muted">Mati = peserta hanya melihat nilai.</small>
-                                </div>
-                                <div class="col-sm-6 form-group">
-                                    <label for="posttest_max_attempts">Batas Percobaan Posttest</label>
-                                    <input type="number" id="posttest_max_attempts" name="posttest_max_attempts" class="form-control" min="1" max="255"
-                                        value="{{ old('posttest_max_attempts', $module->posttest_max_attempts) }}" placeholder="Tanpa batas">
-                                    <div class="custom-control custom-switch mt-2">
-                                        <input type="checkbox" class="custom-control-input" id="posttest_shows_answers" name="posttest_shows_answers" value="1"
-                                            {{ old('posttest_shows_answers', $module->posttest_shows_answers) ? 'checked' : '' }}>
-                                        <label class="custom-control-label" for="posttest_shows_answers">Tampilkan jawaban benar/salah setelah posttest</label>
-                                    </div>
-                                    <small class="form-text text-muted">Mati = peserta hanya melihat nilai.</small>
-                                </div>
-                            </div>
-
-                            @include('learning_module.partials.quiz-mode-fields', [
-                                'modeName' => 'quiz_mode',
-                                'secondsName' => 'question_seconds',
-                                'mode' => old('quiz_mode', $module->quiz_mode ?? \App\Models\LearningModule::MODE_FORMAL),
-                                'seconds' => old('question_seconds', $module->question_seconds ?? 30),
-                                'idPrefix' => 'module',
-                            ])
-                        </div>
-                    </div>
+                    {{-- ATURAN KUIS --}}
+                    @include('learning_module.partials.quiz-rules-fields', ['quiz' => $module, 'card' => true, 'defaultOn' => true])
 
                     {{-- SASARAN PESERTA --}}
                     <div class="card">
@@ -181,7 +145,7 @@
                     <div class="card">
                         <div class="card-body">
                             <button type="submit" class="btn btn-primary btn-block">
-                                {{ $isEdit ? 'Simpan Perubahan' : 'Simpan & Lanjut Buat Soal' }}
+                                {{ $isEdit ? 'Simpan Perubahan' : 'Simpan & Lanjut' }}
                             </button>
                             <a href="{{ route('learning-module.index') }}" class="btn btn-default btn-block">Batal</a>
                         </div>
@@ -233,9 +197,13 @@ $(function () {
         refresh();
     }
 
-    $('#btnAddMaterial').on('click', function () {
+    // Materi yang dipilih langsung masuk daftar (items[]), jadi pasti ikut tersimpan.
+    $('#materialPicker').on('select2:select', function () {
+        addMaterial($(this).val());
+        $(this).val(null).trigger('change');
+    });
+    $('#moduleForm').on('submit', function () {
         addMaterial($('#materialPicker').val());
-        $('#materialPicker').val(null).trigger('change');
     });
 
     $list.on('click', '.btn-up', function () {

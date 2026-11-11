@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Modul Saya" subtitle="Kerjakan pretest, pelajari semua materi, lalu kerjakan posttest. Posttest boleh diulang kapan saja." eyebrow="Modul Belajar" />
+        <x-page-header title="Modul Saya" subtitle="Ikuti langkah tiap modul: kuis awal bila ada, materi, lalu kuis akhir bila ada." eyebrow="Modul Belajar / Modul Saya" />
     </div>
 </section>
 
@@ -30,6 +30,8 @@
                                     <span class="badge badge-danger">Belum Lulus</span>
                                 @elseif($stage === 'posttest')
                                     <span class="badge badge-primary">Siap Posttest</span>
+                                @elseif($stage === 'selesai')
+                                    <span class="badge badge-success">Selesai</span>
                                 @elseif($stage === 'materi')
                                     <span class="badge badge-warning">Pelajari Materi</span>
                                 @else
@@ -41,20 +43,34 @@
                             @endif
 
                             <div class="small text-muted mb-3 mt-auto">
-                                <div>{{ $p->totalItemCount() }} materi &middot; {{ $module->questions_count }} soal &middot; KKM {{ $module->passing_score }}</div>
+                                <div>
+                                    {{ $p->totalItemCount() }} materi
+                                    @if($module->hasQuiz())
+                                        &middot; {{ $module->questions_count }} soal &middot; KKM {{ $module->passing_score }}
+                                    @else
+                                        &middot; tanpa kuis
+                                    @endif
+                                </div>
                                 <div class="d-flex align-items-center gap-2 my-2">
                                     <div class="progress flex-grow-1">
                                         <div class="progress-bar" role="progressbar" style="width: {{ $percent }}%" aria-valuenow="{{ $percent }}" aria-valuemin="0" aria-valuemax="100"></div>
                                     </div>
                                     <span>{{ $percent }}%</span>
                                 </div>
-                                <div>
-                                    Pretest: <strong class="text-dark">{{ $p->pretest?->score ?? '-' }}</strong>
-                                    &middot; Posttest terbaik: <strong class="text-dark">{{ $best?->score ?? '-' }}</strong>
-                                </div>
+                                @if($module->hasQuiz())
+                                    <div>
+                                        @if($module->has_pretest)
+                                            Pretest: <strong class="text-dark">{{ $p->pretest?->score ?? '-' }}</strong>
+                                        @endif
+                                        @if($module->has_pretest && $module->has_posttest) &middot; @endif
+                                        @if($module->has_posttest)
+                                            Posttest terbaik: <strong class="text-dark">{{ $best?->score ?? '-' }}</strong>
+                                        @endif
+                                    </div>
+                                @endif
                             </div>
 
-                            <a href="{{ route('learning.show', $module) }}" class="btn {{ $p->hasPassed() ? 'btn-default' : 'btn-primary' }} btn-block">
+                            <a href="{{ route('learning.show', $module) }}" class="btn {{ $p->hasPassed() || $stage === 'selesai' ? 'btn-default' : 'btn-primary' }} btn-block">
                                 {{ $stage === 'pretest' ? 'Mulai Modul' : 'Lanjutkan' }}
                             </a>
                         </div>
@@ -63,7 +79,7 @@
             @empty
                 <div class="col-12">
                     <div class="card">
-                        <x-empty-state icon="fa-book-reader" title="Belum ada modul belajar" text="Belum ada modul belajar untuk Anda. Modul baru akan muncul di sini setelah dipublikasikan." />
+                        <x-empty-state icon="fa-book-reader" title="Belum ada modul belajar" text="Modul muncul di sini setelah dipublikasikan untuk divisi dan jabatan Anda." />
                     </div>
                 </div>
             @endforelse

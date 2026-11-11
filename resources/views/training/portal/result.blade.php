@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hasil Kuis - {{ $training->title }}</title>
+    <title>{{ $phase === 'pretest' ? 'Hasil Pretest' : 'Hasil Kuis' }} - {{ $training->title }}</title>
     @include('layout.partials.portal-head')
 </head>
 <body>
@@ -109,11 +109,21 @@
                 <a href="/training/portal/{{ $participant->token }}" class="btn btn-default px-4">
                     Kembali ke Halaman Pelatihan
                 </a>
+                @if($training->canRetakeQuiz($quizResult, $phase))
+                    <a href="{{ $phaseUrls['quiz'] }}" class="btn btn-primary px-4">
+                        Kerjakan Ulang
+                    </a>
+                @endif
             </div>
+            @if($training->allowsQuizRetake($phase))
+                <p class="text-muted text-xs mt-3 mb-0">
+                    Dikerjakan {{ $quizResult->attempt_count ?? 1 }}x · {{ \App\Support\QuizRules::remainingLabel($training->quizAttemptsLeft($quizResult, $phase)) }} · nilai tertinggi yang dipakai.
+                </p>
+            @endif
         </div>
 
         <!-- REVIEW PERTANYAAN -->
-        @if(! $training->show_quiz_answers)
+        @if(! $showsAnswers)
         <div class="content-card p-4 text-center text-muted text-sm">
             <i class="fas fa-eye-slash mr-1"></i> Rincian jawaban tidak ditampilkan untuk kuis ini.
         </div>

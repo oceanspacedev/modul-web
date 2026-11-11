@@ -20,7 +20,7 @@ class TrainingRekapExport implements FromArray, WithEvents, WithTitle
 
     const DATA_START = 8;
 
-    const LAST_COL = 'Q';
+    const LAST_COL = 'R';
 
     public function __construct(Training $training)
     {
@@ -48,13 +48,14 @@ class TrainingRekapExport implements FromArray, WithEvents, WithTitle
             'No', 'ID Karyawan', 'Nama Peserta', 'Divisi', 'No WhatsApp',
             'Status Kehadiran', 'Waktu Absen', 'Bukti Screenshot', 'Status Kuis',
             'Nilai PG (0-100)', 'Status Essay', 'Nilai Essay (0-100)', 'Nilai Akhir (0-100)',
-            'Catatan Essay', 'Pelanggaran Tab', 'Status Submit', 'Waktu Submit Kuis',
+            'Catatan Essay', 'Pelanggaran Tab', 'Status Submit', 'Waktu Submit Kuis', 'Nilai Pretest (0-100)',
         ];
 
         $no = 1;
         foreach ($training->participants as $participant) {
             $user = $participant->user;
             $quiz = $participant->quizResult;
+            $pretest = $training->has_pretest ? $participant->pretestResult : null;
 
             $essayStatusLabel = 'Tidak Ada Essay';
             if ($quiz) {
@@ -102,6 +103,7 @@ class TrainingRekapExport implements FromArray, WithEvents, WithTitle
                 $quiz && $quiz->submitted_at
                     ? Carbon::parse($quiz->submitted_at)->format('d-m-Y H:i')
                     : '-',
+                $pretest ? (float) $pretest->score : '-',
             ];
         }
 
@@ -173,6 +175,7 @@ class TrainingRekapExport implements FromArray, WithEvents, WithTitle
                     'I' => 18,  'J' => 13,  'K' => 18,  'L' => 14,
                     'M' => 14,  'N' => 28,  'O' => 15,  'P' => 22,
                     'Q' => 18,
+                    'R' => 18,
                 ];
                 foreach ($widths as $col => $width) {
                     $sheet->getColumnDimension($col)->setWidth($width);

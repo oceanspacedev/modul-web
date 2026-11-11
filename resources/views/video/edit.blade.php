@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Edit Video" :subtitle="$video->title" eyebrow="Konten / Video">
+        <x-page-header title="Edit Video" :subtitle="$video->title" :breadcrumbs="['Video Materi' => route('video.index'), $video->title => route('video.show', ['video' => $video->id, 'preview' => 1]), 'Edit' => null]">
             <x-slot:actions>
                 <a href="{{ route('video.index') }}" class="btn btn-default">
                     <i class="fas fa-arrow-left"></i> Kembali ke Galeri
@@ -101,7 +101,7 @@
                         </div>
                     </div>
 
-                    @include('learning_module.partials.material-quiz-fields', ['quiz' => $quiz, 'card' => true])
+                    @include('learning_module.partials.quiz-rules-fields', ['quiz' => $quiz, 'card' => true])
                 </div>
 
                 <div class="col-lg-4">

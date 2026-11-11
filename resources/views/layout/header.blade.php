@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Modul</title>
+    <title>{{ isset($title) && is_string($title) && $title !== '' ? $title.' · Modul' : 'Modul' }}</title>
     @include('layout.partials.favicon')
 
     <!-- Font Awesome -->

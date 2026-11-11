@@ -56,7 +56,7 @@ class DocumentController extends Controller
         $documents = $query->when($trashed, fn ($query) => $query->latest('deleted_at'), fn ($query) => $query->orderBy('name'))->get();
 
         return view('document.index', [
-            'title' => 'Documents',
+            'title' => 'Dokumen',
             'active' => 'document',
             'divisis' => $divisis,
             'doctypes' => $doctypes,
@@ -68,7 +68,7 @@ class DocumentController extends Controller
     public function create(): View
     {
         return view('document.create', [
-            'title' => 'Documents',
+            'title' => 'Dokumen',
             'active' => 'document',
             'divisis' => Divisi::all(),
             'documentypes' => DokumenType::all(),
@@ -162,7 +162,7 @@ class DocumentController extends Controller
         $document->load(['versions', 'divisi', 'role', 'dokumentype']);
 
         return view('document.edit', [
-            'title' => 'Documents',
+            'title' => 'Dokumen',
             'active' => 'document',
             'divisis' => Divisi::all(),
             'documentypes' => DokumenType::all(),

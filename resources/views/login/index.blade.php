@@ -28,6 +28,7 @@
             --primary-500: #ff6bb5;
             --primary-600: #ff4da6;
             --primary-700: #e6007a;
+            --primary-800: #c20067;
             --danger-600: #dc2626;
             --ring-input: rgba(9, 9, 11, 0.1);
             --focus-ring: 0 0 0 1px #ff4da6, 0 0 0 4px rgba(255, 77, 166, 0.2);
@@ -46,93 +47,67 @@
             color: var(--gray-950);
             min-height: 100vh;
             display: flex;
+            align-items: center;
             justify-content: center;
-            padding: 3.5rem 1.5rem 2rem;
+            padding: 24px;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
 
         .login-wrapper {
             width: 100%;
-            max-width: 480px;
+            max-width: 400px;
         }
 
         /* Brand mark above the card */
         .login-logo {
             display: block;
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 3rem;
-        }
-
-        /* Double frame: soft gray shell around the white card */
-        .login-frame {
-            padding: 7px;
-            border-radius: 18px;
-            background: var(--gray-100);
-            box-shadow: inset 0 0 0 1px var(--gray-200);
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 24px;
         }
 
         .login-card {
             background: #ffffff;
+            border: 1px solid var(--gray-200);
             border-radius: 12px;
-            padding: 2rem 1.25rem 1.25rem;
-            box-shadow: 0 0 0 1px rgba(9, 9, 11, 0.05), 0 1px 2px rgba(9, 9, 11, 0.05);
+            padding: 32px;
         }
 
         /* Card heading */
         .card-heading {
             text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .heading-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 46px;
-            height: 46px;
-            margin-bottom: 1.125rem;
-            border-radius: 10px;
-            background: #ffffff;
-            color: var(--gray-950);
-            font-size: 1.05rem;
-            box-shadow: 0 0 0 1px var(--gray-200), 0 1px 2px rgba(9, 9, 11, 0.05);
-        }
-
-        .heading-icon.is-whatsapp {
-            color: #16a34a;
-            font-size: 1.25rem;
+            margin-bottom: 24px;
         }
 
         .heading-title {
             font-family: 'Figtree', 'Inter', sans-serif;
-            font-size: 1.3125rem;
-            font-weight: 500;
-            letter-spacing: -0.01em;
-            line-height: 1.3;
+            font-size: 20px;
+            font-weight: 600;
+            line-height: 28px;
         }
 
         .heading-subtitle {
-            margin-top: 0.375rem;
-            font-size: 0.875rem;
+            margin-top: 4px;
+            font-size: 14px;
+            line-height: 20px;
             color: var(--gray-500);
         }
 
         .heading-subtitle strong {
             color: var(--gray-950);
-            font-weight: 600;
+            font-weight: 500;
         }
 
         /* Alerts */
         .alert-box {
             display: flex;
             align-items: flex-start;
-            gap: 0.6rem;
-            margin-bottom: 1.25rem;
-            padding: 0.75rem 0.875rem;
-            border-radius: 10px;
-            font-size: 0.8125rem;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
             line-height: 1.5;
         }
 
@@ -154,13 +129,13 @@
 
         /* Fields */
         .form-group {
-            margin-bottom: 1.375rem;
+            margin-bottom: 16px;
         }
 
         .form-label {
             display: block;
-            margin-bottom: 0.5rem;
-            font-size: 0.9375rem;
+            margin-bottom: 8px;
+            font-size: 14px;
             font-weight: 500;
             color: var(--gray-950);
         }
@@ -174,14 +149,14 @@
 
         .form-input {
             width: 100%;
-            height: 46px;
-            padding: 0 0.875rem;
+            height: 40px;
+            padding: 0 12px;
             font-family: inherit;
-            font-size: 0.9375rem;
+            font-size: 14px;
             color: var(--gray-950);
             background: #ffffff;
-            border: 1px solid var(--gray-300);
-            border-radius: 10px;
+            border: 1px solid var(--ring-input);
+            border-radius: 8px;
             box-shadow: 0 1px 2px rgba(9, 9, 11, 0.05);
             outline: none;
             transition: border-color 0.1s ease, box-shadow 0.1s ease;
@@ -200,10 +175,10 @@
         .input-joined {
             display: flex;
             align-items: stretch;
-            height: 46px;
+            height: 40px;
             background: #ffffff;
-            border: 1px solid var(--gray-300);
-            border-radius: 10px;
+            border: 1px solid var(--ring-input);
+            border-radius: 8px;
             box-shadow: 0 1px 2px rgba(9, 9, 11, 0.05);
             overflow: hidden;
             transition: border-color 0.1s ease, box-shadow 0.1s ease;
@@ -229,12 +204,12 @@
 
         .input-toggle-password {
             flex-shrink: 0;
-            width: 56px;
+            width: 40px;
             border: 0;
             border-left: 1px solid var(--gray-200);
             background: #ffffff;
             color: var(--gray-500);
-            font-size: 1rem;
+            font-size: 14px;
             cursor: pointer;
         }
 
@@ -245,17 +220,18 @@
 
         .otp-input-box {
             width: 100%;
-            height: 54px;
+            height: 48px;
             text-align: center;
             font-family: inherit;
-            font-size: 1.5rem;
+            font-size: 20px;
             font-weight: 600;
             letter-spacing: 0.5em;
             padding-left: 0.5em;
+            font-variant-numeric: tabular-nums;
             color: var(--gray-950);
             background: #ffffff;
-            border: 1px solid var(--gray-300);
-            border-radius: 10px;
+            border: 1px solid var(--ring-input);
+            border-radius: 8px;
             box-shadow: 0 1px 2px rgba(9, 9, 11, 0.05);
             outline: none;
         }
@@ -269,20 +245,19 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 0.75rem;
-            margin-bottom: 1.5rem;
-            font-size: 0.8125rem;
+            gap: 12px;
+            margin-bottom: 24px;
+            font-size: 13px;
             color: var(--gray-500);
         }
 
         .remember {
             display: inline-flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 8px;
             cursor: pointer;
             user-select: none;
-            font-size: 0.9375rem;
-            font-weight: 500;
+            font-size: 14px;
             color: var(--gray-950);
         }
 
@@ -291,19 +266,18 @@
             -webkit-appearance: none;
             display: inline-grid;
             place-content: center;
-            width: 20px;
-            height: 20px;
+            width: 16px;
+            height: 16px;
             border: 1px solid var(--gray-300);
-            border-radius: 5px;
+            border-radius: 4px;
             background: #ffffff;
-            box-shadow: 0 1px 2px rgba(9, 9, 11, 0.05);
             cursor: pointer;
         }
 
         .remember input::after {
             content: '';
-            width: 10px;
-            height: 6px;
+            width: 8px;
+            height: 5px;
             margin-top: -2px;
             border-left: 2px solid #ffffff;
             border-bottom: 2px solid #ffffff;
@@ -327,7 +301,8 @@
 
         .login-options strong {
             color: var(--gray-950);
-            font-weight: 600;
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
         }
 
         /* Buttons */
@@ -335,27 +310,30 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
+            gap: 8px;
             width: 100%;
-            height: 46px;
-            border: 1px solid var(--primary-600);
-            border-radius: 10px;
-            background: linear-gradient(to bottom, var(--primary-500), var(--primary-600));
+            height: 40px;
+            border: 1px solid var(--primary-700);
+            border-radius: 8px;
+            background-color: var(--primary-700);
+            background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0));
             color: #ffffff;
             font-family: inherit;
-            font-size: 0.9375rem;
-            font-weight: 600;
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(9, 9, 11, 0.12);
-            transition: filter 0.1s ease;
+            transition: background-color 0.1s ease;
         }
 
         .btn-primary-action:hover:not(:disabled) {
-            filter: brightness(1.05);
+            background-color: var(--primary-800);
+            border-color: var(--primary-800);
         }
 
         .btn-primary-action:active:not(:disabled) {
-            background: var(--primary-700);
+            background-color: var(--primary-800);
+            border-color: var(--primary-800);
             box-shadow: inset 0 1px 2px rgba(9, 9, 11, 0.2);
         }
 
@@ -367,13 +345,10 @@
         .divider {
             display: flex;
             align-items: center;
-            gap: 1.25rem;
-            margin: 1.5rem 0;
-            font-size: 0.75rem;
-            font-weight: 600;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            color: var(--gray-400);
+            gap: 12px;
+            margin: 20px 0;
+            font-size: 12px;
+            color: var(--gray-500);
         }
 
         .divider::before,
@@ -386,7 +361,7 @@
 
         .social-row {
             display: flex;
-            gap: 0.75rem;
+            gap: 8px;
         }
 
         .btn-social {
@@ -394,15 +369,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.75rem;
-            height: 46px;
-            border: 1px solid var(--gray-300);
-            border-radius: 10px;
+            gap: 8px;
+            height: 40px;
+            border: 1px solid var(--ring-input);
+            border-radius: 8px;
             background: #ffffff;
             color: var(--gray-950);
             font-family: inherit;
-            font-size: 0.9375rem;
-            font-weight: 600;
+            font-size: 14px;
+            font-weight: 500;
             text-decoration: none;
             cursor: pointer;
             box-shadow: 0 1px 2px rgba(9, 9, 11, 0.05);
@@ -415,23 +390,23 @@
 
         .btn-social .icon-whatsapp {
             color: #16a34a;
-            font-size: 1.3rem;
+            font-size: 16px;
         }
 
         .btn-social .icon-gallery {
-            color: var(--primary-600);
-            font-size: 1.1rem;
+            color: var(--gray-500);
+            font-size: 14px;
         }
 
         .btn-back-link,
         .text-link-btn {
             display: inline-flex;
             align-items: center;
-            gap: 0.4rem;
+            gap: 8px;
             border: 0;
             background: transparent;
             font-family: inherit;
-            font-size: 0.8125rem;
+            font-size: 13px;
             font-weight: 500;
             color: var(--gray-500);
             cursor: pointer;
@@ -440,7 +415,7 @@
         .btn-back-link {
             width: 100%;
             justify-content: center;
-            margin-top: 1rem;
+            margin-top: 16px;
         }
 
         .btn-back-link:hover,
@@ -449,7 +424,7 @@
         }
 
         .text-link-btn {
-            color: var(--primary-600);
+            color: var(--primary-700);
         }
 
         .text-link-btn:hover {
@@ -457,10 +432,10 @@
         }
 
         .footer-note {
-            margin-top: 1.5rem;
+            margin-top: 24px;
             text-align: center;
-            font-size: 0.75rem;
-            color: var(--gray-400);
+            font-size: 12px;
+            color: var(--gray-500);
         }
 
         .hidden {
@@ -469,15 +444,19 @@
 
         @media (max-width: 480px) {
             body {
-                padding: 2rem 1rem;
+                padding: 16px;
             }
 
-            .login-logo {
-                margin-bottom: 2rem;
+            .login-card {
+                padding: 24px 20px;
             }
 
             .social-row {
                 flex-direction: column;
+            }
+
+            .btn-social {
+                flex: none;
             }
         }
     </style>
@@ -487,7 +466,6 @@
     <div class="login-wrapper">
         <img src="{{ asset('images/logo.svg') }}" alt="Modul" class="login-logo">
 
-        <div class="login-frame">
         <div class="login-card">
 
             <!-- ============================================== -->
@@ -495,7 +473,6 @@
             <!-- ============================================== -->
             <div id="screenLoginPassword">
                 <div class="card-heading">
-                    <span class="heading-icon"><i class="fas fa-sign-in-alt"></i></span>
                     <h1 class="heading-title">Masuk ke akun Anda</h1>
                 </div>
 
@@ -560,7 +537,7 @@
                 </form>
 
                 <div class="divider">
-                    <span>Atau</span>
+                    <span>atau</span>
                 </div>
 
                 <div class="social-row">
@@ -580,9 +557,8 @@
             <!-- ============================================== -->
             <div id="screenOtpRequest" class="hidden">
                 <div class="card-heading">
-                    <span class="heading-icon is-whatsapp"><i class="fab fa-whatsapp"></i></span>
                     <h1 class="heading-title">Masuk dengan WhatsApp</h1>
-                    <p class="heading-subtitle">Kode OTP akan dikirim ke nomor Anda.</p>
+                    <p class="heading-subtitle">Kode OTP akan dikirim ke nomor Anda</p>
                 </div>
 
                 <!-- Alert Container -->
@@ -619,7 +595,6 @@
             <!-- ============================================== -->
             <div id="screenOtpVerify" class="hidden">
                 <div class="card-heading">
-                    <span class="heading-icon"><i class="fas fa-shield-alt"></i></span>
                     <h1 class="heading-title">Verifikasi OTP</h1>
                     <p class="heading-subtitle">Kode dikirim ke <strong id="maskedPhoneDisplay">-</strong></p>
                 </div>
@@ -670,7 +645,6 @@
                 </form>
             </div>
 
-        </div>
         </div>
 
         <p class="footer-note">

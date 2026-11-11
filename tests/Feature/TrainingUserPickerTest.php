@@ -45,12 +45,18 @@ class TrainingUserPickerTest extends TestCase
         $this->actingAs($admin)->get(route('training.create'))
             ->assertOk()
             ->assertHeader('Cache-Control', 'no-store, private')
-            ->assertSee('data-name="budi santoso"', false)
-            ->assertSee('data-username="azka"', false)
             ->assertSee('<option value="'.$user->id.'"', false)
-            // Baris peserta ber-kelas d-flex (!important), jadi filter harus menyembunyikan lewat kelas d-none.
-            ->assertSee("item.classList.toggle('d-none', !visible)", false)
-            ->assertDontSee("item.style.display = 'none'", false);
+            // Pemilih peserta dibuat browser dari data ringkas ini: nama, ID karyawan, dan username bisa dicari.
+            ->assertSee($this->pickerRow($user), false)
+            ->assertViewHas('users', fn ($users) => $users->contains('id', $user->id));
+    }
+
+    /**
+     * Baris user di data JSON pemilih peserta: [id, nama, id karyawan, username, id divisi, punya nomor WA].
+     */
+    private function pickerRow(User $user): string
+    {
+        return json_encode([$user->id, $user->nama_lengkap, 'EMP-901', 'azka', $user->divisi_id, false]);
     }
 
     public function test_new_user_is_searchable_in_edit_form(): void
@@ -69,10 +75,32 @@ class TrainingUserPickerTest extends TestCase
         $this->actingAs($admin)->get(route('training.edit', $training))
             ->assertOk()
             ->assertHeader('Cache-Control', 'no-store, private')
-            ->assertSee('data-username="azka"', false)
             ->assertSee('<option value="'.$user->id.'"', false)
-            // Baris peserta ber-kelas d-flex (!important), jadi filter harus menyembunyikan lewat kelas d-none.
-            ->assertSee("item.classList.toggle('d-none', !visible)", false)
-            ->assertDontSee("item.style.display = 'none'", false);
+            ->assertSee($this->pickerRow($user), false);
+    }
+
+    public function test_edit_form_marks_saved_participants_and_only_ships_lean_user_rows(): void
+    {
+        $admin = User::where('username', 'admin')->first();
+        $training = Training::create([
+            'title' => 'Onboarding',
+            'trainer_id' => $admin->id,
+            'training_date' => now()->addDay()->toDateString(),
+            'start_time' => '09:00',
+            'end_time' => '11:00',
+            'zoom_link' => 'https://zoom.us/j/123',
+        ]);
+        $member = User::factory()->staff()->create(['no_hp' => '081234567890']);
+        $training->participants()->create(['user_id' => $member->id, 'token' => 'tok-member', 'attendance_status' => 'pending']);
+
+        $response = $this->actingAs($admin)->get(route('training.edit', $training))->assertOk();
+
+        // Peserta tersimpan menjadi pilihan awal dan dasar konfirmasi "dikeluarkan".
+        $response->assertSee('const SAVED_IDS = ['.$member->id.'];', false)
+            ->assertSee('const selected = new Set(['.$member->id.']);', false)
+            ->assertSee('id="participantList"', false)
+            // Baris daftar tidak lagi dirender server untuk setiap user.
+            ->assertDontSee('name="participants[]" value="'.$member->id.'"', false)
+            ->assertViewHas('users', fn ($users) => ! $users->first() instanceof User && ! property_exists($users->first(), 'password'));
     }
 }
