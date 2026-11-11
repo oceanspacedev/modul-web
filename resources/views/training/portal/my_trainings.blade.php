@@ -3,12 +3,13 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Pelatihan Saya" subtitle="Daftar sesi pelatihan yang Anda ikuti beserta kehadiran dan nilai kuis." eyebrow="Pelatihan" />
+        <x-page-header title="Pelatihan Saya" subtitle="Klik Buka Sesi untuk bergabung ke Zoom, mengisi presensi, dan mengerjakan kuis. Kolom Yang Perlu Dilakukan menunjukkan langkah Anda berikutnya." eyebrow="Pelatihan / Pelatihan Saya" />
     </div>
 </section>
 
 <section class="content">
     <div class="container-fluid">
+        <x-flash />
         <div class="card">
             <div class="card-body table-responsive p-0">
                 <table class="table table-hover mb-0">
@@ -20,6 +21,7 @@
                             <th>Jadwal Pelaksanaan</th>
                             <th class="text-center">Kehadiran</th>
                             <th class="text-center">Nilai Kuis</th>
+                            <th>Yang Perlu Dilakukan</th>
                             <th class="text-right" style="width: 140px;">Aksi</th>
                         </tr>
                     </thead>
@@ -28,6 +30,14 @@
                         @php
                             $t = $part->training;
                             $quiz = $part->quizResult;
+                            [$todo, $todoClass, $needsAction] = match (true) {
+                                $t->status === App\Enums\TrainingStatus::Cancelled => ['Pelatihan dibatalkan', 'text-muted', false],
+                                $quiz !== null => ['Selesai', 'text-success', false],
+                                $t->is_attendance_active && $part->attendance_status === 'pending' => ['Isi presensi sekarang', 'text-primary font-weight-bold', true],
+                                (bool) $t->is_quiz_active => ['Kerjakan kuis sekarang', 'text-primary font-weight-bold', true],
+                                $t->status === App\Enums\TrainingStatus::Completed => ['Pelatihan sudah selesai', 'text-muted', false],
+                                default => ['Ikuti sesi sesuai jadwal; tunggu pemateri membuka presensi/kuis', 'text-muted', false],
+                            };
                         @endphp
                         <tr>
                             <td class="text-center text-muted">
@@ -64,16 +74,17 @@
                                     <span class="text-muted small">-</span>
                                 @endif
                             </td>
+                            <td class="small {{ $todoClass }}">{{ $todo }}</td>
                             <td class="text-right">
-                                <a href="/training/portal/{{ $part->token }}" target="_blank" class="btn btn-default btn-xs">
-                                    Buka Sesi
+                                <a href="/training/portal/{{ $part->token }}" target="_blank" rel="noopener" class="btn {{ $needsAction ? 'btn-primary' : 'btn-default' }} btn-xs" title="Dibuka di tab baru">
+                                    Buka Sesi <i class="fas fa-external-link-alt"></i>
                                 </a>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="7">
-                                <x-empty-state icon="fa-chalkboard-teacher" title="Belum ada pelatihan" text="Anda belum memiliki jadwal pelatihan yang ditugaskan." />
+                            <td colspan="8">
+                                <x-empty-state icon="fa-chalkboard-teacher" title="Belum ada pelatihan" text="Anda belum terdaftar di pelatihan mana pun. Pelatihan muncul di sini setelah admin/pemateri mendaftarkan Anda sebagai peserta." />
                             </td>
                         </tr>
                         @endforelse

@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Modul Saya" subtitle="Kerjakan pretest, pelajari semua materi, lalu kerjakan posttest. Posttest boleh diulang kapan saja." eyebrow="Modul Belajar" />
+        <x-page-header title="Modul Saya" subtitle="Kerjakan pretest, pelajari semua materi, lalu kerjakan posttest. Posttest boleh diulang kapan saja." eyebrow="Modul Belajar / Modul Saya" />
     </div>
 </section>
 
@@ -63,7 +63,7 @@
             @empty
                 <div class="col-12">
                     <div class="card">
-                        <x-empty-state icon="fa-book-reader" title="Belum ada modul belajar" text="Belum ada modul belajar untuk Anda. Modul baru akan muncul di sini setelah dipublikasikan." />
+                        <x-empty-state icon="fa-book-reader" title="Belum ada modul belajar" text="Modul muncul di sini setelah admin mempublikasikannya untuk divisi dan jabatan Anda. Hubungi admin bila Anda merasa seharusnya mendapat modul." />
                     </div>
                 </div>
             @endforelse

@@ -57,13 +57,17 @@
         <!-- DETAIL PELATIHAN -->
         <div class="content-card">
             <div class="content-card-header">
-                <span>Informasi Sesi</span>
+                <span><span class="badge badge-primary mr-1">Langkah 1</span> Ikuti Sesi</span>
                 <x-training-status-badge :status="$training->status" />
             </div>
 
-            <h1 class="page-title mb-3" style="font-size: 1.375rem;">
+            <h1 class="page-title mb-2" style="font-size: 1.375rem;">
                 {{ $training->title }}
             </h1>
+            <p class="text-muted small mb-3">
+                Cara mengikuti: (1) bergabung ke sesi lewat tautan Zoom sesuai jadwal, (2) isi presensi saat pemateri membukanya,
+                (3) kerjakan kuis setelah pemateri membukanya. Halaman ini memperbarui otomatis, tidak perlu di-refresh.
+            </p>
 
             <div class="row mb-3">
                 <div class="col-sm-6 mb-2">
@@ -123,7 +127,7 @@
         <!-- KONFIRMASI KEHADIRAN -->
         <div class="content-card" id="attendanceCard">
             <div class="content-card-header">
-                <span>Presensi Kehadiran</span>
+                <span><span class="badge badge-primary mr-1">Langkah 2</span> Presensi Kehadiran</span>
                 <div class="d-flex align-items-center gap-2">
                     @if($participant->attendance_status === 'hadir')
                         <span class="badge badge-success" id="attendanceBadge">Hadir</span>
@@ -259,7 +263,7 @@
         <!-- KUIS EVALUASI -->
         <div class="content-card" id="quizCard">
             <div class="content-card-header">
-                <span>Kuis Evaluasi</span>
+                <span><span class="badge badge-primary mr-1">Langkah 3</span> Kuis Evaluasi</span>
                 <span class="text-muted small">{{ $training->questions->count() }} Pertanyaan</span>
             </div>
 
@@ -288,7 +292,7 @@
                     </a>
                 @else
                     <div class="text-center py-4 text-muted" id="quizLockedMsg">
-                        Kuis evaluasi saat ini belum dibuka oleh pemateri.
+                        Kuis belum dibuka. Pemateri akan membukanya setelah materi selesai; tombol "Mulai Kerjakan Kuis" muncul di sini otomatis.
                     </div>
                 @endif
                 </div>
@@ -448,7 +452,7 @@
             function buildQuizLockedHTML() {
                 return `
                     <div class="text-center py-4 text-muted">
-                        Kuis evaluasi saat ini belum dibuka oleh pemateri.
+                        Kuis belum dibuka. Pemateri akan membukanya setelah materi selesai; tombol "Mulai Kerjakan Kuis" muncul di sini otomatis.
                     </div>`;
             }
 
