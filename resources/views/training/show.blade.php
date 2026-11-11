@@ -1065,7 +1065,7 @@
                         <i class="fas fa-camera-retro text-muted mr-1"></i> Pindai Presensi Zoom: Deteksi Off Cam
                     </h5>
                     <small class="text-muted">
-                        Menganalisis screenshot Zoom (hingga 10 file) dengan Vision AI untuk mendeteksi peserta yang mematikan kamera dan mencocokkan nama secara otomatis.
+                        Menganalisis screenshot Zoom (hingga 40 gambar) dengan Vision AI untuk mendeteksi peserta yang mematikan kamera dan mencocokkan nama secara otomatis.
                     </small>
                 </div>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
@@ -1081,21 +1081,21 @@
                             <label for="zoomFileInput" class="zoom-drop-area d-block text-center p-4 m-0 w-100" id="zoomDropArea">
                                 <span class="stat-tile-icon mb-3"><i class="fas fa-cloud-upload-alt"></i></span>
                                 <span class="section-title d-block mb-1">
-                                    Klik untuk Memilih atau Tarik Screenshot Zoom ke Sini
+                                    Klik untuk Memilih atau Tarik Screenshot / File Word ke Sini
                                 </span>
                                 <p class="text-muted text-sm mb-2">
-                                    Mendukung hingga <strong>10 screenshot</strong> sekaligus (Format: JPG, PNG, WEBP).
+                                    Hingga <strong>40 gambar</strong> (JPG, PNG, WEBP) atau file Word <strong>.docx</strong> berisi screenshot.
                                 </p>
                                 <span class="badge badge-secondary mb-2">
                                     <i class="fas fa-bolt"></i> Solusi 1: Kompresi Otomatis di Browser (~200KB/file, proses super cepat & hemat kuota)
                                 </span>
                                 <div class="mt-2">
                                     <span class="btn btn-default btn-sm">
-                                        <i class="fas fa-folder-open"></i> Pilih Screenshot dari Komputer
+                                        <i class="fas fa-folder-open"></i> Pilih Screenshot / File Word
                                     </span>
                                 </div>
                             </label>
-                            <input type="file" id="zoomFileInput" multiple accept="image/png,image/jpeg,image/webp" style="display: none;">
+                            <input type="file" id="zoomFileInput" multiple accept="image/png,image/jpeg,image/webp,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display: none;">
 
                             <div class="mt-3 text-center p-2 rounded bg-light border">
                                 <span class="text-muted text-sm">Tidak punya screenshot? Ingin mendata langsung?</span>
@@ -1111,7 +1111,7 @@
                             <div class="mt-4 d-none" id="zoomPreviewSection">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <strong class="text-sm">
-                                        Screenshot Terpilih (<span id="zoomFileCount">0</span>/10 file):
+                                        Screenshot Terpilih (<span id="zoomFileCount">0</span>/40):
                                     </strong>
                                     <button type="button" class="btn btn-default btn-xs text-danger" id="btnClearFiles">
                                         <i class="fas fa-trash-alt"></i> Hapus Semua
@@ -1278,6 +1278,7 @@
 @endsection
 
 @section('footer')
+<script src="{{ asset('template/plugins/jszip/jszip.min.js') }}"></script>
 <script>
 function toggleVideoTypeInShow(type) {
     var fileGroup = document.getElementById('showFileInputGroup');
@@ -1454,6 +1455,9 @@ if (typeof $ !== 'undefined') {
     const btnBackToUpload = document.getElementById('btnBackToUpload');
     const btnConfirmSave = document.getElementById('btnConfirmSave');
 
+    const MAX_SCREENSHOTS = 40;
+    const SCAN_BATCH_SIZE = 10; // the server accepts at most 10 images per request
+
     let selectedFiles = []; // array of { file, base64, origSize, compSize }
     let loadingInterval = null;
 
@@ -1534,33 +1538,119 @@ if (typeof $ !== 'undefined') {
         });
     }
 
-    // Process selected files
+    function isDocx(file) {
+        return /\.docx$/i.test(file.name);
+    }
+
+    // Read the image size so tiny pictures (icons, logos) inside a Word file can be skipped
+    function imageWidth(file) {
+        return new Promise(resolve => {
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => { URL.revokeObjectURL(url); resolve(img.width); };
+            img.onerror = () => { URL.revokeObjectURL(url); resolve(0); };
+            img.src = url;
+        });
+    }
+
+    // Pull the screenshots out of a .docx, in the order they appear in the document
+    async function extractDocxImages(docxFile) {
+        if (typeof JSZip === 'undefined') {
+            throw new Error('Pembaca file Word belum termuat. Muat ulang halaman lalu coba lagi.');
+        }
+
+        const zip = await JSZip.loadAsync(docxFile);
+        const mimeByExt = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp' };
+        const isImagePath = path => /^word\/media\/[^/]+\.(png|jpe?g|webp)$/i.test(path);
+
+        let orderedPaths = [];
+        const docXml = zip.file('word/document.xml');
+        const relsXml = zip.file('word/_rels/document.xml.rels');
+        if (docXml && relsXml) {
+            const [doc, rels] = await Promise.all([docXml.async('string'), relsXml.async('string')]);
+            const targetById = {};
+            for (const m of rels.matchAll(/<Relationship\b[^>]*>/g)) {
+                const id = (m[0].match(/\bId="([^"]+)"/) || [])[1];
+                const target = (m[0].match(/\bTarget="([^"]+)"/) || [])[1];
+                if (id && target) targetById[id] = 'word/' + target.replace(/^\.?\//, '');
+            }
+            for (const m of doc.matchAll(/r:embed="([^"]+)"/g)) {
+                const path = targetById[m[1]];
+                if (path && isImagePath(path) && !orderedPaths.includes(path)) orderedPaths.push(path);
+            }
+        }
+
+        // Fallback: any media file not referenced above, sorted naturally (image2 before image10)
+        const remaining = Object.keys(zip.files)
+            .filter(path => isImagePath(path) && !orderedPaths.includes(path))
+            .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        orderedPaths = orderedPaths.concat(remaining);
+
+        const baseName = docxFile.name.replace(/\.docx$/i, '');
+        const images = [];
+        for (const path of orderedPaths) {
+            const ext = path.split('.').pop().toLowerCase();
+            const blob = await zip.file(path).async('blob');
+            const file = new File([blob], `${baseName} #${images.length + 1}.${ext}`, { type: mimeByExt[ext] });
+            if (await imageWidth(file) < 200) continue;
+            images.push(file);
+        }
+
+        return images;
+    }
+
+    // Process selected files (images and/or Word documents)
     async function handleFilesSelected(files) {
         uploadAlert.classList.add('d-none');
         uploadAlert.textContent = '';
 
-        const validFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
-        if (validFiles.length === 0) {
-            uploadAlert.textContent = 'Harap pilih file gambar screenshot yang valid (JPG, PNG, WEBP).';
+        const remainingSlots = MAX_SCREENSHOTS - selectedFiles.length;
+        if (remainingSlots <= 0) {
+            uploadAlert.textContent = `Batas maksimal ${MAX_SCREENSHOTS} screenshot sudah tercapai.`;
             uploadAlert.classList.remove('d-none');
             return;
         }
 
-        // Limit to 10 files
-        const remainingSlots = 10 - selectedFiles.length;
-        if (remainingSlots <= 0) {
-            uploadAlert.textContent = 'Batas maksimal 10 screenshot sudah tercapai.';
+        btnStartScan.disabled = true;
+        btnStartScan.innerHTML = '<span class="spinner-border spinner-border-sm mr-1"></span> Membaca file...';
+
+        const validFiles = [];
+        const problems = [];
+        for (const f of Array.from(files)) {
+            if (f.type.startsWith('image/')) {
+                validFiles.push(f);
+            } else if (isDocx(f)) {
+                try {
+                    const images = await extractDocxImages(f);
+                    if (images.length === 0) {
+                        problems.push(`Tidak ada screenshot di dalam "${f.name}".`);
+                    }
+                    validFiles.push(...images);
+                } catch (err) {
+                    console.error('Docx read error:', err);
+                    problems.push(err.message && err.message.startsWith('Pembaca') ? err.message : `File "${f.name}" tidak bisa dibaca.`);
+                }
+            }
+        }
+
+        if (validFiles.length === 0) {
+            uploadAlert.textContent = problems.length
+                ? problems.join(' ')
+                : 'Harap pilih screenshot (JPG, PNG, WEBP) atau file Word (.docx).';
             uploadAlert.classList.remove('d-none');
+            renderThumbnails();
             return;
         }
 
         const filesToProcess = validFiles.slice(0, remainingSlots);
         if (validFiles.length > remainingSlots) {
-            uploadAlert.textContent = `Hanya ${remainingSlots} screenshot tambahan yang dapat dimasukkan (maks. 10).`;
+            problems.push(`Hanya ${remainingSlots} dari ${validFiles.length} gambar yang dimasukkan (maks. ${MAX_SCREENSHOTS}).`);
+        }
+        if (problems.length) {
+            uploadAlert.textContent = problems.join(' ');
             uploadAlert.classList.remove('d-none');
         }
 
-        btnStartScan.disabled = true;
         btnStartScan.innerHTML = '<span class="spinner-border spinner-border-sm mr-1"></span> Mengompresi screenshot...';
 
         for (const f of filesToProcess) {
@@ -1572,6 +1662,7 @@ if (typeof $ !== 'undefined') {
             }
         }
 
+        if (fileInput) fileInput.value = '';
         renderThumbnails();
     }
 
@@ -1669,50 +1760,95 @@ if (typeof $ !== 'undefined') {
                 if (subEl) subEl.textContent = loadingMessages[msgIdx];
             }, 3000);
 
-            // Payload: array of base64 strings
-            const payload = {
-                images: selectedFiles.map(item => item.base64)
-            };
+            // Send the screenshots in batches of 10 (server limit), one after another
+            const images = selectedFiles.map(item => item.base64);
+            const batches = [];
+            for (let i = 0; i < images.length; i += SCAN_BATCH_SIZE) {
+                batches.push(images.slice(i, i + SCAN_BATCH_SIZE));
+            }
+            const titleEl = document.getElementById('zoomLoadingTitle');
 
-            fetch(`/training/${TRAINING_ID}/scan-zoom-ai`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': CSRF_TOKEN,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            })
-            .then(res => res.json().then(data => ({ ok: res.ok, data })))
-            .then(result => {
+            (async () => {
+                const collected = [];
+                let failure = null;
+
+                for (let b = 0; b < batches.length; b++) {
+                    if (titleEl) {
+                        titleEl.textContent = batches.length > 1
+                            ? `Menganalisis Screenshot Zoom... (batch ${b + 1}/${batches.length})`
+                            : 'Menganalisis Screenshot Zoom...';
+                    }
+
+                    try {
+                        const res = await fetch(`/training/${TRAINING_ID}/scan-zoom-ai`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': CSRF_TOKEN,
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({ images: batches[b] })
+                        });
+                        const data = await res.json();
+
+                        if (!res.ok || !data.success) {
+                            failure = (data && data.message) ? data.message : 'Terjadi kendala saat memproses screenshot dengan AI.';
+                        } else {
+                            collected.push(...((data.data && data.data.off_cam_participants) || []));
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        failure = 'Gagal terhubung ke server atau API Gemini. Silakan coba kembali.';
+                    }
+
+                    if (failure) {
+                        if (batches.length > 1) failure = `Batch ${b + 1}/${batches.length} gagal: ${failure}`;
+                        break;
+                    }
+                }
+
                 clearInterval(loadingInterval);
                 stepLoading.classList.add('d-none');
+                if (titleEl) titleEl.textContent = 'Menganalisis Screenshot Zoom...';
 
-                if (!result.ok || !result.data.success) {
+                const offCamList = mergeOffCamResults(collected);
+
+                // Nothing usable came back: return to the upload step with the error
+                if (failure && offCamList.length === 0) {
                     stepUpload.classList.remove('d-none');
-                    const errMsg = (result.data && result.data.message) ? result.data.message : 'Terjadi kendala saat memproses screenshot dengan AI.';
-                    uploadAlert.textContent = errMsg;
+                    uploadAlert.textContent = failure;
                     uploadAlert.classList.remove('d-none');
                     return;
                 }
 
-                const offCamList = (result.data.data && result.data.data.off_cam_participants) ? result.data.data.off_cam_participants : [];
                 if (offCamList.length === 0) {
                     stepAllOnCam.classList.remove('d-none');
                 } else {
                     renderReviewTable(offCamList);
                     stepReview.classList.remove('d-none');
                 }
-            })
-            .catch(err => {
-                clearInterval(loadingInterval);
-                stepLoading.classList.add('d-none');
-                stepUpload.classList.remove('d-none');
-                uploadAlert.textContent = 'Gagal terhubung ke server atau API Gemini. Silakan coba kembali.';
-                uploadAlert.classList.remove('d-none');
-                console.error(err);
-            });
+
+                if (failure) {
+                    alert(failure + '\n\nHasil dari batch sebelumnya tetap ditampilkan.');
+                }
+            })();
         });
+    }
+
+    // Combine results from several batches: one row per matched participant (highest score wins),
+    // unmatched Zoom names are de-duplicated by name.
+    function mergeOffCamResults(list) {
+        const byKey = new Map();
+        list.forEach(item => {
+            const key = item.participant_id
+                ? 'p:' + item.participant_id
+                : 'z:' + String(item.zoom_name || '').trim().toLowerCase();
+            const existing = byKey.get(key);
+            if (!existing || (item.similarity_score || 0) > (existing.similarity_score || 0)) {
+                byKey.set(key, item);
+            }
+        });
+        return Array.from(byKey.values());
     }
 
     // Render Review Table
