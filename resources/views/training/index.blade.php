@@ -83,7 +83,7 @@
                             </td>
                             <td class="text-center">
                                 <span class="badge badge-secondary">
-                                    {{ $t->participants->count() }} orang
+                                    {{ $t->participants_count }} orang
                                 </span>
                             </td>
                             <td class="text-center">

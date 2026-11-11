@@ -52,21 +52,21 @@ class TrainingSetupWizardTest extends TestCase
         $this->actingAs($this->admin)->get(route('training.questions.index', $training))->assertSee('Lanjut: Pengaturan');
         $this->actingAs($this->admin)->get(route('training.setup', $training))
             ->assertOk()
-            ->assertSeeInOrder(['Buka presensi sekarang?', 'Wajib upload bukti foto', 'Tampilkan jawaban benar/salah', 'Boleh mengulang kuis?']);
+            ->assertSeeInOrder(['Buka presensi sekarang?', 'Wajib upload bukti foto', 'Aturan kuis saat ini'])
+            ->assertDontSee('Berapa kali kuis boleh dikerjakan?');
 
         $this->actingAs($this->admin)->post(route('training.setup.save', $training), [
             'is_attendance_active' => '1',
             'require_attendance_proof' => '0',
-            'show_quiz_answers' => '0',
-            'allow_quiz_retake' => '1',
         ])->assertRedirect(route('training.show', $training))->assertSessionHas('success');
 
         $training->refresh();
         $this->assertFalse($training->needsSetup());
         $this->assertTrue($training->is_attendance_active);
         $this->assertFalse($training->require_attendance_proof);
-        $this->assertFalse($training->show_quiz_answers);
-        $this->assertTrue($training->allow_quiz_retake);
+        // Aturan kuis diatur di blok Aturan Kuis, bukan di pertanyaan pengaturan.
+        $this->assertTrue($training->show_quiz_answers);
+        $this->assertSame(1, $training->quiz_max_attempts);
 
         // Setelah diatur, simpan soal AI berikutnya tidak lagi mengarahkan ke pengaturan.
         $this->actingAs($this->admin)->postJson(route('training.questions.save-ai-batch', $training), [
@@ -80,7 +80,7 @@ class TrainingSetupWizardTest extends TestCase
         $training = $this->createTraining();
 
         $this->actingAs($this->admin)->post(route('training.setup.save', $training), ['is_attendance_active' => '1'])
-            ->assertSessionHasErrors(['require_attendance_proof', 'show_quiz_answers', 'allow_quiz_retake']);
+            ->assertSessionHasErrors(['require_attendance_proof']);
         $this->assertTrue($training->fresh()->needsSetup());
     }
 
@@ -90,7 +90,7 @@ class TrainingSetupWizardTest extends TestCase
 
         $this->actingAs(User::factory()->staff()->create())->get(route('training.setup', $training))->assertRedirect();
         $this->actingAs(User::factory()->staff()->create())->from('/my-trainings')->post(route('training.setup.save', $training), [
-            'is_attendance_active' => '1', 'require_attendance_proof' => '1', 'show_quiz_answers' => '1', 'allow_quiz_retake' => '1',
+            'is_attendance_active' => '1', 'require_attendance_proof' => '1',
         ])->assertSessionHas('error');
         $this->assertTrue($training->fresh()->needsSetup());
     }

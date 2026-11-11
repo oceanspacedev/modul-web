@@ -18,7 +18,6 @@
                 ] as [$label, $count, $icon])
                     <div class="col-lg-3 col-6 mb-3">
                         <div class="stat-tile">
-                            <span class="stat-tile-icon"><i class="fas {{ $icon }}"></i></span>
                             <div>
                                 <p class="stat-tile-label">{{ $label }}</p>
                                 <p class="stat-tile-value">{{ $count }}</p>

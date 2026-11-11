@@ -126,7 +126,7 @@ class LearningModuleGameModeTest extends TestCase
         $html = $this->actingAs($this->staff)->get($quiz->url('quiz', ['phase' => 'pretest']))
             ->assertOk()
             ->assertViewIs('learning_module.portal.quiz_game')
-            ->assertSee('QUIZIZZ MODE')
+            ->assertSee('Mode game')
             ->assertSee('20 detik')
             ->getContent();
 

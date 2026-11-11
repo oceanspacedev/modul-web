@@ -8,7 +8,7 @@
 
     if (! $module->exists) {
         $steps = [
-            ['label' => 'Informasi', 'hint' => 'isi formulir ini, lalu klik Simpan & Lanjut Buat Soal.', 'done' => false],
+            ['label' => 'Informasi', 'hint' => 'isi formulir ini, lalu klik Simpan & Lanjut.', 'done' => false],
             ['label' => 'Materi', 'done' => false],
             ['label' => 'Soal', 'done' => false],
             ['label' => 'Publikasi', 'done' => false],
@@ -30,7 +30,7 @@
             $steps = [
                 ['label' => 'Unggah', 'done' => true],
                 [
-                    'label' => 'Pretest/Posttest',
+                    'label' => 'Aturan Kuis',
                     'hint' => 'nyalakan pretest atau posttest di formulir '.$sourceLabel.'.',
                     'done' => $phaseOn,
                     'action' => 'Edit '.ucfirst($sourceLabel),
@@ -48,7 +48,8 @@
                     'hint' => 'pilih video/dokumen yang dipelajari peserta.',
                     'done' => $itemCount > 0,
                 ] + ($page === 'edit' ? [] : ['action' => 'Pilih Materi', 'url' => route('learning-module.edit', $module).'#materi']),
-                $soalStep,
+                // Modul tanpa pretest dan posttest tidak butuh soal.
+                ...($module->hasQuiz() ? [$soalStep] : []),
                 [
                     'label' => 'Publikasi',
                     'hint' => 'publikasikan agar modul muncul di Modul Saya peserta.',

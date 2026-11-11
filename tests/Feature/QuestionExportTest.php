@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Exports\LearningModuleQuestionsExport;
 use App\Exports\TrainingQuestionsExport;
+use App\Jobs\GenerateExportFile;
 use App\Models\LearningModule;
 use App\Models\Training;
 use App\Models\User;
@@ -92,7 +93,7 @@ class QuestionExportTest extends TestCase
 
         $file = UploadedFile::fake()->createWithContent('soal.xlsx', Excel::raw(new TrainingQuestionsExport($source), ExcelFormat::XLSX));
         $this->actingAs($this->admin)->post(route('training.questions.import-excel', $target), ['file' => $file])
-            ->assertSessionHas('success');
+            ->assertSessionHas('info');
 
         $columns = ['type', 'question', 'option_a', 'option_b', 'option_c', 'correct_answer', 'explanation'];
         $this->assertSame(
@@ -110,14 +111,15 @@ class QuestionExportTest extends TestCase
         $target = $this->module('Modul Tujuan');
         $file = UploadedFile::fake()->createWithContent('soal.xlsx', Excel::raw(new LearningModuleQuestionsExport($source), ExcelFormat::XLSX));
         $this->actingAs($this->admin)->post(route('learning-module.questions.import-excel', $target), ['file' => $file])
-            ->assertSessionHas('success');
+            ->assertSessionHas('info');
 
         $this->assertSame(['Pertama', 'Kedua'], $target->questions()->pluck('question')->all());
         $this->assertSame(['e', 'b'], $target->questions()->pluck('correct_answer')->all());
 
         Excel::fake();
         $this->actingAs($this->admin)->post(route('learning-module.questions.export', $source))->assertSessionHas('info');
-        $path = $this->admin->notifications()->firstOrFail()->data['download_path'];
+        // The import above left its own notification; pick the export's.
+        $path = $this->admin->notifications()->get()->firstWhere('data.kind', GenerateExportFile::LEARNING_MODULE_QUESTIONS)->data['download_path'];
         $this->assertStringStartsWith('soal_modul_k3-dasar_', basename($path));
         Excel::assertStored($path, 'local', function (LearningModuleQuestionsExport $export) {
             $first = $export->map($export->collection()->first());

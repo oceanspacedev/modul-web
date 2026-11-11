@@ -1,7 +1,8 @@
 @extends('layout.main_template')
 
 @php
-    // Pertanyaan pengaturan; ditampilkan satu per layar. Tanpa JavaScript semuanya tampil sekaligus.
+    // Pertanyaan pengaturan sesi; ditampilkan satu per layar. Tanpa JavaScript semuanya tampil sekaligus.
+    // Aturan kuis (pretest/posttest, batas percobaan, hasil) diatur di blok Aturan Kuis pada form pelatihan.
     $questions = [
         'is_attendance_active' => [
             'question' => 'Buka presensi sekarang?',
@@ -12,16 +13,6 @@
             'question' => 'Wajib upload bukti foto saat presensi?',
             'yes' => 'Peserta upload foto/screenshot saat absen.',
             'no' => 'Peserta cukup klik Hadir.',
-        ],
-        'show_quiz_answers' => [
-            'question' => 'Tampilkan jawaban benar/salah setelah kuis?',
-            'yes' => 'Peserta melihat kunci dan pembahasan.',
-            'no' => 'Peserta hanya melihat nilai.',
-        ],
-        'allow_quiz_retake' => [
-            'question' => 'Boleh mengulang kuis?',
-            'yes' => 'Tanpa batas, nilai tertinggi yang dipakai.',
-            'no' => 'Kuis hanya bisa dikerjakan sekali.',
         ],
     ];
     $total = count($questions);
@@ -48,20 +39,21 @@
                 </div>
 
                 @foreach($questions as $field => $q)
-                    @php $value = (bool) old($field, $training->{$field}); @endphp
+                    @php
+                        $options = $q['options'] ?? ['1' => ['Ya', $q['yes']], '0' => ['Tidak', $q['no']]];
+                        $stored = $training->{$field};
+                        $current = session()->hasOldInput($field) ? (string) old($field) : (is_bool($stored) ? ($stored ? '1' : '0') : (string) $stored);
+                    @endphp
                     <fieldset class="setup-wizard-step card-body" data-step="{{ $loop->index }}">
                         <legend class="setup-wizard-question">{{ $q['question'] }}</legend>
                         <div class="choice-cards">
-                            <label class="choice-card">
-                                <input type="radio" name="{{ $field }}" value="1" @checked($value)>
-                                <span class="choice-card-title">Ya</span>
-                                <span class="choice-card-text">{{ $q['yes'] }}</span>
-                            </label>
-                            <label class="choice-card">
-                                <input type="radio" name="{{ $field }}" value="0" @checked(! $value)>
-                                <span class="choice-card-title">Tidak</span>
-                                <span class="choice-card-text">{{ $q['no'] }}</span>
-                            </label>
+                            @foreach($options as $value => [$optionTitle, $optionText])
+                                <label class="choice-card">
+                                    <input type="radio" name="{{ $field }}" value="{{ $value }}" @checked($current === (string) $value)>
+                                    <span class="choice-card-title">{{ $optionTitle }}</span>
+                                    <span class="choice-card-text">{{ $optionText }}</span>
+                                </label>
+                            @endforeach
                         </div>
                     </fieldset>
                 @endforeach
@@ -77,7 +69,17 @@
                             </li>
                         @endforeach
                     </ul>
-                    <p class="text-muted text-xs mb-0">Semua bisa diubah lagi kapan saja di Kontrol Sesi.</p>
+                    <p class="text-muted text-xs mb-0">
+                        Semua bisa diubah lagi kapan saja di Kontrol Sesi.
+                        @if($training->hasQuiz())
+                            Aturan kuis saat ini:
+                            @foreach(\App\Models\Training::PHASES as $phase)
+                                @if($training->hasPhase($phase))
+                                    {{ \App\Models\Training::phaseLabel($phase) }} {{ mb_strtolower(\App\Support\QuizRules::summary($training->maxAttempts($phase), $training->showsAnswers($phase))) }}{{ $loop->last ? '.' : ';' }}
+                                @endif
+                            @endforeach
+                        @endif
+                    </p>
                 </div>
 
                 <div class="card-footer d-flex justify-content-between gap-2">
@@ -109,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function fillSummary() {
         form.querySelectorAll('[data-summary-for]').forEach(function (row) {
             const checked = form.querySelector('input[name="' + row.dataset.summaryFor + '"]:checked');
-            row.querySelector('[data-answer]').textContent = checked && checked.value === '1' ? 'Ya' : 'Tidak';
+            row.querySelector('[data-answer]').textContent = checked ? checked.closest('.choice-card').querySelector('.choice-card-title').textContent : '-';
         });
     }
 

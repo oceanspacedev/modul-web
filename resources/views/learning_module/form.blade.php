@@ -111,62 +111,8 @@
                 </div>
 
                 <div class="col-lg-5">
-                    {{-- PENGATURAN KUIS --}}
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Pengaturan Kuis</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-sm-6 form-group">
-                                    <label for="passing_score">KKM <span class="text-danger">*</span></label>
-                                    <input type="number" id="passing_score" name="passing_score" class="form-control" min="0" max="100"
-                                        value="{{ old('passing_score', $module->passing_score) }}" required>
-                                    <small class="form-text text-muted">Posttest lulus bila nilai &ge; KKM.</small>
-                                </div>
-                                <div class="col-sm-6 form-group d-flex align-items-center">
-                                    <div class="custom-control custom-switch mt-sm-3">
-                                        <input type="checkbox" class="custom-control-input" id="shuffle_questions" name="shuffle_questions" value="1"
-                                            {{ old('shuffle_questions', $module->shuffle_questions) ? 'checked' : '' }}>
-                                        <label class="custom-control-label" for="shuffle_questions">Acak urutan soal</label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-sm-6 form-group">
-                                    <label for="pretest_max_attempts">Batas Percobaan Pretest</label>
-                                    <input type="number" id="pretest_max_attempts" name="pretest_max_attempts" class="form-control" min="1" max="255"
-                                        value="{{ old('pretest_max_attempts', $module->exists ? $module->pretest_max_attempts : 1) }}" placeholder="Tanpa batas">
-                                    <div class="custom-control custom-switch mt-2">
-                                        <input type="checkbox" class="custom-control-input" id="pretest_shows_answers" name="pretest_shows_answers" value="1"
-                                            {{ old('pretest_shows_answers', $module->pretest_shows_answers) ? 'checked' : '' }}>
-                                        <label class="custom-control-label" for="pretest_shows_answers">Tampilkan jawaban benar/salah setelah pretest</label>
-                                    </div>
-                                    <small class="form-text text-muted">Mati = peserta hanya melihat nilai.</small>
-                                </div>
-                                <div class="col-sm-6 form-group">
-                                    <label for="posttest_max_attempts">Batas Percobaan Posttest</label>
-                                    <input type="number" id="posttest_max_attempts" name="posttest_max_attempts" class="form-control" min="1" max="255"
-                                        value="{{ old('posttest_max_attempts', $module->posttest_max_attempts) }}" placeholder="Tanpa batas">
-                                    <div class="custom-control custom-switch mt-2">
-                                        <input type="checkbox" class="custom-control-input" id="posttest_shows_answers" name="posttest_shows_answers" value="1"
-                                            {{ old('posttest_shows_answers', $module->posttest_shows_answers) ? 'checked' : '' }}>
-                                        <label class="custom-control-label" for="posttest_shows_answers">Tampilkan jawaban benar/salah setelah posttest</label>
-                                    </div>
-                                    <small class="form-text text-muted">Mati = peserta hanya melihat nilai.</small>
-                                </div>
-                            </div>
-
-                            @include('learning_module.partials.quiz-mode-fields', [
-                                'modeName' => 'quiz_mode',
-                                'secondsName' => 'question_seconds',
-                                'mode' => old('quiz_mode', $module->quiz_mode ?? \App\Models\LearningModule::MODE_FORMAL),
-                                'seconds' => old('question_seconds', $module->question_seconds ?? 30),
-                                'idPrefix' => 'module',
-                            ])
-                        </div>
-                    </div>
+                    {{-- ATURAN KUIS --}}
+                    @include('learning_module.partials.quiz-rules-fields', ['quiz' => $module, 'card' => true, 'defaultOn' => true])
 
                     {{-- SASARAN PESERTA --}}
                     <div class="card">
@@ -199,7 +145,7 @@
                     <div class="card">
                         <div class="card-body">
                             <button type="submit" class="btn btn-primary btn-block">
-                                {{ $isEdit ? 'Simpan Perubahan' : 'Simpan & Lanjut Buat Soal' }}
+                                {{ $isEdit ? 'Simpan Perubahan' : 'Simpan & Lanjut' }}
                             </button>
                             <a href="{{ route('learning-module.index') }}" class="btn btn-default btn-block">Batal</a>
                         </div>

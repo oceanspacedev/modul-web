@@ -5,16 +5,15 @@ namespace App\Http\Controllers;
 use App\Exports\LearningModuleQuestionTemplate;
 use App\Http\Requests\LearningModuleQuestionRequest;
 use App\Http\Requests\ReviseAiQuestionRequest;
-use App\Imports\LearningModuleQuestionImport;
 use App\Jobs\GenerateExportFile;
 use App\Jobs\GenerateLearningModuleQuestions;
+use App\Jobs\ProcessQuestionImport;
 use App\Jobs\ReviseLearningModuleQuestion;
 use App\Models\LearningModule;
 use App\Models\LearningModuleItem;
 use App\Models\LearningModuleQuestion;
 use App\Services\MaterialQuizService;
 use App\Support\QuizImage;
-use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -95,21 +94,22 @@ class LearningModuleQuestionController extends Controller
         return back()->with('info', GenerateExportFile::QUEUED_MESSAGE);
     }
 
+    /**
+     * Import soal dari Excel/CSV di belakang layar (membaca spreadsheet besar tidak muat di batas memori request web);
+     * hasilnya dikirim lewat menu Notifikasi.
+     */
     public function importExcel(Request $request, LearningModule $module): RedirectResponse
     {
         $request->validate([
             'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
         ]);
 
-        try {
-            $import = new LearningModuleQuestionImport($module, $this->nextSortOrder($module));
-            DB::transaction(fn () => Excel::import($import, $request->file('file')));
-            $this->materialQuiz->refresh($module);
+        $file = $request->file('file');
+        $path = $file->storeAs('imports', Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
 
-            return back()->with('success', "Berhasil mengimpor {$import->getImportedCount()} soal dari file Excel!");
-        } catch (Exception $e) {
-            return back()->with('error', 'Gagal impor file: '.$e->getMessage());
-        }
+        ProcessQuestionImport::dispatch($request->user()->id, ProcessQuestionImport::LEARNING_MODULE, $module->id, $path);
+
+        return back()->with('info', ProcessQuestionImport::QUEUED_MESSAGE);
     }
 
     /**

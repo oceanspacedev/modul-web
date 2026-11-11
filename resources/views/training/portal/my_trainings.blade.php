@@ -30,11 +30,13 @@
                         @php
                             $t = $part->training;
                             $quiz = $part->quizResult;
+                            $pretest = $part->pretestResult;
                             [$todo, $todoClass, $needsAction] = match (true) {
                                 $t->status === App\Enums\TrainingStatus::Cancelled => ['Dibatalkan', 'text-muted', false],
                                 $quiz !== null => ['Selesai', 'text-success', false],
+                                $t->isPhaseActive('pretest') && $pretest === null => ['Kerjakan pretest', 'text-primary font-weight-bold', true],
                                 $t->is_attendance_active && $part->attendance_status === 'pending' => ['Isi presensi', 'text-primary font-weight-bold', true],
-                                (bool) $t->is_quiz_active => ['Kerjakan kuis', 'text-primary font-weight-bold', true],
+                                $t->isPhaseActive('posttest') => [$t->has_pretest ? 'Kerjakan posttest' : 'Kerjakan kuis', 'text-primary font-weight-bold', true],
                                 $t->status === App\Enums\TrainingStatus::Completed => ['Selesai', 'text-muted', false],
                                 default => ['Menunggu pemateri', 'text-muted', false],
                             };
@@ -72,6 +74,9 @@
                                     <strong>{{ $quiz->score }}</strong>
                                 @else
                                     <span class="text-muted small">-</span>
+                                @endif
+                                @if($pretest)
+                                    <span class="cell-sub d-block">Pretest {{ $pretest->score }}</span>
                                 @endif
                             </td>
                             <td class="small {{ $todoClass }}">{{ $todo }}</td>

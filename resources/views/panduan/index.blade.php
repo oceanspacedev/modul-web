@@ -27,7 +27,7 @@
     .pg-more > div { padding: 0 14px 6px; border-top: 1px solid var(--ring); }
     .pg-card table { font-size: .875rem; }
     .pg-card code { background: var(--gray-100); padding: 1px 6px; border-radius: 4px; color: var(--gray-800); font-size: .8125rem; }
-    @media (max-width: 991px) { .pg-wrap { flex-direction: column; } .pg-toc { position: static; width: 100%; max-height: none; } }
+    @media (max-width: 991px) { .pg-wrap { flex-direction: column; align-items: stretch; } .pg-toc { position: static; width: 100%; max-height: none; } }
 </style>
 
 <div class="content-header">
@@ -72,7 +72,7 @@
 
                 {{-- 1 --}}
                 <div class="pg-card" id="pengenalan">
-                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-info-circle"></i></span><h2>1. Pengenalan</h2></div>
+                    <div class="pg-head"><h2>1. Pengenalan</h2></div>
                     <p>Modul dipakai untuk <b>pelatihan internal</b>: jadwal sesi, undangan WhatsApp, presensi, kuis, serta dokumen dan video materi.</p>
                     <ul>
                         <li><b>Admin / Pemateri</b> login ke web dan mengelola fitur sesuai jabatannya.</li>
@@ -100,7 +100,7 @@
 
                 {{-- 2 --}}
                 <div class="pg-card" id="login">
-                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-sign-in-alt"></i></span><h2>2. Masuk &amp; keluar</h2></div>
+                    <div class="pg-head"><h2>2. Masuk &amp; keluar</h2></div>
                     <figure class="pg-shot"><img src="/assets/panduan/login.png" alt="Halaman login" loading="lazy"><figcaption>Halaman login.</figcaption></figure>
                     <h3>Dengan password</h3>
                     <figure class="pg-shot"><img src="/assets/panduan/login-password.gif" alt="Animasi: login dengan password" loading="lazy"><figcaption>Login dengan password (data contoh).</figcaption></figure>
@@ -119,7 +119,7 @@
 
                 {{-- 3 --}}
                 <div class="pg-card" id="dashboard">
-                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-tachometer-alt"></i></span><h2>3. Dashboard</h2></div>
+                    <div class="pg-head"><h2>3. Dashboard</h2></div>
                     <p>Ringkasan jumlah user, pelatihan, video, peserta, dokumen, dan nilai kuis. Klik kartu untuk membuka halamannya.</p>
                     <figure class="pg-shot"><img src="/assets/panduan/dashboard.png" alt="Dashboard" loading="lazy"><figcaption>Dashboard (data contoh).</figcaption></figure>
                     <figure class="pg-shot"><img src="/assets/panduan/sidebar-menu.gif" alt="Animasi: membuka menu samping" loading="lazy"><figcaption>Membuka submenu di menu kiri.</figcaption></figure>
@@ -127,7 +127,7 @@
 
                 {{-- 4 --}}
                 <div class="pg-card" id="masterdata">
-                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-database"></i></span><h2>4. Master data</h2></div>
+                    <div class="pg-head"><h2>4. Master data</h2></div>
                     <p><b>Pengaturan → Master Data</b> berisi <b>Area</b>, <b>Divisi</b>, <b>Posisi</b>, dan <b>Tipe Dokumen</b>. Isi ini dulu sebelum membuat user atau dokumen.</p>
                     <figure class="pg-shot"><img src="/assets/panduan/divisi.png" alt="Halaman Divisi" loading="lazy"><figcaption>Halaman Divisi.</figcaption></figure>
                     <figure class="pg-shot"><img src="/assets/panduan/divisi-tambah.gif" alt="Animasi: menambah divisi" loading="lazy"><figcaption>Menambah divisi lewat panel kanan.</figcaption></figure>
@@ -140,7 +140,7 @@
 
                 {{-- 5 --}}
                 <div class="pg-card" id="user">
-                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-users"></i></span><h2>5. User</h2></div>
+                    <div class="pg-head"><h2>5. User</h2></div>
                     <figure class="pg-shot"><img src="/assets/panduan/user-create.gif" alt="Animasi: mengisi form tambah user" loading="lazy"><figcaption>Mengisi form tambah user (data contoh).</figcaption></figure>
                     <h3>Menambah user</h3>
                     <ol>
@@ -176,7 +176,7 @@
 
                 {{-- 6 --}}
                 <div class="pg-card" id="role">
-                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-user-shield"></i></span><h2>6. Jabatan &amp; hak akses</h2></div>
+                    <div class="pg-head"><h2>6. Jabatan &amp; hak akses</h2></div>
                     <p>Jabatan menentukan menu yang bisa dibuka. ADMIN punya semua akses; jabatan lain bawaannya hanya bisa melihat (dashboard, video, pelatihan &amp; modul saya, dokumen).</p>
                     <figure class="pg-shot"><img src="/assets/panduan/roles-create.gif" alt="Animasi: membuat jabatan baru" loading="lazy"><figcaption>Membuat jabatan baru dan memilih izinnya.</figcaption></figure>
                     <ul>
@@ -189,7 +189,7 @@
 
                 {{-- 7 --}}
                 <div class="pg-card" id="pelatihan">
-                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-chalkboard-teacher"></i></span><h2>7. Pelatihan</h2></div>
+                    <div class="pg-head"><h2>7. Pelatihan</h2></div>
                     <figure class="pg-shot"><img src="/assets/panduan/training-list.gif" alt="Animasi: memfilter dan mencari pelatihan" loading="lazy"><figcaption>Daftar Jadwal Pelatihan: pindah tab dan mencari.</figcaption></figure>
                     <h3>7.1 Membuat pelatihan</h3>
                     <figure class="pg-shot"><img src="/assets/panduan/training-create.gif" alt="Animasi: mengisi form pelatihan" loading="lazy"><figcaption>Mengisi form pelatihan dan memilih peserta (data contoh).</figcaption></figure>
@@ -199,7 +199,7 @@
                         <li>Pilih <b>Dokumen Materi</b> (opsional) dan <b>Mode Kuis</b>: Formal atau Game.</li>
                         <li>Centang peserta (bisa <b>Pilih semua</b> atau saring per divisi). Label <b>Tanpa WA</b> = tidak punya nomor WhatsApp.</li>
                         <li>Klik <b>Simpan &amp; Lanjut Buat Soal</b>. Undangan WA terkirim otomatis.</li>
-                        <li>Buat soal (mis. <b>Buat Soal via AI</b>). Setelah tersimpan, jawab pertanyaan <b>Pengaturan</b> satu per satu: buka presensi sekarang, wajib bukti foto, tampilkan jawaban benar/salah, dan boleh ulang kuis.</li>
+                        <li>Buat soal (mis. <b>Buat Soal via AI</b>). Setelah tersimpan, jawab pertanyaan <b>Pengaturan</b> satu per satu: buka presensi sekarang dan wajib bukti foto. Aturan kuis diatur di kotak <b>Aturan Kuis</b> pada form pelatihan.</li>
                     </ol>
                     <h3>7.2 Saat sesi berlangsung</h3>
                     <p>Klik <b>Detail</b> pada pelatihan.</p>
@@ -207,7 +207,8 @@
                     <figure class="pg-shot"><img src="/assets/panduan/training-controls.gif" alt="Animasi: kontrol sesi pelatihan" loading="lazy"><figcaption>Kontrol sesi, lampiran dokumen, dan menu Opsi.</figcaption></figure>
                     <ul>
                         <li><b>Buka Presensi</b> agar peserta bisa absen, lalu <b>Buka Kuis</b> saat kuis dimulai.</li>
-                        <li><b>Ulang kuis</b> (di Kontrol Sesi): klik <b>Izinkan</b> agar peserta bisa mengerjakan ulang tanpa batas; nilai tertinggi yang dipakai. Default: hanya sekali.</li>
+                        <li><b>Aturan Kuis</b> (di form pelatihan, atau <b>Ubah</b> di Kontrol Sesi): nyalakan <b>Pretest</b> dan/atau <b>Posttest</b>, lalu pilih berapa kali boleh dikerjakan dan apa yang dilihat peserta setelah selesai. Bawaan: hanya posttest, 1 kali. Pretest memakai soal pilihan ganda saja.</li>
+                        <li><b>Buka Pretest</b> sebelum materi dimulai dan <b>Buka Posttest</b> setelah materi selesai; keduanya dibuka terpisah.</li>
                         <li><b>Broadcast WA ke Peserta</b> mengirim ulang undangan ke semua peserta.</li>
                         <li><b>Lampirkan Dokumen</b> dan <b>Upload Video Materi</b> untuk materi sesi.</li>
                         <li>Menu <b>Aksi</b> per peserta: lihat <b>Lembar Jawaban</b>, kirim WA, atur presensi manual, atau <b>Reset Kuis Peserta</b> agar bisa mengulang.</li>
@@ -222,7 +223,7 @@
 
                 {{-- 8 --}}
                 <div class="pg-card" id="soal">
-                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-question-circle"></i></span><h2>8. Soal kuis pelatihan</h2></div>
+                    <div class="pg-head"><h2>8. Soal kuis pelatihan</h2></div>
                     <p>Dari detail pelatihan klik <b>Soal Kuis</b>. Ada tiga cara menambah soal:</p>
                     <figure class="pg-shot"><img src="/assets/panduan/training-questions.gif" alt="Animasi: menambah soal manual" loading="lazy"><figcaption>Menambah soal manual dengan gambar.</figcaption></figure>
                     <ul>
@@ -240,7 +241,7 @@
 
                 {{-- 9 --}}
                 <div class="pg-card" id="zoomai">
-                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-video-slash"></i></span><h2>9. Scan Off Cam (AI)</h2></div>
+                    <div class="pg-head"><h2>9. Scan Off Cam (AI)</h2></div>
                     <p>Mencatat peserta yang kameranya mati dari screenshot galeri Zoom.</p>
                     <ol>
                         <li>Di detail pelatihan klik <b>Scan Off Cam</b>.</li>
@@ -252,7 +253,7 @@
 
                 {{-- 10 --}}
                 <div class="pg-card" id="dokumen">
-                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-file-alt"></i></span><h2>10. Dokumen</h2></div>
+                    <div class="pg-head"><h2>10. Dokumen</h2></div>
                     <figure class="pg-shot"><img src="/assets/panduan/document-create.png" alt="Tambah dokumen" loading="lazy"><figcaption>Form Tambah Dokumen.</figcaption></figure>
                     <h3>Menambah dokumen</h3>
                     <ol>
@@ -268,7 +269,7 @@
                     <h3 id="dokumen-kuis">Dokumen dengan pretest &amp; posttest</h3>
                     <figure class="pg-shot"><img src="/assets/panduan/dokumen-kuis-buat.gif" alt="Animasi: membuat dokumen dengan pretest dan posttest" loading="lazy"><figcaption>Menyalakan pretest dan posttest saat menambah dokumen.</figcaption></figure>
                     <ol>
-                        <li>Di form dokumen, nyalakan <b>Aktifkan Pretest</b> dan/atau <b>Aktifkan Posttest</b>, atur KKM dan Mode Kuis.</li>
+                        <li>Di form dokumen, di kotak <b>Aturan Kuis</b> nyalakan <b>Pretest</b> dan/atau <b>Posttest</b>. Tiap kuis punya pilihan <b>Boleh dikerjakan</b> (1 kali sampai tanpa batas) dan <b>Setelah selesai, peserta melihat</b> (nilai saja, atau nilai dan jawaban). Atur juga KKM dan Mode Kuis.</li>
                         <li>Klik <b>Simpan</b>, lalu tambahkan soal di halaman yang terbuka. Kuis aktif setelah ada minimal 1 soal.</li>
                     </ol>
                     <p>Peserta mengerjakan pretest dulu, membaca dokumen, lalu posttest.</p>
@@ -277,7 +278,7 @@
 
                 {{-- 11 --}}
                 <div class="pg-card" id="video">
-                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-play-circle"></i></span><h2>11. Video materi</h2></div>
+                    <div class="pg-head"><h2>11. Video materi</h2></div>
                     <p>Menu <b>Video Materi</b> berisi galeri video. Klik kartu untuk menonton dan berdiskusi di kolom komentar.</p>
                     <h3>Menambah video</h3>
                     <figure class="pg-shot"><img src="/assets/panduan/video-tambah.gif" alt="Animasi: menambah video dari link" loading="lazy"><figcaption>Menambah video dari link YouTube.</figcaption></figure>
@@ -290,7 +291,7 @@
                     <h3 id="video-kuis">Video dengan pretest &amp; posttest</h3>
                     <figure class="pg-shot"><img src="/assets/panduan/video-kuis-buat.gif" alt="Animasi: membuat video dengan pretest dan posttest" loading="lazy"><figcaption>Menyalakan pretest dan posttest saat menambah video.</figcaption></figure>
                     <ol>
-                        <li>Di form video, nyalakan <b>Aktifkan Pretest</b> dan/atau <b>Aktifkan Posttest</b>, atur KKM dan Mode Kuis.</li>
+                        <li>Di form video, di kotak <b>Aturan Kuis</b> nyalakan <b>Pretest</b> dan/atau <b>Posttest</b>. Tiap kuis punya pilihan <b>Boleh dikerjakan</b> (1 kali sampai tanpa batas) dan <b>Setelah selesai, peserta melihat</b> (nilai saja, atau nilai dan jawaban). Atur juga KKM dan Mode Kuis.</li>
                         <li>Klik <b>Simpan Video</b>, lalu tambahkan soal di halaman yang terbuka.</li>
                     </ol>
                     <figure class="pg-shot"><img src="/assets/panduan/kuis-tambah-soal.gif" alt="Animasi: menambah soal sampai kuis aktif" loading="lazy"><figcaption>Setelah soal pertama disimpan, status menjadi <b>Kuis aktif</b>.</figcaption></figure>
@@ -301,7 +302,7 @@
 
                 {{-- 12 --}}
                 <div class="pg-card" id="peserta">
-                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-user-graduate"></i></span><h2>12. Portal peserta</h2></div>
+                    <div class="pg-head"><h2>12. Portal peserta</h2></div>
                     <ol>
                         <li>Buka pesan WhatsApp undangan pelatihan, ketuk <b>link pribadi</b> Anda.</li>
                         <li>Setelah pemateri membuka presensi, ketuk <b>Saya Hadir</b> (unggah screenshot Zoom bila diminta).</li>
@@ -312,7 +313,7 @@
 
                 {{-- 13 --}}
                 <div class="pg-card" id="kuispeserta">
-                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-clipboard-check"></i></span><h2>13. Mengerjakan kuis</h2></div>
+                    <div class="pg-head"><h2>13. Mengerjakan kuis</h2></div>
                     <ol>
                         <li>Setelah kuis dibuka pemateri, ketuk <b>Mulai Kerjakan Kuis</b>.</li>
                         <li>Jawab semua soal, ketuk <b>Kirim Jawaban</b>.</li>
@@ -323,7 +324,7 @@
 
                 {{-- 14 --}}
                 <div class="pg-card" id="faq">
-                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-life-ring"></i></span><h2>14. Masalah umum</h2></div>
+                    <div class="pg-head"><h2>14. Masalah umum</h2></div>
                     <table class="table table-sm table-bordered">
                         <tr><th style="width:38%">Masalah</th><th>Solusi</th></tr>
                         <tr><td>Tidak bisa login</td><td>Cek username dan password. Terlalu sering salah? Tunggu 1 menit. Akun diarsipkan? Hubungi admin.</td></tr>
@@ -342,26 +343,26 @@
 
                 {{-- 15 --}}
                 <div class="pg-card" id="akses">
-                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-key"></i></span><h2>15. Hak akses per fitur</h2></div>
+                    <div class="pg-head"><h2>15. Hak akses per fitur</h2></div>
                     <table class="table table-sm table-bordered">
                         <tr><th>Fitur</th><th class="text-center">ADMIN</th><th class="text-center">Jabatan lain</th><th class="text-center">+ Trainer</th></tr>
-                        <tr><td>Dashboard, menonton &amp; komentar video, Pelatihan Saya, Modul Saya, melihat dokumen</td><td class="text-center">✔</td><td class="text-center">✔</td><td class="text-center">✔</td></tr>
-                        <tr><td>Kelola pelatihan, video, dokumen, Modul Belajar</td><td class="text-center">✔</td><td class="text-center">–</td><td class="text-center">✔</td></tr>
-                        <tr><td>User, Jabatan &amp; Hak Akses, Master Data</td><td class="text-center">✔</td><td class="text-center">–</td><td class="text-center">–</td></tr>
+                        <tr><td>Dashboard, menonton &amp; komentar video, Pelatihan Saya, Modul Saya, melihat dokumen</td><td class="text-center"><i class="fas fa-check text-muted" aria-label="Ya"></i></td><td class="text-center"><i class="fas fa-check text-muted" aria-label="Ya"></i></td><td class="text-center"><i class="fas fa-check text-muted" aria-label="Ya"></i></td></tr>
+                        <tr><td>Kelola pelatihan, video, dokumen, Modul Belajar</td><td class="text-center"><i class="fas fa-check text-muted" aria-label="Ya"></i></td><td class="text-center">–</td><td class="text-center"><i class="fas fa-check text-muted" aria-label="Ya"></i></td></tr>
+                        <tr><td>User, Jabatan &amp; Hak Akses, Master Data</td><td class="text-center"><i class="fas fa-check text-muted" aria-label="Ya"></i></td><td class="text-center">–</td><td class="text-center">–</td></tr>
                     </table>
                     <p class="small text-muted mb-0">Ini pengaturan bawaan dan bisa diubah per jabatan. Menu Sistem hanya untuk super admin.</p>
                 </div>
 
                 {{-- 16 --}}
                 <div class="pg-card" id="modulbelajar">
-                    <div class="pg-head"><span class="stat-tile-icon"><i class="fas fa-book-open"></i></span><h2>16. Modul Belajar</h2></div>
+                    <div class="pg-head"><h2>16. Modul Belajar</h2></div>
                     <p>Belajar mandiri tanpa jadwal: <b>pretest → materi (video/dokumen) → posttest</b>.</p>
                     <h3>Membuat modul</h3>
                     <figure class="pg-shot"><img src="/assets/panduan/modul-buat.gif" alt="Animasi: membuat modul belajar" loading="lazy"><figcaption>Mengisi modul dan menambahkan materi.</figcaption></figure>
                     <ol>
                         <li><b>Modul Belajar → Kelola Modul</b>, klik <b>Tambah Modul</b>.</li>
                         <li>Isi judul, cari dan <b>Tambah</b> video/dokumen ke <b>Materi Modul</b>, isi <b>KKM</b>, pilih sasaran divisi/jabatan.</li>
-                        <li>Klik <b>Simpan &amp; Lanjut Buat Soal</b>, tambahkan soal.</li>
+                        <li>Atur <b>Aturan Kuis</b> (sama seperti di form video dan dokumen; pretest dan posttest boleh dimatikan), klik <b>Simpan &amp; Lanjut</b>, lalu tambahkan soal bila modul punya kuis.</li>
                         <li>Klik <b>Publikasikan Modul</b> (tombol di kanan atas halaman soal atau halaman modul). Tombol ini aktif setelah modul punya minimal 1 materi dan 1 soal.</li>
                     </ol>
                     <p>Selama modul masih draft, kotak <b>Langkah menyiapkan modul</b> menunjukkan apa yang belum lengkap. Klik judul modul di Kelola Modul untuk melanjutkan.</p>

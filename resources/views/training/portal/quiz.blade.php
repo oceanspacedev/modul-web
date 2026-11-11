@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pengerjaan Kuis - {{ $training->title }}</title>
+    <title>{{ $phase === 'pretest' ? 'Pengerjaan Pretest' : 'Pengerjaan Kuis' }} - {{ $training->title }}</title>
     @include('layout.partials.portal-head')
 </head>
 <body class="prevent-select">
@@ -13,7 +13,7 @@
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="h6 mb-0">{{ $training->title }}</h1>
-                    <span class="text-muted small">Kuis Evaluasi Pelatihan</span>
+                    <span class="text-muted small">{{ $phase === 'pretest' ? 'Pretest Pelatihan' : 'Kuis Evaluasi Pelatihan' }}</span>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <span class="badge badge-secondary" title="Maksimal 3 kali keluar halaman">
@@ -32,7 +32,7 @@
             <strong>Perhatian:</strong> Dilarang berpindah tab atau membuka aplikasi lain selama kuis berlangsung (toleransi maksimal 3 kali sebelum kuis otomatis dikumpulkan).
         </div>
 
-        <form action="/training/portal/{{ $participant->token }}/quiz" method="POST" id="formQuiz">
+        <form action="{{ $phaseUrls['quiz'] }}" method="POST" id="formQuiz">
             @csrf
 
             <!-- Anti-Cheat Hidden Data -->

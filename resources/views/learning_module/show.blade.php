@@ -38,7 +38,6 @@
         <div class="row">
             <div class="col-md-3 col-6 mb-4">
                 <div class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-users"></i></span>
                     <div class="min-w-0">
                         <p class="stat-tile-label">Peserta mulai</p>
                         <p class="stat-tile-value">{{ $participants->count() }}</p>
@@ -47,7 +46,6 @@
             </div>
             <div class="col-md-3 col-6 mb-4">
                 <div class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-check"></i></span>
                     <div class="min-w-0">
                         <p class="stat-tile-label">Sudah lulus (KKM {{ $module->passing_score }})</p>
                         <p class="stat-tile-value">{{ $participants->filter->hasPassed()->count() }}</p>
@@ -56,7 +54,6 @@
             </div>
             <div class="col-md-3 col-6 mb-4">
                 <div class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-clipboard-list"></i></span>
                     <div class="min-w-0">
                         <p class="stat-tile-label">Rata-rata pretest</p>
                         <p class="stat-tile-value">{{ round($participants->pluck('pretest')->filter()->avg('score') ?? 0, 1) }}</p>
@@ -65,7 +62,6 @@
             </div>
             <div class="col-md-3 col-6 mb-4">
                 <div class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-chart-line"></i></span>
                     <div class="min-w-0">
                         <p class="stat-tile-label">Rata-rata posttest terbaik</p>
                         <p class="stat-tile-value">{{ round($participants->map->bestPosttest()->filter()->avg('score') ?? 0, 1) }}</p>

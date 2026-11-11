@@ -11,20 +11,22 @@
         <x-page-header title="Soal Pretest & Posttest" :subtitle="$subtitle" :breadcrumbs="$module->adminBreadcrumbs('Soal')">
             <x-slot:actions>
                 <a href="{{ $module->isOwned() ? $module->managementUrl() : route('learning-module.show', $module) }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
-                <a href="{{ $module->url('questions.template') }}" class="btn btn-default">
-                    <i class="fas fa-download"></i> Template
-                </a>
-                <button type="button" class="btn btn-default" data-toggle="modal" data-target="#importExcelModal">
-                    <i class="fas fa-file-import"></i> Import Excel / CSV
-                </button>
-                @if($questions->isNotEmpty())
-                    <form action="{{ $module->url('questions.export') }}" method="POST" class="m-0">
-                        @csrf
-                        <button type="submit" class="btn btn-default" title="Soal dan kunci jawaban, format sama dengan template">
-                            <i class="fas fa-file-export"></i> Export Soal
-                        </button>
-                    </form>
-                @endif
+                <div class="dropdown">
+                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Import / Export
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a class="dropdown-item" href="javascript:void(0)" data-toggle="modal" data-target="#importExcelModal">Import Excel / CSV</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="{{ $module->url('questions.template') }}">Download Template</a>
+                        @if($questions->isNotEmpty())
+                            <form action="{{ $module->url('questions.export') }}" method="POST" class="m-0">
+                                @csrf
+                                <button type="submit" class="dropdown-item">Export Soal &amp; Kunci Jawaban</button>
+                            </form>
+                        @endif
+                    </div>
+                </div>
                 <button type="button" class="btn btn-default" data-toggle="modal" data-target="#addQuestionModal">
                     <i class="fas fa-plus"></i> Tambah Manual
                 </button>
@@ -74,9 +76,9 @@
 
             <div class="card-body">
                 @forelse($questions as $index => $q)
-                <div class="border rounded mb-3">
-                    <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom bg-light">
-                        <strong class="small">Pertanyaan #{{ $index + 1 }}</strong>
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <strong>Pertanyaan #{{ $index + 1 }}</strong>
                         <div class="d-flex align-items-center gap-1">
                             <button type="button" class="btn btn-default btn-xs" data-toggle="modal" data-target="#editModal_{{ $q->id }}">Edit</button>
                             <form action="{{ $module->url('questions.destroy', ['question' => $q]) }}" method="POST" class="d-inline m-0" onsubmit="return confirm('Hapus soal ini?')">
@@ -86,20 +88,20 @@
                             </form>
                         </div>
                     </div>
-                    <div class="p-3">
-                        <p class="font-weight-bold mb-3" style="white-space: pre-line;">{{ $q->question }}</p>
+                    <div class="card-body">
+                        <p class="section-title mb-3" style="white-space: pre-line;">{{ $q->question }}</p>
                         @if($q->imageUrl())
                             <a href="{{ $q->imageUrl() }}" target="_blank" rel="noopener" class="d-inline-block mb-3">
                                 <img src="{{ $q->imageUrl() }}" alt="Gambar soal" class="quiz-img">
                             </a>
                         @endif
-                        <div class="row text-sm">
+                        <div class="row small">
                             @foreach($q->options() as $letter => $text)
                                 @php $isKey = $q->correct_answer === $letter; @endphp
                                 <div class="col-md-6 mb-2">
-                                    <div class="d-flex align-items-start justify-content-between gap-2 px-2 py-1 border rounded {{ $isKey ? 'bg-soft-success font-weight-bold' : '' }}">
+                                    <div class="d-flex align-items-start justify-content-between gap-2 px-3 py-2 border rounded {{ $isKey ? 'bg-soft-success' : '' }}">
                                         <span>
-                                            {{ strtoupper($letter) }}. {{ $text }}
+                                            <strong>{{ strtoupper($letter) }}.</strong> {{ $text }}
                                             @if($q->optionImageUrl($letter))
                                                 <a href="{{ $q->optionImageUrl($letter) }}" target="_blank" rel="noopener" class="d-block mt-1">
                                                     <img src="{{ $q->optionImageUrl($letter) }}" alt="Gambar pilihan {{ strtoupper($letter) }}" class="quiz-img quiz-opt-img">
@@ -107,14 +109,14 @@
                                             @endif
                                         </span>
                                         @if($isKey)
-                                            <span class="badge badge-success">Kunci</span>
+                                            <span class="badge badge-success">Kunci jawaban</span>
                                         @endif
                                     </div>
                                 </div>
                             @endforeach
                         </div>
                         @if($q->explanation)
-                            <div class="small text-muted mt-2 pt-2 border-top">
+                            <div class="small text-muted mt-3 pt-2 border-top">
                                 <strong>Pembahasan:</strong> {{ $q->explanation }}
                             </div>
                         @endif

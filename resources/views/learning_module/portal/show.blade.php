@@ -4,7 +4,8 @@
     $stage = $progress->stage();
     $best = $progress->bestPosttest();
     $step = 0;
-    $limitLabel = fn (?int $remaining) => $remaining === null ? 'boleh diulang tanpa batas' : ($remaining === 0 ? 'batas percobaan habis' : 'sisa '.$remaining.' percobaan');
+    $limitLabel = fn (?int $remaining) => \App\Support\QuizRules::remainingLabel($remaining);
+    $ruleLabel = fn (string $phase) => \App\Support\QuizRules::summary($module->maxAttempts($phase), $module->showsAnswers($phase));
     $backUrl = $module->isOwned() ? route('document.index') : route('learning.index');
     $completed = $progress->completedItemCount();
     $total = $progress->totalItemCount();
@@ -15,7 +16,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header :title="($module->isOwned() ? 'Kuis Dokumen: ' : '').$module->title" :subtitle="$module->questions_count.' soal · nilai minimal lulus '.$module->passing_score" :eyebrow="$module->isOwned() ? 'Dokumen' : 'Modul Saya'">
+        <x-page-header :title="($module->isOwned() ? 'Kuis Dokumen: ' : '').$module->title" :subtitle="$module->hasQuiz() ? $module->questions_count.' soal · nilai minimal lulus '.$module->passing_score : 'Materi tanpa kuis'" :eyebrow="$module->isOwned() ? 'Dokumen' : 'Modul Saya'">
             <x-slot:actions>
                 <a href="{{ $backUrl }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
             </x-slot:actions>
@@ -61,8 +62,7 @@
                         </span>
                     @else
                         <span class="text-muted small">
-                            Uji pemahaman awal Anda sebelum mempelajari materi.
-                            {{ $module->pretest_max_attempts === 1 ? 'Pretest hanya dapat dikerjakan satu kali.' : '' }}
+                            Uji pemahaman awal Anda sebelum mempelajari materi. {{ $ruleLabel('pretest') }}.
                         </span>
                     @endif
                 </div>
@@ -137,7 +137,7 @@
                                 &middot; {{ $limitLabel($progress->remainingAttempts('posttest')) }}
                             </span>
                         @else
-                            <span class="text-muted small">Uji kembali pemahaman Anda setelah mempelajari materi. Semua nilai percobaan tersimpan.</span>
+                            <span class="text-muted small">Uji kembali pemahaman Anda setelah mempelajari materi. {{ $ruleLabel('posttest') }}.</span>
                         @endif
                     </div>
                     @if($progress->canTakePosttest())

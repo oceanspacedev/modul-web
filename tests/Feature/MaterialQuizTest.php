@@ -194,14 +194,14 @@ class MaterialQuizTest extends TestCase
         [$video, $quiz] = $this->videoWithQuiz(['pretest' => true, 'posttest' => true, 'pretest_max_attempts' => 1, 'posttest_max_attempts' => 3]);
         $document = Document::create(['name' => 'SOP PDF', 'divisi_id' => 1, 'document_type' => 1, 'path' => 'sop.pdf']);
 
-        $this->actingAs($this->admin)->get(route('video.create'))->assertOk()->assertSee('Aktifkan Pretest');
+        $this->actingAs($this->admin)->get(route('video.create'))->assertOk()->assertSee('Aturan Kuis')->assertSee('Boleh dikerjakan');
         $this->actingAs($this->admin)->get(route('video.edit', $video))->assertOk()->assertSee('Kelola soal (1)');
         $this->actingAs($this->admin)->get(route('video.index'))->assertOk()->assertSee('Pretest &amp; Posttest', false);
         $this->actingAs($this->admin)->get(route('video.show', ['video' => $video, 'preview' => 1]))->assertOk()->assertSee('Rekap Nilai');
-        $this->actingAs($this->admin)->get(route('document.create'))->assertOk()->assertSee('Aktifkan Posttest')->assertSee('satu dokumen per jabatan');
+        $this->actingAs($this->admin)->get(route('document.create'))->assertOk()->assertSee('Aturan Kuis')->assertSee('satu dokumen per jabatan');
         $this->actingAs($this->admin)->get(route('document.edit', $document))->assertOk();
         $this->actingAs($this->admin)->get($quiz->url('questions.index'))->assertOk()->assertSee('Kuis aktif');
-        $this->actingAs($this->admin)->get(route('learning-module.create'))->assertOk()->assertSee('Batas Percobaan Posttest');
+        $this->actingAs($this->admin)->get(route('learning-module.create'))->assertOk()->assertSee('Aturan Kuis')->assertSee('Boleh dikerjakan');
 
         $this->actingAs($this->staff)->post($quiz->url('submit', ['phase' => 'pretest']), $this->answer($quiz, 'a'));
         $attempt = LearningModuleAttempt::sole();

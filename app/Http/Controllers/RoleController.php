@@ -6,6 +6,7 @@ use App\Http\Requests\RoleRequest;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\DataAccessService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -14,6 +15,14 @@ use Spatie\Permission\PermissionRegistrar;
 
 class RoleController extends Controller
 {
+    /** Jumlah user per halaman di tab Penetapan Jabatan. */
+    private const USERS_PER_PAGE = 25;
+
+    /** Nilai filter jabatan selain nama jabatan. */
+    public const FILTER_TRAINER = '__trainer';
+
+    public const FILTER_NO_ROLE = '__none';
+
     /**
      * Map of permissions grouped by module with human-readable labels
      */
@@ -75,11 +84,16 @@ class RoleController extends Controller
     /**
      * Display a listing of roles and user assignments.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
         $roles = Role::with('permissions')->withCount('users')->orderByDesc('level')->orderBy('name')->get();
         $permissions = Permission::all();
-        $users = User::with(['roles', 'permissions', 'divisi', 'position'])->orderBy('nama_lengkap')->get();
+        $users = $this->filteredUsers($request)
+            ->with(['roles', 'permissions', 'divisi'])
+            ->orderBy('nama_lengkap')
+            ->paginate(self::USERS_PER_PAGE)
+            ->withQueryString()
+            ->fragment('tab-users');
         $permissionGroups = self::getPermissionGroups();
 
         // Hak akses yang belum masuk kelompok mana pun tetap ditampilkan di matriks.
@@ -101,6 +115,29 @@ class RoleController extends Controller
             'users' => $users,
             'permissionGroups' => $permissionGroups,
         ]);
+    }
+
+    /**
+     * User untuk tab Penetapan Jabatan, disaring di database (cari + jabatan) supaya halaman hanya memuat satu
+     * halaman user, berapa pun jumlah karyawannya.
+     *
+     * @return Builder<User>
+     */
+    private function filteredUsers(Request $request): Builder
+    {
+        $search = trim((string) $request->query('search'));
+        $role = (string) $request->query('role');
+
+        return User::query()
+            ->when($search !== '', fn (Builder $query) => $query->where(fn (Builder $query) => $query
+                ->where('nama_lengkap', 'like', "%{$search}%")
+                ->orWhere('username', 'like', "%{$search}%")
+                ->orWhere('employee_id', 'like', "%{$search}%")
+                ->orWhere('no_hp', 'like', "%{$search}%")
+                ->orWhereHas('divisi', fn (Builder $divisi) => $divisi->where('name', 'like', "%{$search}%"))))
+            ->when($role === self::FILTER_TRAINER, fn (Builder $query) => $query->whereHas('permissions', fn (Builder $permissions) => $permissions->whereIn('name', User::TRAINER_PERMISSIONS)))
+            ->when($role === self::FILTER_NO_ROLE, fn (Builder $query) => $query->whereDoesntHave('roles'))
+            ->when($role !== '' && ! in_array($role, [self::FILTER_TRAINER, self::FILTER_NO_ROLE], true), fn (Builder $query) => $query->whereHas('roles', fn (Builder $roles) => $roles->where('name', $role)));
     }
 
     /**

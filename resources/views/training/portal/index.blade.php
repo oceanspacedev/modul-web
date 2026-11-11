@@ -55,9 +55,62 @@
         @endif
 
         <!-- DETAIL PELATIHAN -->
+        @php
+            $step = 0;
+            $pretestResult = $participant->pretestResult;
+            $pretestQuestionCount = $training->questionsFor('pretest')->count();
+        @endphp
+
+        @if($training->has_pretest)
+        <!-- PRETEST -->
+        <div class="content-card" id="pretestCard">
+            <div class="content-card-header">
+                <span><span class="badge badge-primary mr-1">Langkah {{ ++$step }}</span> Pretest</span>
+                <span class="text-muted small">{{ $pretestQuestionCount }} Pertanyaan</span>
+            </div>
+
+            @if($pretestResult)
+                <div class="p-4 bg-light rounded text-center border mb-3">
+                    <span class="text-muted small d-block mb-1">Nilai pretest Anda</span>
+                    <div class="score-display mb-2">{{ $pretestResult->score }}</div>
+                    <span class="text-muted small">
+                        Jawaban Benar: {{ $pretestResult->correct_answers }} dari {{ $pretestResult->total_questions }} Soal
+                    </span>
+                </div>
+
+                <div class="d-flex justify-content-center gap-2">
+                    <a href="/training/portal/{{ $participant->token }}/pretest/result" class="btn btn-default">
+                        Lihat Hasil
+                    </a>
+                    @if($training->canRetakeQuiz($pretestResult, 'pretest'))
+                        <a href="/training/portal/{{ $participant->token }}/pretest" class="btn btn-primary">
+                            Kerjakan Ulang
+                        </a>
+                    @endif
+                </div>
+                @if($training->allowsQuizRetake('pretest'))
+                    <p class="text-muted text-xs text-center mt-2 mb-0">
+                        {{ ucfirst(\App\Support\QuizRules::remainingLabel($training->quizAttemptsLeft($pretestResult, 'pretest'))) }}; nilai tertinggi yang dipakai.
+                    </p>
+                @endif
+            @elseif($training->isPhaseActive('pretest'))
+                <p class="text-muted small mb-3">
+                    Kerjakan pretest sebelum sesi dimulai. {{ \App\Support\QuizRules::summary($training->maxAttempts('pretest'), $training->showsAnswers('pretest')) }}.
+                </p>
+                <a href="/training/portal/{{ $participant->token }}/pretest" class="btn btn-primary btn-block">
+                    Mulai Pretest
+                </a>
+            @else
+                <div class="text-center py-4 text-muted">
+                    Pretest belum dibuka oleh pemateri.
+                </div>
+            @endif
+        </div>
+        @endif
+
         <div class="content-card">
             <div class="content-card-header">
-                <span><span class="badge badge-primary mr-1">Langkah 1</span> Ikuti Sesi</span>
+                <span><span class="badge badge-primary mr-1">Langkah {{ ++$step }}</span> Ikuti Sesi</span>
                 <x-training-status-badge :status="$training->status" />
             </div>
 
@@ -123,7 +176,7 @@
         <!-- KONFIRMASI KEHADIRAN -->
         <div class="content-card" id="attendanceCard">
             <div class="content-card-header">
-                <span><span class="badge badge-primary mr-1">Langkah 2</span> Presensi Kehadiran</span>
+                <span><span class="badge badge-primary mr-1">Langkah {{ ++$step }}</span> Presensi Kehadiran</span>
                 <div class="d-flex align-items-center gap-2">
                     @if($participant->attendance_status === 'hadir')
                         <span class="badge badge-success" id="attendanceBadge">Hadir</span>
@@ -256,10 +309,11 @@
             @endif
         </div>
 
-        <!-- KUIS EVALUASI -->
+        <!-- KUIS EVALUASI (POSTTEST) -->
+        @if($training->has_posttest)
         <div class="content-card" id="quizCard">
             <div class="content-card-header">
-                <span><span class="badge badge-primary mr-1">Langkah 3</span> Kuis Evaluasi</span>
+                <span><span class="badge badge-primary mr-1">Langkah {{ ++$step }}</span> {{ $training->has_pretest ? 'Posttest' : 'Kuis Evaluasi' }}</span>
                 <span class="text-muted small">{{ $training->questions->count() }} Pertanyaan</span>
             </div>
 
@@ -276,20 +330,22 @@
                     <a href="/training/portal/{{ $participant->token }}/result" class="btn btn-default">
                         Lihat Pembahasan
                     </a>
-                    @if($training->canRetakeQuiz())
+                    @if($training->canRetakeQuiz($participant->quizResult))
                         <a href="/training/portal/{{ $participant->token }}/quiz" class="btn btn-primary">
                             Kerjakan Ulang
                         </a>
                     @endif
                 </div>
-                @if($training->allow_quiz_retake)
-                    <p class="text-muted text-xs text-center mt-2 mb-0">Boleh diulang; nilai tertinggi yang dipakai.</p>
+                @if($training->allowsQuizRetake())
+                    <p class="text-muted text-xs text-center mt-2 mb-0">
+                        {{ ucfirst(\App\Support\QuizRules::remainingLabel($training->quizAttemptsLeft($participant->quizResult))) }}; nilai tertinggi yang dipakai.
+                    </p>
                 @endif
             @else
                 <div id="quizBody">
                 @if($training->is_quiz_active)
                     <p class="text-muted small mb-3">
-                        Kuis evaluasi telah dibuka oleh pemateri. Silakan klik tombol di bawah untuk mulai mengerjakan:
+                        Kuis evaluasi telah dibuka oleh pemateri. {{ \App\Support\QuizRules::summary($training->quiz_max_attempts, $training->show_quiz_answers) }}.
                     </p>
                     <a href="/training/portal/{{ $participant->token }}/quiz" class="btn btn-primary btn-block">
                         Mulai Kerjakan Kuis
@@ -302,6 +358,7 @@
                 </div>
             @endif
         </div>
+        @endif
     </main>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -353,6 +410,9 @@
             // Absen HANYA track is_attendance_active, tidak terpengaruh is_quiz_active
             let currentAttendanceActive = {{ $training->is_attendance_active ? 'true' : 'false' }};
             let currentQuizActive       = {{ $training->is_quiz_active ? 'true' : 'false' }};
+            // Pretest dirender server; saat pemateri membuka/menutupnya halaman dimuat ulang.
+            const currentPretestActive  = {{ $training->isPhaseActive('pretest') ? 'true' : 'false' }};
+            const watchPretest          = {{ $training->has_pretest && ! $pretestResult ? 'true' : 'false' }};
             let currentRequireProof     = {{ $training->require_attendance_proof ? 'true' : 'false' }};
             const attendanceStatus      = '{{ $participant->attendance_status }}';
             const hasQuizResult         = {{ $participant->quizResult ? 'true' : 'false' }};
@@ -446,7 +506,7 @@
             function buildQuizOpenHTML() {
                 return `
                     <p class="text-muted small mb-3">
-                        Kuis evaluasi telah dibuka oleh pemateri. Silakan klik tombol di bawah untuk mulai mengerjakan:
+                        Kuis evaluasi telah dibuka oleh pemateri. {{ \App\Support\QuizRules::summary($training->quiz_max_attempts, $training->show_quiz_answers) }}.
                     </p>
                     <a href="${QUIZ_URL}" class="btn btn-primary btn-block">
                         Mulai Kerjakan Kuis
@@ -511,6 +571,11 @@
                 fetch(STATUS_URL)
                     .then(function(res) { return res.json(); })
                     .then(function(data) {
+
+                        if (watchPretest && data.is_pretest_active !== currentPretestActive) {
+                            window.location.reload();
+                            return;
+                        }
 
                         // ---- ABSENSI (hanya jika belum absen) ----
                         if (attendanceStatus === 'pending') {

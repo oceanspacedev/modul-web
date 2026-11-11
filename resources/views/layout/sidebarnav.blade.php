@@ -29,6 +29,11 @@
                     </a>
                 </li>
 
+                {{-- Bahan belajar yang berdiri sendiri: dikelompokkan supaya tidak terbaca sebagai urutan langkah. --}}
+                @canany(['view-videos', 'manage-documents', 'view-documents'])
+                <li class="nav-header">Pustaka</li>
+                @endcanany
+
                 @can('view-videos')
                 <li class="nav-item">
                     <a href="/video" class="nav-link {{ ($active ?? '') === 'video' ? 'active' : '' }}">
@@ -37,6 +42,19 @@
                     </a>
                 </li>
                 @endcan
+
+                @canany(['manage-documents', 'view-documents'])
+                <li class="nav-item">
+                    <a href="/document" class="nav-link {{ ($active ?? '') === 'document' ? 'active' : '' }}">
+                        <i class="nav-icon far fa-file-alt"></i>
+                        <p>Dokumen</p>
+                    </a>
+                </li>
+                @endcanany
+
+                @canany(['manage-trainings', 'view-my-trainings', 'manage-learning-modules', 'view-learning-modules'])
+                <li class="nav-header">Kegiatan</li>
+                @endcanany
 
                 @canany(['manage-trainings', 'view-my-trainings'])
                 <li class="nav-item {{ (($active ?? '') === 'training' || request()->is('training*') || request()->is('my-trainings*')) ? 'menu-open' : '' }}">
@@ -98,16 +116,8 @@
                 </li>
                 @endcanany
 
-                @canany(['manage-documents', 'view-documents'])
-                <li class="nav-item">
-                    <a href="/document" class="nav-link {{ ($active ?? '') === 'document' ? 'active' : '' }}">
-                        <i class="nav-icon far fa-file-alt"></i>
-                        <p>Dokumen</p>
-                    </a>
-                </li>
-                @endcanany
-
                 @canany(App\Http\Controllers\ScoreRecapController::PERMISSIONS)
+                <li class="nav-header">Laporan</li>
                 <li class="nav-item">
                     <a href="{{ route('score-recap.index') }}" class="nav-link {{ ($active ?? '') === 'score-recap' ? 'active' : '' }}">
                         <i class="nav-icon fas fa-chart-line"></i>

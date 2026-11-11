@@ -47,7 +47,7 @@
                                     <select id="trainer_id" name="trainer_id" class="form-control" required>
                                         @foreach($users as $u)
                                             <option value="{{ $u->id }}" {{ (old('trainer_id', $training->trainer_id) == $u->id) ? 'selected' : '' }}>
-                                                {{ $u->nama_lengkap }} ({{ $u->divisi->name ?? 'Divisi Umum' }})
+                                                {{ $u->nama_lengkap }} ({{ $divisiNames[$u->divisi_id] ?? 'Divisi Umum' }})
                                             </option>
                                         @endforeach
                                     </select>
@@ -85,10 +85,10 @@
                         </div>
                     </div>
 
-                    {{-- MATERI & MODE KUIS --}}
+                    {{-- MATERI --}}
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">Materi & Kuis</h3>
+                            <h3 class="card-title">Materi</h3>
                         </div>
                         <div class="card-body">
                             <div class="form-group">
@@ -101,35 +101,12 @@
                                     @endforeach
                                 </select>
                             </div>
-
-                            <div class="form-group mb-0">
-                                <label class="d-block">Mode Kuis</label>
-                                <div class="row">
-                                    <div class="col-md-6 mb-2 mb-md-0">
-                                        <div class="border rounded p-3 h-100">
-                                            <div class="custom-control custom-radio">
-                                                <input type="radio" id="mode_formal" name="quiz_mode" value="formal" class="custom-control-input" {{ old('quiz_mode', $training->quiz_mode ?? 'formal') === 'formal' ? 'checked' : '' }}>
-                                                <label class="custom-control-label d-block" for="mode_formal">
-                                                    <strong class="d-block">Formal</strong>
-                                                    <span class="d-block text-muted small mt-1">Semua soal dalam satu halaman.</span>
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="border rounded p-3 h-100">
-                                            <div class="custom-control custom-radio">
-                                                <input type="radio" id="mode_game" name="quiz_mode" value="game" class="custom-control-input" {{ old('quiz_mode', $training->quiz_mode ?? 'formal') === 'game' ? 'checked' : '' }}>
-                                                <label class="custom-control-label d-block" for="mode_game">
-                                                    <strong class="d-block">Game (Quizizz)</strong>
-                                                    <span class="d-block text-muted small mt-1">1 soal per layar dengan timer.</span>
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
+                    </div>
+
+                    {{-- ATURAN KUIS --}}
+                    <div id="aturan-kuis">
+                        @include('learning_module.partials.quiz-rules-fields', ['trainingRules' => $training, 'card' => true])
                     </div>
                 </div>
 
@@ -148,44 +125,7 @@
 
                         <div class="card-body">
                             <p class="text-muted small mb-3">Menghapus centang peserta ikut menghapus presensi &amp; nilainya.</p>
-                            <div class="form-row">
-                                <div class="form-group col-sm-6">
-                                    <select id="filterDivisi" class="form-control form-control-sm select2" aria-label="Divisi" style="width: 100%;">
-                                        <option value="">Semua Divisi</option>
-                                        @foreach($divisis as $div)
-                                            <option value="{{ $div->id }}">{{ $div->name }} ({{ $div->users->count() }})</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group col-sm-6">
-                                    <input type="text" id="searchParticipant" class="form-control form-control-sm" placeholder="Cari peserta...">
-                                </div>
-                            </div>
-
-                            <div class="border rounded" style="max-height: 420px; overflow-y: auto;">
-                                @foreach($users as $user)
-                                <div class="participant-item d-flex align-items-center justify-content-between px-3 py-2 border-bottom"
-                                     data-name="{{ strtolower($user->nama_lengkap) }}"
-                                     data-idk="{{ strtolower($user->employee_id ?? '') }}"
-                                     data-username="{{ strtolower($user->username ?? '') }}"
-                                     data-divisi="{{ $user->divisi_id }}">
-                                    <div class="custom-control custom-checkbox min-w-0">
-                                        <input type="checkbox" name="participants[]" value="{{ $user->id }}"
-                                               class="custom-control-input participant-checkbox" id="user_{{ $user->id }}"
-                                               {{ in_array($user->id, old('participants', $selectedParticipants)) ? 'checked' : '' }}>
-                                        <label class="custom-control-label" for="user_{{ $user->id }}">
-                                            <strong class="d-block text-dark">{{ $user->nama_lengkap }}</strong>
-                                            <span class="text-muted small">
-                                                {{ $user->divisi->name ?? 'Divisi Umum' }}
-                                            </span>
-                                        </label>
-                                    </div>
-                                    @unless($user->no_hp)
-                                        <span class="badge badge-secondary ml-2" title="Nomor WhatsApp belum diisi">Tanpa WA</span>
-                                    @endunless
-                                </div>
-                                @endforeach
-                            </div>
+                            @include('training.partials.participant-picker', ['selected' => old('participants', $selectedParticipants), 'saved' => $selectedParticipants])
                         </div>
                     </div>
 
@@ -225,78 +165,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const checkboxes = document.querySelectorAll('.participant-checkbox');
-    const badge = document.getElementById('selectedCountBadge');
-    const filterDivisi = document.getElementById('filterDivisi');
-    const searchInput = document.getElementById('searchParticipant');
-    const items = document.querySelectorAll('.participant-item');
-
-    function updateCount() {
-        const count = document.querySelectorAll('.participant-checkbox:checked').length;
-        badge.textContent = count;
-    }
-
-    checkboxes.forEach(cb => {
-        cb.addEventListener('change', updateCount);
-    });
-    updateCount();
-
-    document.getElementById('btnSelectAll').addEventListener('click', function() {
-        items.forEach(item => {
-            if (!item.classList.contains('d-none')) {
-                const cb = item.querySelector('.participant-checkbox');
-                if (cb) cb.checked = true;
-            }
-        });
-        updateCount();
-    });
-
-    document.getElementById('btnDeselectAll').addEventListener('click', function() {
-        items.forEach(item => {
-            if (!item.classList.contains('d-none')) {
-                const cb = item.querySelector('.participant-checkbox');
-                if (cb) cb.checked = false;
-            }
-        });
-        updateCount();
-    });
-
-    function applyFilter() {
-        const search = searchInput.value.toLowerCase().trim();
-        const divId = filterDivisi.value;
-
-        items.forEach(item => {
-            const name = item.getAttribute('data-name');
-            const idk = item.getAttribute('data-idk');
-            const username = item.getAttribute('data-username');
-            const itemDiv = item.getAttribute('data-divisi');
-
-            const matchSearch = (!search || name.includes(search) || idk.includes(search) || username.includes(search));
-            const matchDiv = (!divId || itemDiv === divId);
-
-            // .d-flex memakai !important, jadi baris disembunyikan lewat kelas d-none, bukan style.display.
-            const visible = matchSearch && matchDiv;
-            item.classList.toggle('d-flex', visible);
-            item.classList.toggle('d-none', !visible);
-        });
-    }
-
-    filterDivisi.addEventListener('change', applyFilter);
-    searchInput.addEventListener('input', applyFilter);
-
-    // Peserta lama yang di-uncheck ikut dihapus datanya, jadi minta konfirmasi sebelum menyimpan.
-    const savedIds = new Set(@json(array_map('strval', $selectedParticipants)));
-    document.getElementById('trainingEditForm').addEventListener('submit', function (e) {
-        const removed = Array.from(checkboxes)
-            .filter(cb => savedIds.has(cb.value) && !cb.checked)
-            .map(cb => cb.closest('.participant-item').querySelector('strong').textContent.trim());
-        if (removed.length && !confirm(removed.length + ' peserta akan dikeluarkan beserta presensi & nilainya:\n- '
-            + removed.slice(0, 10).join('\n- ') + (removed.length > 10 ? '\n- dan ' + (removed.length - 10) + ' lainnya' : '')
-            + '\n\nLanjutkan simpan?')) {
-            e.preventDefault();
-        }
-    });
-
     // Initialize select2 for documents
     if (typeof $ !== 'undefined' && $.fn.select2) {
         $('#documents').select2({

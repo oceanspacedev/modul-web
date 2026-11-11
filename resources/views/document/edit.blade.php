@@ -77,7 +77,7 @@
                             </div>
                         </div>
 
-                        @include('learning_module.partials.material-quiz-fields', ['quiz' => $quiz])
+                        @include('learning_module.partials.quiz-rules-fields', ['quiz' => $quiz])
                     </div>
                     <div class="card-footer d-flex justify-content-end gap-2">
                         <a href="{{ route('document.index') }}" class="btn btn-default">Batal</a>

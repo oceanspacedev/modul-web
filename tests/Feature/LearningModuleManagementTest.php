@@ -66,6 +66,67 @@ class LearningModuleManagementTest extends TestCase
         $this->assertSame(1, $documentItem->progress()->count());
     }
 
+    public function test_quiz_rules_block_sets_each_phase_like_video_and_document_forms(): void
+    {
+        $video = Video::create(['title' => 'Video K3', 'video_type' => 'link', 'video_link' => 'https://youtu.be/dQw4w9WgXcQ']);
+
+        // Hanya posttest, boleh 2 kali, peserta hanya melihat nilai.
+        $this->actingAs($this->admin)->post(route('learning-module.store'), [
+            'title' => 'Hanya Posttest',
+            'items' => ['video:'.$video->id],
+            'quiz' => [
+                'pretest' => '0', 'posttest' => '1', 'posttest_max_attempts' => '2', 'posttest_shows_answers' => '0',
+                'pretest_max_attempts' => '1', 'pretest_shows_answers' => '0', 'passing_score' => '80', 'shuffle_questions' => '0', 'mode' => 'formal',
+            ],
+        ])->assertSessionHasNoErrors()->assertRedirect(route('learning-module.questions.index', LearningModule::sole()));
+
+        $module = LearningModule::sole();
+        $this->assertFalse($module->has_pretest);
+        $this->assertTrue($module->has_posttest);
+        $this->assertSame(2, $module->posttest_max_attempts);
+        $this->assertFalse($module->posttest_shows_answers);
+        $this->assertSame(80, $module->passing_score);
+        $this->assertFalse($module->shuffle_questions);
+
+        // Peserta langsung ke materi; aturan posttest tertulis di halaman modul.
+        $module->questions()->create(['question' => 'APD utama?', 'option_a' => 'Helm', 'option_b' => 'Topi', 'correct_answer' => 'a']);
+        $module->update(['is_published' => true]);
+        $staff = User::factory()->staff()->create();
+        $this->actingAs($staff)->get(route('learning.show', $module))
+            ->assertOk()
+            ->assertDontSee('Mulai Pretest')
+            ->assertSee('Tonton Video');
+        $this->actingAs($this->admin)->get(route('learning-module.edit', $module))->assertOk()->assertSee('Aturan Kuis');
+    }
+
+    public function test_module_without_any_quiz_publishes_with_materials_only(): void
+    {
+        $video = Video::create(['title' => 'Video K3', 'video_type' => 'link', 'video_link' => 'https://youtu.be/dQw4w9WgXcQ']);
+
+        $this->actingAs($this->admin)->post(route('learning-module.store'), [
+            'title' => 'Materi Saja',
+            'items' => ['video:'.$video->id],
+            'quiz' => ['pretest' => '0', 'posttest' => '0', 'passing_score' => '70'],
+        ])->assertSessionHasNoErrors()->assertRedirect(route('learning-module.show', LearningModule::sole()));
+
+        $module = LearningModule::sole();
+        $this->assertFalse($module->hasQuiz());
+
+        $this->actingAs($this->admin)->post(route('learning-module.publish', $module))->assertSessionHas('success');
+        $this->assertTrue($module->fresh()->is_published);
+
+        $staff = User::factory()->staff()->create();
+        $this->actingAs($staff)->get(route('learning.index'))->assertOk()->assertSee('tanpa kuis');
+        $this->actingAs($staff)->get(route('learning.show', $module))->assertOk()->assertSee('Materi tanpa kuis')->assertDontSee('Posttest');
+
+        // Menyalakan kuis di modul yang sudah terbit butuh soal lebih dulu.
+        $this->actingAs($this->admin)->put(route('learning-module.update', $module), [
+            'title' => 'Materi Saja', 'items' => ['video:'.$video->id],
+            'quiz' => ['pretest' => '0', 'posttest' => '1', 'passing_score' => '70'],
+        ])->assertSessionHasErrors('quiz');
+        $this->assertFalse($module->fresh()->has_posttest);
+    }
+
     public function test_module_cannot_be_published_without_questions(): void
     {
         $module = $this->createModuleWithMaterials();
@@ -100,7 +161,7 @@ class LearningModuleManagementTest extends TestCase
 
         $this->actingAs($this->admin)->post(route('learning-module.questions.import-excel', $module), [
             'file' => new UploadedFile($path, 'soal.csv', 'text/csv', null, true),
-        ])->assertSessionHas('success');
+        ])->assertSessionHas('info');
 
         $this->assertSame(['a', 'b'], $module->questions()->pluck('correct_answer')->all());
         @unlink($path);
@@ -161,14 +222,14 @@ class LearningModuleManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Langkah menyiapkan modul')
             ->assertSee('buat soal pretest/posttest.')
-            ->assertSee('Butuh minimal 1 materi dan 1 soal');
+            ->assertSee('Butuh minimal 1 soal');
 
         $module->questions()->create(['question' => 'APD utama?', 'option_a' => 'Helm', 'option_b' => 'Topi', 'correct_answer' => 'a']);
 
         $this->actingAs($this->admin)->get(route('learning-module.questions.index', $module))
             ->assertOk()
             ->assertSee('publikasikan agar modul muncul di Modul Saya peserta.')
-            ->assertDontSee('Butuh minimal 1 materi dan 1 soal');
+            ->assertDontSee('Butuh minimal 1');
 
         // Sudah dipublikasikan: checklist disembunyikan, tombol berganti jadi Tarik Publikasi.
         $module->update(['is_published' => true]);

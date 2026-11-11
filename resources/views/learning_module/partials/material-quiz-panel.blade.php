@@ -5,7 +5,8 @@
 --}}
 @php
     $attempts = $progress->pretests->merge($progress->posttests)->sortByDesc('submitted_at');
-    $limitLabel = fn (?int $remaining) => $remaining === null ? 'tanpa batas' : 'sisa '.$remaining.' kali';
+    $limitLabel = fn (?int $remaining) => \App\Support\QuizRules::remainingLabel($remaining);
+    $ruleLabel = fn (string $phase) => \App\Support\QuizRules::summary($quiz->maxAttempts($phase), $quiz->showsAnswers($phase));
 @endphp
 
 <div class="card mb-3">
@@ -37,7 +38,7 @@
                     @if($progress->pretest)
                         <span class="text-muted small ml-1">nilai awal {{ $progress->pretest->score }} &middot; {{ $limitLabel($progress->remainingAttempts('pretest')) }}</span>
                     @else
-                        <span class="text-muted small ml-1">belum dikerjakan</span>
+                        <span class="text-muted small ml-1">belum dikerjakan &middot; {{ mb_strtolower($ruleLabel('pretest')) }}</span>
                     @endif
                 </div>
                 @if($progress->canTakePretest())
@@ -62,7 +63,7 @@
                         <i class="fas fa-lock mr-1"></i> terbuka setelah video selesai ditonton
                     </span>
                     <span class="text-muted small ml-1 {{ $progress->isPosttestUnlocked() ? '' : 'd-none' }}" id="posttestRemaining">
-                        &middot; {{ $limitLabel($progress->remainingAttempts('posttest')) }}
+                        &middot; {{ $progress->posttests->isEmpty() ? mb_strtolower($ruleLabel('posttest')) : $limitLabel($progress->remainingAttempts('posttest')) }}
                     </span>
                 </div>
                 @if($progress->remainingAttempts('posttest') !== 0)

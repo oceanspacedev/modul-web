@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Training;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreTrainingRequest extends FormRequest
@@ -33,6 +34,7 @@ class StoreTrainingRequest extends FormRequest
             'documents.*' => ['integer', 'exists:documents,id'],
             'send_wa_now' => ['nullable', 'boolean'],
             'quiz_mode' => ['nullable', 'in:formal,game'],
+            ...Training::quizRuleValidation(),
             'is_attendance_active' => ['nullable', 'boolean'],
             'require_attendance_proof' => ['nullable', 'boolean'],
         ];
@@ -46,6 +48,18 @@ class StoreTrainingRequest extends FormRequest
     public function trainingData(): array
     {
         return $this->safe()->only(['title', 'trainer_id', 'description', 'training_date', 'start_time', 'end_time', 'zoom_link']);
+    }
+
+    /**
+     * Kolom aturan kuis dari blok Aturan Kuis (quiz[...]); kosong bila form tidak mengirimnya.
+     *
+     * @return array<string, mixed>
+     */
+    public function quizRules(): array
+    {
+        $quiz = $this->validated('quiz');
+
+        return is_array($quiz) ? Training::quizRulesFromInput($quiz) : [];
     }
 
     /**

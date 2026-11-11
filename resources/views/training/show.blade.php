@@ -70,7 +70,8 @@
         {{-- LANGKAH PELATIHAN --}}
         @php
             $questionCount = $training->questions->count();
-            $participantCount = $training->participants->count();
+            $pretestQuestionCount = $training->questionsFor('pretest')->count();
+            $participantCount = $training->participants_count;
             $isClosed = in_array($training->status, [App\Enums\TrainingStatus::Completed, App\Enums\TrainingStatus::Cancelled], true);
             $trainingSteps = [
                 [
@@ -79,30 +80,36 @@
                     'done' => $participantCount > 0,
                     'action' => 'Tambah Peserta', 'url' => route('training.edit', $training).'#peserta',
                 ],
-                [
+                ...($training->hasQuiz() ? [[
                     'label' => 'Soal', 'meta' => $questionCount.' soal',
                     'hint' => 'siapkan soal kuis.',
                     'done' => $questionCount > 0,
                     'action' => 'Buat Soal', 'url' => route('training.questions.index', $training),
-                ],
+                ]] : []),
                 [
                     'label' => 'Pengaturan',
-                    'hint' => 'jawab pertanyaan pengaturan presensi & kuis.',
+                    'hint' => 'jawab pertanyaan pengaturan presensi.',
                     'done' => ! $training->needsSetup(),
                     'action' => 'Atur', 'url' => route('training.setup', $training),
                 ],
+                ...($training->has_pretest ? [[
+                    'label' => 'Pretest',
+                    'hint' => 'buka pretest sebelum materi dimulai.',
+                    'done' => $training->is_pretest_active || $training->pretestResults()->exists(),
+                    'action' => 'Buka Pretest', 'post' => route('training.toggle-pretest', $training),
+                ]] : []),
                 [
                     'label' => 'Presensi',
                     'hint' => 'buka presensi saat sesi dimulai.',
                     'done' => $training->is_attendance_active || $stats['attended'] > 0,
                     'action' => 'Buka Presensi', 'post' => route('training.toggle-attendance', $training),
                 ],
-                [
-                    'label' => 'Kuis',
-                    'hint' => 'buka kuis setelah materi selesai.',
+                ...($training->has_posttest ? [[
+                    'label' => $training->has_pretest ? 'Posttest' : 'Kuis',
+                    'hint' => $training->has_pretest ? 'buka posttest setelah materi selesai.' : 'buka kuis setelah materi selesai.',
                     'done' => $training->is_quiz_active || $stats['quizSubmitted'] > 0,
-                    'action' => 'Buka Kuis', 'post' => route('training.toggle-quiz', $training),
-                ],
+                    'action' => $training->has_pretest ? 'Buka Posttest' : 'Buka Kuis', 'post' => route('training.toggle-quiz', $training),
+                ]] : []),
                 [
                     'label' => 'Rekap',
                     'hint' => 'ubah status jadi Selesai, lalu export rekap nilai.',
@@ -123,7 +130,6 @@
         <div class="row">
             <div class="col-lg-3 col-6 mb-3">
                 <div class="stat-tile h-100">
-                    <span class="stat-tile-icon"><i class="fas fa-users"></i></span>
                     <div class="min-w-0">
                         <p class="stat-tile-label">Peserta</p>
                         <p class="stat-tile-value" id="statTotal">{{ $stats['total'] }}</p>
@@ -133,7 +139,6 @@
             </div>
             <div class="col-lg-3 col-6 mb-3">
                 <div class="stat-tile h-100">
-                    <span class="stat-tile-icon"><i class="fas fa-user-check"></i></span>
                     <div class="min-w-0">
                         <p class="stat-tile-label">Kehadiran</p>
                         <p class="stat-tile-value">{{ $attendanceRate }}%</p>
@@ -143,7 +148,6 @@
             </div>
             <div class="col-lg-3 col-6 mb-3">
                 <div class="stat-tile h-100">
-                    <span class="stat-tile-icon"><i class="fas fa-clipboard-check"></i></span>
                     <div class="min-w-0">
                         <p class="stat-tile-label">Kuis selesai</p>
                         <p class="stat-tile-value"><span id="statQuiz">{{ $stats['quizSubmitted'] }}</span><span class="text-muted text-sm font-weight-normal"> / {{ $stats['total'] }}</span></p>
@@ -153,7 +157,6 @@
             </div>
             <div class="col-lg-3 col-6 mb-3">
                 <div class="stat-tile h-100">
-                    <span class="stat-tile-icon"><i class="fas fa-chart-line"></i></span>
                     <div class="min-w-0">
                         <p class="stat-tile-label">Rata-rata nilai</p>
                         <p class="stat-tile-value" id="statAvg">{{ $stats['avgScore'] }}</p>
@@ -340,10 +343,55 @@
                             </form>
                         </div>
 
-                        <!-- AKSES KUIS -->
+                        <!-- SYARAT SCREENSHOT -->
                         <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
                             <div class="min-w-0">
-                                <div class="text-sm font-weight-bold">Akses Kuis</div>
+                                <div class="text-sm font-weight-bold">Bukti Foto / SS</div>
+                                <div class="text-muted text-xs">
+                                    {{ $training->require_attendance_proof ? 'Wajib upload foto selfie/meeting' : 'Presensi tanpa upload foto' }}
+                                </div>
+                            </div>
+                            <form action="/training/{{ $training->id }}/toggle-proof" method="POST" class="m-0">
+                                @csrf
+                                <button type="submit" class="btn btn-default btn-xs text-nowrap">
+                                    {{ $training->require_attendance_proof ? 'Jadikan Opsional' : 'Wajibkan Foto' }}
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- AKSES PRETEST -->
+                        @if($training->has_pretest)
+                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
+                            <div class="min-w-0">
+                                <div class="text-sm font-weight-bold">Akses Pretest</div>
+                                <div class="text-muted text-xs">
+                                    {{ $training->is_pretest_active ? 'Pretest aktif untuk dikerjakan' : ($pretestQuestionCount === 0 ? 'Belum ada soal pilihan ganda' : 'Pengerjaan pretest terkunci') }}
+                                </div>
+                            </div>
+                            <form action="{{ route('training.toggle-pretest', $training) }}" method="POST" class="m-0">
+                                @csrf
+                                @if($training->is_pretest_active)
+                                    <button type="submit" class="btn btn-default btn-xs text-danger text-nowrap">
+                                        Kunci Pretest
+                                    </button>
+                                @elseif($pretestQuestionCount === 0)
+                                    <a href="{{ route('training.questions.index', $training) }}" class="btn btn-default btn-xs text-nowrap" title="Pretest butuh soal pilihan ganda">
+                                        Buat soal dulu
+                                    </a>
+                                @else
+                                    <button type="submit" class="btn btn-default btn-xs text-nowrap">
+                                        Buka Pretest
+                                    </button>
+                                @endif
+                            </form>
+                        </div>
+                        @endif
+
+                        <!-- AKSES POSTTEST (KUIS UTAMA) -->
+                        @if($training->has_posttest)
+                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
+                            <div class="min-w-0">
+                                <div class="text-sm font-weight-bold">{{ $training->has_pretest ? 'Akses Posttest' : 'Akses Kuis' }}</div>
                                 <div class="text-muted text-xs">
                                     {{ $training->is_quiz_active ? 'Kuis aktif untuk dikerjakan' : ($training->questions->isEmpty() ? 'Belum ada soal kuis' : 'Pengerjaan kuis terkunci') }}
                                 </div>
@@ -365,78 +413,34 @@
                                 @endif
                             </form>
                         </div>
+                        @endif
 
-                        <!-- SYARAT SCREENSHOT -->
-                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
+                        <!-- ATURAN KUIS -->
+                        <div class="list-group-item d-flex align-items-start justify-content-between gap-2">
                             <div class="min-w-0">
-                                <div class="text-sm font-weight-bold">Bukti Foto / SS</div>
-                                <div class="text-muted text-xs">
-                                    {{ $training->require_attendance_proof ? 'Wajib upload foto selfie/meeting' : 'Presensi tanpa upload foto' }}
-                                </div>
-                            </div>
-                            <form action="/training/{{ $training->id }}/toggle-proof" method="POST" class="m-0">
-                                @csrf
-                                <button type="submit" class="btn btn-default btn-xs text-nowrap">
-                                    {{ $training->require_attendance_proof ? 'Jadikan Opsional' : 'Wajibkan Foto' }}
-                                </button>
-                            </form>
-                        </div>
-
-                        <!-- MODE KUIS -->
-                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
-                            <div class="min-w-0">
-                                <div class="text-sm font-weight-bold">Mode Kuis</div>
-                                <div class="text-muted text-xs">
-                                    {{ $training->quiz_mode === 'game' ? 'Tampilan interaktif (Game)' : 'Tampilan ujian standar (Formal)' }}
-                                </div>
-                            </div>
-                            <form action="/training/{{ $training->id }}/toggle-mode" method="POST" class="m-0">
-                                @csrf
-                                <button type="submit" class="btn btn-default btn-xs text-nowrap">
-                                    {{ $training->quiz_mode === 'game' ? 'Pindah ke Formal' : 'Pindah ke Game' }}
-                                </button>
-                            </form>
-                        </div>
-
-                        <!-- JAWABAN BENAR/SALAH -->
-                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
-                            <div class="min-w-0">
-                                <div class="text-sm font-weight-bold">Jawaban benar/salah: {{ $training->show_quiz_answers ? 'Ditampilkan' : 'Disembunyikan' }}</div>
-                                <div class="text-muted text-xs">
-                                    {{ $training->show_quiz_answers ? 'Peserta melihat rincian & kunci jawaban' : 'Peserta hanya melihat nilai' }}
-                                </div>
-                            </div>
-                            <form action="/training/{{ $training->id }}/toggle-quiz-answers" method="POST" class="m-0">
-                                @csrf
-                                <button type="submit" class="btn btn-default btn-xs text-nowrap">
-                                    {{ $training->show_quiz_answers ? 'Sembunyikan' : 'Tampilkan' }}
-                                </button>
-                            </form>
-                        </div>
-
-                        <!-- ULANG KUIS -->
-                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
-                            <div class="min-w-0">
-                                <div class="text-sm font-weight-bold">Ulang kuis: {{ $training->allow_quiz_retake ? 'Boleh' : 'Tidak boleh' }}</div>
-                                <div class="text-muted text-xs">
-                                    {{ $training->allow_quiz_retake ? 'Nilai tertinggi yang dipakai' : 'Peserta hanya sekali mengerjakan' }}
-                                </div>
-                                @if($training->allow_quiz_retake && $training->show_quiz_answers)
+                                <div class="text-sm font-weight-bold">Aturan Kuis</div>
+                                @forelse(array_filter(\App\Models\Training::PHASES, fn ($phase) => $training->hasPhase($phase)) as $phase)
+                                    <div class="text-muted text-xs">
+                                        {{ \App\Models\Training::phaseLabel($phase) }}: {{ mb_strtolower(\App\Support\QuizRules::attemptsLabel($training->maxAttempts($phase))) }}
+                                        &middot; hasil {{ mb_strtolower(\App\Support\QuizRules::answersLabel($training->showsAnswers($phase))) }}
+                                    </div>
+                                @empty
+                                    <div class="text-muted text-xs">Tanpa kuis</div>
+                                @endforelse
+                                @if($training->hasQuiz())
+                                    <div class="text-muted text-xs">Mode {{ $training->quiz_mode === 'game' ? 'Game' : 'Formal' }}</div>
+                                @endif
+                                @if($training->has_posttest && $training->allowsQuizRetake() && $training->show_quiz_answers)
                                     <div class="text-warning text-xs">Kunci jawaban terlihat, peserta bisa menyontek saat mengulang</div>
                                 @endif
                             </div>
-                            <form action="{{ route('training.toggle-quiz-retake', $training) }}" method="POST" class="m-0">
-                                @csrf
-                                <button type="submit" class="btn btn-default btn-xs text-nowrap">
-                                    {{ $training->allow_quiz_retake ? 'Kunci' : 'Izinkan' }}
-                                </button>
-                            </form>
+                            <button type="button" class="btn btn-default btn-xs text-nowrap" data-toggle="modal" data-target="#quizRulesModal">Ubah</button>
                         </div>
                     </div>
 
                     <!-- TOMBOL BROADCAST WHATSAPP -->
                     <div class="card-footer">
-                        <form action="/training/{{ $training->id }}/broadcast-wa" method="POST" class="m-0" onsubmit="return confirm(@js('Kirim notifikasi WhatsApp ke '.$training->participants->count().' peserta?'))">
+                        <form action="/training/{{ $training->id }}/broadcast-wa" method="POST" class="m-0" onsubmit="return confirm(@js('Kirim notifikasi WhatsApp ke '.$training->participants_count.' peserta?'))">
                             @csrf
                             <button type="submit" class="btn btn-default btn-sm btn-block">
                                 <i class="fab fa-whatsapp"></i> Broadcast WA ke Peserta
@@ -447,12 +451,32 @@
             </div>
         </div>
 
+        <!-- MODAL ATURAN KUIS (blok yang sama dengan form video, dokumen, dan modul) -->
+        <div class="modal fade" id="quizRulesModal" tabindex="-1" role="dialog" aria-labelledby="quizRulesModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <form action="{{ route('training.quiz-rules', $training) }}" method="POST" class="modal-content">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="quizRulesModalTitle">Ubah Aturan Kuis</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Tutup"><span aria-hidden="true">&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        @include('learning_module.partials.quiz-rules-fields', ['trainingRules' => $training])
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan Aturan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- TABEL REKAP PESERTA & NILAI -->
         <div class="card" id="peserta">
             <div class="card-header">
                 <h3 class="card-title">
                     Daftar Peserta & Nilai
-                    <span class="text-muted text-sm font-weight-normal">({{ $training->participants->count() }} orang)</span>
+                    <span class="text-muted text-sm font-weight-normal">({{ $training->participants_count }} orang)</span>
                 </h3>
                 <div class="card-tools d-flex align-items-center flex-wrap gap-2">
                     <a href="{{ route('training.edit', $training) }}#peserta" class="btn btn-default btn-sm">
@@ -461,7 +485,11 @@
                     <button type="button" class="btn btn-default btn-sm" id="btnToggleManualOffCamMode">
                         <i class="fas fa-user-edit"></i> Input Off Cam Manual
                     </button>
-                    <input type="text" id="filterTableInput" class="form-control form-control-sm" placeholder="Cari peserta..." style="width: 200px;">
+                    {{-- Pencarian dijalankan server: tabel hanya memuat satu halaman peserta. --}}
+                    <form action="{{ route('training.show', $training) }}#peserta" method="GET" class="m-0" role="search" style="width: 220px; max-width: 100%;">
+                        <x-search-field name="peserta" placeholder="Cari peserta..."
+                            :clear-url="route('training.show', $training).'#peserta'" />
+                    </form>
                 </div>
             </div>
 
@@ -493,7 +521,10 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($training->participants as $index => $part)
+                        @php
+                            $hasEssay = $training->questions->contains('type', 'essay');
+                        @endphp
+                        @forelse($participants as $part)
                         @php
                             $user = $part->user;
                             $userName = $user->nama_lengkap ?? ($part->name ?? 'Peserta');
@@ -502,10 +533,11 @@
                             $userIdKaryawan = optional($user)->employee_id ?? '-';
                             $userNoWa = optional($user)->no_hp ?? '-';
                             $quiz = $part->quizResult;
+                            $pretest = $training->has_pretest ? $part->pretestResult : null;
                         @endphp
                         <tr>
                             <td class="text-center align-middle text-muted">
-                                {{ $index + 1 }}
+                                {{ $participants->firstItem() + $loop->index }}
                             </td>
                             <td class="align-middle">
                                 <span class="d-block font-weight-bold text-gray-950" title="{{ $userEmail }}">{{ $userName }}</span>
@@ -557,6 +589,9 @@
                                 @else
                                     <span class="text-muted">Belum mengerjakan</span>
                                 @endif
+                                @if($training->has_pretest)
+                                    <span class="cell-sub">Pretest: {{ $pretest ? $pretest->score.(($pretest->attempt_count ?? 1) > 1 ? ' (tertinggi dari '.$pretest->attempt_count.'x)' : '') : 'belum' }}</span>
+                                @endif
                             </td>
                             <td class="text-center align-middle text-nowrap">
                                 @if($quiz)
@@ -584,8 +619,8 @@
                                     </button>
                                     <div class="dropdown-menu dropdown-menu-right" style="max-height: 280px; overflow-y: auto;">
                                         @if($quiz && $quiz->answers)
-                                            <a class="dropdown-item" href="#" data-toggle="modal" data-target="#answerModal_{{ $quiz->id }}">
-                                                Lembar Jawaban {{ $training->questions()->where('type', 'essay')->count() > 0 ? '& Review Essay' : '' }}
+                                            <a class="dropdown-item answer-sheet-link" href="#" data-url="{{ route('training.answer-sheet', [$training, $quiz]) }}">
+                                                Lembar Jawaban {{ $hasEssay ? '& Review Essay' : '' }}
                                             </a>
                                             <div class="dropdown-divider"></div>
                                         @endif
@@ -648,181 +683,6 @@
                                 </div>
 
                                 {{-- Modal per peserta tetap di dalam sel ini: di luar <td> browser memindahkannya keluar tabel dan memisahkan <form> dari isinya. --}}
-                                <!-- MODAL LEMBAR JAWABAN -->
-                                @if($quiz && $quiz->answers)
-                                <div class="modal fade text-left" id="answerModal_{{ $quiz->id }}" tabindex="-1" role="dialog" aria-hidden="true">
-                                    <div class="modal-dialog modal-lg" role="document">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">
-                                                    Lembar Jawaban: {{ $userName }}
-                                                </h5>
-                                                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
-                                                    <span aria-hidden="true">&times;</span>
-                                                </button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <!-- STATS SUMMARY -->
-                                                <div class="row no-gutters mb-4 border rounded text-center">
-                                                    <div class="col-3 p-3 border-right">
-                                                        <p class="stat-tile-label">Nilai Akhir</p>
-                                                        <p class="stat-tile-value">{{ $quiz->score }}</p>
-                                                    </div>
-                                                    <div class="col-3 p-3 border-right">
-                                                        <p class="stat-tile-label">Nilai PG ({{ $quiz->correct_answers }} Benar)</p>
-                                                        <p class="stat-tile-value">{{ $quiz->mc_score ?? $quiz->score }}</p>
-                                                    </div>
-                                                    <div class="col-3 p-3 border-right">
-                                                        <p class="stat-tile-label">Nilai Essay</p>
-                                                        @if($quiz->essay_status === 'graded')
-                                                            <p class="stat-tile-value">{{ $quiz->essay_score }}</p>
-                                                        @else
-                                                            <p class="text-sm text-muted mb-0 mt-1">Belum Dinilai</p>
-                                                        @endif
-                                                    </div>
-                                                    <div class="col-3 p-3">
-                                                        <p class="stat-tile-label">Waktu Submit</p>
-                                                        <p class="text-sm font-weight-bold mb-0 mt-1">{{ \Carbon\Carbon::parse($quiz->submitted_at)->format('d/m/Y H:i') }}</p>
-                                                    </div>
-                                                </div>
-
-                                                <!-- CATATAN ANTI-CURANG AUDIT -->
-                                                @if(($quiz->tab_switch_count ?? 0) > 0 || $quiz->is_force_submitted)
-                                                <div class="alert alert-{{ $quiz->is_force_submitted ? 'danger' : 'warning' }} mb-4 text-left">
-                                                    <div>
-                                                        <strong class="d-block mb-1">
-                                                            Catatan Integritas: {{ $quiz->is_force_submitted ? 'Kuis Dikunci Otomatis (Melebihi Toleransi Pindah Tab)' : 'Terdeteksi Keluar dari Halaman Kuis' }}
-                                                        </strong>
-                                                        <div class="text-sm">
-                                                            Peserta terdeteksi keluar dari halaman kuis / membuka aplikasi lain sebanyak <strong>{{ $quiz->tab_switch_count }} kali</strong>.
-                                                            @if(!empty($quiz->violation_logs) && is_array($quiz->violation_logs))
-                                                                <div class="mt-2 pt-2 border-top">
-                                                                    <span class="font-weight-bold d-block mb-1 text-xs">Riwayat Deteksi Pelanggaran:</span>
-                                                                    <ul class="mb-0 pl-3 text-xs">
-                                                                        @foreach($quiz->violation_logs as $log)
-                                                                            <li>
-                                                                                <strong>{{ $log['type'] ?? 'Pindah Tab Browser' }}</strong>
-                                                                                (Pelanggaran ke-{{ $log['count'] ?? '1' }}) pada
-                                                                                {{ isset($log['time']) ? \Carbon\Carbon::parse($log['time'])->timezone('Asia/Jakarta')->format('d/m/Y H:i:s') . ' WIB' : '-' }}
-                                                                            </li>
-                                                                        @endforeach
-                                                                    </ul>
-                                                                </div>
-                                                            @endif
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                @endif
-
-                                                <!-- FORM PENILAIAN ESSAY OLEH PEMATERI -->
-                                                @if($training->questions()->where('type', 'essay')->count() > 0)
-                                                <div class="card mb-4">
-                                                    <div class="card-header">
-                                                        <h3 class="card-title">Penilaian Soal Essay oleh Pemateri</h3>
-                                                    </div>
-                                                    <div class="card-body">
-                                                        <form action="/training/{{ $training->id }}/grade-essay/{{ $quiz->id }}" method="POST">
-                                                            @csrf
-                                                            <div class="row align-items-end">
-                                                                <div class="col-md-3 mb-2 mb-md-0">
-                                                                    <label class="text-xs mb-1">Nilai Essay (0-100)</label>
-                                                                    <input type="number" name="essay_score" class="form-control form-control-sm" min="0" max="100" step="1" value="{{ $quiz->essay_score !== null ? round($quiz->essay_score) : '' }}" placeholder="Contoh: 90" required>
-                                                                </div>
-                                                                <div class="col-md-6 mb-2 mb-md-0">
-                                                                    <label class="text-xs mb-1">Catatan Evaluasi (Opsional)</label>
-                                                                    <input type="text" name="essay_feedback" class="form-control form-control-sm" value="{{ $quiz->essay_feedback ?? '' }}" placeholder="Contoh: Pemahaman konsep materi baik.">
-                                                                </div>
-                                                                <div class="col-md-3">
-                                                                    <button type="submit" class="btn btn-primary btn-sm btn-block">
-                                                                        Simpan Nilai
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                            @if($quiz->essay_status === 'graded')
-                                                                <div class="text-xs text-success mt-2">
-                                                                    Nilai essay tersimpan {{ $quiz->essay_score }}/100. Nilai akhir total dihitung gabungan PG dan Essay.
-                                                                </div>
-                                                            @else
-                                                                <div class="text-xs text-muted mt-2">
-                                                                    Nilai essay akan otomatis dikombinasikan dengan nilai PG secara proporsional.
-                                                                </div>
-                                                            @endif
-                                                        </form>
-                                                    </div>
-                                                </div>
-                                                @endif
-
-                                                <h6 class="section-title mb-3">Rincian Pertanyaan & Jawaban Peserta</h6>
-                                                @foreach($training->questions as $qIndex => $question)
-                                                    @php
-                                                        $ansData = $quiz->answers[$question->id] ?? null;
-                                                        $userAns = $ansData['user_answer'] ?? null;
-                                                        $isEssay = ($question->type === 'essay');
-                                                        $isCorrect = $ansData['is_correct'] ?? false;
-                                                    @endphp
-                                                    <div class="p-3 mb-3 rounded border">
-                                                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                                                            <div>
-                                                                <span class="badge badge-secondary mr-1">
-                                                                    #{{ $qIndex + 1 }} {{ $isEssay ? '(Essay)' : '(PG)' }}
-                                                                </span>
-                                                                <strong>{{ $question->question }}</strong>
-                                                                @if($question->imageUrl())
-                                                                    <img src="{{ $question->imageUrl() }}" alt="Gambar soal" class="quiz-img quiz-opt-img mt-2">
-                                                                @endif
-                                                            </div>
-                                                            <div>
-                                                                @if($isEssay)
-                                                                    <span class="badge badge-primary">Tersimpan</span>
-                                                                @else
-                                                                    <span class="badge {{ $isCorrect ? 'badge-success' : 'badge-danger' }}">
-                                                                        {{ $isCorrect ? 'Benar' : 'Salah' }}
-                                                                    </span>
-                                                                @endif
-                                                            </div>
-                                                        </div>
-
-                                                        <div class="text-sm mt-2 pt-2 border-top">
-                                                            @if($isEssay)
-                                                                <div class="mb-2">
-                                                                    <span class="text-muted d-block">Jawaban Essay Peserta:</span>
-                                                                    <div class="p-2 bg-light rounded border mt-1" style="white-space: pre-wrap;">{{ $userAns ?: '(Tidak ada jawaban)' }}</div>
-                                                                </div>
-                                                                @if($question->correct_answer)
-                                                                    <div class="text-muted"><strong>Pedoman Acuan Jawaban:</strong> {{ $question->correct_answer }}</div>
-                                                                @endif
-                                                            @else
-                                                                <div class="mb-1">
-                                                                    Jawaban Peserta: <strong>{{ strtoupper($userAns ?? '-') }}</strong> ({{ $question->{'option_' . $userAns} ?? '-' }})
-                                                                    @if($userAns && $question->optionImageUrl($userAns))
-                                                                        <img src="{{ $question->optionImageUrl($userAns) }}" alt="Gambar jawaban peserta" class="quiz-img quiz-img-thumb mt-1">
-                                                                    @endif
-                                                                </div>
-                                                                @if($question->correct_answer)
-                                                                    <div class="text-success">
-                                                                        Kunci Jawaban: <strong>{{ strtoupper($question->correct_answer) }}</strong> ({{ $question->{'option_' . $question->correct_answer} ?? '-' }})
-                                                                        @if($question->optionImageUrl($question->correct_answer))
-                                                                            <img src="{{ $question->optionImageUrl($question->correct_answer) }}" alt="Gambar kunci jawaban" class="quiz-img quiz-img-thumb mt-1">
-                                                                        @endif
-                                                                    </div>
-                                                                @endif
-                                                            @endif
-
-                                                            @if($question->explanation)
-                                                                <div class="text-muted mt-2 pt-2 border-top font-italic">Catatan: {{ $question->explanation }}</div>
-                                                            @endif
-                                                        </div>
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-default" data-dismiss="modal">Tutup</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                @endif
-
                                 <!-- MODAL BUKTI SCREENSHOT -->
                                 @if($part->attendance_proof)
                                 <div class="modal fade text-left" id="proofModal_{{ $part->id }}" tabindex="-1" role="dialog" aria-hidden="true">
@@ -907,14 +767,33 @@
                         @empty
                         <tr>
                             <td colspan="8">
-                                <x-empty-state icon="fa-users" title="Belum ada peserta" text="Daftarkan peserta agar mereka bisa presensi dan mengerjakan kuis pelatihan ini.">
-                                    <a href="{{ route('training.edit', $training) }}#peserta" class="btn btn-primary btn-sm">Tambah Peserta</a>
-                                </x-empty-state>
+                                @if(filled(request('peserta')))
+                                    <x-empty-state icon="fa-search" title="Peserta tidak ditemukan" text="Coba kata kunci lain: nama, ID karyawan, No. HP, atau divisi." />
+                                @else
+                                    <x-empty-state icon="fa-users" title="Belum ada peserta" text="Daftarkan peserta agar mereka bisa presensi dan mengerjakan kuis pelatihan ini.">
+                                        <a href="{{ route('training.edit', $training) }}#peserta" class="btn btn-primary btn-sm">Tambah Peserta</a>
+                                    </x-empty-state>
+                                @endif
                             </td>
                         </tr>
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+            @if($participants->total() > 0)
+            <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span class="text-muted small">
+                    Menampilkan {{ $participants->firstItem() }}-{{ $participants->lastItem() }} dari {{ $participants->total() }} peserta{{ filled(request('peserta')) ? ' yang cocok' : '' }}
+                </span>
+                {{ $participants->links('pagination::bootstrap-4') }}
+            </div>
+            @endif
+        </div>
+
+        {{-- MODAL LEMBAR JAWABAN: satu modal untuk semua peserta, isinya dimuat saat dibuka (lihat .answer-sheet-link). --}}
+        <div class="modal fade text-left" id="answerSheetModal" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content" id="answerSheetContent"></div>
             </div>
         </div>
     </div>
@@ -1324,22 +1203,31 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    const filterInput = document.getElementById('filterTableInput');
-    const table = document.getElementById('participantsTable');
-    if (filterInput && table) {
-        filterInput.addEventListener('keyup', function() {
-            const filter = filterInput.value.toLowerCase();
-            const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
-            for (let i = 0; i < rows.length; i++) {
-                const text = rows[i].textContent || rows[i].innerText;
-                if (text.toLowerCase().indexOf(filter) > -1) {
-                    rows[i].style.display = "";
-                } else {
-                    rows[i].style.display = "none";
-                }
-            }
-        });
-    }
+    // Lembar jawaban dimuat saat dibuka, supaya halaman tidak merender semua soal untuk setiap peserta.
+    const answerSheetContent = document.getElementById('answerSheetContent');
+    document.addEventListener('click', function (e) {
+        const link = e.target.closest('.answer-sheet-link');
+        if (!link || !answerSheetContent) return;
+        e.preventDefault();
+
+        const closeButton = '<button type="button" class="close" data-dismiss="modal" aria-label="Tutup"><span aria-hidden="true">&times;</span></button>';
+        answerSheetContent.innerHTML = '<div class="modal-header"><h5 class="modal-title">Lembar Jawaban</h5>' + closeButton + '</div>' +
+            '<div class="modal-body text-center text-muted py-5"><span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>Memuat lembar jawaban...</div>';
+        $('#answerSheetModal').modal('show');
+
+        fetch(link.dataset.url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' } })
+            .then(function (res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.text();
+            })
+            .then(function (html) {
+                answerSheetContent.innerHTML = html;
+            })
+            .catch(function () {
+                answerSheetContent.innerHTML = '<div class="modal-header"><h5 class="modal-title">Lembar Jawaban</h5>' + closeButton + '</div>' +
+                    '<div class="modal-body"><div class="alert alert-danger mb-0">Lembar jawaban gagal dimuat. Muat ulang halaman lalu coba lagi.</div></div>';
+            });
+    });
 
     const videoForm = document.getElementById('uploadTrainingVideoForm');
     if (videoForm) {
@@ -1418,18 +1306,7 @@ if (typeof $ !== 'undefined') {
 (function () {
     const TRAINING_ID = {{ $training->id }};
     const CSRF_TOKEN = '{{ csrf_token() }}';
-@php
-    $participantsForJs = $training->participants->map(function($p) {
-        return [
-            'id' => $p->id,
-            'name' => $p->user->nama_lengkap ?? ($p->name ?? 'Peserta'),
-            'id_karyawan' => $p->user->employee_id ?? '-',
-            'divisi' => optional(optional($p->user)->divisi)->name ?? '-',
-            'is_off_cam' => (bool)$p->is_off_cam,
-        ];
-    })->values();
-@endphp
-    const OFFICIAL_PARTICIPANTS = {!! json_encode($participantsForJs) !!};
+    const OFFICIAL_PARTICIPANTS = @json($zoomParticipants);
 
     // DOM Elements
     const dropArea = document.getElementById('zoomDropArea');
@@ -1459,6 +1336,9 @@ if (typeof $ !== 'undefined') {
     const SCAN_BATCH_SIZE = 10; // the server accepts at most 10 images per request
     const SCAN_BATCH_MAX_BYTES = 600 * 1024; // base64 characters per request, below common 1 MB body limits
     const SCAN_URL = @json(route('training.scan-zoom-ai', $training));
+    const SCAN_STATUS_URL = @json(route('training.scan-zoom-ai.status', [$training, '__TOKEN__']));
+    const SCAN_POLL_MS = 3000;
+    const SCAN_MAX_WAIT_MS = 15 * 60 * 1000; // same as the queue job timeout
     const SAVE_OFF_CAM_URL = @json(route('training.save-zoom-off-cam', $training));
     const UPDATE_OFF_CAM_COUNT_URL = @json(route('training.update-offcam-count', [$training, '__PARTICIPANT__']));
 
@@ -1866,12 +1746,39 @@ if (typeof $ !== 'undefined') {
             data = null;
         }
 
-        if (res.ok && data && data.success) {
-            return (data.data && data.data.off_cam_participants) || [];
+        if (res.ok && data && data.success && data.token) {
+            return await waitForScanResult(data.token);
         }
 
         if (data && data.message) throw new Error(data.message);
         throw new Error(describeHttpError(res.status));
+    }
+
+    // The scan runs on the server queue (the AI can take minutes): poll until this batch is finished.
+    async function waitForScanResult(token) {
+        const statusUrl = SCAN_STATUS_URL.replace('__TOKEN__', encodeURIComponent(token));
+        const deadline = Date.now() + SCAN_MAX_WAIT_MS;
+
+        while (Date.now() < deadline) {
+            await new Promise(resolve => setTimeout(resolve, SCAN_POLL_MS));
+
+            let data = null;
+            try {
+                const res = await fetch(statusUrl, { headers: { 'Accept': 'application/json' } });
+                data = await res.json();
+            } catch (err) {
+                continue; // brief network hiccup: keep waiting
+            }
+
+            if (data.status === 'done') {
+                return (data.data && data.data.off_cam_participants) || [];
+            }
+            if (data.status === 'failed') {
+                throw new Error(data.message || 'Scan screenshot gagal diproses. Coba lagi.');
+            }
+        }
+
+        throw new Error('Scan belum selesai setelah 15 menit. Pastikan antrean (Horizon) berjalan, lalu coba lagi.');
     }
 
     function describeHttpError(status) {
@@ -2205,9 +2112,14 @@ if (typeof $ !== 'undefined') {
     // MODE CEPAT INPUT OFF CAM MANUAL (1-KLIK DI TABEL PESERTA)
     // ===============================================================
     let isManualOffCamModeActive = false;
+    // Diingat per pelatihan supaya mode tetap aktif saat pindah halaman daftar peserta.
+    const MANUAL_OFF_CAM_KEY = 'training.manualOffCam.' + TRAINING_ID;
 
     function setManualOffCamMode(active) {
         isManualOffCamModeActive = active;
+        try {
+            active ? sessionStorage.setItem(MANUAL_OFF_CAM_KEY, '1') : sessionStorage.removeItem(MANUAL_OFF_CAM_KEY);
+        } catch (e) {}
         const defaultWrappers = document.querySelectorAll('.default-action-wrapper');
         const quickWrappers = document.querySelectorAll('.quick-offcam-action-wrapper');
         const banner = document.getElementById('bannerManualOffCamMode');
@@ -2246,6 +2158,10 @@ if (typeof $ !== 'undefined') {
             }
         }
     }
+
+    try {
+        if (sessionStorage.getItem(MANUAL_OFF_CAM_KEY) === '1') setManualOffCamMode(true);
+    } catch (e) {}
 
     document.addEventListener('click', function (e) {
         if (e.target.closest('#btnToggleManualOffCamMode')) {
@@ -2335,23 +2251,6 @@ if (typeof $ !== 'undefined') {
                 console.error(err);
                 btn.disabled = false;
                 alert('Gagal menghubungi server.');
-            });
-        });
-    }
-
-    // Live search di tabel peserta
-    const filterTableInput = document.getElementById('filterTableInput');
-    if (filterTableInput) {
-        filterTableInput.addEventListener('input', function () {
-            const query = this.value.toLowerCase().trim();
-            const rows = document.querySelectorAll('#participantsTable tbody tr');
-            rows.forEach(tr => {
-                const text = tr.textContent.toLowerCase();
-                if (text.includes(query)) {
-                    tr.style.display = '';
-                } else {
-                    tr.style.display = 'none';
-                }
             });
         });
     }

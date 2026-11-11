@@ -275,7 +275,7 @@ KUNCI: Menjadi unit kerja yang transparan, akuntabel, dan adaptif.';
         $importExcelRes = $this->actingAs($this->admin)->post("/training/{$training->id}/questions/import-excel", [
             'file' => $file,
         ]);
-        $importExcelRes->assertSessionHas('success');
+        $importExcelRes->assertSessionHas('info');
         // 2 previous from text + 4 from template = 6 questions
         $this->assertCount(6, $training->questions()->get());
     }
@@ -563,7 +563,12 @@ KUNCI: Menjadi unit kerja yang transparan, akuntabel, dan adaptif.';
         $adminViewRes = $this->actingAs($this->admin)->get("/training/{$training->id}");
         $adminViewRes->assertStatus(200);
         $adminViewRes->assertSee('Curang (Auto-Submit)');
-        $adminViewRes->assertSee('Catatan Integritas');
-        $adminViewRes->assertSee('3 kali');
+        $adminViewRes->assertSee(route('training.answer-sheet', [$training, $result]), false);
+
+        // The audit log sits in the answer sheet, which the detail page loads on demand.
+        $answerSheetRes = $this->actingAs($this->admin)->get(route('training.answer-sheet', [$training, $result]));
+        $answerSheetRes->assertStatus(200);
+        $answerSheetRes->assertSee('Catatan Integritas');
+        $answerSheetRes->assertSee('3 kali');
     }
 }

@@ -32,6 +32,20 @@ class TrainingPortalController extends Controller
     }
 
     /**
+     * Alamat portal sebuah fase: posttest memakai quiz/result (alamat lama), pretest memakai pretest/...
+     *
+     * @return array{quiz: string, result: string, portal: string}
+     */
+    private function phaseUrls(string $token, string $phase): array
+    {
+        $base = "/training/portal/{$token}";
+
+        return $phase === Training::PHASE_PRETEST
+            ? ['quiz' => $base.'/pretest', 'result' => $base.'/pretest/result', 'portal' => $base]
+            : ['quiz' => $base.'/quiz', 'result' => $base.'/result', 'portal' => $base];
+    }
+
+    /**
      * Public / Token-based portal for training participant
      */
     public function showPortal($token)
@@ -44,6 +58,7 @@ class TrainingPortalController extends Controller
             'training.documents.quizModule',
             'user.divisi',
             'quizResult',
+            'pretestResult',
         ]);
 
         $training = $participant->training;
@@ -116,35 +131,45 @@ class TrainingPortalController extends Controller
     /**
      * Show quiz page for participant
      */
-    public function showQuiz($token)
+    public function showQuiz($token, string $phase = Training::PHASE_POSTTEST)
     {
         $participant = $this->findParticipant($token, [
             'training.questions',
             'quizResult',
+            'pretestResult',
         ]);
 
         $training = $participant->training;
+        $urls = $this->phaseUrls($token, $phase);
+        $label = $phase === Training::PHASE_PRETEST ? 'Pretest' : 'Kuis';
+        $previous = $participant->resultFor($phase);
 
-        // Already submitted: back to the result, unless the trainer allows retakes
-        if ($participant->quizResult && ! $training->allow_quiz_retake) {
-            return redirect("/training/portal/{$token}/result")->with(
+        if (! $training->hasPhase($phase)) {
+            return redirect($urls['portal'])->with('warning', "{$label} tidak diadakan untuk pelatihan ini.");
+        }
+
+        // Already submitted: back to the result once the allowed attempts are used up
+        if ($previous && $training->quizAttemptsLeft($previous, $phase) === 0) {
+            return redirect($urls['result'])->with(
                 'warning',
-                'Anda sudah menyelesaikan kuis ini. Kuis tidak dapat dikerjakan ulang.'
+                "Anda sudah menyelesaikan {$label} ini. {$label} tidak dapat dikerjakan ulang."
             );
         }
 
-        // Check if quiz is activated by trainer
-        if (! $training->is_quiz_active) {
-            return redirect("/training/portal/{$token}")->with(
+        // Check if this phase is opened by trainer
+        if (! $training->isPhaseActive($phase)) {
+            return redirect($urls['portal'])->with(
                 'warning',
-                'Kuis evaluasi saat ini belum dibuka oleh Pemateri. Harap menunggu instruksi dari pemateri.'
+                $phase === Training::PHASE_PRETEST
+                    ? 'Pretest saat ini belum dibuka oleh Pemateri. Harap menunggu instruksi dari pemateri.'
+                    : 'Kuis evaluasi saat ini belum dibuka oleh Pemateri. Harap menunggu instruksi dari pemateri.'
             );
         }
 
-        $questions = $training->questions;
+        $questions = $training->questionsFor($phase);
 
         if ($questions->isEmpty()) {
-            return redirect("/training/portal/{$token}")->with(
+            return redirect($urls['portal'])->with(
                 'warning',
                 'Belum ada soal kuis yang disediakan untuk pelatihan ini.'
             );
@@ -156,6 +181,7 @@ class TrainingPortalController extends Controller
         if ($training->quiz_mode === 'game') {
             $leaderboard = TrainingQuizResult::with('user')
                 ->where('training_id', $training->id)
+                ->where('phase', $phase)
                 ->orderByDesc('score')
                 ->orderBy('submitted_at')
                 ->take(10)
@@ -163,57 +189,69 @@ class TrainingPortalController extends Controller
         }
 
         return view($viewName, [
-            'title' => 'Kuis Evaluasi: '.$training->title,
+            'title' => ($phase === Training::PHASE_PRETEST ? 'Pretest: ' : 'Kuis Evaluasi: ').$training->title,
             'participant' => $participant,
             'training' => $training,
             'questions' => $questions,
             'leaderboard' => $leaderboard,
+            'phase' => $phase,
+            'phaseUrls' => $urls,
+            'showsAnswers' => $training->showsAnswers($phase),
         ]);
     }
 
     /**
-     * Retake quiz: allowed only while the trainer permits retakes and the quiz is open.
+     * Retake quiz: allowed only while attempts remain and the quiz is open.
      */
-    public function retakeQuiz($token)
+    public function retakeQuiz($token, string $phase = Training::PHASE_POSTTEST)
     {
-        $participant = $this->findParticipant($token, ['training']);
+        $participant = $this->findParticipant($token, ['training', 'quizResult', 'pretestResult']);
+        $training = $participant->training;
+        $urls = $this->phaseUrls($token, $phase);
 
-        if ($participant->training->canRetakeQuiz()) {
-            return redirect("/training/portal/{$token}/quiz");
+        if ($training->canRetakeQuiz($participant->resultFor($phase), $phase)) {
+            return redirect($urls['quiz']);
         }
 
-        return redirect("/training/portal/{$token}/result")->with(
+        return redirect($urls['result'])->with(
             'warning',
-            'Kuis hanya dapat dikerjakan satu kali dan tidak dapat dikerjakan ulang.'
+            $training->allowsQuizRetake($phase)
+                ? 'Kuis tidak dapat dikerjakan ulang saat ini.'
+                : 'Kuis hanya dapat dikerjakan satu kali dan tidak dapat dikerjakan ulang.'
         );
     }
 
     /**
      * Submit quiz answers
      */
-    public function submitQuiz(Request $request, $token)
+    public function submitQuiz(Request $request, $token, string $phase = Training::PHASE_POSTTEST)
     {
-        $participant = $this->findParticipant($token, ['training.questions', 'quizResult']);
+        $participant = $this->findParticipant($token, ['training.questions', 'quizResult', 'pretestResult']);
         $training = $participant->training;
+        $urls = $this->phaseUrls($token, $phase);
 
-        // Prevent resubmission if participant has already submitted quiz, unless retakes are allowed
-        $previous = $participant->quizResult;
-        if ($previous && ! $training->allow_quiz_retake) {
+        if (! $training->hasPhase($phase)) {
+            abort(404);
+        }
+
+        // Prevent resubmission once the allowed attempts are used up
+        $previous = $participant->resultFor($phase);
+        if ($previous && $training->quizAttemptsLeft($previous, $phase) === 0) {
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda sudah menyelesaikan kuis ini dan tidak dapat mengerjakan ulang.',
-                    'redirect_url' => "/training/portal/{$token}/result",
+                    'redirect_url' => $urls['result'],
                 ], 403);
             }
 
-            return redirect("/training/portal/{$token}/result")->with(
+            return redirect($urls['result'])->with(
                 'warning',
                 'Anda sudah menyelesaikan kuis ini dan tidak dapat mengerjakan ulang.'
             );
         }
 
-        $questions = $training->questions;
+        $questions = $training->questionsFor($phase);
         $totalQuestions = $questions->count();
         $submittedAnswers = $request->input('answers', []);
 
@@ -291,6 +329,7 @@ class TrainingPortalController extends Controller
                 'training_id' => $training->id,
                 'user_id' => $participant->user_id,
                 'training_participant_id' => $participant->id,
+                'phase' => $phase,
                 'attempt_count' => 1,
             ]);
         }
@@ -302,6 +341,7 @@ class TrainingPortalController extends Controller
 
             $updatedLeaderboard = TrainingQuizResult::with('user')
                 ->where('training_id', $training->id)
+                ->where('phase', $phase)
                 ->orderByDesc('score')
                 ->orderBy('submitted_at')
                 ->take(10)
@@ -319,7 +359,7 @@ class TrainingPortalController extends Controller
                 'success' => true,
                 'score' => $mcScore,
                 'leaderboard' => $updatedLeaderboard,
-                'redirect_url' => "/training/portal/{$token}/result",
+                'redirect_url' => $urls['result'],
             ]);
         }
 
@@ -333,33 +373,38 @@ class TrainingPortalController extends Controller
             $flashType = 'warning';
         }
 
-        return redirect("/training/portal/{$token}/result")->with($flashType, $flashMsg);
+        return redirect($urls['result'])->with($flashType, $flashMsg);
     }
 
     /**
      * Show quiz score & result summary
      */
-    public function showResult($token)
+    public function showResult($token, string $phase = Training::PHASE_POSTTEST)
     {
         $participant = $this->findParticipant($token, [
             'training.questions',
             'training.trainer',
             'quizResult',
+            'pretestResult',
             'user',
         ]);
 
-        $quizResult = $participant->quizResult;
+        $training = $participant->training;
+        $quizResult = $participant->resultFor($phase);
 
         if (! $quizResult) {
             return redirect("/training/portal/{$token}")->with('warning', 'Anda belum menyelesaikan kuis.');
         }
 
         return view('training.portal.result', [
-            'title' => 'Hasil Kuis: '.$participant->training->title,
+            'title' => ($phase === Training::PHASE_PRETEST ? 'Hasil Pretest: ' : 'Hasil Kuis: ').$training->title,
             'participant' => $participant,
-            'training' => $participant->training,
+            'training' => $training,
             'quizResult' => $quizResult,
-            'questions' => $participant->training->questions,
+            'questions' => $training->questionsFor($phase),
+            'phase' => $phase,
+            'phaseUrls' => $this->phaseUrls($token, $phase),
+            'showsAnswers' => $training->showsAnswers($phase),
         ]);
     }
 
@@ -374,6 +419,7 @@ class TrainingPortalController extends Controller
         return response()->json([
             'is_attendance_active' => (bool) $training->is_attendance_active,
             'is_quiz_active' => (bool) $training->is_quiz_active,
+            'is_pretest_active' => $training->isPhaseActive(Training::PHASE_PRETEST),
             'require_attendance_proof' => (bool) $training->require_attendance_proof,
             'attendance_status' => $participant->attendance_status,
             'has_quiz_result' => $participant->quizResult ? true : false,
@@ -387,7 +433,7 @@ class TrainingPortalController extends Controller
     {
         $userId = auth()->id();
 
-        $participations = TrainingParticipant::with(['training.trainer', 'quizResult'])
+        $participations = TrainingParticipant::with(['training.trainer', 'quizResult', 'pretestResult'])
             ->where('user_id', $userId)
             ->whereHas('training')
             ->latest()

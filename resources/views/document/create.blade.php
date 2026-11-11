@@ -71,7 +71,7 @@
                         </div>
 
                         <div class="mt-3">
-                            @include('learning_module.partials.material-quiz-fields', ['quiz' => null])
+                            @include('learning_module.partials.quiz-rules-fields', ['quiz' => null])
                         </div>
                     </div>
                     <div class="card-footer d-flex justify-content-end gap-2">

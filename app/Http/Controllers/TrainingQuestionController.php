@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 use App\Exports\TrainingQuestionTemplate;
 use App\Http\Requests\ReviseAiQuestionRequest;
 use App\Http\Requests\TrainingQuestionRequest;
-use App\Imports\TrainingQuestionImport;
+use App\Jobs\AiTask;
 use App\Jobs\GenerateExportFile;
+use App\Jobs\GenerateTrainingQuestions;
+use App\Jobs\ProcessQuestionImport;
+use App\Jobs\ReviseTrainingQuestion;
 use App\Models\Document;
 use App\Models\Training;
 use App\Models\TrainingQuestion;
-use App\Services\GeminiQuestionService;
 use App\Support\QuizImage;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -68,25 +70,21 @@ class TrainingQuestionController extends Controller
     }
 
     /**
-     * Import questions from Excel/CSV file
+     * Import questions from an Excel/CSV file in the background (parsing a spreadsheet does not fit the web memory
+     * limit for large files); the result arrives in the notification inbox.
      */
     public function importExcel(Request $request, Training $training): RedirectResponse
     {
-
         $request->validate([
             'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
         ]);
 
-        try {
-            $import = new TrainingQuestionImport($training->id);
-            Excel::import($import, $request->file('file'));
+        $file = $request->file('file');
+        $path = $file->storeAs('imports', Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
 
-            $count = $import->getImportedCount();
+        ProcessQuestionImport::dispatch($request->user()->id, ProcessQuestionImport::TRAINING, $training->id, $path);
 
-            return back()->with('success', "Berhasil mengimpor {$count} soal kuis dari file Excel!");
-        } catch (Exception $e) {
-            return back()->with('error', 'Gagal impor file: '.$e->getMessage());
-        }
+        return back()->with('info', ProcessQuestionImport::QUEUED_MESSAGE);
     }
 
     /**
@@ -292,12 +290,12 @@ class TrainingQuestionController extends Controller
     }
 
     /**
-     * Generate questions using Google Gemini AI from selected training documents
+     * Start AI question generation from the selected training documents on the AI queue: reading the documents and
+     * waiting for Gemini is too heavy for a web request. The page polls aiStatus for the result.
      */
     public function generateAiQuestions(Request $request, Training $training): JsonResponse
     {
-
-        $request->validate([
+        $validated = $request->validate([
             'document_ids' => 'required|array|min:1',
             'document_ids.*' => 'exists:documents,id',
             'question_count' => 'required|integer|min:1|max:100',
@@ -307,81 +305,89 @@ class TrainingQuestionController extends Controller
             'api_key' => 'nullable|string|max:255',
         ]);
 
-        try {
-            $documents = Document::with('versions')->whereIn('id', $request->document_ids)->get();
-
-            if ($documents->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Dokumen yang dipilih tidak ditemukan.',
-                ], 422);
-            }
-
-            // Also auto-attach these documents to training if not already attached
-            $training->documents()->syncWithoutDetaching($request->document_ids);
-
-            $geminiService = new GeminiQuestionService($request->api_key);
-            $questions = $geminiService->generateQuestions(
-                $documents->all(),
-                (int) $request->question_count,
-                $request->question_type,
-                $request->difficulty,
-                $request->custom_prompt
-            );
-
-            return response()->json([
-                'success' => true,
-                'count' => count($questions),
-                'questions' => $questions,
-            ]);
-        } catch (Exception $e) {
-            report($e);
-
+        if (! Document::whereIn('id', $validated['document_ids'])->exists()) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Dokumen yang dipilih tidak ditemukan.',
             ], 422);
         }
+
+        if ($response = $this->geminiNotConfigured($validated['api_key'] ?? null)) {
+            return $response;
+        }
+
+        // Also auto-attach these documents to training if not already attached
+        $training->documents()->syncWithoutDetaching($validated['document_ids']);
+
+        $token = AiTask::newToken();
+        GenerateTrainingQuestions::dispatch(
+            $token,
+            array_map('intval', $validated['document_ids']),
+            (int) $validated['question_count'],
+            $validated['question_type'],
+            $validated['difficulty'],
+            $validated['custom_prompt'] ?? null,
+            $validated['api_key'] ?? null,
+        );
+
+        return response()->json(['success' => true, 'token' => $token]);
+    }
+
+    /**
+     * Result of generateAiQuestions / reviseAiQuestion, polled by the questions page.
+     */
+    public function aiStatus(Training $training, string $token): JsonResponse
+    {
+        $result = AiTask::status($token);
+
+        if (! $result) {
+            return response()->json(['status' => 'failed', 'message' => 'Proses AI tidak ditemukan atau sudah kedaluwarsa. Silakan ulangi.'], 404);
+        }
+
+        return response()->json($result);
     }
 
     /**
      * Rewrite one question with AI (question only, answers only, or everything), from the AI review step or from the
      * edit form of a saved question (question_id). The AI re-reads the documents and checks the new question against
-     * the other review cards and the saved questions.
+     * the other review cards and the saved questions; it runs on the AI queue and the page polls aiStatus.
      */
     public function reviseAiQuestion(ReviseAiQuestionRequest $request, Training $training): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'question_id' => ['nullable', 'integer', Rule::exists('training_questions', 'id')->where('training_id', $training->id)],
             'document_ids' => 'required_without:question_id|array',
             'document_ids.*' => 'exists:documents,id',
         ], ['document_ids.required_without' => 'Pilih minimal 1 dokumen materi acuan.']);
 
-        // The edit form picks no documents: use the training's own documents (none: from the question text only).
-        $documents = filled($request->document_ids)
-            ? Document::with('versions')->whereIn('id', $request->document_ids)->get()
-            : $training->documents()->with('versions')->get();
-
-        $savedQuestions = $training->questions()
-            ->when($request->question_id, fn ($query, $id) => $query->whereKeyNot($id))
-            ->pluck('question')
-            ->all();
-
-        try {
-            $result = (new GeminiQuestionService($request->api_key))->reviseQuestion(
-                $request->validated('question'),
-                $request->validated('part'),
-                $request->validated('instruction'),
-                $documents->all(),
-                [...($request->validated('other_questions') ?? []), ...$savedQuestions]
-            );
-
-            return response()->json(['success' => true, ...$result]);
-        } catch (Exception $e) {
-            report($e);
-
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        if ($response = $this->geminiNotConfigured($request->validated('api_key'))) {
+            return $response;
         }
+
+        $token = AiTask::newToken();
+        ReviseTrainingQuestion::dispatch(
+            $token,
+            $training->id,
+            // The edit form picks no documents: the job uses the training's own documents (none: question text only).
+            array_map('intval', $validated['document_ids'] ?? []),
+            $request->validated('question'),
+            $request->validated('part'),
+            $request->validated('instruction'),
+            array_values(array_filter($request->validated('other_questions') ?? [], 'filled')),
+            isset($validated['question_id']) ? (int) $validated['question_id'] : null,
+            $request->validated('api_key'),
+        );
+
+        return response()->json(['success' => true, 'token' => $token]);
+    }
+
+    private function geminiNotConfigured(?string $apiKey): ?JsonResponse
+    {
+        if (filled($apiKey) || filled(config('services.gemini.api_key'))) {
+            return null;
+        }
+
+        return response()->json(['success' => false, 'message' => 'GEMINI_API_KEY belum dikonfigurasi. Silakan masukkan API Key Gemini di pengaturan atau file .env!'], 422);
     }
 
     /**

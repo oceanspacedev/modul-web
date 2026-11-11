@@ -99,6 +99,14 @@ class LearningModule extends Model
         return $this->quiz_mode === self::MODE_GAME;
     }
 
+    /**
+     * Modul punya kuis bila pretest atau posttest dinyalakan; tanpa keduanya modul hanya berisi materi.
+     */
+    public function hasQuiz(): bool
+    {
+        return $this->has_pretest || $this->has_posttest;
+    }
+
     public function hasPhase(string $phase): bool
     {
         return $phase === LearningModuleAttempt::PHASE_PRETEST ? $this->has_pretest : $this->has_posttest;
@@ -292,7 +300,8 @@ class LearningModule extends Model
     }
 
     /**
-     * Hal yang masih kurang sebelum modul bisa dipublikasikan, mis. ['materi', 'soal']. Butuh relasi items.materialable.
+     * Hal yang masih kurang sebelum modul bisa dipublikasikan, mis. ['materi', 'soal']; soal hanya wajib bila modul
+     * punya kuis. Butuh relasi items.materialable.
      *
      * @return list<string>
      */
@@ -302,7 +311,7 @@ class LearningModule extends Model
 
         return array_values(array_filter([
             $this->availableItems()->isEmpty() ? 'materi' : null,
-            $questionCount === 0 ? 'soal' : null,
+            $this->hasQuiz() && $questionCount === 0 ? 'soal' : null,
         ]));
     }
 

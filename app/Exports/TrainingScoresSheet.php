@@ -31,7 +31,7 @@ class TrainingScoresSheet implements FromArray, ShouldAutoSize, WithHeadings, Wi
     {
         return [
             'Tanggal', 'Pelatihan', 'Pemateri', 'ID Karyawan', 'Nama Peserta', 'Divisi', 'Kehadiran',
-            'Status Kuis', 'Nilai PG (0-100)', 'Status Essay', 'Nilai Essay (0-100)', 'Nilai Akhir (0-100)', 'Waktu Submit Kuis',
+            'Status Kuis', 'Nilai PG (0-100)', 'Status Essay', 'Nilai Essay (0-100)', 'Nilai Akhir (0-100)', 'Waktu Submit Kuis', 'Nilai Pretest (0-100)',
         ];
     }
 
@@ -48,6 +48,7 @@ class TrainingScoresSheet implements FromArray, ShouldAutoSize, WithHeadings, Wi
                 )),
                 'participants.user' => fn ($query) => $query->withTrashed()->with('divisi'),
                 'participants.quizResult',
+                'participants.pretestResult',
             ])
             ->orderBy('training_date')
             ->orderBy('title')
@@ -81,6 +82,7 @@ class TrainingScoresSheet implements FromArray, ShouldAutoSize, WithHeadings, Wi
                     $quiz && $quiz->essay_score !== null ? (float) $quiz->essay_score : '-',
                     $quiz ? (float) $quiz->score : '-',
                     $quiz?->submitted_at?->format('d-m-Y H:i') ?? '-',
+                    $participant->pretestResult ? (float) $participant->pretestResult->score : '-',
                 ];
             }
         }

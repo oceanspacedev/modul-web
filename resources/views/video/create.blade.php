@@ -110,7 +110,7 @@
                         </div>
                     </div>
 
-                    @include('learning_module.partials.material-quiz-fields', ['quiz' => null, 'card' => true])
+                    @include('learning_module.partials.quiz-rules-fields', ['quiz' => null, 'card' => true])
                 </div>
 
                 <div class="col-lg-4">

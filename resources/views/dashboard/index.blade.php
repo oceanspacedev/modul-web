@@ -1,19 +1,6 @@
 @extends('layout.main_template')
 
 @section('content')
-<style>
-    .dash-chart { position: relative; height: 230px; width: 100%; }
-    .dash-chart-sm { position: relative; height: 210px; width: 100%; }
-    .dash-legend-dot { display: inline-block; width: 8px; height: 8px; border-radius: 9999px; margin-right: 6px; }
-    .dash-legend-dot.is-1 { background: var(--primary-600); }
-    .dash-legend-dot.is-2 { background: var(--gray-400); }
-    .dash-legend-dot.is-3 { background: var(--gray-300); }
-    .dash-legend-dot.is-4 { background: var(--gray-200); }
-    .dash-kpi-value { font-family: var(--font-heading); font-size: 1.125rem; font-weight: 600; color: var(--gray-950); }
-    .dash-thumb { width: 58px; height: 40px; border-radius: var(--radius-md); overflow: hidden; background: var(--gray-100); }
-    .dash-row + .dash-row { border-top: 1px solid var(--ring); }
-</style>
-
 <div class="content-header">
     <div class="container-fluid">
         <x-page-header title="Dashboard" subtitle="Ringkasan seluruh modul, pelatihan, video, dan grafik analitik sistem.">
@@ -32,9 +19,8 @@
 
         {{-- Ringkasan angka --}}
         <div class="row">
-            <div class="col-xl-4 col-sm-6 mb-3">
+            <div class="col-xl-2 col-md-4 col-6 mb-3">
                 <a href="/user" class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-users"></i></span>
                     <div class="min-w-0">
                         <p class="stat-tile-label">Total Pengguna</p>
                         <p class="stat-tile-value">{{ $data['totalUser'] }}</p>
@@ -43,9 +29,8 @@
                 </a>
             </div>
 
-            <div class="col-xl-4 col-sm-6 mb-3">
+            <div class="col-xl-2 col-md-4 col-6 mb-3">
                 <a href="/training" class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-chalkboard-teacher"></i></span>
                     <div class="min-w-0">
                         <p class="stat-tile-label">Jadwal Pelatihan</p>
                         <p class="stat-tile-value">{{ $data['totalTraining'] }}</p>
@@ -54,9 +39,8 @@
                 </a>
             </div>
 
-            <div class="col-xl-4 col-sm-6 mb-3">
+            <div class="col-xl-2 col-md-4 col-6 mb-3">
                 <a href="/video" class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-play-circle"></i></span>
                     <div class="min-w-0">
                         <p class="stat-tile-label">Video Materi</p>
                         <p class="stat-tile-value">{{ $data['totalVideo'] }}</p>
@@ -65,9 +49,8 @@
                 </a>
             </div>
 
-            <div class="col-xl-4 col-sm-6 mb-3">
+            <div class="col-xl-2 col-md-4 col-6 mb-3">
                 <a href="/training" class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-user-graduate"></i></span>
                     <div class="min-w-0">
                         <p class="stat-tile-label">Peserta Pelatihan</p>
                         <p class="stat-tile-value">{{ $data['totalParticipant'] }}</p>
@@ -76,9 +59,8 @@
                 </a>
             </div>
 
-            <div class="col-xl-4 col-sm-6 mb-3">
+            <div class="col-xl-2 col-md-4 col-6 mb-3">
                 <a href="/document" class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-file-alt"></i></span>
                     <div class="min-w-0">
                         <p class="stat-tile-label">Dokumen Modul</p>
                         <p class="stat-tile-value">{{ $data['totalDocument'] }}</p>
@@ -87,9 +69,8 @@
                 </a>
             </div>
 
-            <div class="col-xl-4 col-sm-6 mb-3">
+            <div class="col-xl-2 col-md-4 col-6 mb-3">
                 <a href="/training" class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-clipboard-check"></i></span>
                     <div class="min-w-0">
                         <p class="stat-tile-label">Hasil Evaluasi Kuis</p>
                         <p class="stat-tile-value">{{ $data['totalQuizResult'] }}</p>
@@ -100,15 +81,14 @@
         </div>
 
         {{-- Grafik & analitik --}}
-        <div class="row mt-2">
-            {{-- Kolom kiri --}}
-            <div class="col-lg-7">
+        <div class="row dash-grid">
+            <div class="col-12">
                 {{-- 1. Grafik Peserta Pelatihan --}}
-                <div class="card">
+                <div class="card dash-card">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-chart-bar"></i> Peserta per Sesi Pelatihan
-                            <span class="badge badge-secondary">{{ $data['totalTraining'] }} Sesi</span>
+                            Peserta per Sesi Pelatihan
+                            <span class="dash-count">{{ $data['totalTraining'] }} sesi</span>
                         </h3>
                         <div class="d-flex align-items-center gap-2">
                             <div class="nav btn-group filter-tabs" role="tablist">
@@ -126,12 +106,12 @@
                                     <x-empty-state icon="fa-chart-bar" title="Belum ada data pelatihan" text="Grafik muncul setelah ada jadwal pelatihan dengan peserta." />
                                 @else
                                     <div class="card-body">
-                                        <div class="dash-chart">
+                                        <div class="dash-chart is-main">
                                             <canvas id="chartPelatihan"></canvas>
                                         </div>
                                         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 small text-muted">
                                             <span>Jumlah peserta terdaftar pada setiap sesi pelatihan</span>
-                                            <span class="text-heading font-weight-bold text-dark">{{ $data['totalParticipant'] }} total peserta</span>
+                                            <span class="text-dark">{{ $data['totalParticipant'] }} total peserta</span>
                                         </div>
                                     </div>
                                 @endif
@@ -183,16 +163,87 @@
                     </div>
                 </div>
 
-                {{-- 2. Grafik Distribusi Nilai & Evaluasi Kuis --}}
-                <div class="card">
+            </div>
+
+            <div class="col-lg-4">
+                {{-- 2. Grafik Popularitas Video Materi --}}
+                <div class="card dash-card is-compact">
+                    <div class="card-header">
+                        <h3 class="card-title">Penonton Video Materi</h3>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="nav btn-group filter-tabs" role="tablist">
+                                <a class="btn active" data-toggle="pill" href="#tab-video-chart" role="tab">Grafik</a>
+                                <a class="btn" data-toggle="pill" href="#tab-video-list" role="tab">Daftar</a>
+                            </div>
+                            <a href="/video" class="btn btn-default btn-sm">Galeri</a>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="tab-content">
+                            {{-- Tab 1: Grafik Horizontal Bar Penonton Video --}}
+                            <div class="tab-pane fade show active" id="tab-video-chart" role="tabpanel">
+                                @if(count($data['chartVideoLabels']) === 0)
+                                    <x-empty-state icon="fa-film" title="Belum ada video materi" text="Video yang diunggah akan tampil di grafik ini." />
+                                @else
+                                    <div class="card-body">
+                                        <div class="dash-chart">
+                                            <canvas id="chartVideoViews"></canvas>
+                                        </div>
+                                        <p class="small text-muted mt-3 mb-0">Peringkat video materi berdasarkan jumlah tayangan</p>
+                                    </div>
+                                @endif
+                            </div>
+
+                            {{-- Tab 2: Daftar Video --}}
+                            <div class="tab-pane fade" id="tab-video-list" role="tabpanel">
+                                @if($data['recentVideos']->isEmpty())
+                                    <x-empty-state icon="fa-film" title="Belum ada video materi" text="Video yang diunggah akan tampil di sini." />
+                                @else
+                                    <div>
+                                        @foreach($data['recentVideos'] as $vid)
+                                            <div class="dash-row d-flex align-items-center px-3 py-2">
+                                                <div class="dash-thumb position-relative mr-3 flex-shrink-0">
+                                                    @if($vid->thumbnail_url)
+                                                        <img src="{{ $vid->thumbnail_url }}" alt="{{ $vid->title }}">
+                                                    @else
+                                                        <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted small">
+                                                            <i class="fas fa-play"></i>
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                                <div class="flex-grow-1 min-w-0 pr-2">
+                                                    <a href="{{ route('video.show', $vid->id) }}" class="d-block font-weight-bold text-truncate text-dark small" title="{{ $vid->title }}">
+                                                        {{ $vid->title }}
+                                                    </a>
+                                                    <div class="small text-muted">
+                                                        <span class="mr-2"><i class="far fa-eye mr-1"></i>{{ $vid->views_count }} tayangan</span>
+                                                        <span><i class="far fa-clock mr-1"></i>{{ $vid->created_at->format('d M') }}</span>
+                                                    </div>
+                                                </div>
+                                                <a href="{{ route('video.show', $vid->id) }}" class="btn btn-default btn-xs flex-shrink-0" title="Tonton Video">
+                                                    <i class="fas fa-play"></i>
+                                                </a>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                {{-- 3. Grafik Distribusi Nilai & Evaluasi Kuis --}}
+                <div class="card dash-card is-compact">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-poll"></i> Distribusi Nilai Evaluasi Kuis
-                            <span class="badge badge-secondary">{{ $data['totalQuizResult'] }} Peserta</span>
+                            Distribusi Nilai Evaluasi Kuis
+                            <span class="dash-count">{{ $data['totalQuizResult'] }} peserta</span>
                         </h3>
                         <div class="d-flex align-items-center gap-2">
                             <div class="nav btn-group filter-tabs" role="tablist">
-                                <a class="btn active" data-toggle="pill" href="#tab-kuis-chart" role="tab">Grafik</a>
+                                <a class="btn active" data-toggle="pill" href="#tab-kuis-chart" role="tab">Sebaran</a>
                                 <a class="btn" data-toggle="pill" href="#tab-kuis-table" role="tab">Riwayat</a>
                             </div>
                             <a href="/training" class="btn btn-default btn-sm">Hasil</a>
@@ -206,8 +257,27 @@
                                     <x-empty-state icon="fa-clipboard-list" title="Belum ada evaluasi kuis" text="Grafik muncul setelah peserta mengerjakan kuis." />
                                 @else
                                     <div class="card-body">
-                                        <div class="dash-chart">
-                                            <canvas id="chartQuizScore"></canvas>
+                                        @php
+                                            $scoreBands = [
+                                                'sangat_baik' => ['Sangat Baik', '85–100'],
+                                                'baik' => ['Baik', '70–84'],
+                                                'cukup' => ['Cukup', '55–69'],
+                                                'kurang' => ['Kurang', '< 55'],
+                                            ];
+                                            $scoreBandMax = max(1, max($data['scoreBuckets']));
+                                        @endphp
+                                        <div class="dash-bars">
+                                            @foreach($scoreBands as $bandKey => [$bandLabel, $bandRange])
+                                                <div>
+                                                    <div class="dash-bar-head">
+                                                        <span>{{ $bandLabel }} <span class="dash-bar-range">{{ $bandRange }}</span></span>
+                                                        <span class="dash-bar-value">{{ $data['scoreBuckets'][$bandKey] }}</span>
+                                                    </div>
+                                                    <div class="dash-bar-track">
+                                                        <span class="dash-bar-fill {{ $bandKey === 'kurang' ? 'is-danger' : '' }}" style="width: {{ round($data['scoreBuckets'][$bandKey] / $scoreBandMax * 100) }}%;"></span>
+                                                    </div>
+                                                </div>
+                                            @endforeach
                                         </div>
                                         {{-- KPI Skor --}}
                                         <div class="row text-center mt-3 pt-3 border-top">
@@ -273,78 +343,11 @@
                 </div>
             </div>
 
-            {{-- Kolom kanan --}}
-            <div class="col-lg-5">
-                {{-- 3. Grafik Popularitas Video Materi --}}
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-play-circle"></i> Penonton Video Materi</h3>
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="nav btn-group filter-tabs" role="tablist">
-                                <a class="btn active" data-toggle="pill" href="#tab-video-chart" role="tab">Grafik</a>
-                                <a class="btn" data-toggle="pill" href="#tab-video-list" role="tab">Daftar</a>
-                            </div>
-                            <a href="/video" class="btn btn-default btn-sm">Galeri</a>
-                        </div>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="tab-content">
-                            {{-- Tab 1: Grafik Horizontal Bar Penonton Video --}}
-                            <div class="tab-pane fade show active" id="tab-video-chart" role="tabpanel">
-                                @if(count($data['chartVideoLabels']) === 0)
-                                    <x-empty-state icon="fa-film" title="Belum ada video materi" text="Video yang diunggah akan tampil di grafik ini." />
-                                @else
-                                    <div class="card-body">
-                                        <div class="dash-chart">
-                                            <canvas id="chartVideoViews"></canvas>
-                                        </div>
-                                        <p class="small text-muted text-center mt-3 mb-0">Peringkat video materi berdasarkan jumlah tayangan terbanyak</p>
-                                    </div>
-                                @endif
-                            </div>
-
-                            {{-- Tab 2: Daftar Video --}}
-                            <div class="tab-pane fade" id="tab-video-list" role="tabpanel">
-                                @if($data['recentVideos']->isEmpty())
-                                    <x-empty-state icon="fa-film" title="Belum ada video materi" text="Video yang diunggah akan tampil di sini." />
-                                @else
-                                    <div>
-                                        @foreach($data['recentVideos'] as $vid)
-                                            <div class="dash-row d-flex align-items-center px-3 py-2">
-                                                <div class="dash-thumb position-relative mr-3 flex-shrink-0">
-                                                    @if($vid->thumbnail_url)
-                                                        <img src="{{ $vid->thumbnail_url }}" alt="{{ $vid->title }}" class="w-100 h-100" style="object-fit: cover;">
-                                                    @else
-                                                        <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted small">
-                                                            <i class="fas fa-play"></i>
-                                                        </div>
-                                                    @endif
-                                                </div>
-                                                <div class="flex-grow-1 min-w-0 pr-2">
-                                                    <a href="{{ route('video.show', $vid->id) }}" class="d-block font-weight-bold text-truncate text-dark small" title="{{ $vid->title }}">
-                                                        {{ $vid->title }}
-                                                    </a>
-                                                    <div class="small text-muted">
-                                                        <span class="mr-2"><i class="far fa-eye mr-1"></i>{{ $vid->views_count }} views</span>
-                                                        <span><i class="far fa-clock mr-1"></i>{{ $vid->created_at->format('d M') }}</span>
-                                                    </div>
-                                                </div>
-                                                <a href="{{ route('video.show', $vid->id) }}" class="btn btn-default btn-xs flex-shrink-0" title="Tonton Video">
-                                                    <i class="fas fa-play"></i>
-                                                </a>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
+            <div class="col-lg-4">
                 {{-- 4. Grafik Komposisi Modul & Master Data --}}
-                <div class="card">
+                <div class="card dash-card is-compact">
                     <div class="card-header">
-                        <h3 class="card-title"><i class="fas fa-chart-pie"></i> Komposisi Konten Sistem</h3>
+                        <h3 class="card-title">Komposisi Konten Sistem</h3>
                         <div class="nav btn-group filter-tabs" role="tablist">
                             <a class="btn active" data-toggle="pill" href="#tab-komposisi-chart" role="tab">Donat</a>
                             <a class="btn" data-toggle="pill" href="#tab-komposisi-detail" role="tab">Detail</a>
@@ -355,7 +358,7 @@
                             {{-- Tab 1: Grafik Donat Komposisi --}}
                             <div class="tab-pane fade show active" id="tab-komposisi-chart" role="tabpanel">
                                 <div class="card-body">
-                                    <div class="dash-chart-sm">
+                                    <div class="dash-chart">
                                         <canvas id="chartContentComposition"></canvas>
                                     </div>
                                     <div class="d-flex flex-wrap justify-content-center gap-3 mt-3 pt-3 border-top small text-muted">
@@ -371,7 +374,6 @@
                             <div class="tab-pane fade" id="tab-komposisi-detail" role="tabpanel">
                                 <div class="dash-row d-flex justify-content-between align-items-center px-3 py-3">
                                     <div class="d-flex align-items-center min-w-0">
-                                        <span class="stat-tile-icon mr-3"><i class="fas fa-city"></i></span>
                                         <div class="min-w-0">
                                             <p class="mb-0 font-weight-bold small text-dark">Divisi Perusahaan</p>
                                             <p class="mb-0 small text-muted">Struktur divisi induk</p>
@@ -382,7 +384,6 @@
 
                                 <div class="dash-row d-flex justify-content-between align-items-center px-3 py-3">
                                     <div class="d-flex align-items-center min-w-0">
-                                        <span class="stat-tile-icon mr-3"><i class="fas fa-building"></i></span>
                                         <div class="min-w-0">
                                             <p class="mb-0 font-weight-bold small text-dark">Posisi</p>
                                             <p class="mb-0 small text-muted">Posisi kerja karyawan</p>
@@ -393,7 +394,6 @@
 
                                 <div class="dash-row d-flex justify-content-between align-items-center px-3 py-3">
                                     <div class="d-flex align-items-center min-w-0">
-                                        <span class="stat-tile-icon mr-3"><i class="fas fa-bookmark"></i></span>
                                         <div class="min-w-0">
                                             <p class="mb-0 font-weight-bold small text-dark">Tipe Dokumen</p>
                                             <p class="mb-0 small text-muted">Kategori dokumen sistem</p>
@@ -463,75 +463,6 @@ $(document).ready(function() {
                     xAxes: [{
                         gridLines: { display: false, drawBorder: false },
                         ticks: { fontColor: '#71717a', fontSize: 11 }
-                    }],
-                    yAxes: [{
-                        gridLines: { color: '#f4f4f5', zeroLineColor: '#e4e4e7', drawBorder: false },
-                        ticks: {
-                            beginAtZero: true,
-                            precision: 0,
-                            fontColor: '#71717a',
-                            fontSize: 11
-                        }
-                    }]
-                }
-            }
-        });
-    }
-
-    // -------------------------------------------------------------
-    // 2. Chart Distribusi Nilai Kuis (Clean Grade Palette)
-    // -------------------------------------------------------------
-    var ctxQuiz = document.getElementById('chartQuizScore');
-    if (ctxQuiz) {
-        var scoreBuckets = {!! json_encode($data['scoreBuckets']) !!};
-        var labelsQuiz = ['Sangat Baik (85-100)', 'Baik (70-84)', 'Cukup (55-69)', 'Kurang (<55)'];
-        var dataQuiz = [
-            scoreBuckets.sangat_baik,
-            scoreBuckets.baik,
-            scoreBuckets.cukup,
-            scoreBuckets.kurang
-        ];
-
-        window.chartQuiz = new Chart(ctxQuiz.getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: labelsQuiz,
-                datasets: [{
-                    label: 'Peserta',
-                    data: dataQuiz,
-                    // Semantic: success / primary / warning / fail
-                    backgroundColor: [
-                        '#059669', // Sangat Baik - green
-                        '#ff4da6', // Baik - primary pink
-                        '#d97706', // Cukup - amber
-                        '#dc2626'  // Kurang - red
-                    ],
-                    borderWidth: 0,
-                    maxBarThickness: 40,
-                    borderRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                legend: { display: false },
-                tooltips: {
-                    backgroundColor: '#18181b',
-                    titleFontColor: '#ffffff',
-                    bodyFontColor: '#d4d4d8',
-                    cornerRadius: 8,
-                    xPadding: 12,
-                    yPadding: 10,
-                    callbacks: {
-                        label: function(tooltipItem) {
-                            return ' Total: ' + tooltipItem.yLabel + ' orang';
-                        }
-                    }
-                },
-                scales: {
-                    xAxes: [{
-                        gridLines: { display: false, drawBorder: false },
-                        ticks: { fontColor: '#71717a', fontSize: 10 }
                     }],
                     yAxes: [{
                         gridLines: { color: '#f4f4f5', zeroLineColor: '#e4e4e7', drawBorder: false },
@@ -658,7 +589,6 @@ $(document).ready(function() {
     // Resize charts on tab change to prevent rendering distortion
     $('a[data-toggle="pill"]').on('shown.bs.tab', function(e) {
         if (window.chartPelatihan) window.chartPelatihan.resize();
-        if (window.chartQuiz) window.chartQuiz.resize();
         if (window.chartVideo) window.chartVideo.resize();
         if (window.chartContent) window.chartContent.resize();
     });

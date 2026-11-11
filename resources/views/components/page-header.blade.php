@@ -8,6 +8,12 @@
         <x-slot:actions><button class="btn btn-primary">Tambah</button></x-slot:actions>
     </x-page-header>
 --}}
+@php
+    // Satu kalimat tampil tanpa titik di akhir; paragraf beberapa kalimat tetap utuh.
+    if (is_string($subtitle) && ! str_contains(rtrim($subtitle, '.'), '. ')) {
+        $subtitle = rtrim($subtitle, '.');
+    }
+@endphp
 <div {{ $attributes->class(['page-header']) }}>
     <div class="page-header-text">
         @if ($breadcrumbs)

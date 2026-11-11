@@ -78,15 +78,15 @@ class TrainingQuizModeTest extends TestCase
         // 2. Participant visits quiz in Game Mode -> Should see Quizizz Game Interface
         $gameQuizRes = $this->get("/training/portal/{$token}/quiz");
         $gameQuizRes->assertStatus(200);
-        $gameQuizRes->assertSee('QUIZIZZ MODE');
+        $gameQuizRes->assertSee('Mode game');
         $gameQuizRes->assertSee('Mulai Game Kuis');
         $gameQuizRes->assertSee('Apa ibukota Indonesia masa kini?');
         $gameQuizRes->assertSee('podium-stage');
         $gameQuizRes->assertSee('podiumCol1');
         $gameQuizRes->assertSee('podium-crown');
 
-        // 3. Admin switches mode back to Formal Mode via toggle button
-        $toggleRes = $this->actingAs($this->admin)->post("/training/{$training->id}/toggle-mode");
+        // 3. Admin switches mode back to Formal Mode from the Aturan Kuis block
+        $toggleRes = $this->actingAs($this->admin)->post(route('training.quiz-rules', $training), ['quiz' => ['posttest' => '1', 'posttest_max_attempts' => '1', 'mode' => 'formal']]);
         $toggleRes->assertSessionHas('success');
         $this->assertEquals('formal', $training->fresh()->quiz_mode);
 
@@ -97,7 +97,7 @@ class TrainingQuizModeTest extends TestCase
         $formalQuizRes->assertSee('Toleransi Keluar: 3x');
 
         // 5. Switch back to Game Mode and submit answers via AJAX
-        $this->actingAs($this->admin)->post("/training/{$training->id}/toggle-mode");
+        $this->actingAs($this->admin)->post(route('training.quiz-rules', $training), ['quiz' => ['posttest' => '1', 'posttest_max_attempts' => '1', 'mode' => 'game']]);
         $this->assertEquals('game', $training->fresh()->quiz_mode);
 
         $submitRes = $this->postJson("/training/portal/{$token}/quiz", [

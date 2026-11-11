@@ -28,6 +28,16 @@ class TrainingQuizResult extends Model
         ];
     }
 
+    public function scopePosttest($query): void
+    {
+        $query->where('phase', Training::PHASE_POSTTEST);
+    }
+
+    public function isPretest(): bool
+    {
+        return $this->phase === Training::PHASE_PRETEST;
+    }
+
     public function training()
     {
         return $this->belongsTo(Training::class, 'training_id');

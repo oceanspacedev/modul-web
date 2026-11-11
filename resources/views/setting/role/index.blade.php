@@ -29,7 +29,6 @@
         <div class="row">
             <div class="col-md-4 col-12 mb-3">
                 <div class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-user-tag"></i></span>
                     <div>
                         <p class="stat-tile-label">Jabatan</p>
                         <p class="stat-tile-value">{{ $roles->count() }}</p>
@@ -38,7 +37,6 @@
             </div>
             <div class="col-md-4 col-12 mb-3">
                 <div class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-key"></i></span>
                     <div>
                         <p class="stat-tile-label">Hak Akses Fitur</p>
                         <p class="stat-tile-value">{{ $totalPermissions }}</p>
@@ -47,7 +45,6 @@
             </div>
             <div class="col-md-4 col-12 mb-3">
                 <div class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-users"></i></span>
                     <div>
                         <p class="stat-tile-label">Pengguna</p>
                         <p class="stat-tile-value">{{ $users->count() }}</p>
@@ -303,23 +300,22 @@
             <div class="tab-pane fade" id="tab-users" role="tabpanel" aria-labelledby="users-tab">
                 <div class="card">
                     <div class="card-header filter-toolbar">
-                        <div class="role-user-filters w-100">
+                        {{-- Cari & filter dijalankan server (halaman hanya memuat satu halaman user); #tab-users membuka tab ini lagi. --}}
+                        <form action="{{ route('roles.index') }}#tab-users" method="GET" class="role-user-filters w-100 m-0" role="search" id="userRoleFilterForm">
                             <div class="filter-group">
                                 <div class="filter-group-icon"><i class="fas fa-user-tag"></i></div>
-                                <select id="filterUserRole" class="custom-select select2" aria-label="Jabatan" style="width: 100%;">
+                                <select id="filterUserRole" name="role" class="custom-select select2" aria-label="Jabatan" style="width: 100%;">
                                     <option value="">Semua jabatan</option>
                                     @foreach ($roles as $r)
-                                        <option value="{{ $r->name }}">{{ $r->name }}</option>
+                                        <option value="{{ $r->name }}" @selected(request('role') === $r->name)>{{ $r->name }}</option>
                                     @endforeach
-                                    <option value="__trainer">Trainer</option>
-                                    <option value="__none">Belum ada jabatan</option>
+                                    <option value="{{ \App\Http\Controllers\RoleController::FILTER_TRAINER }}" @selected(request('role') === \App\Http\Controllers\RoleController::FILTER_TRAINER)>Trainer</option>
+                                    <option value="{{ \App\Http\Controllers\RoleController::FILTER_NO_ROLE }}" @selected(request('role') === \App\Http\Controllers\RoleController::FILTER_NO_ROLE)>Belum ada jabatan</option>
                                 </select>
                             </div>
-                            <div class="search-field">
-                                <i class="fas fa-search search-field-icon" aria-hidden="true"></i>
-                                <input type="search" id="searchUserTable" placeholder="Cari nama, username, ID, No. HP, divisi..." aria-label="Cari pengguna" autocomplete="off">
-                            </div>
-                        </div>
+                            <x-search-field placeholder="Cari nama, username, ID, No. HP, divisi..."
+                                :clear-url="route('roles.index', request()->except(['search', 'page'])).'#tab-users'" />
+                        </form>
                     </div>
 
                     <div class="px-3 py-2 border-bottom bg-light text-muted small">
@@ -339,11 +335,9 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($users as $u)
-                                    <tr data-roles="{{ $u->roles->pluck('name')->implode('|') }}"
-                                        data-trainer="{{ $u->isTrainer() ? 1 : 0 }}"
-                                        data-search="{{ Str::lower(implode(' ', [$u->nama_lengkap, $u->username, $u->employee_id, $u->no_hp, $u->divisi->name ?? ''])) }}">
-                                        <td class="text-center text-muted row-number">{{ $loop->iteration }}</td>
+                                @forelse ($users as $u)
+                                    <tr>
+                                        <td class="text-center text-muted">{{ $users->firstItem() + $loop->index }}</td>
                                         <td>
                                             <strong class="d-block">{{ $u->nama_lengkap }}</strong>
                                             <span class="text-muted small">ID: {{ $u->employee_id ?? '-' }}</span>
@@ -385,17 +379,21 @@
                                             </form>
                                         </td>
                                     </tr>
-                                @endforeach
-                                <tr id="userRoleEmpty" hidden>
-                                    <td colspan="6">
-                                        <x-empty-state icon="fa-search" title="Pengguna tidak ditemukan" text="Coba ubah kata kunci atau filter jabatan." />
-                                    </td>
-                                </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="6">
+                                            <x-empty-state icon="fa-search" title="Pengguna tidak ditemukan" text="Coba ubah kata kunci atau filter jabatan." />
+                                        </td>
+                                    </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
-                    <div class="card-footer text-muted small">
-                        Menampilkan <span id="userRoleShown">{{ $users->count() }}</span> dari {{ $users->count() }} pengguna
+                    <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <span class="text-muted small">
+                            Menampilkan {{ $users->firstItem() ?? 0 }}-{{ $users->lastItem() ?? 0 }} dari {{ $users->total() }} pengguna
+                        </span>
+                        {{ $users->links('pagination::bootstrap-4') }}
                     </div>
                 </div>
             </div>
@@ -440,30 +438,10 @@
             $('#roleTab a[href="' + lastTab + '"]').tab('show');
         }
 
-        // Cari & filter pengguna.
-        const $rows = $('#userRoleTable tbody tr[data-search]');
-        function filterUsers() {
-            const term = ($('#searchUserTable').val() || '').toLowerCase().trim();
-            const role = $('#filterUserRole').val() || '';
-            let shown = 0;
-            $rows.each(function () {
-                const roles = this.dataset.roles ? this.dataset.roles.split('|') : [];
-                let matchRole = true;
-                if (role === '__trainer') matchRole = this.dataset.trainer === '1';
-                else if (role === '__none') matchRole = roles.length === 0;
-                else if (role) matchRole = roles.indexOf(role) !== -1;
-                const match = matchRole && (!term || this.dataset.search.indexOf(term) !== -1);
-                this.hidden = !match;
-                if (match) {
-                    shown++;
-                    $(this).find('.row-number').text(shown);
-                }
-            });
-            $('#userRoleShown').text(shown);
-            $('#userRoleEmpty').prop('hidden', shown > 0);
-        }
-        $('#searchUserTable').on('input', filterUsers);
-        $('#filterUserRole').on('change', filterUsers);
+        // Filter jabatan langsung dijalankan server; pencarian dikirim dengan Enter.
+        $('#filterUserRole').on('change', function () {
+            document.getElementById('userRoleFilterForm').submit();
+        });
     });
 </script>
 @endsection

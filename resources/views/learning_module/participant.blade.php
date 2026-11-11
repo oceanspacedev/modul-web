@@ -21,7 +21,6 @@
         <div class="row">
             <div class="col-md-3 col-6 mb-4">
                 <div class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-clipboard-list"></i></span>
                     <div class="min-w-0">
                         <p class="stat-tile-label">Pretest</p>
                         <p class="stat-tile-value">{{ $progress->pretest?->score ?? '-' }}</p>
@@ -30,7 +29,6 @@
             </div>
             <div class="col-md-3 col-6 mb-4">
                 <div class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-chart-line"></i></span>
                     <div class="min-w-0">
                         <p class="stat-tile-label">Posttest terbaik ({{ $progress->posttests->count() }}x mencoba)</p>
                         <p class="stat-tile-value">{{ $progress->bestPosttest()?->score ?? '-' }}</p>
@@ -39,7 +37,6 @@
             </div>
             <div class="col-md-3 col-6 mb-4">
                 <div class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-photo-video"></i></span>
                     <div class="min-w-0">
                         <p class="stat-tile-label">Materi selesai</p>
                         <p class="stat-tile-value">{{ $progress->completedItemCount() }}/{{ $progress->totalItemCount() }}</p>
@@ -48,7 +45,6 @@
             </div>
             <div class="col-md-3 col-6 mb-4">
                 <div class="stat-tile">
-                    <span class="stat-tile-icon"><i class="fas fa-flag"></i></span>
                     <div class="min-w-0">
                         <p class="stat-tile-label">Status</p>
                         <p class="stat-tile-value">{{ $progress->statusLabel() }}</p>

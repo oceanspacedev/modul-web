@@ -261,7 +261,7 @@ KUNCI: Pemaparan mengenai alur kerja sistem dan verifikasi kehadiran.';
         $res = $this->actingAs($admin)->post("/training/{$training->id}/questions/import-excel", [
             'file' => $file,
         ]);
-        $res->assertSessionHas('success');
+        $res->assertSessionHas('info');
 
         // Check that sample questions in template (4 rows) are imported
         $questions = TrainingQuestion::where('training_id', $training->id)->get();

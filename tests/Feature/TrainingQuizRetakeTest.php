@@ -10,7 +10,7 @@ use App\Models\User;
 use Tests\TestCase;
 
 /**
- * Pemateri bisa mengizinkan kuis pelatihan diulang tanpa batas; nilai tertinggi yang dipakai.
+ * Pemateri mengatur berapa kali kuis pelatihan boleh dikerjakan (1 kali sampai tanpa batas); nilai tertinggi yang dipakai.
  */
 class TrainingQuizRetakeTest extends TestCase
 {
@@ -59,7 +59,7 @@ class TrainingQuizRetakeTest extends TestCase
 
     public function test_retake_is_off_by_default(): void
     {
-        $this->assertFalse($this->training->fresh()->allow_quiz_retake);
+        $this->assertSame(1, $this->training->fresh()->quiz_max_attempts);
 
         $this->submit(1)->assertRedirect('/training/portal/token_retake/result');
         $this->get('/training/portal/token_retake/quiz')->assertRedirect('/training/portal/token_retake/result');
@@ -69,31 +69,54 @@ class TrainingQuizRetakeTest extends TestCase
         $this->get('/training/portal/token_retake')->assertDontSee('Kerjakan Ulang');
     }
 
-    public function test_trainer_toggles_retake_from_the_training_page(): void
+    public function test_trainer_sets_the_attempt_limit_from_the_training_page(): void
     {
-        $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertSee('Ulang kuis: Tidak boleh');
+        $rules = fn (string $attempts) => ['quiz' => ['posttest' => '1', 'posttest_max_attempts' => $attempts, 'posttest_shows_answers' => '1']];
+        $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertSee('Posttest: 1 kali');
 
-        $this->actingAs($this->admin)->post(route('training.toggle-quiz-retake', $this->training))->assertSessionHas('success');
-        $this->assertTrue($this->training->fresh()->allow_quiz_retake);
-        $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertSee('Ulang kuis: Boleh');
+        $this->actingAs($this->admin)->post(route('training.quiz-rules', $this->training), $rules(''))->assertSessionHas('success');
+        $this->assertNull($this->training->fresh()->quiz_max_attempts);
+        $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertSee('Posttest: tanpa batas');
 
-        $this->actingAs($this->admin)->post(route('training.toggle-quiz-retake', $this->training));
-        $this->assertFalse($this->training->fresh()->allow_quiz_retake);
+        $this->actingAs($this->admin)->post(route('training.quiz-rules', $this->training), $rules('2'));
+        $this->assertSame(2, $this->training->fresh()->quiz_max_attempts);
+
+        $this->actingAs($this->admin)->post(route('training.quiz-rules', $this->training), $rules('0'))->assertSessionHasErrors('quiz.posttest_max_attempts');
+        $this->assertSame(2, $this->training->fresh()->quiz_max_attempts);
+        $this->assertTrue($this->training->fresh()->is_quiz_active);
     }
 
-    public function test_staff_cannot_toggle_retake(): void
+    public function test_staff_cannot_set_the_attempt_limit(): void
     {
         $this->actingAs(User::factory()->staff()->create())->from('/my-trainings')
-            ->post(route('training.toggle-quiz-retake', $this->training))
+            ->post(route('training.quiz-rules', $this->training), ['quiz' => ['posttest' => '1', 'posttest_max_attempts' => '']])
             ->assertRedirect('/my-trainings')
             ->assertSessionHas('error');
 
-        $this->assertFalse($this->training->fresh()->allow_quiz_retake);
+        $this->assertSame(1, $this->training->fresh()->quiz_max_attempts);
+    }
+
+    public function test_limited_retakes_stop_at_the_limit(): void
+    {
+        $this->training->update(['quiz_max_attempts' => 2]);
+
+        $this->submit(1);
+        $this->get('/training/portal/token_retake')->assertSee('Kerjakan Ulang')->assertSee('Sisa 1 kali');
+        $this->get('/training/portal/token_retake/quiz')->assertOk();
+        $this->submit(2)->assertSessionHas('success');
+        $this->assertSame(100.0, $this->storedResult()->score);
+
+        // Percobaan ketiga ditolak: batas 2 kali sudah habis.
+        $this->get('/training/portal/token_retake')->assertDontSee('Kerjakan Ulang');
+        $this->get('/training/portal/token_retake/quiz')->assertRedirect('/training/portal/token_retake/result');
+        $this->submit(0)->assertRedirect('/training/portal/token_retake/result');
+        $this->assertSame(100.0, $this->storedResult()->score);
+        $this->assertSame(2, $this->storedResult()->attempt_count);
     }
 
     public function test_retake_keeps_the_highest_score(): void
     {
-        $this->training->update(['allow_quiz_retake' => true]);
+        $this->training->update(['quiz_max_attempts' => null]);
 
         $this->submit(1);
         $this->assertSame(50.0, $this->storedResult()->score);
@@ -118,7 +141,7 @@ class TrainingQuizRetakeTest extends TestCase
 
     public function test_retake_needs_the_quiz_to_be_open(): void
     {
-        $this->training->update(['allow_quiz_retake' => true]);
+        $this->training->update(['quiz_max_attempts' => null]);
         $this->submit(1);
         $this->training->update(['is_quiz_active' => false]);
 

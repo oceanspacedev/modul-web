@@ -48,12 +48,18 @@ Route::prefix('training/portal/{token}')
         Route::get('retake', 'retakeQuiz')->name('.retake');
         Route::post('retake', 'retakeQuiz')->name('.retake.post');
         Route::get('result', 'showResult')->name('.result');
+
+        // Pretest: alamat sendiri, aksi yang sama dengan fase 'pretest'.
+        Route::get('pretest', 'showQuiz')->name('.pretest')->defaults('phase', 'pretest');
+        Route::post('pretest', 'submitQuiz')->name('.pretest.submit')->defaults('phase', 'pretest');
+        Route::get('pretest/retake', 'retakeQuiz')->name('.pretest.retake')->defaults('phase', 'pretest');
+        Route::get('pretest/result', 'showResult')->name('.pretest.result')->defaults('phase', 'pretest');
     });
 
 Route::middleware('auth')->group(function () {
     // # COMMON (EVERY SIGNED-IN USER)
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-    Route::view('panduan', 'panduan.index', ['active' => 'panduan'])->name('panduan');
+    Route::view('panduan', 'panduan.index', ['active' => 'panduan', 'title' => 'Panduan Penggunaan'])->name('panduan');
     Route::get('my-trainings', [TrainingPortalController::class, 'myTrainings'])->name('training.my-trainings');
 
     Route::post('video/{video}/comments', [VideoController::class, 'storeComment'])->name('video.comments.store');
@@ -136,9 +142,8 @@ Route::middleware('auth')->group(function () {
                 Route::post('toggle-quiz', 'toggleQuiz')->name('toggle-quiz');
                 Route::post('toggle-attendance', 'toggleAttendance')->name('toggle-attendance');
                 Route::post('toggle-proof', 'toggleAttendanceProof')->name('toggle-proof');
-                Route::post('toggle-mode', 'toggleQuizMode')->name('toggle-mode');
-                Route::post('toggle-quiz-answers', 'toggleQuizAnswers')->name('toggle-quiz-answers');
-                Route::post('toggle-quiz-retake', 'toggleQuizRetake')->name('toggle-quiz-retake');
+                Route::post('toggle-pretest', 'togglePretest')->name('toggle-pretest');
+                Route::post('quiz-rules', 'updateQuizRules')->name('quiz-rules');
                 Route::get('setup', 'setup')->name('setup');
                 Route::post('setup', 'saveSetup')->name('setup.save');
                 Route::post('broadcast-wa', 'broadcastWa')->name('broadcast-wa');
@@ -146,12 +151,14 @@ Route::middleware('auth')->group(function () {
                 Route::post('reset-quiz/{participant}', 'resetParticipantQuiz')->name('reset-quiz');
                 Route::post('reset-attendance/{participant}', 'resetParticipantAttendance')->name('reset-attendance');
                 Route::post('update-attendance/{participant}', 'updateParticipantAttendance')->name('update-attendance');
+                Route::get('answer-sheet/{quizResult}', 'answerSheet')->name('answer-sheet');
                 Route::post('grade-essay/{quizResult}', 'gradeEssay')->name('grade-essay');
                 Route::post('export', 'export')->name('export');
                 Route::get('live-stats', 'liveStats')->name('live-stats');
                 Route::post('attach-document', 'attachDocument')->name('attach-document');
                 Route::post('detach-document/{document}', 'detachDocument')->name('detach-document');
                 Route::post('scan-zoom-ai', 'scanZoomAi')->name('scan-zoom-ai');
+                Route::get('scan-zoom-ai/{token}', 'zoomScanStatus')->name('scan-zoom-ai.status');
                 Route::post('save-zoom-off-cam', 'saveZoomOffCam')->name('save-zoom-off-cam');
                 Route::post('reset-zoom-off-cam/{participant}', 'resetZoomOffCam')->name('reset-zoom-off-cam');
                 Route::post('update-offcam-count/{participant}', 'updateOffCamCount')->name('update-offcam-count');
@@ -166,6 +173,7 @@ Route::middleware('auth')->group(function () {
                 Route::post('import-excel', 'importExcel')->name('import-excel');
                 Route::post('import-text', 'importText')->name('import-text');
                 Route::post('generate-ai', 'generateAiQuestions')->name('generate-ai');
+                Route::get('ai-status/{token}', 'aiStatus')->name('ai-status');
                 Route::post('revise-ai', 'reviseAiQuestion')->name('revise-ai');
                 Route::post('upload-image', 'uploadImage')->name('upload-image');
                 Route::post('save-ai-batch', 'saveAiBatch')->name('save-ai-batch');

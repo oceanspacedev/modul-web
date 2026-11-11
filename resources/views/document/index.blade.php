@@ -116,9 +116,9 @@
                                             <span class="badge badge-danger">TERHAPUS</span>
                                             <div class="small text-muted mt-1">{{ $document->deleted_at->format('d M Y, H:i') }}</div>
                                         @elseif ($document->is_active)
-                                            <span class="badge badge-success">AKTIF</span>
+                                            <span class="badge badge-success">Aktif</span>
                                         @else
-                                            <span class="badge badge-secondary">NONAKTIF</span>
+                                            <span class="badge badge-secondary">Nonaktif</span>
                                         @endif
                                     </td>
                                     <td class="text-right">

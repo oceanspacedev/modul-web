@@ -10,6 +10,8 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Queue\Events\WorkerStarting;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
@@ -37,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
         $this->configureAuthorization();
         $this->configureViews();
+        $this->configureQueueWorkers();
 
         Password::defaults(fn () => Password::min(8));
     }
@@ -92,6 +95,20 @@ class AppServiceProvider extends ServiceProvider
 
         // The participant portal polls its status every 5 seconds.
         RateLimiter::for('portal', fn (Request $request) => Limit::perMinute(120)->by('portal:'.$request->route('token').'|'.$request->ip()));
+    }
+
+    /**
+     * Opsi "memory" worker (per supervisor di config/horizon.php, atau --memory pada queue:work) menjadi batas memori
+     * PHP worker itu, apa pun memory_limit CLI di server. Tanpa ini Horizon hanya me-restart worker di antara job,
+     * dan job berat mati lebih awal di server yang memory_limit CLI-nya kecil.
+     */
+    protected function configureQueueWorkers(): void
+    {
+        Event::listen(function (WorkerStarting $event) {
+            if ($event->workerOptions->memory > 0) {
+                ini_set('memory_limit', $event->workerOptions->memory.'M');
+            }
+        });
     }
 
     /**

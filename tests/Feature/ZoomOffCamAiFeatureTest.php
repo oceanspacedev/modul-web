@@ -2,11 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\AiTask;
+use App\Jobs\ScanZoomOffCam;
 use App\Models\Divisi;
 use App\Models\Training;
 use App\Models\TrainingParticipant;
 use App\Models\User;
 use App\Services\ZoomAttendanceAiService;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ZoomOffCamAiFeatureTest extends TestCase
@@ -280,5 +286,109 @@ class ZoomOffCamAiFeatureTest extends TestCase
         $this->assertFalse($this->participant1->is_off_cam);
         $this->assertEquals(0, $this->participant1->off_cam_count);
         $this->assertStringNotContainsString('Off Cam Zoom', (string) $this->participant1->attendance_notes);
+    }
+
+    private function screenshot(string $content = 'fake-jpeg-bytes'): string
+    {
+        return 'data:image/jpeg;base64,'.base64_encode($content);
+    }
+
+    /**
+     * Scan berjalan di queue AI: request hanya menyimpan screenshot dan mengembalikan token.
+     */
+    public function test_zoom_scan_is_queued_and_does_not_call_the_ai_in_the_request()
+    {
+        config(['services.gemini.api_key' => 'test-key']);
+        Storage::fake('local');
+        Queue::fake();
+
+        $token = $this->actingAs($this->admin)
+            ->postJson(route('training.scan-zoom-ai', $this->training), ['images' => [$this->screenshot('satu'), $this->screenshot('dua')]])
+            ->assertOk()
+            ->assertJson(['success' => true])
+            ->json('token');
+
+        Queue::assertPushed(ScanZoomOffCam::class, fn (ScanZoomOffCam $job) => $job->token === $token
+            && $job->trainingId === $this->training->id
+            && $job->connection === config('queue.ai_connection'));
+        Http::assertNothingSent();
+
+        $this->assertSame('satu', Storage::disk('local')->get(ScanZoomOffCam::DIRECTORY.'/'.$token.'/0.jpg'));
+        $this->assertSame('dua', Storage::disk('local')->get(ScanZoomOffCam::DIRECTORY.'/'.$token.'/1.jpg'));
+        $this->getJson(route('training.scan-zoom-ai.status', [$this->training, $token]))->assertOk()->assertExactJson(['status' => 'pending']);
+    }
+
+    public function test_zoom_scan_result_is_fetched_by_polling_and_screenshots_are_removed()
+    {
+        config(['services.gemini.api_key' => 'test-key']);
+        Storage::fake('local');
+        Http::fake([
+            'generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [['content' => ['parts' => [['text' => json_encode(['detected_off_cam' => [[
+                    'zoom_name' => 'M. Rizky',
+                    'matched_participant_id' => $this->participant1->id,
+                    'similarity_score' => 95,
+                    'visual_evidence' => 'Layar hitam',
+                ]]])]]]]],
+            ]),
+        ]);
+
+        $token = $this->actingAs($this->admin)
+            ->postJson(route('training.scan-zoom-ai', $this->training), ['images' => [$this->screenshot()]])
+            ->assertOk()
+            ->json('token');
+
+        $this->getJson(route('training.scan-zoom-ai.status', [$this->training, $token]))
+            ->assertOk()
+            ->assertJson([
+                'status' => 'done',
+                'data' => ['total_off_cam' => 1, 'off_cam_participants' => [[
+                    'zoom_name' => 'M. Rizky',
+                    'participant_id' => $this->participant1->id,
+                    'official_name' => 'Muhammad Rizky Pratama',
+                    'is_registered' => true,
+                ]]],
+            ])
+            ->assertJsonCount(2, 'registered_participants');
+
+        Http::assertSent(fn (Request $request) => $request['contents'][0]['parts'][0]['inline_data'] === [
+            'mime_type' => 'image/jpeg',
+            'data' => base64_encode('fake-jpeg-bytes'),
+        ]);
+        $this->assertSame([], Storage::disk('local')->allFiles(ScanZoomOffCam::DIRECTORY));
+    }
+
+    public function test_zoom_scan_rejects_invalid_screenshots_and_missing_api_key()
+    {
+        Storage::fake('local');
+        Queue::fake();
+
+        config(['services.gemini.api_key' => 'test-key']);
+        $this->actingAs($this->admin)
+            ->postJson(route('training.scan-zoom-ai', $this->training), ['images' => ['bukan gambar']])
+            ->assertUnprocessable()
+            ->assertJson(['success' => false]);
+
+        config(['services.gemini.api_key' => null]);
+        $this->actingAs($this->admin)
+            ->postJson(route('training.scan-zoom-ai', $this->training), ['images' => [$this->screenshot()]])
+            ->assertUnprocessable()
+            ->assertJson(['success' => false]);
+
+        Queue::assertNothingPushed();
+        $this->assertSame([], Storage::disk('local')->allFiles(ScanZoomOffCam::DIRECTORY));
+        $this->getJson(route('training.scan-zoom-ai.status', [$this->training, 'tidak-ada']))->assertNotFound();
+    }
+
+    public function test_zoom_scan_killed_by_the_worker_is_reported_and_cleaned_up()
+    {
+        Storage::fake('local');
+        $token = AiTask::newToken();
+        ScanZoomOffCam::storeImages($token, [$this->screenshot()]);
+
+        (new ScanZoomOffCam($token, $this->training->id))->failed(null);
+
+        $this->assertSame('failed', AiTask::status($token)['status']);
+        $this->assertSame([], Storage::disk('local')->allFiles(ScanZoomOffCam::DIRECTORY));
     }
 }

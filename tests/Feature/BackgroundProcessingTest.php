@@ -2,10 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Exports\LearningModuleQuestionTemplate;
+use App\Exports\TrainingQuestionTemplate;
 use App\Exports\UserTemplate;
 use App\Jobs\BackgroundTask;
 use App\Jobs\GenerateExportFile;
+use App\Jobs\ProcessQuestionImport;
 use App\Jobs\ProcessUserImport;
+use App\Models\LearningModule;
+use App\Models\Training;
 use App\Models\User;
 use App\Notifications\BackgroundTaskFinished;
 use App\Notifications\Channels\WhatsAppChannel;
@@ -114,5 +119,80 @@ class BackgroundProcessingTest extends TestCase
         $this->actingAs($this->admin)->get(route('notifications.download', $notification->id))
             ->assertOk()
             ->assertDownload($notification->data['download_name']);
+    }
+
+    private function training(): Training
+    {
+        return Training::create([
+            'title' => 'K3 Dasar',
+            'trainer_id' => $this->admin->id,
+            'training_date' => now()->toDateString(),
+            'start_time' => '09:00:00',
+            'end_time' => '11:00:00',
+            'zoom_link' => 'https://zoom.us/test',
+            'status' => 'scheduled',
+        ]);
+    }
+
+    public function test_question_import_is_stored_and_queued_on_the_heavy_queue(): void
+    {
+        Queue::fake();
+        $training = $this->training();
+        $module = LearningModule::create(['title' => 'Modul K3', 'passing_score' => 70]);
+
+        $this->actingAs($this->admin)
+            ->post(route('training.questions.import-excel', $training), ['file' => UploadedFile::fake()->createWithContent('soal.xlsx', Excel::raw(new TrainingQuestionTemplate, ExcelFormat::XLSX))])
+            ->assertSessionHas('info');
+        $this->actingAs($this->admin)
+            ->post(route('learning-module.questions.import-excel', $module), ['file' => UploadedFile::fake()->createWithContent('soal.xlsx', Excel::raw(new LearningModuleQuestionTemplate, ExcelFormat::XLSX))])
+            ->assertSessionHas('info');
+
+        foreach ([[ProcessQuestionImport::TRAINING, $training->id], [ProcessQuestionImport::LEARNING_MODULE, $module->id]] as [$type, $id]) {
+            Queue::assertPushedOn(BackgroundTask::QUEUE, ProcessQuestionImport::class, function (ProcessQuestionImport $job) use ($type, $id) {
+                if ($job->type !== $type) {
+                    return false;
+                }
+                Storage::disk('local')->assertExists($job->path);
+
+                return $job->userId === $this->admin->id && $job->modelId === $id;
+            });
+        }
+
+        $this->assertSame(0, $training->questions()->count());
+    }
+
+    public function test_question_import_job_reports_how_many_questions_were_added_and_removes_the_upload(): void
+    {
+        Notification::fake();
+        $training = $this->training();
+        Storage::disk('local')->put('imports/soal.xlsx', Excel::raw(new TrainingQuestionTemplate, ExcelFormat::XLSX));
+
+        (new ProcessQuestionImport($this->admin->id, ProcessQuestionImport::TRAINING, $training->id, 'imports/soal.xlsx'))->handle();
+
+        $count = $training->questions()->count();
+        $this->assertGreaterThan(0, $count);
+        Storage::disk('local')->assertMissing('imports/soal.xlsx');
+        Notification::assertSentTo($this->admin, BackgroundTaskFinished::class, fn (BackgroundTaskFinished $notification) => $notification->kind === ProcessQuestionImport::TRAINING
+            && $notification->status === BackgroundTaskFinished::STATUS_SUCCESS
+            && str_contains($notification->message, "Berhasil mengimpor {$count} soal")
+            && str_contains($notification->message, 'K3 Dasar'));
+    }
+
+    public function test_an_invalid_row_cancels_the_whole_question_import_and_names_the_row(): void
+    {
+        Notification::fake();
+        $training = $this->training();
+        Storage::disk('local')->put('imports/soal.csv', "tipe,pertanyaan,kunci,a,b\n"
+            ."PG,APD utama?,A,Helm,Topi\n"
+            ."PG,Warna jalur evakuasi?,Z,Merah,Hijau\n");
+
+        (new ProcessQuestionImport($this->admin->id, ProcessQuestionImport::TRAINING, $training->id, 'imports/soal.csv'))->handle();
+
+        $this->assertSame(0, $training->questions()->count());
+        Storage::disk('local')->assertMissing('imports/soal.csv');
+        Notification::assertSentTo($this->admin, BackgroundTaskFinished::class, fn (BackgroundTaskFinished $notification) => $notification->status === BackgroundTaskFinished::STATUS_FAILED
+            && $notification->title === 'Import soal gagal'
+            && str_contains($notification->message, 'Baris ke-3')
+            && str_contains($notification->message, 'Tidak ada soal dari file ini yang disimpan.'));
     }
 }

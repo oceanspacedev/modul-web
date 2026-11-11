@@ -715,6 +715,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var generatedQuestionsCache = [];
 
+    // AI generate/revise run on the server queue; results are fetched by polling this address.
+    var aiStatusUrlTemplate = @json(route('training.questions.ai-status', [$training, '00000000-0000-0000-0000-000000000000']));
+    function aiStatusUrl(token) {
+        return aiStatusUrlTemplate.replace('00000000-0000-0000-0000-000000000000', token);
+    }
+
     // Initialize select2 for other docs
     if (typeof $ !== 'undefined' && $.fn.select2) {
         $('#aiSelectOtherDocs').select2({
@@ -854,6 +860,36 @@ document.addEventListener('DOMContentLoaded', function () {
             if (stEl) stEl.textContent = statusTitles[sIndex];
         }, 2500);
 
+        function aiGenerateFailed(message) {
+            clearInterval(statusInterval);
+            aiStepLoading.classList.add('d-none');
+            aiStepConfig.classList.remove('d-none');
+            showAiError(message);
+        }
+
+        // The questions are written on the server queue (reading documents is too heavy for one request):
+        // wait for the result by polling.
+        function pollAiQuestions(token, delay) {
+            setTimeout(function() {
+                fetch(aiStatusUrl(token), { headers: { 'Accept': 'application/json' } })
+                    .then(function(res) { return res.json(); })
+                    .then(function(data) {
+                        if (data.status === 'done') {
+                            clearInterval(statusInterval);
+                            aiStepLoading.classList.add('d-none');
+                            generatedQuestionsCache = data.questions || [];
+                            renderGeneratedQuestions(generatedQuestionsCache, type);
+                            aiStepReview.classList.remove('d-none');
+                        } else if (data.status === 'failed') {
+                            aiGenerateFailed(data.message || 'Terjadi kesalahan saat memproses AI.');
+                        } else {
+                            pollAiQuestions(token, 4000);
+                        }
+                    })
+                    .catch(function() { pollAiQuestions(token, 8000); });
+            }, delay);
+        }
+
         // Fetch API
         fetch('/training/{{ $training->id }}/questions/generate-ai', {
             method: 'POST',
@@ -872,31 +908,21 @@ document.addEventListener('DOMContentLoaded', function () {
             })
         })
         .then(function(res) {
-            clearInterval(statusInterval);
             return res.json().then(function(data) {
                 return { status: res.status, ok: res.ok, data: data };
             });
         })
         .then(function(result) {
-            aiStepLoading.classList.add('d-none');
-
-            if (!result.ok || !result.data.success) {
-                aiStepConfig.classList.remove('d-none');
-                var errMsg = (result.data && result.data.message) ? result.data.message : 'Terjadi kesalahan saat memproses AI.';
-                showAiError(errMsg);
+            if (!result.ok || !result.data.success || !result.data.token) {
+                var errors = result.data && result.data.errors ? Object.values(result.data.errors)[0][0] : null;
+                aiGenerateFailed(errors || (result.data && result.data.message) || 'Terjadi kesalahan saat memproses AI.');
                 return;
             }
 
-            // Success: render questions
-            generatedQuestionsCache = result.data.questions || [];
-            renderGeneratedQuestions(generatedQuestionsCache, type);
-            aiStepReview.classList.remove('d-none');
+            pollAiQuestions(result.data.token, 2000);
         })
         .catch(function(err) {
-            clearInterval(statusInterval);
-            aiStepLoading.classList.add('d-none');
-            aiStepConfig.classList.remove('d-none');
-            showAiError('Gagal menghubungi server atau jaringan terputus: ' + err.message);
+            aiGenerateFailed('Gagal menghubungi server atau jaringan terputus: ' + err.message);
         });
     });
 
@@ -1007,6 +1033,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // "Ubah dengan AI" per kartu soal.
     bindAiRevise(aiQuestionsContainer, {
         url: '{{ route('training.questions.revise-ai', $training) }}',
+        statusUrl: aiStatusUrl,
         cardSelector: '.ai-q-card',
         read: function(card) {
             var isEssay = card.getAttribute('data-type') === 'essay';
@@ -1056,6 +1083,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     bindAiRevise(document.body, {
         url: '{{ route('training.questions.revise-ai', $training) }}',
+        statusUrl: aiStatusUrl,
         cardSelector: 'form.ai-revise-form',
         collectOthers: false,
         read: function(form) {

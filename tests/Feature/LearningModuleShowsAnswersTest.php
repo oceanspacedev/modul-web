@@ -108,7 +108,7 @@ class LearningModuleShowsAnswersTest extends TestCase
         $quiz = LearningModule::sole();
         $this->assertFalse($quiz->pretest_shows_answers);
         $this->assertTrue($quiz->posttest_shows_answers);
-        $this->actingAs($this->admin)->get(route('video.edit', Video::sole()))->assertOk()->assertSee('Tampilkan jawaban benar/salah setelah selesai');
+        $this->actingAs($this->admin)->get(route('video.edit', Video::sole()))->assertOk()->assertSee('Setelah selesai, peserta melihat')->assertSee('Nilai saja');
 
         // Form Modul Belajar: switch yang tidak dicentang = mati.
         $this->actingAs($this->admin)->post(route('learning-module.store'), [
