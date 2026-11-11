@@ -106,9 +106,38 @@ class TrainingController extends Controller
             SendTrainingInvitation::dispatchForTraining($training);
         }
 
-        return to_route('training.show', $training)->with([
-            'success' => 'Jadwal pelatihan berhasil dibuat dengan '.count($participantIds).' peserta terdaftar!',
+        return to_route('training.questions.index', $training)->with([
+            'success' => 'Pelatihan dibuat dengan '.count($participantIds).' peserta. Langkah berikutnya: buat soal kuis.',
         ]);
+    }
+
+    /**
+     * Pertanyaan pengaturan satu per satu (Ya/Tidak), setelah soal kuis dibuat.
+     */
+    public function setup(Training $training): View
+    {
+        return view('training.setup', [
+            'title' => 'Pengaturan: '.$training->title,
+            'active' => 'training',
+            'training' => $training,
+        ]);
+    }
+
+    public function saveSetup(Request $request, Training $training): RedirectResponse
+    {
+        $validated = $request->validate([
+            'is_attendance_active' => ['required', 'boolean'],
+            'require_attendance_proof' => ['required', 'boolean'],
+            'show_quiz_answers' => ['required', 'boolean'],
+            'allow_quiz_retake' => ['required', 'boolean'],
+        ]);
+
+        $training->update([
+            ...array_map(fn ($value) => (bool) $value, $validated),
+            'setup_completed_at' => now(),
+        ]);
+
+        return to_route('training.show', $training)->with('success', 'Pengaturan disimpan. Pelatihan siap dijalankan.');
     }
 
     /**

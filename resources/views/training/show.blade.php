@@ -86,6 +86,12 @@
                     'action' => 'Buat Soal', 'url' => route('training.questions.index', $training),
                 ],
                 [
+                    'label' => 'Pengaturan',
+                    'hint' => 'jawab pertanyaan pengaturan presensi & kuis.',
+                    'done' => ! $training->needsSetup(),
+                    'action' => 'Atur', 'url' => route('training.setup', $training),
+                ],
+                [
                     'label' => 'Presensi',
                     'hint' => 'buka presensi saat sesi dimulai.',
                     'done' => $training->is_attendance_active || $stats['attended'] > 0,

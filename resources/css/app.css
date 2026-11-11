@@ -1073,6 +1073,120 @@ a.stat-tile:hover {
     overflow: hidden;
 }
 
+/* Setup wizard: one Ya/Tidak question per screen (training/setup) */
+.setup-wizard {
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+.setup-wizard-progress {
+    padding: 1rem 1.25rem 0;
+}
+
+.setup-wizard-count {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--gray-500);
+}
+
+.setup-wizard-progress .progress {
+    height: 4px;
+}
+
+.setup-wizard-step {
+    border: 0;
+    margin: 0;
+    min-width: 0;
+}
+
+.setup-wizard-question {
+    font-family: var(--font-heading);
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gray-950);
+    margin-bottom: 1rem;
+}
+
+.choice-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.choice-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 1rem;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    font-weight: 400;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.choice-card:hover {
+    border-color: var(--gray-300);
+}
+
+.choice-card input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.choice-card-title {
+    font-weight: 600;
+    color: var(--gray-950);
+}
+
+.choice-card-text {
+    font-size: 0.8125rem;
+    color: var(--gray-500);
+}
+
+.choice-card:has(input:checked) {
+    border-color: var(--primary-600);
+    background: var(--primary-50);
+}
+
+.choice-card:has(input:focus-visible) {
+    box-shadow: var(--focus-ring);
+}
+
+.setup-wizard-summary {
+    list-style: none;
+    margin: 0 0 1rem;
+    padding: 0;
+}
+
+.setup-wizard-summary li {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--ring);
+    font-size: 0.875rem;
+}
+
+/* Without JS every question shows and the nav buttons are hidden */
+.setup-wizard:not(.is-enhanced) #wizardBack,
+.setup-wizard:not(.is-enhanced) #wizardNext,
+.setup-wizard:not(.is-enhanced) [data-summary],
+.setup-wizard:not(.is-enhanced) .setup-wizard-progress {
+    display: none;
+}
+
+@media (max-width: 575.98px) {
+    .choice-cards {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* =========================================================
    BUTTONS
    ========================================================= */

@@ -84,7 +84,8 @@ class TrainingFullLifecycleTest extends TestCase
 
         $training = Training::where('title', 'Pelatihan CRUD Test System')->first();
         $this->assertNotNull($training);
-        $storeRes->assertRedirect("/training/{$training->id}");
+        $storeRes->assertRedirect("/training/{$training->id}/questions");
+        $this->assertTrue($training->needsSetup());
         $this->assertCount(2, $training->participants);
 
         // 1.4 Access Show / Detail Page

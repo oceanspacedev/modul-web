@@ -186,24 +186,12 @@
                         </div>
                     </div>
 
-                    {{-- PRESENSI & NOTIFIKASI --}}
+                    {{-- NOTIFIKASI (presensi & kuis ditanyakan setelah soal dibuat) --}}
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">Pengaturan</h3>
+                            <h3 class="card-title">Notifikasi</h3>
                         </div>
                         <div class="card-body">
-                            <div class="custom-control custom-switch mb-3">
-                                <input type="checkbox" class="custom-control-input" id="is_attendance_active" name="is_attendance_active" value="1" {{ old('is_attendance_active') ? 'checked' : '' }}>
-                                <label class="custom-control-label" for="is_attendance_active">
-                                    Buka presensi sekarang
-                                </label>
-                            </div>
-                            <div class="custom-control custom-switch mb-3">
-                                <input type="checkbox" class="custom-control-input" id="require_attendance_proof" name="require_attendance_proof" value="1" {{ old('require_attendance_proof') ? 'checked' : '' }}>
-                                <label class="custom-control-label" for="require_attendance_proof">
-                                    Wajib upload bukti screenshot
-                                </label>
-                            </div>
                             <div class="custom-control custom-switch">
                                 <input type="checkbox" class="custom-control-input" id="send_wa_now" name="send_wa_now" value="1" checked>
                                 <label class="custom-control-label" for="send_wa_now">
@@ -216,7 +204,7 @@
                     {{-- SIMPAN --}}
                     <div class="card">
                         <div class="card-body">
-                            <button type="submit" class="btn btn-primary btn-block">Simpan Pelatihan</button>
+                            <button type="submit" class="btn btn-primary btn-block">Simpan &amp; Lanjut Buat Soal</button>
                             <a href="/training" class="btn btn-default btn-block">Batal</a>
                         </div>
                     </div>

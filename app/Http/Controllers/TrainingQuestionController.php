@@ -439,9 +439,17 @@ class TrainingQuestionController extends Controller
         }
 
         if ($request->ajax() || $request->wantsJson()) {
+            // Pelatihan baru: lanjut ke pertanyaan pengaturan setelah soal tersimpan.
+            $redirect = null;
+            if ($training->needsSetup()) {
+                session()->flash('success', "{$savedCount} soal AI tersimpan. Sekarang jawab beberapa pertanyaan pengaturan.");
+                $redirect = route('training.setup', $training);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => "Berhasil menyimpan {$savedCount} butir soal hasil AI ke kuis pelatihan!",
+                'redirect' => $redirect,
             ]);
         }
 

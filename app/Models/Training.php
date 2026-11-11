@@ -33,7 +33,16 @@ class Training extends Model
             'require_attendance_proof' => 'boolean',
             'show_quiz_answers' => 'boolean',
             'allow_quiz_retake' => 'boolean',
+            'setup_completed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Pemateri belum menjawab pertanyaan pengaturan (presensi, bukti foto, jawaban benar/salah, ulang kuis).
+     */
+    public function needsSetup(): bool
+    {
+        return $this->setup_completed_at === null;
     }
 
     /**

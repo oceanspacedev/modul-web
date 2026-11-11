@@ -29,9 +29,15 @@
                 <button type="button" class="btn btn-default" data-toggle="modal" data-target="#addQuestionModal">
                     <i class="fas fa-plus"></i> Tambah Manual
                 </button>
-                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#aiGenerateModal">
+                @php $showSetupNext = $training->needsSetup() && $questions->isNotEmpty(); @endphp
+                <button type="button" class="btn {{ $showSetupNext ? 'btn-default' : 'btn-primary' }}" data-toggle="modal" data-target="#aiGenerateModal">
                     <i class="fas fa-magic"></i> Buat Soal via AI
                 </button>
+                @if($showSetupNext)
+                    <a href="{{ route('training.setup', $training) }}" class="btn btn-primary">
+                        Lanjut: Pengaturan <i class="fas fa-arrow-right"></i>
+                    </a>
+                @endif
             </x-slot:actions>
         </x-page-header>
     </div>
@@ -1188,7 +1194,11 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(function(data) {
             if (data.success) {
                 aiModal.modal('hide');
-                window.location.reload();
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                } else {
+                    window.location.reload();
+                }
             } else {
                 alert('Gagal menyimpan soal: ' + (data.message || 'Terjadi kesalahan'));
                 btn.disabled = false;

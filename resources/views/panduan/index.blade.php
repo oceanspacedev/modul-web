@@ -198,7 +198,8 @@
                         <li>Isi <b>Judul</b>, <b>Pemateri</b>, <b>Tanggal</b>, jam, dan <b>Link Meeting</b>.</li>
                         <li>Pilih <b>Dokumen Materi</b> (opsional) dan <b>Mode Kuis</b>: Formal atau Game.</li>
                         <li>Centang peserta (bisa <b>Pilih semua</b> atau saring per divisi). Label <b>Tanpa WA</b> = tidak punya nomor WhatsApp.</li>
-                        <li>Klik <b>Simpan Pelatihan</b>. Undangan WA terkirim otomatis.</li>
+                        <li>Klik <b>Simpan &amp; Lanjut Buat Soal</b>. Undangan WA terkirim otomatis.</li>
+                        <li>Buat soal (mis. <b>Buat Soal via AI</b>). Setelah tersimpan, jawab pertanyaan <b>Pengaturan</b> satu per satu: buka presensi sekarang, wajib bukti foto, tampilkan jawaban benar/salah, dan boleh ulang kuis.</li>
                     </ol>
                     <h3>7.2 Saat sesi berlangsung</h3>
                     <p>Klik <b>Detail</b> pada pelatihan.</p>

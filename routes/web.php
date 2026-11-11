@@ -139,6 +139,8 @@ Route::middleware('auth')->group(function () {
                 Route::post('toggle-mode', 'toggleQuizMode')->name('toggle-mode');
                 Route::post('toggle-quiz-answers', 'toggleQuizAnswers')->name('toggle-quiz-answers');
                 Route::post('toggle-quiz-retake', 'toggleQuizRetake')->name('toggle-quiz-retake');
+                Route::get('setup', 'setup')->name('setup');
+                Route::post('setup', 'saveSetup')->name('setup.save');
                 Route::post('broadcast-wa', 'broadcastWa')->name('broadcast-wa');
                 Route::post('send-wa/{participant}', 'sendSingleWa')->name('send-single-wa');
                 Route::post('reset-quiz/{participant}', 'resetParticipantQuiz')->name('reset-quiz');
