@@ -94,7 +94,8 @@
                     </ul>
                     <div class="pg-note">Menu hanya muncul bila jabatan Anda punya izinnya. Semua dropdown bisa dicari dengan mengetik. Tombol <b>Keluar</b> ada di menu nama Anda (kanan atas).</div>
                     <h3>Import, export &amp; notifikasi</h3>
-                    <p>Import dan export (user, rekap pelatihan, rekap modul, soal &amp; kunci jawaban) diproses di belakang layar, jadi Anda tidak perlu menunggu di halaman. Setelah selesai, hasilnya masuk ke menu <b>Notifikasi</b> (ikon lonceng di kanan atas), dan dikirim juga ke WhatsApp serta email bila No. HP / email Anda terisi. File export diunduh dari menu Notifikasi dan tersedia selama 7 hari.</p>
+                    <p>Import dan export (user, soal kuis, rekap pelatihan, rekap modul, soal &amp; kunci jawaban) diproses di belakang layar, jadi Anda tidak perlu menunggu di halaman. Setelah selesai, hasilnya masuk ke menu <b>Notifikasi</b> (ikon lonceng di kanan atas), dan dikirim juga ke WhatsApp serta email bila No. HP / email Anda terisi. File export diunduh dari menu Notifikasi dan tersedia selama 7 hari.</p>
+                    <p><b>Proses AI</b> (membuat atau mengubah soal, Scan Off Cam) juga dikerjakan di belakang layar, tetapi hasilnya muncul di halaman yang sama. Biarkan halaman tetap terbuka sampai selesai; bisa beberapa menit bila materinya besar atau sedang ada proses AI lain yang berjalan.</p>
                     <p><b>Rekap Nilai</b> (pengelola pelatihan/modul): pilih rentang tanggal, divisi (opsional), dan jenis nilai, lalu klik <b>Export Excel</b>. Hasilnya satu file berisi nilai banyak pelatihan dan pretest/posttest sekaligus.</p>
                 </div>
 
@@ -183,6 +184,7 @@
                         <li><b>Jabatan baru:</b> klik <b>Tambah Jabatan</b>, isi nama, centang izin, <b>Simpan Jabatan Baru</b>.</li>
                         <li><b>Ubah izin:</b> klik <b>Atur Hak Akses</b> pada jabatan, ubah centang, simpan.</li>
                         <li><b>Ganti jabatan user:</b> tab <b>Penetapan Jabatan Pengguna</b>, pilih jabatan di baris user, klik <b>Simpan</b>.</li>
+                        <li><b>Mencari user:</b> tab itu menampilkan 25 user per halaman. Pilih jabatan di filter (termasuk <b>Trainer</b> dan <b>Belum ada jabatan</b>), atau ketik nama, username, ID, No. HP, atau divisi lalu tekan <b>Enter</b>. Pindah halaman lewat nomor halaman di bawah tabel.</li>
                     </ul>
                     <div class="pg-note">Centang <b>Trainer</b> pada user agar ia bisa mengelola pelatihan, video, dan dokumen tanpa mengganti jabatannya.</div>
                 </div>
@@ -197,7 +199,8 @@
                         <li><b>Pelatihan → Jadwal Pelatihan</b>, klik <b>Tambah Pelatihan</b>.</li>
                         <li>Isi <b>Judul</b>, <b>Pemateri</b>, <b>Tanggal</b>, jam, dan <b>Link Meeting</b>.</li>
                         <li>Pilih <b>Dokumen Materi</b> (opsional) dan <b>Mode Kuis</b>: Formal atau Game.</li>
-                        <li>Centang peserta (bisa <b>Pilih semua</b> atau saring per divisi). Label <b>Tanpa WA</b> = tidak punya nomor WhatsApp.</li>
+                        <li>Centang peserta. Daftar menampilkan 100 user dulu; klik <b>Tampilkan 100 berikutnya</b> untuk melihat sisanya, atau saring per divisi dan cari nama, ID karyawan, atau username. Label <b>Tanpa WA</b> = tidak punya nomor WhatsApp.</li>
+                        <li><b>Pilih semua</b> dan <b>Kosongkan</b> berlaku untuk semua user yang cocok dengan pencarian dan filter saat itu, termasuk yang belum tampil. Jumlah terpilih ada di samping judul <b>Peserta</b>, dan pilihan tetap tersimpan saat Anda mengganti pencarian.</li>
                         <li>Klik <b>Simpan &amp; Lanjut Buat Soal</b>. Undangan WA terkirim otomatis.</li>
                         <li>Buat soal (mis. <b>Buat Soal via AI</b>). Setelah tersimpan, jawab pertanyaan <b>Pengaturan</b> satu per satu: buka presensi sekarang dan wajib bukti foto. Aturan kuis diatur di kotak <b>Aturan Kuis</b> pada form pelatihan.</li>
                     </ol>
@@ -211,7 +214,8 @@
                         <li><b>Buka Pretest</b> sebelum materi dimulai dan <b>Buka Posttest</b> setelah materi selesai; keduanya dibuka terpisah.</li>
                         <li><b>Broadcast WA ke Peserta</b> mengirim ulang undangan ke semua peserta.</li>
                         <li><b>Lampirkan Dokumen</b> dan <b>Upload Video Materi</b> untuk materi sesi.</li>
-                        <li>Menu <b>Aksi</b> per peserta: lihat <b>Lembar Jawaban</b>, kirim WA, atur presensi manual, atau <b>Reset Kuis Peserta</b> agar bisa mengulang.</li>
+                        <li><b>Daftar Peserta &amp; Nilai</b> menampilkan 50 peserta per halaman. Ketik nama, ID karyawan, No. HP, atau divisi di kotak <b>Cari peserta</b> lalu tekan <b>Enter</b>; pindah halaman lewat nomor halaman di bawah tabel. Angka di kartu ringkasan tetap menghitung semua peserta.</li>
+                        <li>Menu <b>Aksi</b> per peserta: lihat <b>Lembar Jawaban</b> (dimuat saat dibuka), kirim WA, atur presensi manual, atau <b>Reset Kuis Peserta</b> agar bisa mengulang.</li>
                     </ul>
                     <h3>Setelah sesi</h3>
                     <ul>
@@ -229,8 +233,11 @@
                     <ul>
                         <li><b>Tambah Manual</b>: tulis pertanyaan, isi pilihan, pilih <b>Kunci Jawaban</b>, <b>Simpan Soal</b>.</li>
                         <li><b>Import</b>: <b>Download Template</b>, isi, lalu <b>Import Excel / CSV</b>. Hapus baris contoh di template dulu. Atau <b>Import Teks Cepat</b> untuk menempel soal (klik <b>Isi Contoh</b> untuk melihat formatnya).</li>
-                        <li><b>Buat Soal via AI</b>: pilih dokumen materi, atur jumlah soal, klik <b>Mulai Generate Soal</b>. Periksa hasilnya, lalu klik <b>Simpan</b>.</li>
+                        <li><b>Buat Soal via AI</b>: pilih dokumen materi, atur jumlah soal, klik <b>Mulai Generate Soal</b>. Soal dibuat di belakang layar; biarkan jendelanya terbuka sampai hasilnya muncul, periksa, lalu klik <b>Simpan</b>. <b>Ubah dengan AI</b> pada satu soal bekerja dengan cara yang sama.</li>
                     </ul>
+                    <div class="pg-note">
+                        <b>Import Excel / CSV berjalan di belakang layar</b> (juga untuk soal modul, video, dan dokumen). Setelah memilih file, lanjutkan pekerjaan lain; jumlah soal yang masuk dikabarkan lewat menu <b>Notifikasi</b>, lalu muat ulang halaman soal untuk melihatnya. Bila ada satu baris yang salah, <b>seluruh file dibatalkan</b> dan notifikasinya menyebut nomor barisnya: perbaiki baris itu, lalu impor ulang file yang sama. Import Teks Cepat tetap langsung tersimpan.
+                    </div>
                     <p><b>Export soal:</b> <b>Import / Export → Export Soal &amp; Kunci Jawaban</b> menyiapkan file semua soal beserta kuncinya di belakang layar (unduh dari menu <b>Notifikasi</b>), dengan format yang sama seperti template, jadi bisa diedit lalu diimpor ke pelatihan lain. Gambar tidak ikut; soal bergambar ditandai di kolom <b>catatan</b>. Soal pretest/posttest modul, video, dan dokumen bisa di-export lewat tombol <b>Export Soal</b> di halaman soalnya.</p>
                     <h3 id="soal-gambar">Gambar pada soal</h3>
                     <ul>
@@ -245,10 +252,11 @@
                     <p>Mencatat peserta yang kameranya mati dari screenshot galeri Zoom.</p>
                     <ol>
                         <li>Di detail pelatihan klik <b>Scan Off Cam</b>.</li>
-                        <li>Pilih screenshot (maks. 10), klik <b>Mulai Pindai dengan AI</b>.</li>
+                        <li>Pilih screenshot (hingga 40 gambar JPG/PNG/WEBP, atau file Word <b>.docx</b> berisi screenshot), klik <b>Mulai Pindai dengan AI</b>.</li>
+                        <li>Tunggu di jendela itu. Pemindaian dikerjakan di belakang layar per kelompok screenshot dan bisa beberapa menit; jangan tutup atau muat ulang halaman sampai hasilnya muncul.</li>
                         <li>Periksa nama hasil AI, perbaiki bila salah, lalu klik <b>Konfirmasi &amp; Simpan Catatan Off Cam</b>.</li>
                     </ol>
-                    <div class="pg-note">Tanpa AI: klik <b>Input Off Cam Manual</b> di atas tabel peserta, lalu <b>Tandai Off Cam</b> pada peserta.</div>
+                    <div class="pg-note">Tanpa AI: klik <b>Input Off Cam Manual</b> di atas tabel peserta, lalu <b>Tandai Off Cam</b> pada peserta. Mode ini tetap aktif saat Anda pindah halaman daftar peserta atau mencari peserta, sampai Anda klik <b>Selesai Mode Manual</b>.</div>
                 </div>
 
                 {{-- 10 --}}
@@ -338,6 +346,10 @@
                         <tr><td>Tombol posttest video belum muncul</td><td>Tonton video sampai selesai.</td></tr>
                         <tr><td>Pretest/posttest tidak muncul</td><td>Kuis belum punya soal. Tambahkan minimal 1 soal.</td></tr>
                         <tr><td>Soal AI gagal dibuat</td><td>API key AI belum diatur atau dokumen tidak terbaca. Hubungi administrator.</td></tr>
+                        <tr><td>Soal AI atau Scan Off Cam memuat sangat lama / tidak selesai</td><td>Prosesnya menunggu giliran di antrean; satu proses AI dikerjakan dalam satu waktu. Bila lebih dari 15 menit, minta administrator memastikan antrean (<b>Horizon</b>) berjalan, lalu ulangi.</td></tr>
+                        <tr><td>Soal hasil Import Excel belum muncul</td><td>Import berjalan di belakang layar. Tunggu kabarnya di menu <b>Notifikasi</b>, lalu muat ulang halaman soal. Bila notifikasinya "Import soal gagal", perbaiki baris yang disebut dan impor ulang.</td></tr>
+                        <tr><td>Peserta tidak terlihat di detail pelatihan</td><td>Tabel menampilkan 50 peserta per halaman. Cari namanya di kotak <b>Cari peserta</b> (tekan Enter) atau buka halaman berikutnya.</td></tr>
+                        <tr><td>User tidak terlihat saat memilih peserta</td><td>Daftar menampilkan 100 user dulu. Ketik nama, ID karyawan, atau username di kotak pencarian, atau klik <b>Tampilkan 100 berikutnya</b>.</td></tr>
                     </table>
                 </div>
 
