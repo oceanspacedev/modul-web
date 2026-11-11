@@ -26,7 +26,7 @@
     </div>
     @if($quizAsCard)<div class="card-body">@endif
     <p class="text-muted small mb-3">
-        Kuis sebelum dan sesudah materi. Aktif setelah soal ditambahkan.
+        Kuis sebelum dan sesudah materi. Setelah disimpan, Anda diarahkan ke halaman soal; kuis baru aktif untuk peserta setelah ada minimal 1 soal.
     </p>
 
     <div class="row">

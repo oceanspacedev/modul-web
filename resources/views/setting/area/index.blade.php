@@ -44,7 +44,7 @@
                             @empty
                                 <tr>
                                     <td colspan="4">
-                                        <x-empty-state icon="fa-building" title="Belum ada area" text="Tambahkan badan usaha pertama untuk mulai mengelompokkan karyawan." />
+                                        <x-empty-state icon="fa-building" title="Belum ada area" text="Tambahkan badan usaha pertama untuk mulai mengelompokkan karyawan."><button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addArea">Tambah Area</button></x-empty-state>
                                     </td>
                                 </tr>
                             @endforelse

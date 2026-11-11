@@ -48,7 +48,7 @@
                             @empty
                                 <tr>
                                     <td colspan="6">
-                                        <x-empty-state icon="fa-sitemap" title="Belum ada divisi" text="Tambahkan divisi pertama untuk mengelompokkan karyawan." />
+                                        <x-empty-state icon="fa-sitemap" title="Belum ada divisi" text="Tambahkan divisi pertama untuk mengelompokkan karyawan."><button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addDivisi">Tambah Divisi</button></x-empty-state>
                                     </td>
                                 </tr>
                             @endforelse

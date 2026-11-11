@@ -42,7 +42,7 @@
                             @empty
                                 <tr>
                                     <td colspan="3">
-                                        <x-empty-state icon="fa-folder" title="Belum ada tipe dokumen" text="Tambahkan tipe dokumen pertama untuk mengelompokkan dokumen." />
+                                        <x-empty-state icon="fa-folder" title="Belum ada tipe dokumen" text="Tambahkan tipe dokumen pertama untuk mengelompokkan dokumen."><button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#adddokumentype">Tambah Tipe Dokumen</button></x-empty-state>
                                     </td>
                                 </tr>
                             @endforelse

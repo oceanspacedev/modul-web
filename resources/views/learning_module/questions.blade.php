@@ -542,7 +542,7 @@ $(function () {
         var $btn = $(this).prop('disabled', true);
         postJson(saveUrl, { questions: payload }).then(function (result) {
             if (result.ok && result.data.success) {
-                // Back to the material (e.g. the video page) once the questions are saved.
+                // Reload the question list (with the success message) once the questions are saved.
                 window.location.href = result.data.redirect || window.location.href;
                 return;
             }

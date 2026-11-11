@@ -198,7 +198,7 @@ class MaterialQuizTest extends TestCase
         $this->actingAs($this->admin)->get(route('video.edit', $video))->assertOk()->assertSee('Kelola soal (1)');
         $this->actingAs($this->admin)->get(route('video.index'))->assertOk()->assertSee('Pretest &amp; Posttest', false);
         $this->actingAs($this->admin)->get(route('video.show', ['video' => $video, 'preview' => 1]))->assertOk()->assertSee('Rekap Nilai');
-        $this->actingAs($this->admin)->get(route('document.create'))->assertOk()->assertSee('Aktifkan Posttest');
+        $this->actingAs($this->admin)->get(route('document.create'))->assertOk()->assertSee('Aktifkan Posttest')->assertSee('satu dokumen per jabatan');
         $this->actingAs($this->admin)->get(route('document.edit', $document))->assertOk();
         $this->actingAs($this->admin)->get($quiz->url('questions.index'))->assertOk()->assertSee('Kuis aktif');
         $this->actingAs($this->admin)->get(route('learning-module.create'))->assertOk()->assertSee('Batas Percobaan Posttest');
@@ -255,6 +255,10 @@ class MaterialQuizTest extends TestCase
 
         $page = $this->actingAs($this->admin)->get($documentQuiz->url('questions.index'))->assertOk()->getContent();
         $this->assertMatchesRegularExpression('#href="/document" class="nav-link active"#', $page);
+
+        // Breadcrumb dan checklist mengikuti menu asal, bukan Modul Belajar.
+        $this->assertStringContainsString('Langkah menyiapkan kuis', $page);
+        $this->assertStringContainsString('<a href="'.route('document.index').'">Dokumen</a>', $page);
 
         // Link lama /modul-saya/... dan /learning-module/... dialihkan ke alamat barunya; POST lama ditolak.
         $this->actingAs($this->staff)->get(route('learning.quiz', [$videoQuiz, 'pretest']))

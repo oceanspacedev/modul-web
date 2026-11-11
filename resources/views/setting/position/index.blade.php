@@ -44,7 +44,7 @@
                             @empty
                                 <tr>
                                     <td colspan="4">
-                                        <x-empty-state icon="fa-id-badge" title="Belum ada posisi" text="Tambahkan posisi pertama untuk dipakai pada data karyawan." />
+                                        <x-empty-state icon="fa-id-badge" title="Belum ada posisi" text="Tambahkan posisi pertama untuk dipakai pada data karyawan."><button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addPosition">Tambah Posisi</button></x-empty-state>
                                     </td>
                                 </tr>
                             @endforelse
