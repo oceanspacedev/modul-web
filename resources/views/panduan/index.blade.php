@@ -79,13 +79,13 @@
                         <li><b>Peserta</b> tidak perlu login: cukup buka <b>link pribadi</b> dari WhatsApp.</li>
                     </ul>
                     <h3>Alur singkat</h3>
-                    <ol>
-                        <li>Admin mengisi master data dan user.</li>
-                        <li>Pemateri membuat pelatihan dan memilih peserta. Undangan WA terkirim otomatis.</li>
-                        <li>Pemateri menyiapkan soal (manual, impor, atau AI).</li>
-                        <li>Saat sesi: buka presensi, lalu buka kuis.</li>
-                        <li>Nilai essay, lalu ekspor rekap nilai.</li>
-                    </ol>
+                    <p>Sebelum semuanya: admin mengisi <a href="#masterdata">master data</a> (Area, Divisi, Posisi, Tipe Dokumen) lalu <a href="#user">user</a>.</p>
+                    <ul>
+                        <li><b><a href="#pelatihan">Pelatihan</a></b>: Tambah Pelatihan &amp; pilih peserta (undangan WA terkirim otomatis) &rarr; siapkan soal (manual, impor, atau AI) &rarr; saat sesi buka presensi, lalu buka kuis &rarr; nilai essay, ubah status jadi Selesai, ekspor rekap.</li>
+                        <li><b><a href="#modulbelajar">Modul Belajar</a></b>: unggah materi di Video Materi / Dokumen &rarr; Tambah Modul (informasi, sasaran, materi) &rarr; buat soal &rarr; <b>Publikasikan Modul</b>. Modul lalu muncul di Modul Saya untuk divisi &amp; jabatan sasaran.</li>
+                        <li><b><a href="#video-kuis">Video</a> / <a href="#dokumen-kuis">Dokumen</a> dengan kuis</b>: unggah, nyalakan Pretest/Posttest di formulirnya &rarr; simpan &rarr; buat soal. Kuis aktif otomatis setelah ada soal.</li>
+                    </ul>
+                    <div class="pg-note">Di halaman pelatihan, modul, dan soal ada kotak <b>Langkah-langkah</b> yang menandai langkah yang sudah selesai dan menyediakan tombol untuk langkah berikutnya. Ikuti saja tombol yang disorot.</div>
                     <h3>Menu</h3>
                     <ul>
                         <li><b>Menu</b>: Dashboard, Notifikasi, Video Materi, Pelatihan, Modul Belajar, Dokumen, Rekap Nilai.</li>
@@ -214,7 +214,7 @@
                     <ul>
                         <li><b>Nilai essay:</b> buka Lembar Jawaban peserta, isi <b>Nilai Essay</b>, klik <b>Simpan Nilai</b>.</li>
                         <li><b>Rekap:</b> <b>Opsi → Export Rekap Nilai</b>, lalu unduh filenya dari menu <b>Notifikasi</b>.</li>
-                        <li><b>Edit:</b> <b>Opsi → Edit Informasi Pelatihan</b>. Peserta yang dihapus dari daftar ikut terhapus datanya.</li>
+                        <li><b>Tambah / ubah peserta:</b> klik <b>Tambah / Ubah Peserta</b> di kartu Daftar Peserta (atau <b>Opsi → Edit Informasi Pelatihan</b>). Peserta yang dihapus centangnya ikut terhapus presensi &amp; nilainya; peserta baru tidak otomatis dikirimi WA.</li>
                     </ul>
                 </div>
 
@@ -360,8 +360,9 @@
                         <li><b>Modul Belajar → Kelola Modul</b>, klik <b>Tambah Modul</b>.</li>
                         <li>Isi judul, cari dan <b>Tambah</b> video/dokumen ke <b>Materi Modul</b>, isi <b>KKM</b>, pilih sasaran divisi/jabatan.</li>
                         <li>Klik <b>Simpan &amp; Lanjut Buat Soal</b>, tambahkan soal.</li>
-                        <li>Klik <b>Publikasikan Modul</b>.</li>
+                        <li>Klik <b>Publikasikan Modul</b> (tombol di kanan atas halaman soal atau halaman modul). Tombol ini aktif setelah modul punya minimal 1 materi dan 1 soal.</li>
                     </ol>
+                    <p>Selama modul masih draft, kotak <b>Langkah menyiapkan modul</b> menunjukkan apa yang belum lengkap. Klik judul modul di Kelola Modul untuk melanjutkan.</p>
                     <h3>Mengerjakan modul (peserta)</h3>
                     <figure class="pg-shot"><img src="/assets/panduan/modul-peserta.gif" alt="Animasi: mengerjakan modul belajar" loading="lazy"><figcaption>Membuka modul dari <b>Modul Saya</b> dan mulai pretest.</figcaption></figure>
                     <ol>

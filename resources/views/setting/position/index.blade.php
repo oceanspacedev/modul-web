@@ -3,7 +3,7 @@
 @section('content')
     <section class="content-header">
         <div class="container-fluid">
-            <x-page-header title="Posisi" subtitle="Jabatan karyawan beserta jumlah pemegangnya." eyebrow="Pengaturan / Master Data">
+            <x-page-header title="Posisi" subtitle="Posisi kerja karyawan (berbeda dari Jabatan dan Hak Akses) beserta jumlah pemegangnya." eyebrow="Pengaturan / Master Data">
                 <x-slot:actions>
                     <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addPosition">
                         <i class="fas fa-plus"></i> Tambah Posisi

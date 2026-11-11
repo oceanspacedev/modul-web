@@ -8,7 +8,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header :title="$user->nama_lengkap" :subtitle="($user->divisi->name ?? '-').' · '.($user->jabatan->name ?? '-').' · '.$module->title" eyebrow="Modul Belajar / Riwayat Peserta">
+        <x-page-header :title="$user->nama_lengkap" :subtitle="($user->divisi->name ?? '-').' · '.($user->jabatan->name ?? '-').' · '.$module->title" :breadcrumbs="$module->adminBreadcrumbs('Riwayat Peserta')">
             <x-slot:actions>
                 <a href="{{ $module->url('results') }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
             </x-slot:actions>
