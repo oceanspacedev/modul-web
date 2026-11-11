@@ -36,7 +36,7 @@
                                 $t->is_attendance_active && $part->attendance_status === 'pending' => ['Isi presensi sekarang', 'text-primary font-weight-bold', true],
                                 (bool) $t->is_quiz_active => ['Kerjakan kuis sekarang', 'text-primary font-weight-bold', true],
                                 $t->status === App\Enums\TrainingStatus::Completed => ['Pelatihan sudah selesai', 'text-muted', false],
-                                default => ['Ikuti sesi sesuai jadwal; tunggu pemateri membuka presensi/kuis', 'text-muted', false],
+                                default => ['Menunggu pemateri membuka presensi/kuis', 'text-muted', false],
                             };
                         @endphp
                         <tr>

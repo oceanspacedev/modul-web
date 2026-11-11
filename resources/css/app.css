@@ -974,6 +974,7 @@ a.stat-tile:hover {
     gap: 0.75rem;
     padding: 1rem 1.25rem;
     border-right: 1px solid var(--ring);
+    box-shadow: 0 1px 0 var(--ring); /* separates wrapped rows; the card clips it on the last row */
     min-width: 0;
 }
 

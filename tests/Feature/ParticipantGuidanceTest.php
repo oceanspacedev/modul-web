@@ -38,7 +38,7 @@ class ParticipantGuidanceTest extends TestCase
         $this->actingAs($this->staff)->get(route('training.my-trainings'))
             ->assertOk()
             ->assertSee('Yang Perlu Dilakukan')
-            ->assertSee('tunggu pemateri membuka presensi/kuis');
+            ->assertSee('Menunggu pemateri membuka presensi/kuis');
 
         $this->training->update(['is_attendance_active' => true]);
         $this->actingAs($this->staff)->get(route('training.my-trainings'))->assertSee('Isi presensi sekarang');
