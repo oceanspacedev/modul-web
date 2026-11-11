@@ -92,6 +92,8 @@ class TrainingFullLifecycleTest extends TestCase
         $showRes->assertStatus(200);
         $showRes->assertSee('Pelatihan CRUD Test System');
         $showRes->assertSee($this->participantUser1->nama_lengkap);
+        $showRes->assertSee('Langkah menjalankan pelatihan');
+        $showRes->assertSee('Bisa dibuka setelah ada soal.');
 
         // 1.5 Access Edit Page
         $editPageRes = $this->actingAs($this->admin)->get("/training/{$training->id}/edit");
@@ -124,8 +126,21 @@ class TrainingFullLifecycleTest extends TestCase
         $statusRes->assertSessionHas('success');
         $this->assertSame(TrainingStatus::Completed, $training->fresh()->status);
 
-        // 1.8 Toggle Quiz Active
+        // 1.8 Toggle Quiz Active: refused while the quiz has no questions, opens once it has one
         $this->assertFalse((bool) $training->fresh()->is_quiz_active);
+        $this->actingAs($this->admin)->post("/training/{$training->id}/toggle-quiz")->assertSessionHas('error');
+        $this->assertFalse((bool) $training->fresh()->is_quiz_active);
+
+        $this->actingAs($this->admin)->post("/training/{$training->id}/questions", [
+            'type' => 'multiple_choice',
+            'question' => 'APD utama?',
+            'option_a' => 'Helm',
+            'option_b' => 'Topi',
+            'correct_answer' => 'a',
+        ])->assertSessionHas('success');
+
+        $this->actingAs($this->admin)->get("/training/{$training->id}")->assertOk();
+
         $toggleRes = $this->actingAs($this->admin)->post("/training/{$training->id}/toggle-quiz");
         $toggleRes->assertSessionHas('success');
         $this->assertTrue((bool) $training->fresh()->is_quiz_active);

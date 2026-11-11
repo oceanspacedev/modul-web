@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Tambah Pelatihan Baru" subtitle="Jadwal, materi, dan peserta." eyebrow="Pelatihan / Jadwal">
+        <x-page-header title="Tambah Pelatihan Baru" subtitle="Isi jadwal dan pilih peserta, lalu simpan. Setelah itu Anda diarahkan ke halaman pelatihan untuk menyiapkan soal kuis serta membuka presensi dan kuis saat sesi berjalan." :breadcrumbs="['Pelatihan' => null, 'Jadwal Pelatihan' => route('training.index'), 'Tambah' => null]">
             <x-slot:actions>
                 <a href="/training" class="btn btn-default">
                     <i class="fas fa-arrow-left"></i> Kembali
@@ -130,7 +130,7 @@
                     <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">
-                                Peserta <span class="badge badge-secondary"><span id="selectedCountBadge">0</span> dipilih</span>
+                                Peserta <span class="text-danger">*</span> <span class="badge badge-secondary"><span id="selectedCountBadge">0</span> dipilih</span>
                             </h3>
                             <div class="card-tools d-flex gap-1">
                                 <button type="button" id="btnSelectAll" class="btn btn-xs btn-default">Pilih semua</button>
@@ -176,7 +176,11 @@
                                     @endunless
                                 </div>
                                 @empty
-                                <x-empty-state icon="fa-users" title="Belum ada data user" />
+                                <x-empty-state icon="fa-users" title="Belum ada data user" text="Peserta dipilih dari data user. Tambahkan user terlebih dahulu.">
+                                    @can('create', \App\Models\User::class)
+                                        <a href="{{ route('user.create') }}" class="btn btn-primary btn-sm">Tambah User</a>
+                                    @endcan
+                                </x-empty-state>
                                 @endforelse
                             </div>
                         </div>

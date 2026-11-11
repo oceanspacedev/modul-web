@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Edit Pelatihan" :subtitle="$training->title" eyebrow="Pelatihan / Jadwal">
+        <x-page-header title="Edit Pelatihan" :subtitle="$training->title" :breadcrumbs="['Pelatihan' => null, 'Jadwal Pelatihan' => route('training.index'), $training->title => route('training.show', $training), 'Edit' => null]">
             <x-slot:actions>
                 <a href="/training/{{ $training->id }}" class="btn btn-default">
                     <i class="fas fa-arrow-left"></i> Kembali
@@ -135,10 +135,10 @@
 
                 {{-- PESERTA --}}
                 <div class="col-lg-5">
-                    <div class="card">
+                    <div class="card" id="peserta">
                         <div class="card-header">
                             <h3 class="card-title">
-                                Peserta <span class="badge badge-secondary"><span id="selectedCountBadge">0</span> dipilih</span>
+                                Peserta <span class="text-danger">*</span> <span class="badge badge-secondary"><span id="selectedCountBadge">0</span> dipilih</span>
                             </h3>
                             <div class="card-tools d-flex gap-1">
                                 <button type="button" id="btnSelectAll" class="btn btn-xs btn-default">Pilih semua</button>
@@ -147,6 +147,10 @@
                         </div>
 
                         <div class="card-body">
+                            <div class="alert alert-warning small py-2 px-3">
+                                Centang untuk menambah peserta. Peserta yang <strong>dihapus centangnya</strong> akan dikeluarkan beserta presensi dan nilai kuisnya.
+                                Peserta baru tidak otomatis dikirimi WhatsApp; kirim lewat <em>Broadcast WA</em> atau tombol WA per peserta di halaman pelatihan.
+                            </div>
                             <div class="form-row">
                                 <div class="form-group col-sm-6">
                                     <select id="filterDivisi" class="form-control form-control-sm select2" aria-label="Divisi" style="width: 100%;">
@@ -282,6 +286,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
     filterDivisi.addEventListener('change', applyFilter);
     searchInput.addEventListener('input', applyFilter);
+
+    // Peserta lama yang di-uncheck ikut dihapus datanya, jadi minta konfirmasi sebelum menyimpan.
+    const savedIds = new Set(@json(array_map('strval', $selectedParticipants)));
+    document.getElementById('trainingEditForm').addEventListener('submit', function (e) {
+        const removed = Array.from(checkboxes)
+            .filter(cb => savedIds.has(cb.value) && !cb.checked)
+            .map(cb => cb.closest('.participant-item').querySelector('strong').textContent.trim());
+        if (removed.length && !confirm(removed.length + ' peserta akan dikeluarkan beserta presensi & nilainya:\n- '
+            + removed.slice(0, 10).join('\n- ') + (removed.length > 10 ? '\n- dan ' + (removed.length - 10) + ' lainnya' : '')
+            + '\n\nLanjutkan simpan?')) {
+            e.preventDefault();
+        }
+    });
 
     // Initialize select2 for documents
     if (typeof $ !== 'undefined' && $.fn.select2) {

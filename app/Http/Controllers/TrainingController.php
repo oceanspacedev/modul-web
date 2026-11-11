@@ -254,6 +254,11 @@ class TrainingController extends Controller
     public function toggleQuiz(Training $training): RedirectResponse
     {
         $newStatus = ! $training->is_quiz_active;
+
+        if ($newStatus && ! $training->questions()->exists()) {
+            return back()->with('error', 'Kuis belum bisa dibuka: buat soal kuis terlebih dahulu.');
+        }
+
         $training->update(['is_quiz_active' => $newStatus]);
 
         $message = $newStatus

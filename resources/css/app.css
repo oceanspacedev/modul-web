@@ -948,24 +948,6 @@ a.stat-tile:hover {
     text-underline-offset: 2px;
 }
 
-/* Required field marker: <label class="required"> */
-label.required::after {
-    content: " *";
-    color: var(--danger-600);
-    font-weight: 600;
-}
-
-.form-required-note {
-    font-size: 0.75rem;
-    color: var(--gray-500);
-}
-
-.form-required-note::before {
-    content: "* ";
-    color: var(--danger-600);
-    font-weight: 600;
-}
-
 /* Setup steps checklist (x-setup-steps) */
 .setup-steps-count {
     font-size: 0.8125rem;

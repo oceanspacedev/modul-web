@@ -24,13 +24,13 @@
 
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header :title="$training->title" :subtitle="$headerSubtitle" eyebrow="Pelatihan / Jadwal Pelatihan">
+        <x-page-header :title="$training->title" :subtitle="$headerSubtitle" :breadcrumbs="['Pelatihan' => null, 'Jadwal Pelatihan' => route('training.index'), $training->title => null]">
             <div class="mt-2">
                 <x-training-status-badge :status="$training->status" />
             </div>
             <x-slot:actions>
-                <a href="/training" class="btn btn-default btn-icon" title="Kembali ke Daftar Pelatihan">
-                    <i class="fas fa-arrow-left"></i>
+                <a href="{{ route('training.index') }}" class="btn btn-default">
+                    <i class="fas fa-arrow-left"></i> Kembali
                 </a>
                 <button type="button" class="btn btn-default" data-toggle="modal" data-target="#scanZoomModal">
                     <i class="fas fa-video-slash"></i> Scan Off Cam
@@ -66,6 +66,58 @@
 <section class="content">
     <div class="container-fluid">
         <x-flash />
+
+        {{-- LANGKAH PELATIHAN --}}
+        @php
+            $questionCount = $training->questions->count();
+            $participantCount = $training->participants->count();
+            $materialCount = $training->documents->count() + ($training->video ? 1 : 0);
+            $isClosed = in_array($training->status, [App\Enums\TrainingStatus::Completed, App\Enums\TrainingStatus::Cancelled], true);
+            $trainingSteps = [
+                [
+                    'label' => 'Daftarkan peserta',
+                    'hint' => $participantCount ? $participantCount.' peserta terdaftar.' : 'Pilih siapa saja yang ikut pelatihan ini.',
+                    'done' => $participantCount > 0,
+                    'action' => 'Tambah Peserta',
+                    'url' => route('training.edit', $training).'#peserta',
+                ],
+                [
+                    'label' => 'Lampirkan materi',
+                    'hint' => $materialCount ? $materialCount.' materi terlampir.' : 'Dokumen materi juga dipakai AI untuk membuat soal.',
+                    'done' => $materialCount > 0,
+                    'optional' => true,
+                    'action' => 'Lampirkan Dokumen',
+                    'modal' => 'attachDocumentModal',
+                ],
+                [
+                    'label' => 'Siapkan soal kuis',
+                    'hint' => $questionCount ? $questionCount.' soal tersedia.' : 'Buat lewat AI dari dokumen, import, atau manual.',
+                    'done' => $questionCount > 0,
+                    'action' => $questionCount ? 'Kelola Soal' : 'Buat Soal',
+                    'url' => route('training.questions.index', $training),
+                ],
+                [
+                    'label' => 'Buka presensi',
+                    'hint' => $training->is_attendance_active ? 'Presensi sedang dibuka.' : ($stats['attended'] > 0 ? $stats['attended'].' peserta sudah presensi.' : 'Buka saat sesi dimulai agar peserta bisa absen.'),
+                    'done' => $training->is_attendance_active || $stats['attended'] > 0,
+                ] + ($training->is_attendance_active ? [] : ['action' => 'Buka Presensi', 'post' => route('training.toggle-attendance', $training)]),
+                [
+                    'label' => 'Buka kuis',
+                    'hint' => $training->is_quiz_active ? 'Kuis sedang dibuka.' : ($stats['quizSubmitted'] > 0 ? $stats['quizSubmitted'].' peserta sudah mengerjakan.' : ($questionCount ? 'Buka setelah materi selesai disampaikan.' : 'Bisa dibuka setelah ada soal.')),
+                    'done' => $training->is_quiz_active || $stats['quizSubmitted'] > 0,
+                ] + ($training->is_quiz_active || ! $questionCount ? [] : ['action' => 'Buka Kuis', 'post' => route('training.toggle-quiz', $training)]),
+                [
+                    'label' => 'Selesaikan & rekap',
+                    'hint' => 'Nilai soal essay bila ada, ubah status jadi Selesai, lalu Export Rekap Nilai.',
+                    'done' => $training->status === App\Enums\TrainingStatus::Completed,
+                    'action' => 'Export Rekap',
+                    'post' => route('training.export', $training),
+                ],
+            ];
+        @endphp
+        @unless($isClosed)
+            <x-setup-steps title="Langkah menjalankan pelatihan" :steps="$trainingSteps" />
+        @endunless
 
         {{-- RINGKASAN --}}
         @php
@@ -247,7 +299,7 @@
 
             <!-- RIGHT COLUMN: KONTROL SESI -->
             <div class="col-lg-4">
-                <div class="card">
+                <div class="card" id="kontrol-sesi">
                     <div class="card-header">
                         <h3 class="card-title">Kontrol Sesi Pelatihan</h3>
                     </div>
@@ -297,7 +349,7 @@
                             <div class="min-w-0">
                                 <div class="text-sm font-weight-bold">Akses Kuis</div>
                                 <div class="text-muted text-xs">
-                                    {{ $training->is_quiz_active ? 'Kuis aktif untuk dikerjakan' : 'Pengerjaan kuis terkunci' }}
+                                    {{ $training->is_quiz_active ? 'Kuis aktif untuk dikerjakan' : ($training->questions->isEmpty() ? 'Belum ada soal kuis' : 'Pengerjaan kuis terkunci') }}
                                 </div>
                             </div>
                             <form action="/training/{{ $training->id }}/toggle-quiz" method="POST" class="m-0">
@@ -306,6 +358,10 @@
                                     <button type="submit" class="btn btn-default btn-xs text-danger text-nowrap">
                                         Kunci Kuis
                                     </button>
+                                @elseif($training->questions->isEmpty())
+                                    <a href="{{ route('training.questions.index', $training) }}" class="btn btn-default btn-xs text-nowrap" title="Kuis belum punya soal">
+                                        Buat soal dulu
+                                    </a>
                                 @else
                                     <button type="submit" class="btn btn-default btn-xs text-nowrap">
                                         Buka Kuis
@@ -377,13 +433,16 @@
         </div>
 
         <!-- TABEL REKAP PESERTA & NILAI -->
-        <div class="card">
+        <div class="card" id="peserta">
             <div class="card-header">
                 <h3 class="card-title">
                     Daftar Peserta & Nilai
                     <span class="text-muted text-sm font-weight-normal">({{ $training->participants->count() }} orang)</span>
                 </h3>
                 <div class="card-tools d-flex align-items-center flex-wrap gap-2">
+                    <a href="{{ route('training.edit', $training) }}#peserta" class="btn btn-default btn-sm">
+                        <i class="fas fa-user-plus"></i> Tambah / Ubah Peserta
+                    </a>
                     <button type="button" class="btn btn-default btn-sm" id="btnToggleManualOffCamMode">
                         <i class="fas fa-user-edit"></i> Input Off Cam Manual
                     </button>
@@ -830,7 +889,9 @@
                         @empty
                         <tr>
                             <td colspan="8">
-                                <x-empty-state icon="fa-users" title="Belum ada peserta" text="Belum ada peserta yang terdaftar pada sesi pelatihan ini." />
+                                <x-empty-state icon="fa-users" title="Belum ada peserta" text="Daftarkan peserta agar mereka bisa presensi dan mengerjakan kuis pelatihan ini.">
+                                    <a href="{{ route('training.edit', $training) }}#peserta" class="btn btn-primary btn-sm">Tambah Peserta</a>
+                                </x-empty-state>
                             </td>
                         </tr>
                         @endforelse

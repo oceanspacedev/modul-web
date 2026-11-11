@@ -4,7 +4,7 @@
 
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Kelola Soal Kuis Pelatihan" :subtitle="$training->title" eyebrow="Pelatihan / Soal Kuis">
+        <x-page-header title="Kelola Soal Kuis Pelatihan" :subtitle="$training->title" :breadcrumbs="['Pelatihan' => null, 'Jadwal Pelatihan' => route('training.index'), $training->title => route('training.show', $training), 'Soal Kuis' => null]">
             <x-slot:actions>
                 <a href="/training/{{ $training->id }}" class="btn btn-default">
                     <i class="fas fa-arrow-left"></i> Kembali
