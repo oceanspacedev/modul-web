@@ -15,6 +15,7 @@ class Training extends Model
 
     protected $attributes = [
         'show_quiz_answers' => true,
+        'allow_quiz_retake' => false,
     ];
 
     /**
@@ -31,7 +32,16 @@ class Training extends Model
             'is_attendance_active' => 'boolean',
             'require_attendance_proof' => 'boolean',
             'show_quiz_answers' => 'boolean',
+            'allow_quiz_retake' => 'boolean',
         ];
+    }
+
+    /**
+     * Peserta yang sudah mengerjakan boleh mengulang sekarang: diizinkan pemateri dan kuis sedang dibuka.
+     */
+    public function canRetakeQuiz(): bool
+    {
+        return $this->allow_quiz_retake && $this->is_quiz_active;
     }
 
     public function trainer()

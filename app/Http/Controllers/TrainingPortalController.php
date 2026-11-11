@@ -125,8 +125,8 @@ class TrainingPortalController extends Controller
 
         $training = $participant->training;
 
-        // If already submitted quiz, redirect to result (quiz cannot be retaken by participant)
-        if ($participant->quizResult) {
+        // Already submitted: back to the result, unless the trainer allows retakes
+        if ($participant->quizResult && ! $training->allow_quiz_retake) {
             return redirect("/training/portal/{$token}/result")->with(
                 'warning',
                 'Anda sudah menyelesaikan kuis ini. Kuis tidak dapat dikerjakan ulang.'
@@ -172,11 +172,15 @@ class TrainingPortalController extends Controller
     }
 
     /**
-     * Retake quiz action - blocked for participants
+     * Retake quiz: allowed only while the trainer permits retakes and the quiz is open.
      */
     public function retakeQuiz($token)
     {
-        $participant = $this->findParticipant($token, ['quizResult']);
+        $participant = $this->findParticipant($token, ['training']);
+
+        if ($participant->training->canRetakeQuiz()) {
+            return redirect("/training/portal/{$token}/quiz");
+        }
 
         return redirect("/training/portal/{$token}/result")->with(
             'warning',
@@ -192,8 +196,9 @@ class TrainingPortalController extends Controller
         $participant = $this->findParticipant($token, ['training.questions', 'quizResult']);
         $training = $participant->training;
 
-        // Prevent resubmission if participant has already submitted quiz
-        if ($participant->quizResult) {
+        // Prevent resubmission if participant has already submitted quiz, unless retakes are allowed
+        $previous = $participant->quizResult;
+        if ($previous && ! $training->allow_quiz_retake) {
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
@@ -254,24 +259,47 @@ class TrainingPortalController extends Controller
         $mcScore = $mcTotal > 0 ? round(($correctCount / $mcTotal) * 100, 2) : 100;
         $essayStatus = ($essayTotal > 0) ? 'pending' : 'none';
 
-        TrainingQuizResult::create([
-            'training_id' => $training->id,
-            'user_id' => $participant->user_id,
-            'training_participant_id' => $participant->id,
+        $attemptData = [
             'total_questions' => $totalQuestions,
             'correct_answers' => $correctCount,
             'score' => $mcScore,
             'mc_score' => $mcScore,
             'essay_score' => null,
             'essay_status' => $essayStatus,
+            'essay_feedback' => null,
+            'reviewed_at' => null,
             'tab_switch_count' => $tabSwitchCount,
             'is_force_submitted' => $isForceSubmitted,
             'violation_logs' => $violationLogs,
             'answers' => $answersDetails,
             'submitted_at' => now(),
-        ]);
+        ];
+
+        // One result per participant. A retake only replaces it when it scores higher, so the highest score counts.
+        $keptPreviousScore = null;
+        if ($previous) {
+            $attemptCount = ($previous->attempt_count ?? 1) + 1;
+            if ($mcScore > (float) $previous->score) {
+                $previous->update([...$attemptData, 'attempt_count' => $attemptCount]);
+            } else {
+                $previous->update(['attempt_count' => $attemptCount]);
+                $keptPreviousScore = (float) $previous->score;
+            }
+        } else {
+            TrainingQuizResult::create([
+                ...$attemptData,
+                'training_id' => $training->id,
+                'user_id' => $participant->user_id,
+                'training_participant_id' => $participant->id,
+                'attempt_count' => 1,
+            ]);
+        }
 
         if ($request->ajax() || $request->wantsJson()) {
+            if ($keptPreviousScore !== null) {
+                session()->flash('warning', "Nilai percobaan ini {$mcScore}. Nilai tertinggi Anda ({$keptPreviousScore}) tetap dipakai.");
+            }
+
             $updatedLeaderboard = TrainingQuizResult::with('user')
                 ->where('training_id', $training->id)
                 ->orderByDesc('score')
@@ -299,6 +327,11 @@ class TrainingPortalController extends Controller
             ? 'Kuis telah otomatis dikumpulkan karena Anda terdeteksi berpindah tab melebihi batas toleransi!'
             : 'Jawaban kuis Anda berhasil dikirim dan tersimpan di sistem!';
         $flashType = $isForceSubmitted ? 'warning' : 'success';
+
+        if ($keptPreviousScore !== null) {
+            $flashMsg = "Nilai percobaan ini {$mcScore}. Nilai tertinggi Anda ({$keptPreviousScore}) tetap dipakai.";
+            $flashType = 'warning';
+        }
 
         return redirect("/training/portal/{$token}/result")->with($flashType, $flashMsg);
     }

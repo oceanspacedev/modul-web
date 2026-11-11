@@ -276,7 +276,15 @@
                     <a href="/training/portal/{{ $participant->token }}/result" class="btn btn-default">
                         Lihat Pembahasan
                     </a>
+                    @if($training->canRetakeQuiz())
+                        <a href="/training/portal/{{ $participant->token }}/quiz" class="btn btn-primary">
+                            Kerjakan Ulang
+                        </a>
+                    @endif
                 </div>
+                @if($training->allow_quiz_retake)
+                    <p class="text-muted text-xs text-center mt-2 mb-0">Boleh diulang; nilai tertinggi yang dipakai.</p>
+                @endif
             @else
                 <div id="quizBody">
                 @if($training->is_quiz_active)

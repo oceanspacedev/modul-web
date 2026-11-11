@@ -206,6 +206,7 @@
                     <figure class="pg-shot"><img src="/assets/panduan/training-controls.gif" alt="Animasi: kontrol sesi pelatihan" loading="lazy"><figcaption>Kontrol sesi, lampiran dokumen, dan menu Opsi.</figcaption></figure>
                     <ul>
                         <li><b>Buka Presensi</b> agar peserta bisa absen, lalu <b>Buka Kuis</b> saat kuis dimulai.</li>
+                        <li><b>Ulang kuis</b> (di Kontrol Sesi): klik <b>Izinkan</b> agar peserta bisa mengerjakan ulang tanpa batas; nilai tertinggi yang dipakai. Default: hanya sekali.</li>
                         <li><b>Broadcast WA ke Peserta</b> mengirim ulang undangan ke semua peserta.</li>
                         <li><b>Lampirkan Dokumen</b> dan <b>Upload Video Materi</b> untuk materi sesi.</li>
                         <li>Menu <b>Aksi</b> per peserta: lihat <b>Lembar Jawaban</b>, kirim WA, atur presensi manual, atau <b>Reset Kuis Peserta</b> agar bisa mengulang.</li>

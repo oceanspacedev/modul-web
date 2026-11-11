@@ -407,6 +407,25 @@
                                 </button>
                             </form>
                         </div>
+
+                        <!-- ULANG KUIS -->
+                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
+                            <div class="min-w-0">
+                                <div class="text-sm font-weight-bold">Ulang kuis: {{ $training->allow_quiz_retake ? 'Boleh' : 'Tidak boleh' }}</div>
+                                <div class="text-muted text-xs">
+                                    {{ $training->allow_quiz_retake ? 'Nilai tertinggi yang dipakai' : 'Peserta hanya sekali mengerjakan' }}
+                                </div>
+                                @if($training->allow_quiz_retake && $training->show_quiz_answers)
+                                    <div class="text-warning text-xs">Kunci jawaban terlihat, peserta bisa menyontek saat mengulang</div>
+                                @endif
+                            </div>
+                            <form action="{{ route('training.toggle-quiz-retake', $training) }}" method="POST" class="m-0">
+                                @csrf
+                                <button type="submit" class="btn btn-default btn-xs text-nowrap">
+                                    {{ $training->allow_quiz_retake ? 'Kunci' : 'Izinkan' }}
+                                </button>
+                            </form>
+                        </div>
                     </div>
 
                     <!-- TOMBOL BROADCAST WHATSAPP -->
@@ -538,6 +557,9 @@
                                     <span class="score-value {{ $quiz->score < 50 ? 'is-danger' : ($quiz->score < 75 ? 'is-warning' : '') }}">{{ $quiz->score }}</span>
                                     @if($quiz->essay_status === 'pending')
                                         <span class="cell-sub">skor PG</span>
+                                    @endif
+                                    @if(($quiz->attempt_count ?? 1) > 1)
+                                        <span class="cell-sub" title="Nilai tertinggi dari {{ $quiz->attempt_count }} percobaan">tertinggi dari {{ $quiz->attempt_count }}x</span>
                                     @endif
                                     @if($quiz->is_force_submitted)
                                         <span class="cell-flag is-danger" title="Dikirim otomatis karena kecurangan"><i class="fas fa-exclamation-triangle"></i> Curang (Auto-Submit)</span>

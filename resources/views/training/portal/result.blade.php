@@ -109,7 +109,17 @@
                 <a href="/training/portal/{{ $participant->token }}" class="btn btn-default px-4">
                     Kembali ke Halaman Pelatihan
                 </a>
+                @if($training->canRetakeQuiz())
+                    <a href="/training/portal/{{ $participant->token }}/quiz" class="btn btn-primary px-4">
+                        Kerjakan Ulang
+                    </a>
+                @endif
             </div>
+            @if($training->allow_quiz_retake)
+                <p class="text-muted text-xs mt-3 mb-0">
+                    Dikerjakan {{ $quizResult->attempt_count ?? 1 }}x · nilai tertinggi yang dipakai.
+                </p>
+            @endif
         </div>
 
         <!-- REVIEW PERTANYAAN -->

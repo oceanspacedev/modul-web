@@ -327,6 +327,21 @@ class TrainingController extends Controller
     }
 
     /**
+     * Quick toggle whether participants may retake the quiz (unlimited; their highest score counts).
+     */
+    public function toggleQuizRetake(Training $training): RedirectResponse
+    {
+        $newValue = ! $training->allow_quiz_retake;
+        $training->update(['allow_quiz_retake' => $newValue]);
+
+        $message = $newValue
+            ? 'Peserta kini BOLEH mengulang kuis. Nilai tertinggi yang dipakai.'
+            : 'Kuis kini hanya bisa dikerjakan SATU KALI.';
+
+        return back()->with('success', $message);
+    }
+
+    /**
      * Broadcast WhatsApp notification to all participants
      */
     public function broadcastWa(Training $training): RedirectResponse
