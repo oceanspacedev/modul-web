@@ -141,6 +141,7 @@ class RolePermissionTest extends TestCase
         $this->actingAs($this->admin())->get('/roles')
             ->assertOk()
             ->assertViewHas('users', fn ($users) => $users->count() === 25 && $users->total() === 35)
+            ->assertViewHas('totalUsers', 35)
             ->assertDontSee('ZZ BUDI PENCARIAN')
             ->assertSee('page=2#tab-users', false);
         $this->actingAs($this->admin())->get('/roles?page=2')->assertOk()->assertSee('ZZ BUDI PENCARIAN');
@@ -149,6 +150,8 @@ class RolePermissionTest extends TestCase
             ->viewData('users')->pluck('nama_lengkap')->all();
 
         $this->assertSame(['ZZ BUDI PENCARIAN'], $names('search=budi.cari'));
+        // Kartu ringkasan dan label tab tetap menghitung semua user saat tabel disaring.
+        $this->actingAs($this->admin())->get('/roles?search=budi.cari')->assertViewHas('totalUsers', 35);
         $this->assertSame(['ZZ SITI MANAGER'], $names('role=MANAGER'));
         $this->assertSame(['ZZ TONO TRAINER'], $names('role=__trainer'));
         $this->assertSame(['ZZ TANPA JABATAN'], $names('role=__none'));

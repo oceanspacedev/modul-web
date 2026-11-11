@@ -113,6 +113,8 @@ class RoleController extends Controller
             'roles' => $roles,
             'permissions' => $permissions,
             'users' => $users,
+            // Jumlah semua user untuk kartu ringkasan dan label tab, tidak ikut berubah saat tabel disaring.
+            'totalUsers' => User::count(),
             'permissionGroups' => $permissionGroups,
         ]);
     }

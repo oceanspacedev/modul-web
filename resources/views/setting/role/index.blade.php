@@ -47,7 +47,7 @@
                 <div class="stat-tile">
                     <div>
                         <p class="stat-tile-label">Pengguna</p>
-                        <p class="stat-tile-value">{{ $users->count() }}</p>
+                        <p class="stat-tile-value">{{ $totalUsers }}</p>
                     </div>
                 </div>
             </div>
@@ -62,7 +62,7 @@
             </li>
             <li class="nav-item">
                 <a class="nav-link" id="users-tab" data-toggle="tab" href="#tab-users" role="tab" aria-controls="tab-users" aria-selected="false">
-                    Penetapan Jabatan Pengguna <span class="badge badge-secondary">{{ $users->count() }}</span>
+                    Penetapan Jabatan Pengguna <span class="badge badge-secondary">{{ $totalUsers }}</span>
                 </a>
             </li>
         </ul>
