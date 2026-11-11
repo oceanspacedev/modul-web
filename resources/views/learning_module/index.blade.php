@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Kelola Modul" subtitle="Pretest → materi video/dokumen → posttest (bisa diulang)." eyebrow="Modul Belajar">
+        <x-page-header title="Kelola Modul" subtitle="Alur membuat modul: isi informasi & pilih materi → buat soal → publikasikan. Peserta mengerjakan pretest → materi → posttest." eyebrow="Modul Belajar / Kelola Modul">
             <x-slot:actions>
                 <a href="{{ route('learning-module.create') }}" class="btn btn-primary">
                     <i class="fas fa-plus"></i> Tambah Modul
@@ -37,7 +37,7 @@
                             <th class="text-center">Materi</th>
                             <th class="text-center">Soal</th>
                             <th class="text-center">KKM</th>
-                            <th class="text-center">Peserta</th>
+                            <th class="text-center" title="Jumlah peserta yang sudah mulai mengerjakan">Sudah Mulai</th>
                             <th class="text-center">Status</th>
                             <th style="width: 140px;" class="text-right">Aksi</th>
                         </tr>
@@ -72,19 +72,30 @@
                                     <span class="badge badge-success">Dipublikasikan</span>
                                 @else
                                     <span class="badge badge-secondary">Draft</span>
+                                    @php
+                                        $missing = array_filter([$module->items_count ? null : 'materi', $module->questions_count ? null : 'soal']);
+                                    @endphp
+                                    <span class="d-block text-muted text-xs mt-1">
+                                        {{ $missing ? 'Belum ada '.implode(' & ', $missing) : 'Siap dipublikasikan' }}
+                                    </span>
                                 @endif
                             </td>
                             <td class="text-right align-middle">
                                 <div class="d-inline-flex align-items-center gap-1">
-                                    <a href="{{ route('learning-module.show', $module) }}" class="btn btn-default btn-xs">Rekap</a>
+                                    @if($module->is_published)
+                                        <a href="{{ route('learning-module.show', $module) }}" class="btn btn-default btn-xs">Rekap</a>
+                                    @else
+                                        <a href="{{ route('learning-module.show', $module) }}" class="btn btn-primary btn-xs">Lanjutkan</a>
+                                    @endif
                                     <div class="dropdown">
                                         <button class="btn btn-default btn-xs dropdown-toggle" type="button" data-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false">
                                             Aksi
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-right">
-                                            <a class="dropdown-item" href="{{ route('learning-module.questions.index', $module) }}">Kelola Soal</a>
                                             <a class="dropdown-item" href="{{ route('learning-module.edit', $module) }}">Edit Modul & Materi</a>
-                                            <form action="{{ route('learning-module.publish', $module) }}" method="POST" class="m-0">
+                                            <a class="dropdown-item" href="{{ route('learning-module.questions.index', $module) }}">Kelola Soal</a>
+                                            <form action="{{ route('learning-module.publish', $module) }}" method="POST" class="m-0"
+                                                @if($module->is_published) onsubmit="return confirm('Tarik publikasi? Modul tidak lagi tampil untuk peserta.')" @endif>
                                                 @csrf
                                                 <button type="submit" class="dropdown-item">
                                                     {{ $module->is_published ? 'Tarik Publikasi' : 'Publikasikan' }}

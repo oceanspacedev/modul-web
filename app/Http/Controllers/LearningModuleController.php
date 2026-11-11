@@ -78,6 +78,7 @@ class LearningModuleController extends Controller
             'active' => $module->menuKey('learning-module'),
             'module' => $module,
             'participants' => LearningModuleProgress::forParticipants($module),
+            'targetCount' => $module->isOwned() ? null : $module->targetUsers()->count(),
         ]);
     }
 
@@ -124,7 +125,7 @@ class LearningModuleController extends Controller
             $this->syncRelations($module, $request);
         });
 
-        return to_route('learning-module.index')->with('success', 'Modul berhasil diperbarui.');
+        return to_route('learning-module.show', $module)->with('success', 'Modul berhasil diperbarui.');
     }
 
     public function destroy(LearningModule $module): RedirectResponse
@@ -144,7 +145,7 @@ class LearningModuleController extends Controller
         if (! $module->is_published) {
             $module->load('items.materialable')->loadCount('questions');
 
-            if ($module->questions_count === 0 || $module->availableItems()->isEmpty()) {
+            if ($module->missingForPublish() !== []) {
                 return back()->with('error', 'Modul belum bisa dipublikasikan: tambahkan minimal 1 materi dan 1 soal terlebih dahulu.');
             }
         }

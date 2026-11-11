@@ -8,9 +8,9 @@
 
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Soal Pretest & Posttest" :subtitle="$subtitle" eyebrow="Modul Belajar / Kelola Soal">
+        <x-page-header title="Soal Pretest & Posttest" :subtitle="$subtitle" :breadcrumbs="$module->adminBreadcrumbs('Soal')">
             <x-slot:actions>
-                <a href="{{ $module->managementUrl() }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
+                <a href="{{ $module->isOwned() ? $module->managementUrl() : route('learning-module.show', $module) }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
                 <a href="{{ $module->url('questions.template') }}" class="btn btn-default">
                     <i class="fas fa-download"></i> Template
                 </a>
@@ -28,9 +28,10 @@
                 <button type="button" class="btn btn-default" data-toggle="modal" data-target="#addQuestionModal">
                     <i class="fas fa-plus"></i> Tambah Manual
                 </button>
-                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#aiGenerateModal">
+                <button type="button" class="btn {{ $questions->isEmpty() ? 'btn-primary' : 'btn-default' }}" data-toggle="modal" data-target="#aiGenerateModal">
                     <i class="fas fa-magic"></i> Buat Soal via AI
                 </button>
+                @include('learning_module.partials.publish-button')
             </x-slot:actions>
         </x-page-header>
     </div>
@@ -39,6 +40,9 @@
 <section class="content">
     <div class="container-fluid">
         @include('learning_module.partials.alerts')
+        @unless($module->is_published)
+            @include('learning_module.partials.setup-steps', ['page' => 'questions'])
+        @endunless
 
         <div class="card">
             <div class="card-header">
@@ -58,12 +62,6 @@
                         @else
                             <span class="badge badge-secondary">Draft</span>
                         @endif
-                        <form action="{{ route('learning-module.publish', $module) }}" method="POST" class="m-0">
-                            @csrf
-                            <button type="submit" class="btn btn-xs btn-default">
-                                {{ $module->is_published ? 'Tarik Publikasi' : 'Publikasikan Modul' }}
-                            </button>
-                        </form>
                     @endif
                     @if($questions->isNotEmpty())
                         <form action="{{ $module->url('questions.delete-all') }}" method="POST" class="m-0" onsubmit="return confirm('Hapus SEMUA soal modul ini? Riwayat nilai peserta tetap tersimpan.')">

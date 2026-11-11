@@ -60,7 +60,7 @@ class LearningModuleManagementTest extends TestCase
             'title' => 'K3 Dasar',
             'passing_score' => 75,
             'items' => [$videoItem->key(), $documentItem->key()],
-        ])->assertRedirect(route('learning-module.index'));
+        ])->assertRedirect(route('learning-module.show', $module));
 
         $this->assertSame([$videoItem->id, $documentItem->id], $module->items()->pluck('id')->all());
         $this->assertSame(1, $documentItem->progress()->count());
@@ -150,6 +150,43 @@ class LearningModuleManagementTest extends TestCase
         $this->actingAs($this->admin)->get(route('learning-module.edit', $module))->assertOk()->assertSee('Video: Video K3');
         $this->actingAs($this->admin)->get(route('learning-module.questions.index', $module))->assertOk()->assertSee('APD utama?');
         $this->actingAs($this->admin)->get(route('learning-module.questions.template', $module))->assertOk();
+    }
+
+    public function test_draft_module_pages_show_setup_steps_and_publish_state(): void
+    {
+        $module = $this->createModuleWithMaterials();
+
+        // Belum ada soal: checklist tampil, tombol publikasi nonaktif dengan alasannya.
+        $this->actingAs($this->admin)->get(route('learning-module.show', $module))
+            ->assertOk()
+            ->assertSee('Langkah menyiapkan modul')
+            ->assertSee('Bisa dipublikasikan setelah ada soal.')
+            ->assertSee('Butuh minimal 1 materi dan 1 soal');
+
+        $module->questions()->create(['question' => 'APD utama?', 'option_a' => 'Helm', 'option_b' => 'Topi', 'correct_answer' => 'a']);
+
+        $this->actingAs($this->admin)->get(route('learning-module.questions.index', $module))
+            ->assertOk()
+            ->assertSee('Siap. Modul akan muncul di &quot;Modul Saya&quot; peserta sasaran.', false)
+            ->assertDontSee('Butuh minimal 1 materi dan 1 soal');
+
+        // Sudah dipublikasikan: checklist disembunyikan, tombol berganti jadi Tarik Publikasi.
+        $module->update(['is_published' => true]);
+        $this->actingAs($this->admin)->get(route('learning-module.show', $module))
+            ->assertOk()
+            ->assertDontSee('Langkah menyiapkan modul')
+            ->assertSee('Tarik Publikasi');
+    }
+
+    public function test_target_users_follow_the_same_rules_as_module_visibility(): void
+    {
+        $module = $this->createModuleWithMaterials();
+        $module->update(['is_published' => true]);
+        $module->load(['divisis', 'roles']);
+
+        $expected = User::all()->filter(fn (User $user) => $module->isVisibleTo($user))->pluck('id')->sort()->values()->all();
+
+        $this->assertSame($expected, $module->targetUsers()->pluck('id')->sort()->values()->all());
     }
 
     public function test_video_page_renders_for_each_source(): void

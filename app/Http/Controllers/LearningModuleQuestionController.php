@@ -276,8 +276,8 @@ class LearningModuleQuestionController extends Controller
         $count = count($request->questions);
         $message = "Berhasil menyimpan {$count} soal hasil AI ke modul!";
 
-        // Video/document quizzes go straight back to the material; regular modules stay on their question list.
-        $redirect = $module->isOwned() ? $module->managementUrl() : $module->url('questions.index');
+        // Stay on the question list (like adding a question manually) so the setup checklist shows what is next.
+        $redirect = $module->url('questions.index');
         session()->flash('success', $message);
 
         return response()->json([

@@ -201,6 +201,23 @@ class LearningModule extends Model
         };
     }
 
+    /**
+     * Breadcrumb halaman admin modul/kuis, mengikuti menu sidebar asalnya. ['Label' => url|null]
+     *
+     * @return array<string, string|null>
+     */
+    public function adminBreadcrumbs(string $current): array
+    {
+        $root = match ($this->source_type) {
+            LearningModuleItem::TYPE_VIDEO => ['Video Materi' => route('video.index')],
+            LearningModuleItem::TYPE_DOCUMENT => ['Dokumen' => route('document.index')],
+            default => ['Modul Belajar' => null, 'Kelola Modul' => route('learning-module.index')],
+        };
+        $self = $this->isOwned() ? $this->managementUrl() : route('learning-module.show', $this);
+
+        return $root + [$this->title => $self, $current => null];
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -259,6 +276,34 @@ class LearningModule extends Model
         return $this->is_published
             && ($this->divisis->isEmpty() || $this->divisis->contains('id', $user->divisi_id))
             && ($this->roles->isEmpty() || $this->roles->pluck('id')->intersect($user->roles->pluck('id'))->isNotEmpty());
+    }
+
+    /**
+     * User yang termasuk sasaran modul (aturan sama dengan scopeVisibleTo, tanpa syarat publikasi). Butuh relasi divisis dan roles.
+     */
+    public function targetUsers(): Builder
+    {
+        $divisiIds = $this->divisis->pluck('id');
+        $roleIds = $this->roles->pluck('id');
+
+        return User::query()
+            ->when($divisiIds->isNotEmpty(), fn (Builder $q) => $q->whereIn('divisi_id', $divisiIds))
+            ->when($roleIds->isNotEmpty(), fn (Builder $q) => $q->whereHas('roles', fn (Builder $q) => $q->whereIn('roles.id', $roleIds)));
+    }
+
+    /**
+     * Hal yang masih kurang sebelum modul bisa dipublikasikan, mis. ['materi', 'soal']. Butuh relasi items.materialable.
+     *
+     * @return list<string>
+     */
+    public function missingForPublish(): array
+    {
+        $questionCount = $this->questions_count ?? $this->questions()->count();
+
+        return array_values(array_filter([
+            $this->availableItems()->isEmpty() ? 'materi' : null,
+            $questionCount === 0 ? 'soal' : null,
+        ]));
     }
 
     /**

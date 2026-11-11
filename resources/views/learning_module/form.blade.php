@@ -14,9 +14,12 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header :title="$isEdit ? 'Edit Modul Belajar' : 'Tambah Modul Belajar'" :subtitle="$isEdit ? $module->title : 'Atur informasi modul, sasaran peserta, dan urutan materi.'" eyebrow="Modul Belajar / Kelola Modul">
+        <x-page-header :title="$isEdit ? 'Edit Modul Belajar' : 'Tambah Modul Belajar'" :subtitle="$isEdit ? $module->title : 'Atur informasi modul, sasaran peserta, dan urutan materi.'" 
+            :breadcrumbs="$isEdit
+                ? ['Modul Belajar' => null, 'Kelola Modul' => route('learning-module.index'), $module->title => route('learning-module.show', $module), 'Edit' => null]
+                : ['Modul Belajar' => null, 'Kelola Modul' => route('learning-module.index'), 'Tambah' => null]">
             <x-slot:actions>
-                <a href="{{ route('learning-module.index') }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
+                <a href="{{ $isEdit ? route('learning-module.show', $module) : route('learning-module.index') }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
             </x-slot:actions>
         </x-page-header>
     </div>
@@ -25,6 +28,9 @@
 <section class="content">
     <div class="container-fluid">
         @include('learning_module.partials.alerts')
+        @unless($module->is_published)
+            @include('learning_module.partials.setup-steps', ['page' => $isEdit ? 'edit' : 'create'])
+        @endunless
 
         <form action="{{ $isEdit ? route('learning-module.update', $module) : route('learning-module.store') }}" method="POST" id="moduleForm">
             @csrf
@@ -55,14 +61,30 @@
                     </div>
 
                     {{-- MATERI MODUL --}}
-                    <div class="card flex-grow-1">
+                    <div class="card flex-grow-1" id="materi">
                         <div class="card-header">
                             <h3 class="card-title">Materi Modul</h3>
                         </div>
                         <div class="card-body">
+                            @if($videos->isEmpty() && $documents->isEmpty())
+                                <div class="alert alert-warning small">
+                                    <strong>Belum ada video atau dokumen.</strong> Materi modul diambil dari Video Materi dan Dokumen,
+                                    jadi unggah dulu materinya. Modul ini tetap bisa disimpan sekarang dan materinya dipilih belakangan.
+                                    <div class="mt-2 d-flex flex-wrap gap-2">
+                                        @can('create', \App\Models\Video::class)
+                                            <a href="{{ route('video.create') }}" target="_blank" rel="noopener" class="btn btn-default btn-sm"><i class="fas fa-video"></i> Upload Video</a>
+                                        @endcan
+                                        @can('create', \App\Models\Document::class)
+                                            <a href="{{ route('document.create') }}" target="_blank" rel="noopener" class="btn btn-default btn-sm"><i class="fas fa-file-upload"></i> Upload Dokumen</a>
+                                        @endcan
+                                    </div>
+                                    <div class="mt-2">Setelah mengunggah, muat ulang halaman ini agar materinya muncul di pilihan.</div>
+                                </div>
+                            @endif
                             <p class="text-muted small mb-3">
-                                Pilih dari <a href="{{ route('video.index') }}" target="_blank">Video Materi</a> dan
-                                <a href="{{ route('document.index') }}" target="_blank">Dokumen</a>. Peserta menyelesaikan semua materi sebelum posttest.
+                                Pilih dari <a href="{{ route('video.index') }}" target="_blank" rel="noopener">Video Materi</a> dan
+                                <a href="{{ route('document.index') }}" target="_blank" rel="noopener">Dokumen</a>, lalu klik Tambah. Urutan di daftar = urutan belajar peserta;
+                                peserta menyelesaikan semua materi sebelum posttest. Minimal 1 materi agar modul bisa dipublikasikan.
                             </p>
 
                             <div class="d-flex gap-2 mb-3">
@@ -172,7 +194,7 @@
                                         <option value="{{ $role->id }}" {{ $selectedRoles->contains($role->id) ? 'selected' : '' }}>{{ $role->name }}</option>
                                     @endforeach
                                 </select>
-                                <small class="form-text text-muted">Kosongkan untuk semua divisi/jabatan.</small>
+                                <small class="form-text text-muted">Kosongkan untuk semua divisi/jabatan. Modul hanya tampil di "Modul Saya" user yang divisi <em>dan</em> jabatannya cocok.</small>
                             </div>
                         </div>
                     </div>

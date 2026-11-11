@@ -3,13 +3,13 @@
 @php
     $subtitle = $module->isOwned()
         ? 'Kuis '.($module->isOwnedByVideo() ? 'video' : 'dokumen').' · '.(collect([$module->has_pretest ? 'pretest' : null, $module->has_posttest ? 'posttest' : null])->filter()->join(' & ') ?: 'pretest & posttest dimatikan')
-        : $module->targetLabel();
+        : 'Sasaran: '.$module->targetLabel().' · ±'.$targetCount.' user';
 @endphp
 
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header :title="$module->title" :subtitle="$subtitle" eyebrow="Modul Belajar / Rekap Nilai">
+        <x-page-header :title="$module->title" :subtitle="$subtitle" :breadcrumbs="$module->isOwned() ? $module->adminBreadcrumbs('Rekap Nilai') : ['Modul Belajar' => null, 'Kelola Modul' => route('learning-module.index'), $module->title => null]">
             <x-slot:actions>
                 <a href="{{ $module->managementUrl() }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
                 <a href="{{ $module->url('questions.index') }}" class="btn btn-default">Kelola Soal ({{ $module->questions_count }})</a>
@@ -18,10 +18,11 @@
                 @endunless
                 <form action="{{ $module->url('export') }}" method="POST" class="m-0">
                     @csrf
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn {{ $module->is_published || $module->isOwned() ? 'btn-primary' : 'btn-default' }}">
                         <i class="fas fa-file-excel"></i> Export Excel
                     </button>
                 </form>
+                @include('learning_module.partials.publish-button')
             </x-slot:actions>
         </x-page-header>
     </div>
@@ -30,6 +31,9 @@
 <section class="content">
     <div class="container-fluid">
         @include('learning_module.partials.alerts')
+        @unless($module->is_published)
+            @include('learning_module.partials.setup-steps', ['page' => 'show'])
+        @endunless
 
         <div class="row">
             <div class="col-md-3 col-6 mb-4">
