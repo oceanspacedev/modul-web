@@ -2,8 +2,8 @@
 
 @php
     $isEdit = $module->exists;
-    $materialLabels = $videos->mapWithKeys(fn ($v) => ['video:'.$v->id => 'Video: '.$v->title])
-        ->merge($documents->mapWithKeys(fn ($d) => ['document:'.$d->id => 'Dokumen: '.$d->name]));
+    $materialLabels = $videos->toBase()->mapWithKeys(fn ($v) => ['video:'.$v->id => 'Video: '.$v->title])
+        ->merge($documents->toBase()->mapWithKeys(fn ($d) => ['document:'.$d->id => 'Dokumen: '.$d->name]));
     $initialItems = collect(old('items', $selectedItems->map->key()->all()))
         ->filter(fn ($key) => $materialLabels->has($key))
         ->values();
@@ -84,8 +84,8 @@
                                 <a href="{{ route('document.index') }}" target="_blank" rel="noopener">Dokumen</a>. Urutan daftar = urutan belajar peserta.
                             </p>
 
-                            <div class="d-flex gap-2 mb-3">
-                                <div class="flex-grow-1 min-w-0">
+                            <div class="mb-3">
+                                <div class="min-w-0">
                                     <select id="materialPicker" class="form-control" data-placeholder="Cari video atau dokumen...">
                                         <option value=""></option>
                                         <optgroup label="Video Materi">
@@ -100,12 +100,11 @@
                                         </optgroup>
                                     </select>
                                 </div>
-                                <button type="button" class="btn btn-default" id="btnAddMaterial"><i class="fas fa-plus"></i> Tambah</button>
                             </div>
 
                             <ul class="list-group" id="materialList"></ul>
                             <div class="border rounded" id="materialEmpty">
-                                <x-empty-state icon="fa-photo-video" title="Belum ada materi dipilih" text="Cari video atau dokumen di atas, lalu klik Tambah." class="py-4" />
+                                <x-empty-state icon="fa-photo-video" title="Belum ada materi dipilih" text="Cari video atau dokumen di atas." class="py-4" />
                             </div>
                         </div>
                     </div>
@@ -252,9 +251,13 @@ $(function () {
         refresh();
     }
 
-    $('#btnAddMaterial').on('click', function () {
+    // Materi yang dipilih langsung masuk daftar (items[]), jadi pasti ikut tersimpan.
+    $('#materialPicker').on('select2:select', function () {
+        addMaterial($(this).val());
+        $(this).val(null).trigger('change');
+    });
+    $('#moduleForm').on('submit', function () {
         addMaterial($('#materialPicker').val());
-        $('#materialPicker').val(null).trigger('change');
     });
 
     $list.on('click', '.btn-up', function () {

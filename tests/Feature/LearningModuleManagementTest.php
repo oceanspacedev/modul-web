@@ -178,6 +178,32 @@ class LearningModuleManagementTest extends TestCase
             ->assertSee('Tarik Publikasi');
     }
 
+    public function test_materials_chosen_when_creating_module_mark_the_material_step_done(): void
+    {
+        $document = Document::create(['name' => 'SOP K3', 'divisi_id' => 1, 'document_type' => 1, 'path' => 'k3.pdf']);
+
+        // Pilihan di kotak cari langsung masuk daftar items[] tanpa tombol Tambah terpisah.
+        $this->actingAs($this->admin)->get(route('learning-module.create'))
+            ->assertOk()
+            ->assertSee("on('select2:select'", false)
+            ->assertDontSee('btnAddMaterial');
+
+        $response = $this->actingAs($this->admin)->followingRedirects()->post(route('learning-module.store'), [
+            'title' => 'K3 Dasar',
+            'passing_score' => 75,
+            'items' => ['document:'.$document->id],
+        ]);
+
+        $response->assertOk()
+            ->assertSee('buat soal lewat AI, import, atau manual.')
+            ->assertDontSee('pilih video/dokumen yang dipelajari peserta.')
+            ->assertDontSee('Pilih Materi');
+        $this->assertMatchesRegularExpression(
+            '/<li class="setup-step is-done"\s+title="1 materi"\s*>.*?Materi<\/span>/s',
+            $response->getContent(),
+        );
+    }
+
     public function test_target_users_follow_the_same_rules_as_module_visibility(): void
     {
         $module = $this->createModuleWithMaterials();
