@@ -194,12 +194,12 @@
                     <div class="pg-head"><h2>7. Pelatihan</h2></div>
                     <figure class="pg-shot"><img src="/assets/panduan/training-list.gif" alt="Animasi: memfilter dan mencari pelatihan" loading="lazy"><figcaption>Daftar Jadwal Pelatihan: pindah tab dan mencari.</figcaption></figure>
                     <h3>7.1 Membuat pelatihan</h3>
-                    <figure class="pg-shot"><img src="/assets/panduan/training-create.gif" alt="Animasi: mengisi form pelatihan" loading="lazy"><figcaption>Mengisi form pelatihan dan memilih peserta (data contoh).</figcaption></figure>
+                    <figure class="pg-shot"><img src="/assets/panduan/training-create.gif" alt="Animasi: mengisi form pelatihan" loading="lazy"><figcaption>Mengisi form pelatihan, lalu memilih peserta: saring per divisi, <b>Pilih semua</b>, cari nama, dan tampilkan user berikutnya (data contoh).</figcaption></figure>
                     <ol>
                         <li><b>Pelatihan → Jadwal Pelatihan</b>, klik <b>Tambah Pelatihan</b>.</li>
                         <li>Isi <b>Judul</b>, <b>Pemateri</b>, <b>Tanggal</b>, jam, dan <b>Link Meeting</b>.</li>
                         <li>Pilih <b>Dokumen Materi</b> (opsional) dan <b>Mode Kuis</b>: Formal atau Game.</li>
-                        <li>Centang peserta. Daftar menampilkan 100 user dulu; klik <b>Tampilkan 100 berikutnya</b> untuk melihat sisanya, atau saring per divisi dan cari nama, ID karyawan, atau username. Label <b>Tanpa WA</b> = tidak punya nomor WhatsApp.</li>
+                        <li>Centang peserta. Daftar menampilkan 100 user dulu; klik tombol <b>Tampilkan &hellip; berikutnya</b> di bawah daftar untuk melihat sisanya, atau saring per divisi dan cari nama, ID karyawan, atau username. Label <b>Tanpa WA</b> = tidak punya nomor WhatsApp.</li>
                         <li><b>Pilih semua</b> dan <b>Kosongkan</b> berlaku untuk semua user yang cocok dengan pencarian dan filter saat itu, termasuk yang belum tampil. Jumlah terpilih ada di samping judul <b>Peserta</b>, dan pilihan tetap tersimpan saat Anda mengganti pencarian.</li>
                         <li>Klik <b>Simpan &amp; Lanjut Buat Soal</b>. Undangan WA terkirim otomatis.</li>
                         <li>Buat soal (mis. <b>Buat Soal via AI</b>). Setelah tersimpan, jawab pertanyaan <b>Pengaturan</b> satu per satu: buka presensi sekarang dan wajib bukti foto. Aturan kuis diatur di kotak <b>Aturan Kuis</b> pada form pelatihan.</li>
@@ -207,7 +207,7 @@
                     <h3>7.2 Saat sesi berlangsung</h3>
                     <p>Klik <b>Detail</b> pada pelatihan.</p>
                     <figure class="pg-shot"><img src="/assets/panduan/training-show.png" alt="Detail pelatihan" loading="lazy"><figcaption>Halaman detail pelatihan.</figcaption></figure>
-                    <figure class="pg-shot"><img src="/assets/panduan/training-controls.gif" alt="Animasi: kontrol sesi pelatihan" loading="lazy"><figcaption>Kontrol sesi, lampiran dokumen, dan menu Opsi.</figcaption></figure>
+                    <figure class="pg-shot"><img src="/assets/panduan/training-controls.gif" alt="Animasi: kontrol sesi pelatihan" loading="lazy"><figcaption>Langkah pelatihan, kontrol sesi, lampiran dokumen, dan menu Opsi.</figcaption></figure>
                     <ul>
                         <li><b>Buka Presensi</b> agar peserta bisa absen, lalu <b>Buka Kuis</b> saat kuis dimulai.</li>
                         <li><b>Aturan Kuis</b> (di form pelatihan, atau <b>Ubah</b> di Kontrol Sesi): nyalakan <b>Pretest</b> dan/atau <b>Posttest</b>, lalu pilih berapa kali boleh dikerjakan dan apa yang dilihat peserta setelah selesai. Bawaan: hanya posttest, 1 kali. Pretest memakai soal pilihan ganda saja.</li>
@@ -217,6 +217,7 @@
                         <li><b>Daftar Peserta &amp; Nilai</b> menampilkan 50 peserta per halaman. Ketik nama, ID karyawan, No. HP, atau divisi di kotak <b>Cari peserta</b> lalu tekan <b>Enter</b>; pindah halaman lewat nomor halaman di bawah tabel. Angka di kartu ringkasan tetap menghitung semua peserta.</li>
                         <li>Menu <b>Aksi</b> per peserta: lihat <b>Lembar Jawaban</b> (dimuat saat dibuka), kirim WA, atur presensi manual, atau <b>Reset Kuis Peserta</b> agar bisa mengulang.</li>
                     </ul>
+                    <figure class="pg-shot"><img src="/assets/panduan/training-peserta.gif" alt="Animasi: daftar peserta pelatihan, pindah halaman, mencari, dan membuka lembar jawaban" loading="lazy"><figcaption>Daftar peserta: pindah halaman, cari peserta (Enter), lalu <b>Aksi &rarr; Lembar Jawaban</b> (data contoh).</figcaption></figure>
                     <h3>Setelah sesi</h3>
                     <ul>
                         <li><b>Nilai essay:</b> buka Lembar Jawaban peserta, isi <b>Nilai Essay</b>, klik <b>Simpan Nilai</b>.</li>
@@ -323,11 +324,14 @@
                 <div class="pg-card" id="kuispeserta">
                     <div class="pg-head"><h2>13. Mengerjakan kuis</h2></div>
                     <ol>
+                        <li>Bila pelatihan punya <b>pretest</b>, kerjakan dulu sebelum materi: setelah pemateri membukanya, ketuk <b>Mulai Pretest</b>.</li>
                         <li>Setelah kuis dibuka pemateri, ketuk <b>Mulai Kerjakan Kuis</b>.</li>
                         <li>Jawab semua soal, ketuk <b>Kirim Jawaban</b>.</li>
-                        <li>Klik <b>Lihat Pembahasan</b> untuk melihat nilai dan kunci jawaban.</li>
+                        <li>Ketuk <b>Lihat Pembahasan</b> (atau <b>Lihat Hasil</b> untuk pretest) untuk melihat nilai. Kunci jawaban dan pembahasan ikut tampil bila pemateri mengizinkannya; bila tidak, hanya nilainya.</li>
+                        <li>Masih ada sisa percobaan dan kuis masih dibuka? Ketuk <b>Kerjakan Ulang</b>. Nilai yang dipakai adalah nilai <b>tertinggi</b>.</li>
                     </ol>
-                    <div class="pg-warn pg-note">Kuis hanya <b>satu kali</b>. Pindah tab/aplikasi lebih dari 3 kali membuat kuis terkirim otomatis.</div>
+                    <div class="pg-note">Berapa kali kuis boleh dikerjakan ditentukan pemateri: bawaannya <b>satu kali</b>, bisa juga beberapa kali atau tanpa batas, dan pretest punya batasnya sendiri. Aturan ini tertulis di halaman pelatihan sebelum Anda mulai, dan sisa percobaan Anda tertulis di bawah nilai.</div>
+                    <div class="pg-warn pg-note">Pindah tab/aplikasi lebih dari 3 kali membuat kuis terkirim otomatis.</div>
                 </div>
 
                 {{-- 14 --}}
@@ -339,7 +343,7 @@
                         <tr><td>OTP tidak masuk</td><td>Pastikan nomor WA di akun benar, tunggu 60 detik lalu kirim ulang.</td></tr>
                         <tr><td>Menu tidak muncul</td><td>Jabatan belum punya izin. Minta admin mengatur di Jabatan &amp; Hak Akses.</td></tr>
                         <tr><td>Peserta tidak bisa absen</td><td>Pemateri belum klik <b>Buka Presensi</b>.</td></tr>
-                        <tr><td>Peserta tidak bisa membuka kuis</td><td>Kuis belum dibuka, belum ada soal, atau sudah dikerjakan (pakai <b>Reset Kuis Peserta</b>).</td></tr>
+                        <tr><td>Peserta tidak bisa membuka kuis</td><td>Kuis belum dibuka, belum ada soal, atau batas percobaannya sudah habis. Naikkan batas di <b>Aturan Kuis</b>, atau pakai <b>Reset Kuis Peserta</b> untuk menghapus hasil satu peserta agar ia bisa mengulang.</td></tr>
                         <tr><td>WA ke peserta tidak terkirim</td><td>No. HP kosong/salah. Perbaiki di data user, lalu <b>Kirim Notifikasi WA</b>.</td></tr>
                         <tr><td>Video Google Drive tidak bisa diputar</td><td>Ubah akses menjadi "Siapa saja yang memiliki link".</td></tr>
                         <tr><td>Upload gagal / "413 Request Entity Too Large"</td><td>File terlalu besar untuk server. Hubungi administrator.</td></tr>
@@ -349,7 +353,7 @@
                         <tr><td>Soal AI atau Scan Off Cam memuat sangat lama / tidak selesai</td><td>Prosesnya menunggu giliran di antrean; satu proses AI dikerjakan dalam satu waktu. Bila lebih dari 15 menit, minta administrator memastikan antrean (<b>Horizon</b>) berjalan, lalu ulangi.</td></tr>
                         <tr><td>Soal hasil Import Excel belum muncul</td><td>Import berjalan di belakang layar. Tunggu kabarnya di menu <b>Notifikasi</b>, lalu muat ulang halaman soal. Bila notifikasinya "Import soal gagal", perbaiki baris yang disebut dan impor ulang.</td></tr>
                         <tr><td>Peserta tidak terlihat di detail pelatihan</td><td>Tabel menampilkan 50 peserta per halaman. Cari namanya di kotak <b>Cari peserta</b> (tekan Enter) atau buka halaman berikutnya.</td></tr>
-                        <tr><td>User tidak terlihat saat memilih peserta</td><td>Daftar menampilkan 100 user dulu. Ketik nama, ID karyawan, atau username di kotak pencarian, atau klik <b>Tampilkan 100 berikutnya</b>.</td></tr>
+                        <tr><td>User tidak terlihat saat memilih peserta</td><td>Daftar menampilkan 100 user dulu. Ketik nama, ID karyawan, atau username di kotak pencarian, atau klik tombol <b>Tampilkan &hellip; berikutnya</b> di bawah daftar.</td></tr>
                     </table>
                 </div>
 
