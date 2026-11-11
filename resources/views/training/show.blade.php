@@ -1978,6 +1978,7 @@ if (typeof $ !== 'undefined') {
         const badgeEl = tr.querySelector('.similarity-badge');
 
         selectEl.addEventListener('change', () => {
+            selectEl.classList.remove('is-invalid');
             if (selectEl.value) {
                 checkEl.checked = true;
                 if (!item.participant_id || selectEl.value != item.participant_id) {
@@ -1990,7 +1991,10 @@ if (typeof $ !== 'undefined') {
             updateSelectedCount();
         });
 
-        checkEl.addEventListener('change', updateSelectedCount);
+        checkEl.addEventListener('change', () => {
+            if (!checkEl.checked) selectEl.classList.remove('is-invalid');
+            updateSelectedCount();
+        });
 
         tr.querySelector('.btn-delete-row').addEventListener('click', () => {
             tr.remove();
@@ -2081,24 +2085,44 @@ if (typeof $ !== 'undefined') {
         btnConfirmSave.addEventListener('click', () => {
             const rows = reviewTbody.querySelectorAll('.review-item-row');
             const itemsToSave = [];
+            const unmatchedSelects = [];
 
             rows.forEach(r => {
                 const isChecked = r.querySelector('.row-checkbox').checked;
-                const participantId = r.querySelector('.participant-select').value;
+                const selectEl = r.querySelector('.participant-select');
+                const participantId = selectEl.value;
                 const zoomName = r.querySelector('.zoom-name-input').value;
                 const reason = r.querySelector('.reason-text').textContent;
 
-                if (isChecked && participantId) {
-                    itemsToSave.push({
-                        participant_id: participantId,
-                        zoom_name: zoomName || '-',
-                        reason: reason || 'Terdeteksi Off Cam di Zoom'
-                    });
+                selectEl.classList.remove('is-invalid');
+                if (!isChecked) return;
+
+                if (!participantId) {
+                    selectEl.classList.add('is-invalid');
+                    unmatchedSelects.push(selectEl);
+                    return;
                 }
+
+                itemsToSave.push({
+                    participant_id: participantId,
+                    zoom_name: zoomName || '-',
+                    reason: reason || 'Terdeteksi Off Cam di Zoom'
+                });
             });
 
+            // Checked rows that are not linked to a participant cannot be saved: say so instead of skipping them
+            if (unmatchedSelects.length > 0) {
+                const n = unmatchedSelects.length;
+                alert(itemsToSave.length === 0 && n === rows.length
+                    ? `Semua ${n} nama belum dipasangkan ke peserta pelatihan ini.\n\nPilih nama pesertanya di kolom "Peserta Terdaftar" (kotak merah). Kalau orangnya memang bukan peserta pelatihan ini, hapus centangnya.`
+                    : `${n} baris yang dicentang belum dipasangkan ke peserta.\n\nPilih nama pesertanya di kolom "Peserta Terdaftar" (kotak merah), atau hapus centangnya.`);
+                unmatchedSelects[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                unmatchedSelects[0].focus();
+                return;
+            }
+
             if (itemsToSave.length === 0) {
-                alert('Tidak ada peserta yang dipilih untuk dicatat sebagai Off Cam.');
+                alert('Belum ada baris yang dicentang.');
                 return;
             }
 
