@@ -936,6 +936,158 @@ a.stat-tile:hover {
     margin-top: 1.25rem;
 }
 
+/* Breadcrumb separator inside the page header */
+.page-eyebrow-sep {
+    margin: 0 0.35rem;
+    color: var(--gray-300);
+}
+
+.page-eyebrow a {
+    text-decoration: underline;
+    text-decoration-color: var(--gray-300);
+    text-underline-offset: 2px;
+}
+
+/* Required field marker: <label class="required"> */
+label.required::after {
+    content: " *";
+    color: var(--danger-600);
+    font-weight: 600;
+}
+
+.form-required-note {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+}
+
+.form-required-note::before {
+    content: "* ";
+    color: var(--danger-600);
+    font-weight: 600;
+}
+
+/* Setup steps checklist (x-setup-steps) */
+.setup-steps-count {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--gray-500);
+    white-space: nowrap;
+}
+
+.setup-steps-count.is-complete {
+    color: var(--success-700);
+}
+
+.setup-steps-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.setup-step {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-right: 1px solid var(--ring);
+    min-width: 0;
+}
+
+.setup-step:last-child {
+    border-right: 0;
+}
+
+.setup-step-marker {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 9999px;
+    border: 1px solid var(--gray-300);
+    background: #ffffff;
+    color: var(--gray-500);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.setup-step-body {
+    min-width: 0;
+}
+
+.setup-step-label {
+    margin: 0.2rem 0 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gray-950);
+}
+
+.setup-step-hint {
+    margin: 0.15rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--gray-500);
+}
+
+.setup-step-tag {
+    margin-left: 0.25rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: 9999px;
+    background: var(--gray-100);
+    color: var(--gray-500);
+    font-size: 0.6875rem;
+    font-weight: 500;
+}
+
+.setup-step-action {
+    margin-top: 0.6rem;
+}
+
+.setup-step.is-done .setup-step-marker {
+    border-color: var(--success-600);
+    background: var(--success-600);
+    color: #ffffff;
+}
+
+.setup-step.is-done .setup-step-label {
+    color: var(--gray-600);
+}
+
+.setup-step.is-current {
+    background: var(--primary-50);
+}
+
+.setup-step.is-current .setup-step-marker {
+    border-color: var(--primary-600);
+    background: var(--primary-600);
+    color: #ffffff;
+}
+
+.setup-step.is-todo .setup-step-label {
+    color: var(--gray-600);
+}
+
+@media (max-width: 767.98px) {
+    .setup-steps-list {
+        grid-template-columns: 1fr;
+    }
+
+    .setup-step {
+        border-right: 0;
+        border-bottom: 1px solid var(--ring);
+    }
+
+    .setup-step:last-child {
+        border-bottom: 0;
+    }
+}
+
+.card.setup-steps {
+    overflow: hidden;
+}
+
 /* =========================================================
    BUTTONS
    ========================================================= */
