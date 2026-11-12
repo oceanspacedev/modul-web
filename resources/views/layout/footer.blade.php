@@ -42,6 +42,57 @@
         }
     });
 </script>
+<script>
+    // Kotak pencarian (x-search-field) langsung mencari saat pengguna berhenti mengetik, tanpa perlu menekan Enter.
+    // Pencarian dijalankan server (halaman dimuat ulang), jadi kursor dikembalikan ke kotaknya supaya bisa lanjut
+    // mengetik.
+    (function () {
+        var FOCUS_KEY = 'search-field-focus';
+
+        document.querySelectorAll('.search-field input[type="search"]').forEach(function (input) {
+            var form = input.form;
+            if (!form || (form.getAttribute('method') || 'get').toLowerCase() !== 'get') return;
+
+            var submitted = input.value;
+            var timer = null;
+
+            function search() {
+                clearTimeout(timer);
+                if (input.value === submitted) return;
+                submitted = input.value;
+                try { sessionStorage.setItem(FOCUS_KEY, input.name); } catch (e) {}
+                form.requestSubmit ? form.requestSubmit() : form.submit();
+            }
+
+            input.addEventListener('input', function () {
+                clearTimeout(timer);
+                timer = setTimeout(search, 500);
+            });
+            // Enter, dan tombol hapus (x) bawaan kotak pencarian.
+            input.addEventListener('search', search);
+        });
+
+        // Kotak di dalam tab (mis. tab Penetapan Jabatan) baru terlihat setelah skrip halaman membuka tabnya, jadi
+        // ditunggu sebentar sampai kotaknya tampil sebelum kursor dikembalikan.
+        var name = null;
+        try {
+            name = sessionStorage.getItem(FOCUS_KEY);
+            sessionStorage.removeItem(FOCUS_KEY);
+        } catch (e) {}
+        var field = name ? document.querySelector('.search-field input[type="search"][name="' + name + '"]') : null;
+
+        (function refocus(attempt) {
+            if (!field) return;
+            if (field.offsetParent === null && attempt < 40) {
+                setTimeout(function () { refocus(attempt + 1); }, 50);
+
+                return;
+            }
+            field.focus({ preventScroll: true });
+            try { field.setSelectionRange(field.value.length, field.value.length); } catch (e) {}
+        })(0);
+    })();
+</script>
 @yield('footer')
 </body>
 

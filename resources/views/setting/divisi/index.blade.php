@@ -14,7 +14,13 @@
             <x-flash />
 
             <div class="card">
-                <div class="card-body table-responsive p-0" style="max-height: 560px;">
+                {{-- Pencarian dan pembagian halaman dijalankan server; mengetik langsung mencari (lihat layout.footer). --}}
+                <div class="card-header filter-toolbar">
+                    <form action="{{ route('divisi.index') }}" method="GET" class="w-100 m-0" role="search">
+                        <x-search-field placeholder="Cari divisi, area, atau kepala divisi..." :clear-url="route('divisi.index')" style="max-width: 360px;" />
+                    </form>
+                </div>
+                <div class="card-body table-responsive p-0">
                     <table class="table table-head-fixed text-nowrap">
                         <thead>
                             <tr>
@@ -29,7 +35,7 @@
                         <tbody>
                             @forelse ($divisis as $divisi)
                                 <tr>
-                                    <td class="text-muted">{{ $loop->iteration }}</td>
+                                    <td class="text-muted">{{ $divisis->firstItem() + $loop->index }}</td>
                                     <td><strong>{{ $divisi->name }}</strong></td>
                                     <td>{{ $divisi->area->name ?? '-' }}</td>
                                     <td>{{ $divisi->manager->nama_lengkap ?? '-' }}</td>
@@ -48,12 +54,20 @@
                             @empty
                                 <tr>
                                     <td colspan="6">
-                                        <x-empty-state icon="fa-sitemap" title="Belum ada divisi" text="Tambahkan divisi pertama untuk mengelompokkan karyawan."><button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addDivisi">Tambah Divisi</button></x-empty-state>
+                                        @if (filled(request('search')))
+                                            <x-empty-state icon="fa-search" title="Tidak ada hasil" text="Tidak ada divisi yang cocok dengan pencarian ini." />
+                                        @else
+                                            <x-empty-state icon="fa-sitemap" title="Belum ada divisi" text="Tambahkan divisi pertama untuk mengelompokkan karyawan."><button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addDivisi">Tambah Divisi</button></x-empty-state>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <span class="text-muted small">Total {{ $divisis->total() }} divisi</span>
+                    {{ $divisis->links('pagination::bootstrap-4') }}
                 </div>
             </div>
         </div>

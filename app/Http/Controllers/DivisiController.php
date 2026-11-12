@@ -7,16 +7,29 @@ use App\Models\Area;
 use App\Models\Divisi;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class DivisiController extends Controller
 {
-    public function index(): View
+    /** Baris per halaman di daftar master data. */
+    private const PER_PAGE = 25;
+
+    public function index(Request $request): View
     {
+        $search = trim((string) $request->query('search'));
+
         return view('setting.divisi.index', [
             'title' => 'Divisi',
             'active' => 'setting',
-            'divisis' => Divisi::with(['area', 'manager'])->withCount('users')->orderBy('name')->get(),
+            'divisis' => Divisi::with(['area', 'manager'])->withCount('users')
+                ->when($search !== '', fn ($query) => $query->where(fn ($match) => $match
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhereHas('area', fn ($area) => $area->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('manager', fn ($manager) => $manager->where('nama_lengkap', 'like', "%{$search}%"))))
+                ->orderBy('name')
+                ->paginate(self::PER_PAGE)
+                ->withQueryString(),
             'areas' => Area::orderBy('name')->get(),
             'managers' => User::orderBy('nama_lengkap')->get(['id', 'nama_lengkap']),
         ]);

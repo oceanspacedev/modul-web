@@ -5,16 +5,26 @@ namespace App\Http\Controllers;
 use App\Http\Requests\PositionRequest;
 use App\Models\Position;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class PositionController extends Controller
 {
-    public function index(): View
+    /** Baris per halaman di daftar master data. */
+    private const PER_PAGE = 25;
+
+    public function index(Request $request): View
     {
+        $search = trim((string) $request->query('search'));
+
         return view('setting.position.index', [
             'title' => 'Posisi',
             'active' => 'setting',
-            'positions' => Position::withCount('users')->orderBy('name')->get(),
+            'positions' => Position::withCount('users')
+                ->when($search !== '', fn ($query) => $query->where('name', 'like', "%{$search}%"))
+                ->orderBy('name')
+                ->paginate(self::PER_PAGE)
+                ->withQueryString(),
         ]);
     }
 
