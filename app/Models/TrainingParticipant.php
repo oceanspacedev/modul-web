@@ -73,19 +73,23 @@ class TrainingParticipant extends Model
     public function nextStep(): array
     {
         $training = $this->training;
-        $quizName = $training->has_pretest ? 'posttest' : 'kuis';
-        $awaitsEvaluation = $training->awaitsEvaluationFrom($this);
+
+        if ($training->status === TrainingStatus::Cancelled) {
+            return ['label' => 'Dibatalkan', 'kind' => 'idle'];
+        }
+
+        // Langkah pertama yang bisa dikerjakan sekarang, menurut urutan yang diatur pemateri. Setelah semua tugas
+        // selesai hanya presensi yang masih ditagih.
+        $finished = $this->hasFinishedTasks();
+        foreach ($training->portalSteps() as $step) {
+            $label = $this->pendingStepLabel($step);
+            if ($label !== null && (! $finished || $step === Training::STEP_ATTENDANCE)) {
+                return ['label' => $label, 'kind' => 'action'];
+            }
+        }
 
         return match (true) {
-            $training->status === TrainingStatus::Cancelled => ['label' => 'Dibatalkan', 'kind' => 'idle'],
-            $training->isAttendanceOpen() && $this->attendance_status === 'pending' => ['label' => 'Isi presensi', 'kind' => 'action'],
-            $this->hasFinishedTasks() => ['label' => 'Selesai', 'kind' => 'done'],
-            $training->isPhaseActive(Training::PHASE_PRETEST) && $this->pretestResult === null => ['label' => 'Kerjakan pretest', 'kind' => 'action'],
-            $training->isPhaseActive(Training::PHASE_POSTTEST) => [
-                'label' => $awaitsEvaluation ? "Isi evaluasi, lalu kerjakan {$quizName}" : "Kerjakan {$quizName}",
-                'kind' => 'action',
-            ],
-            $awaitsEvaluation && $training->isEvaluationOpen() => ['label' => 'Isi evaluasi', 'kind' => 'action'],
+            $finished => ['label' => 'Selesai', 'kind' => 'done'],
             $training->status === TrainingStatus::Completed => ['label' => 'Selesai', 'kind' => 'idle'],
             // Tidak ada yang perlu dikerjakan di portal: cukup mengikuti sesinya.
             ! $training->hasQuiz() && ! $training->has_attendance && ! $training->hasEvaluationForm() => ['label' => 'Ikuti sesi', 'kind' => 'idle'],
@@ -94,15 +98,47 @@ class TrainingParticipant extends Model
     }
 
     /**
-     * Semua yang diminta pelatihan ini dari peserta sudah dikerjakan. Dengan posttest, cukup posttestnya (evaluasi
-     * diisi sebelum posttest); tanpa posttest, pretest dan form evaluasi yang ada; tanpa keduanya, cukup presensi (bila dipakai).
+     * Yang harus dikerjakan peserta pada sebuah langkah saat ini; null bila langkah itu belum dibuka atau sudah
+     * dikerjakan.
+     */
+    private function pendingStepLabel(string $step): ?string
+    {
+        $training = $this->training;
+        $quizName = $training->has_pretest ? 'posttest' : 'kuis';
+
+        return match ($step) {
+            Training::STEP_ATTENDANCE => $training->isAttendanceOpen() && $this->attendance_status === 'pending' ? 'Isi presensi' : null,
+            Training::STEP_PRETEST => $training->isPhaseActive(Training::PHASE_PRETEST) && $this->pretestResult === null ? 'Kerjakan pretest' : null,
+            // Evaluasi yang menempel pada posttest ditagih lewat langkah posttest.
+            Training::STEP_EVALUATION => ! $training->evaluationFollowsPosttest() && $training->awaitsEvaluationFrom($this) && $training->isEvaluationOpen()
+                ? 'Isi evaluasi'
+                : null,
+            Training::STEP_POSTTEST => match (true) {
+                ! $training->isPhaseActive(Training::PHASE_POSTTEST) || $this->quizResult !== null => null,
+                $training->requiresEvaluationBeforePosttest($this) => "Isi evaluasi, lalu kerjakan {$quizName}",
+                default => "Kerjakan {$quizName}",
+            },
+            default => null,
+        };
+    }
+
+    /**
+     * Semua yang diminta pelatihan ini dari peserta sudah dikerjakan: posttest (yang sudah mencakup evaluasi bila
+     * evaluasi diurutkan sebelumnya); selain itu pretest dan form evaluasi yang ada; tanpa semuanya, cukup presensi
+     * (bila dipakai).
      */
     public function hasFinishedTasks(): bool
     {
         $training = $this->training;
 
         if ($training->has_posttest) {
-            return $this->quizResult !== null;
+            if ($this->quizResult === null) {
+                return false;
+            }
+
+            // Evaluasi yang diurutkan sebelum posttest wajib diisi dulu, jadi posttest yang selesai sudah mencakupnya;
+            // yang diurutkan sesudahnya masih harus diisi.
+            return $training->evaluationFollowsPosttest() || ! $training->hasEvaluationForm() || $this->evaluation !== null;
         }
 
         $hasEvaluation = $training->hasEvaluationForm();

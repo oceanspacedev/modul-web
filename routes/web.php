@@ -146,6 +146,7 @@ Route::middleware('auth')->group(function () {
                 Route::post('toggle-attendance', 'toggleAttendance')->name('toggle-attendance');
                 Route::post('toggle-attendance-use', 'toggleAttendanceUse')->name('toggle-attendance-use');
                 Route::post('evaluation-time', 'updateEvaluationTime')->name('evaluation-time');
+                Route::post('portal-steps', 'updatePortalSteps')->name('portal-steps');
                 Route::post('toggle-proof', 'toggleAttendanceProof')->name('toggle-proof');
                 Route::post('toggle-pretest', 'togglePretest')->name('toggle-pretest');
                 Route::post('extend-quiz-time', 'extendQuizTime')->name('extend-quiz-time');

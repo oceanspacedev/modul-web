@@ -97,6 +97,33 @@
             $pretestQuestionCount = $training->questionsFor('pretest')->count();
             $participantCount = $training->participants_count;
             $isClosed = in_array($training->status, [App\Enums\TrainingStatus::Completed, App\Enums\TrainingStatus::Cancelled], true);
+            $sessionSteps = [
+                'pretest' => [
+                    'label' => 'Pretest',
+                    'hint' => 'buka pretest untuk peserta.',
+                    'done' => $training->isPhaseActive('pretest') || $training->phaseOpensAt('pretest') || $training->pretestResults()->exists(),
+                    // Dialog waktu yang sama dengan tombol Buka Pretest di Kontrol Sesi.
+                    'action' => 'Buka Pretest', 'modal' => 'phaseTimeModal', 'modalData' => [
+                        'url' => route('training.toggle-pretest', $training), 'phase' => 'pretest', 'open' => '1',
+                        'title' => 'Buka Pretest', 'submit' => 'Buka Pretest', 'minutes' => $training->durationMinutes('pretest'),
+                    ],
+                ],
+                'attendance' => [
+                    'label' => 'Presensi',
+                    'hint' => 'buka presensi untuk peserta.',
+                    'done' => $training->is_attendance_active || $stats['attended'] > 0,
+                    'action' => 'Buka Presensi', 'post' => route('training.toggle-attendance', $training),
+                ],
+                'posttest' => [
+                    'label' => $training->has_pretest ? 'Posttest' : 'Kuis',
+                    'hint' => $training->has_pretest ? 'buka posttest setelah materi selesai.' : 'buka kuis setelah materi selesai.',
+                    'done' => $training->isPhaseActive('posttest') || $training->phaseOpensAt('posttest') || $stats['quizSubmitted'] > 0,
+                    'action' => $training->has_pretest ? 'Buka Posttest' : 'Buka Kuis', 'modal' => 'phaseTimeModal', 'modalData' => [
+                        'url' => route('training.toggle-quiz', $training), 'phase' => 'posttest', 'open' => '1',
+                        'title' => 'Buka Kuis', 'submit' => 'Buka Kuis', 'minutes' => $training->durationMinutes('posttest'),
+                    ],
+                ],
+            ];
             $trainingSteps = [
                 [
                     'label' => 'Peserta', 'meta' => $participantCount.' peserta',
@@ -116,31 +143,8 @@
                     'done' => ! $training->needsSetup(),
                     'action' => 'Atur', 'url' => route('training.setup', $training),
                 ],
-                ...($training->has_pretest ? [[
-                    'label' => 'Pretest',
-                    'hint' => 'buka pretest sebelum materi dimulai.',
-                    'done' => $training->isPhaseActive('pretest') || $training->phaseOpensAt('pretest') || $training->pretestResults()->exists(),
-                    // Dialog waktu yang sama dengan tombol Buka Pretest di Kontrol Sesi.
-                    'action' => 'Buka Pretest', 'modal' => 'phaseTimeModal', 'modalData' => [
-                        'url' => route('training.toggle-pretest', $training), 'phase' => 'pretest', 'open' => '1',
-                        'title' => 'Buka Pretest', 'submit' => 'Buka Pretest', 'minutes' => $training->durationMinutes('pretest'),
-                    ],
-                ]] : []),
-                ...($training->has_attendance ? [[
-                    'label' => 'Presensi',
-                    'hint' => 'buka presensi saat sesi dimulai.',
-                    'done' => $training->is_attendance_active || $stats['attended'] > 0,
-                    'action' => 'Buka Presensi', 'post' => route('training.toggle-attendance', $training),
-                ]] : []),
-                ...($training->has_posttest ? [[
-                    'label' => $training->has_pretest ? 'Posttest' : 'Kuis',
-                    'hint' => $training->has_pretest ? 'buka posttest setelah materi selesai.' : 'buka kuis setelah materi selesai.',
-                    'done' => $training->isPhaseActive('posttest') || $training->phaseOpensAt('posttest') || $stats['quizSubmitted'] > 0,
-                    'action' => $training->has_pretest ? 'Buka Posttest' : 'Buka Kuis', 'modal' => 'phaseTimeModal', 'modalData' => [
-                        'url' => route('training.toggle-quiz', $training), 'phase' => 'posttest', 'open' => '1',
-                        'title' => 'Buka Kuis', 'submit' => 'Buka Kuis', 'minutes' => $training->durationMinutes('posttest'),
-                    ],
-                ]] : []),
+                // Langkah saat sesi (pretest, presensi, posttest) mengikuti urutan langkah peserta pelatihan ini.
+                ...collect($training->portalSteps())->map(fn (string $step) => $sessionSteps[$step] ?? null)->filter()->values()->all(),
                 [
                     'label' => 'Rekap',
                     'hint' => 'ubah status jadi Selesai, lalu export rekap nilai.',
@@ -540,8 +544,8 @@
 
                         <!-- FORM EVALUASI -->
                         @php
-                            // Tanpa posttest, pemateri boleh mengatur sendiri jam buka/tutup form evaluasi.
-                            $evaluationTimed = $training->has_evaluation && ! $training->has_posttest;
+                            // Form yang tidak menempel pada posttest (tanpa posttest, atau diurutkan sesudahnya) boleh punya jam sendiri.
+                            $evaluationTimed = $training->has_evaluation && ! $training->evaluationFollowsPosttest();
                             $evaluationOpensAt = $training->evaluationOpensAt();
                             $evaluationClosesAt = $training->evaluationClosesAt();
                         @endphp
@@ -552,7 +556,7 @@
                                     @if(! $training->has_evaluation)
                                         Peserta tidak diminta mengisi evaluasi
                                     @else
-                                        @if($training->has_posttest)
+                                        @if($training->evaluationFollowsPosttest())
                                             Diisi peserta sebelum posttest
                                         @elseif($evaluationOpensAt)
                                             Terjadwal buka {{ \App\Models\Training::timeLabel($evaluationOpensAt) }}
@@ -569,7 +573,7 @@
                                 </div>
                                 @if($training->has_evaluation && $training->evaluationQuestions->isEmpty())
                                     <div class="text-warning text-xs">Belum ada pertanyaan, jadi form belum tampil ke peserta</div>
-                                @elseif($training->has_evaluation && $training->has_posttest && $training->questionsFor('posttest')->isEmpty())
+                                @elseif($training->has_evaluation && $training->evaluationFollowsPosttest() && $training->questionsFor('posttest')->isEmpty())
                                     <div class="text-warning text-xs">Posttest belum punya soal, jadi evaluasi belum bisa dibuka. Buat soal, atau matikan posttest di Aturan Kuis</div>
                                 @endif
                                 <a href="{{ route('training.evaluation.index', $training) }}" class="text-xs">Kelola pertanyaan ({{ $training->evaluationQuestions->count() }})</a>
@@ -599,6 +603,17 @@
                                     </button>
                                 </form>
                             </div>
+                        </div>
+
+                        <!-- URUTAN LANGKAH PESERTA -->
+                        <div class="list-group-item d-flex align-items-start justify-content-between gap-2">
+                            <div class="min-w-0">
+                                <div class="text-sm font-weight-bold">Urutan Langkah Peserta</div>
+                                <div class="text-muted text-xs">
+                                    {{ implode(' → ', array_map(fn (string $step) => \App\Models\Training::PORTAL_STEPS[$step], $training->portalSteps())) }}
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-default btn-xs text-nowrap" data-toggle="modal" data-target="#portalStepsModal">Ubah</button>
                         </div>
 
                         <!-- ATURAN KUIS -->
@@ -651,6 +666,60 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
                         <button type="submit" class="btn btn-primary">Simpan Aturan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL URUTAN LANGKAH PESERTA -->
+        <div class="modal fade" id="portalStepsModal" tabindex="-1" role="dialog" aria-labelledby="portalStepsModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <form action="{{ route('training.portal-steps', $training) }}" method="POST" class="modal-content">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="portalStepsModalTitle">Urutan Langkah Peserta</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Tutup"><span aria-hidden="true">&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small">
+                            Susun langkah sesuai jalannya sesi Anda. Urutan ini menentukan susunan kartu dan nomor "Langkah" di halaman
+                            peserta. Tiap langkah tetap Anda buka sendiri dari Kontrol Sesi.
+                        </p>
+                        @php
+                            $usedSteps = $training->portalSteps();
+                            // Langkah yang dimatikan tetap bisa diurutkan, supaya posisinya sudah benar saat dinyalakan.
+                            $stepNotes = [
+                                'pretest' => 'dimatikan di Aturan Kuis',
+                                'attendance' => 'presensi tidak dipakai',
+                                'evaluation' => $training->has_evaluation ? 'belum ada pertanyaan' : 'form evaluasi nonaktif',
+                                'posttest' => 'dimatikan di Aturan Kuis',
+                            ];
+                        @endphp
+                        <ol class="list-group mb-3" id="portalStepsList">
+                            @foreach($training->portalStepOrder() as $step)
+                                <li class="list-group-item d-flex align-items-center justify-content-between gap-2 py-2" data-step="{{ $step }}">
+                                    <input type="hidden" name="steps[]" value="{{ $step }}">
+                                    <span class="min-w-0">
+                                        <span class="badge badge-secondary mr-1" data-step-number></span>
+                                        <span class="text-sm font-weight-bold">{{ $step === 'posttest' && ! $training->has_pretest ? 'Kuis' : \App\Models\Training::PORTAL_STEPS[$step] }}</span>
+                                        @unless(in_array($step, $usedSteps, true))
+                                            <span class="text-muted text-xs">({{ $stepNotes[$step] ?? 'tidak dipakai' }})</span>
+                                        @endunless
+                                    </span>
+                                    <span class="d-inline-flex gap-1 flex-shrink-0">
+                                        <button type="button" class="btn btn-default btn-xs" data-step-move="-1" title="Naikkan" aria-label="Naikkan {{ \App\Models\Training::PORTAL_STEPS[$step] }}"><i class="fas fa-arrow-up"></i></button>
+                                        <button type="button" class="btn btn-default btn-xs" data-step-move="1" title="Turunkan" aria-label="Turunkan {{ \App\Models\Training::PORTAL_STEPS[$step] }}"><i class="fas fa-arrow-down"></i></button>
+                                    </span>
+                                </li>
+                            @endforeach
+                        </ol>
+                        <p class="small mb-0" id="portalStepsEvaluationNote"
+                            data-before="Form evaluasi di atas posttest: peserta wajib mengisinya sebelum mengerjakan posttest, dan form terbuka bersama posttest."
+                            data-after="Form evaluasi di bawah posttest: peserta bisa langsung mengerjakan posttest. Form terbuka selama sesi berlangsung atau sudah selesai, atau pada jam yang Anda atur di baris Form Evaluasi."></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan Urutan</button>
                     </div>
                 </form>
             </div>
@@ -1612,6 +1681,41 @@ document.querySelectorAll('[data-phase-starts]').forEach(function (row) {
         row.querySelector('[data-phase-lock]').textContent = row.dataset.lockLabel;
     }, Number(row.dataset.phaseStarts) * 1000);
 });
+
+// ---------------------------------------------------------------
+// DIALOG URUTAN LANGKAH PESERTA: tombol naik/turun memindahkan baris; urutannya terkirim lewat input steps[].
+// ---------------------------------------------------------------
+(function () {
+    const list = document.getElementById('portalStepsList');
+    if (!list) return;
+    const note = document.getElementById('portalStepsEvaluationNote');
+
+    function refresh() {
+        const items = Array.from(list.children);
+        items.forEach(function (item, index) {
+            item.querySelector('[data-step-number]').textContent = index + 1;
+            item.querySelector('[data-step-move="-1"]').disabled = index === 0;
+            item.querySelector('[data-step-move="1"]').disabled = index === items.length - 1;
+        });
+        const order = items.map(function (item) { return item.dataset.step; });
+        note.textContent = order.indexOf('evaluation') < order.indexOf('posttest') ? note.dataset.before : note.dataset.after;
+    }
+
+    list.addEventListener('click', function (event) {
+        const button = event.target.closest('[data-step-move]');
+        if (!button) return;
+        const item = button.closest('li');
+        if (button.dataset.stepMove === '-1' && item.previousElementSibling) {
+            list.insertBefore(item, item.previousElementSibling);
+        } else if (button.dataset.stepMove === '1' && item.nextElementSibling) {
+            list.insertBefore(item.nextElementSibling, item);
+        }
+        refresh();
+        button.focus();
+    });
+
+    refresh();
+})();
 
 // ---------------------------------------------------------------
 // DIALOG BUKA / JADWAL / ATUR WAKTU: satu dialog untuk pretest dan posttest. Tombol pemicunya membawa alamat tujuan,
