@@ -64,8 +64,8 @@
                         </div>
                         <div class="card-body">
                             <ul class="pl-3 mb-3">
-                                <li><b>Sheet Pelatihan</b>: satu baris per peserta per pelatihan yang tanggalnya masuk rentang. Berisi kehadiran, nilai PG, nilai essay, dan nilai akhir.</li>
-                                <li class="mt-2"><b>Sheet Pretest &amp; Posttest</b>: satu baris per peserta per modul/kuis video/kuis dokumen yang terakhir dikerjakan di dalam rentang. Berisi nilai pretest, posttest terbaik dan terakhir, kenaikan nilai, dan status lulus.</li>
+                                <li><b>Sheet Pelatihan</b>: satu baris per peserta per pelatihan yang tanggalnya masuk rentang. Kolomnya mengikuti pengaturan pelatihannya: hanya langkah yang dipakai (presensi, pretest, form evaluasi, posttest) yang muncul, dalam Urutan Langkah Peserta.</li>
+                                <li class="mt-2"><b>Sheet Modul &amp; Kuis Materi</b>: satu baris per peserta per modul/kuis video/kuis dokumen yang terakhir dikerjakan di dalam rentang. Berisi nilai pretest, posttest terbaik dan terakhir, kenaikan nilai, dan status lulus.</li>
                             </ul>
                             <p class="text-muted mb-0">File dibuat di belakang layar. Begitu selesai, file bisa diunduh dari menu <a href="{{ route('notifications.index') }}">Notifikasi</a>.</p>
                         </div>

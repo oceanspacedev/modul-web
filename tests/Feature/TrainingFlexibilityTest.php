@@ -433,7 +433,7 @@ class TrainingFlexibilityTest extends TestCase
         $training->load(['trainer', 'participants.user.divisi', 'participants.quizResult', 'participants.pretestResult']);
         $rows = (new TrainingRekapExport($training))->array();
         $header = collect($rows)->search(fn ($row) => ($row[0] ?? null) === 'No');
-        $this->assertSame('-', array_combine($rows[$header], $rows[$header + 1])['Status Kehadiran']);
+        $this->assertNotContains('Status Kehadiran', $rows[$header]);
         $this->assertStringContainsString('Untuk melihat rincian pelatihan, silakan', WhatsAppService::buildInvitationMessage($training, $this->participant($training)));
 
         // Dinyalakan lagi: presensi kembali seperti biasa.
