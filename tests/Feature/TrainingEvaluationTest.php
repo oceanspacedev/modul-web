@@ -522,6 +522,58 @@ class TrainingEvaluationTest extends TestCase
         $this->assertSame(1, TrainingEvaluation::count());
     }
 
+    public function test_trainer_can_reset_a_participants_evaluation(): void
+    {
+        $this->openEvaluation()->assertSessionHas('success');
+        $other = TrainingParticipant::create([
+            'training_id' => $this->training->id, 'user_id' => User::factory()->staff()->create(['nama_lengkap' => 'Doni Lain'])->id,
+            'token' => 'token_evaluasi_lain', 'attendance_status' => 'hadir',
+        ]);
+        $reset = fn (TrainingParticipant $participant) => route('training.reset-evaluation', [$this->training, $participant]);
+
+        // Belum mengisi: tombolnya tidak ada, dan reset langsung ditolak.
+        $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertOk()->assertDontSee('Reset Evaluasi Peserta');
+        $this->actingAs($this->admin)->post($reset($this->participant))
+            ->assertSessionHas('error', 'Sari Peserta belum mengisi form evaluasi, jadi tidak ada yang di-reset.');
+
+        $this->post(self::PORTAL.'/evaluation', $this->answers(2));
+        $this->post('/training/portal/token_evaluasi_lain/evaluation', $this->answers(5));
+        $this->assertSame(2, TrainingEvaluation::count());
+        $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertOk()
+            ->assertSee('Reset Evaluasi Peserta')->assertSee($reset($this->participant), false)->assertSee('2 dari 2 mengisi');
+
+        // Peserta biasa tidak boleh me-reset.
+        $this->actingAs($this->staff)->from('/my-trainings')->post($reset($this->participant))->assertSessionHas('error');
+        $this->assertSame(2, TrainingEvaluation::count());
+
+        // Reset hanya menghapus jawaban peserta itu; peserta lain tidak tersentuh.
+        $this->actingAs($this->admin)->post($reset($this->participant))
+            ->assertSessionHas('success', 'Evaluasi Sari Peserta berhasil di-reset. Peserta dapat mengisi form evaluasi kembali.');
+        $this->assertNull($this->participant->fresh()->evaluation);
+        $this->assertSame($other->id, TrainingEvaluation::sole()->training_participant_id);
+        $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertOk()->assertSee('1 dari 2 mengisi');
+
+        // Peserta ditagih lagi dan bisa mengisi ulang selama form terbuka.
+        $this->assertSame('Isi evaluasi', TrainingParticipant::with(['training.evaluationQuestions', 'quizResult', 'pretestResult', 'evaluation'])->findOrFail($this->participant->id)->nextStep()['label']);
+        $this->get(self::PORTAL)->assertOk()->assertSee('Isi Form Evaluasi');
+        $this->post(self::PORTAL.'/evaluation', $this->answers(5))->assertSessionHas('success');
+        $this->assertSame(5.0, $this->participant->fresh()->evaluation->average($this->training->evaluationQuestions));
+
+        // Form tertutup: reset tetap bisa, tapi peserta baru bisa mengisi setelah form dibuka lagi.
+        $this->actingAs($this->admin)->post(route('training.toggle-evaluation-access', $this->training), ['open' => '0']);
+        $this->actingAs($this->admin)->post($reset($this->participant))
+            ->assertSessionHas('success', 'Evaluasi Sari Peserta berhasil di-reset. Peserta dapat mengisi form evaluasi kembali setelah form dibuka lewat Buka Evaluasi.');
+        $this->get(self::PORTAL.'/evaluation')->assertRedirect(self::PORTAL);
+
+        // Peserta dari pelatihan lain tidak bisa di-reset lewat pelatihan ini.
+        $elsewhere = Training::create([
+            'title' => 'Pelatihan Lain', 'trainer_id' => $this->admin->id, 'training_date' => '2026-11-12',
+            'start_time' => '09:00', 'end_time' => '10:00', 'zoom_link' => 'https://zoom.us/test',
+        ]);
+        $this->actingAs($this->admin)->post(route('training.reset-evaluation', [$elsewhere, $other]))->assertNotFound();
+        $this->assertSame(1, TrainingEvaluation::count());
+    }
+
     public function test_detail_page_and_export_show_the_answers(): void
     {
         $this->training->update(['is_quiz_active' => true, 'is_evaluation_active' => true]);

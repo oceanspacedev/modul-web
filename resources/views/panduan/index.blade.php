@@ -224,7 +224,7 @@
                         <li><b>Broadcast WA ke Peserta</b> mengirim ulang undangan ke semua peserta.</li>
                         <li><b>Lampirkan Dokumen</b> dan <b>Upload Video Materi</b> untuk materi sesi.</li>
                         <li><b>Daftar Peserta &amp; Nilai</b> menampilkan 50 peserta per halaman. Ketik nama, ID karyawan, No. HP, atau divisi di kotak <b>Cari peserta</b> lalu tekan <b>Enter</b>; pindah halaman lewat nomor halaman di bawah tabel. Angka di kartu ringkasan tetap menghitung semua peserta.</li>
-                        <li>Menu <b>Aksi</b> per peserta: lihat <b>Lembar Jawaban</b> (dimuat saat dibuka), kirim WA, atur presensi manual, atau <b>Reset Kuis Peserta</b> agar bisa mengulang.</li>
+                        <li>Menu <b>Aksi</b> per peserta: lihat <b>Lembar Jawaban</b> (dimuat saat dibuka), kirim WA, atur presensi manual, <b>Reset Kuis Peserta</b> agar bisa mengulang, atau <b>Reset Evaluasi Peserta</b> untuk menghapus jawaban evaluasinya supaya bisa diisi lagi selama form terbuka.</li>
                     </ul>
                     <figure class="pg-shot"><img src="/assets/panduan/training-peserta.gif" alt="Animasi: daftar peserta pelatihan, pindah halaman, mencari, dan membuka lembar jawaban" loading="lazy"><figcaption>Daftar peserta: pindah halaman, cari peserta (Enter), lalu <b>Aksi &rarr; Lembar Jawaban</b> (data contoh).</figcaption></figure>
                     <h3>Setelah sesi</h3>

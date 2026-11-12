@@ -741,6 +741,22 @@ class TrainingController extends Controller
     }
 
     /**
+     * Delete a participant's evaluation answers so they can fill in the form again. The form itself stays as the
+     * trainer set it: the participant can only refill it while it is open.
+     */
+    public function resetParticipantEvaluation(Training $training, TrainingParticipant $participant): RedirectResponse
+    {
+        $name = $participant->user->nama_lengkap;
+
+        if ($participant->evaluation()->delete() === 0) {
+            return back()->with('error', "{$name} belum mengisi form evaluasi, jadi tidak ada yang di-reset.");
+        }
+
+        return back()->with('success', "Evaluasi {$name} berhasil di-reset. Peserta dapat mengisi form evaluasi kembali"
+            .($training->isEvaluationOpen() ? '.' : ' setelah form dibuka lewat Buka Evaluasi.'));
+    }
+
+    /**
      * Reset participant attendance status back to 'pending' (Belum Absen)
      */
     public function resetParticipantAttendance(Training $training, TrainingParticipant $participant): RedirectResponse
