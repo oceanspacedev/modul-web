@@ -900,12 +900,22 @@
                                         @endif
                                         @endif
 
-                                        @if($quiz || $pretest)
+                                        @if($quiz || $pretest || $part->evaluation)
                                             <div class="dropdown-divider"></div>
+                                        @endif
+                                        @if($quiz || $pretest)
                                             <form action="/training/{{ $training->id }}/reset-quiz/{{ $part->id }}" method="POST" class="d-inline" onsubmit="return confirm(@js('Reset hasil kuis untuk '.$userName.'?'))">
                                                 @csrf
                                                 <button type="submit" class="dropdown-item text-danger">
                                                     Reset Kuis Peserta
+                                                </button>
+                                            </form>
+                                        @endif
+                                        @if($part->evaluation)
+                                            <form action="{{ route('training.reset-evaluation', [$training, $part]) }}" method="POST" class="d-inline" onsubmit="return confirm(@js('Reset evaluasi '.$userName.'? Jawaban evaluasinya dihapus dan peserta bisa mengisi lagi.'))">
+                                                @csrf
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    Reset Evaluasi Peserta
                                                 </button>
                                             </form>
                                         @endif

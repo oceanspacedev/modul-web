@@ -159,6 +159,7 @@ Route::middleware('auth')->group(function () {
                 Route::post('send-wa/{participant}', 'sendSingleWa')->name('send-single-wa');
                 Route::post('reset-quiz/{participant}', 'resetParticipantQuiz')->name('reset-quiz');
                 Route::post('reset-attendance/{participant}', 'resetParticipantAttendance')->name('reset-attendance');
+                Route::post('reset-evaluation/{participant}', 'resetParticipantEvaluation')->name('reset-evaluation');
                 Route::post('update-attendance/{participant}', 'updateParticipantAttendance')->name('update-attendance');
                 // {result}: hasil pretest maupun posttest pelatihan ini (Training::results()).
                 Route::get('answer-sheet/{result}', 'answerSheet')->name('answer-sheet');
