@@ -119,6 +119,19 @@ class TrainingStepOrderTest extends TestCase
         $this->assertSame(['session', 'pretest', 'evaluation', 'posttest'], $this->training->fresh()->portalSteps());
     }
 
+    public function test_session_controls_follow_the_step_order(): void
+    {
+        $headings = ['class="text-sm font-weight-bold">Akses Pretest', 'class="text-sm font-weight-bold">Akses Presensi', 'class="text-sm font-weight-bold">Form Evaluasi', 'class="text-sm font-weight-bold">Akses Posttest'];
+
+        // Bawaan: pretest, presensi, evaluasi, posttest; Urutan Langkah dan Aturan Kuis tetap di bawah.
+        $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertOk()
+            ->assertSeeInOrder([...$headings, 'class="text-sm font-weight-bold">Urutan Langkah Peserta'], false);
+
+        $this->saveOrder(['attendance', 'session', 'posttest', 'evaluation', 'pretest'])->assertSessionHas('success');
+        $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertOk()
+            ->assertSeeInOrder([$headings[1], 'Bukti Foto', $headings[3], $headings[2], $headings[0], 'class="text-sm font-weight-bold">Urutan Langkah Peserta'], false);
+    }
+
     public function test_order_must_list_every_step_exactly_once(): void
     {
         $this->saveOrder(['session', 'pretest', 'attendance', 'evaluation'])->assertSessionHasErrors('steps');

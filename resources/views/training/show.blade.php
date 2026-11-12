@@ -474,140 +474,10 @@
 
                     <!-- PENGATURAN AKSES & FITUR -->
                     <div class="list-group list-group-flush border-top">
-                        <!-- AKSES ABSENSI -->
-                        <div class="list-group-item d-flex {{ $training->has_attendance ? 'flex-wrap' : '' }} align-items-center justify-content-between gap-2">
-                            <div class="min-w-0">
-                                <div class="text-sm font-weight-bold">Akses Presensi</div>
-                                <div class="text-muted text-xs">
-                                    @if(! $training->has_attendance)
-                                        Presensi tidak dipakai di pelatihan ini
-                                    @else
-                                        {{ $training->is_attendance_active ? 'Peserta dapat mengisi presensi' : 'Presensi ditutup untuk peserta' }}
-                                    @endif
-                                </div>
-                            </div>
-                            <div class="d-flex flex-wrap justify-content-end gap-1 {{ $training->has_attendance ? 'w-100' : 'flex-shrink-0' }}">
-                                <form action="{{ route('training.toggle-attendance-use', $training) }}" method="POST" class="m-0"
-                                    @if($training->has_attendance) onsubmit="return confirm('Pelatihan ini tidak memakai presensi? Kotak, kolom, dan langkah presensi disembunyikan; data yang sudah masuk tetap tersimpan.')" @endif>
-                                    @csrf
-                                    <button type="submit" class="btn btn-default btn-xs text-nowrap">
-                                        {{ $training->has_attendance ? 'Tidak Dipakai' : 'Pakai Presensi' }}
-                                    </button>
-                                </form>
-                                @if($training->has_attendance)
-                                    <form action="/training/{{ $training->id }}/toggle-attendance" method="POST" class="m-0">
-                                        @csrf
-                                        @if($training->is_attendance_active)
-                                            <button type="submit" class="btn btn-default btn-xs text-danger text-nowrap">
-                                                Kunci Presensi
-                                            </button>
-                                        @else
-                                            <button type="submit" class="btn btn-default btn-xs text-nowrap">
-                                                Buka Presensi
-                                            </button>
-                                        @endif
-                                    </form>
-                                @endif
-                            </div>
-                        </div>
-
-                        <!-- SYARAT SCREENSHOT -->
-                        @if($training->has_attendance)
-                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
-                            <div class="min-w-0">
-                                <div class="text-sm font-weight-bold">Bukti Foto{{ $training->isOnline() ? ' / SS' : '' }}</div>
-                                <div class="text-muted text-xs">
-                                    {{ $training->require_attendance_proof ? ($training->isOnline() ? 'Wajib upload foto selfie/meeting' : 'Wajib upload foto kehadiran') : 'Presensi tanpa upload foto' }}
-                                </div>
-                            </div>
-                            <form action="/training/{{ $training->id }}/toggle-proof" method="POST" class="m-0">
-                                @csrf
-                                <button type="submit" class="btn btn-default btn-xs text-nowrap">
-                                    {{ $training->require_attendance_proof ? 'Jadikan Opsional' : 'Wajibkan Foto' }}
-                                </button>
-                            </form>
-                        </div>
-                        @endif
-
-                        <!-- AKSES PRETEST -->
-                        @if($training->has_pretest)
-                            @include('training.partials.phase-access', [
-                                'phase' => 'pretest', 'heading' => 'Akses Pretest', 'noun' => 'Pretest',
-                                'questionCount' => $pretestQuestionCount, 'emptyText' => 'Belum ada soal untuk pretest',
-                                'toggleUrl' => route('training.toggle-pretest', $training),
-                            ])
-                        @endif
-
-                        <!-- AKSES POSTTEST (KUIS UTAMA) -->
-                        @if($training->has_posttest)
-                            @include('training.partials.phase-access', [
-                                'phase' => 'posttest', 'heading' => $training->has_pretest ? 'Akses Posttest' : 'Akses Kuis', 'noun' => 'Kuis',
-                                'questionCount' => $training->questionsFor('posttest')->count(), 'emptyText' => 'Belum ada soal kuis',
-                                'toggleUrl' => route('training.toggle-quiz', $training),
-                            ])
-                        @endif
-
-                        <!-- FORM EVALUASI -->
-                        @php
-                            // Form evaluasi selalu punya jam sendiri, terpisah dari posttest.
-                            $evaluationTimed = (bool) $training->has_evaluation;
-                            $evaluationOpensAt = $training->evaluationOpensAt();
-                            $evaluationClosesAt = $training->evaluationClosesAt();
-                        @endphp
-                        <div class="list-group-item d-flex {{ $evaluationTimed ? 'flex-wrap' : '' }} align-items-start justify-content-between gap-2">
-                            <div class="min-w-0">
-                                <div class="text-sm font-weight-bold">Form Evaluasi</div>
-                                <div class="text-muted text-xs">
-                                    @if(! $training->has_evaluation)
-                                        Peserta tidak diminta mengisi evaluasi
-                                    @else
-                                        @if($training->evaluationFollowsPosttest())
-                                            Wajib diisi sebelum posttest &middot;
-                                        @endif
-                                        @if($evaluationOpensAt)
-                                            Terjadwal buka {{ \App\Models\Training::timeLabel($evaluationOpensAt) }}
-                                            &middot; {{ $training->evaluation_closes_at ? 'tutup '.$training->evaluation_closes_at->format('H:i') : 'tanpa batas waktu' }}
-                                        @elseif($training->evaluationTimedOut())
-                                            Waktu pengisian habis (tutup {{ $training->evaluation_closes_at->format('H:i') }})
-                                        @elseif($training->hasEvaluationSchedule())
-                                            Terbuka &middot; {{ $evaluationClosesAt ? 'tutup otomatis '.$evaluationClosesAt->format('H:i') : 'tanpa batas waktu' }}
-                                        @else
-                                            Diisi peserta selama/sesudah sesi
-                                        @endif
-                                        &middot; {{ $evaluation['count'] }} dari {{ $stats['total'] }} mengisi
-                                    @endif
-                                </div>
-                                @if($training->has_evaluation && $training->evaluationQuestions->isEmpty())
-                                    <div class="text-warning text-xs">Belum ada pertanyaan, jadi form belum tampil ke peserta</div>
-                                @endif
-                                <a href="{{ route('training.evaluation.index', $training) }}" class="text-xs">Kelola pertanyaan ({{ $training->evaluationQuestions->count() }})</a>
-                            </div>
-                            <div class="d-flex flex-wrap justify-content-end gap-1 {{ $evaluationTimed ? 'w-100' : 'flex-shrink-0' }}">
-                                @if($evaluationTimed)
-                                    @if($training->hasEvaluationSchedule())
-                                        <form action="{{ route('training.evaluation-time', $training) }}" method="POST" class="m-0">
-                                            @csrf
-                                            <input type="hidden" name="reset" value="1">
-                                            <button type="submit" class="btn btn-default btn-xs text-nowrap" title="Kembali terbuka selama sesi berlangsung atau sudah selesai">Ikuti status</button>
-                                        </form>
-                                    @endif
-                                    <button type="button" class="btn btn-default btn-xs text-nowrap" data-toggle="modal" data-target="#phaseTimeModal"
-                                        data-url="{{ route('training.evaluation-time', $training) }}" data-phase="evaluation" data-open="1"
-                                        data-title="Atur waktu Form Evaluasi" data-submit="Simpan Waktu"
-                                        data-intro="Jam buka dan jam tutup berlaku sama untuk semua peserta. Setelah jam tutup lewat, form evaluasi tidak bisa diisi lagi."
-                                        data-none-label="Tanpa batas waktu"
-                                        data-open-time="{{ $evaluationOpensAt?->format('H:i') }}" data-time="{{ ($evaluationOpensAt || $evaluationClosesAt) ? $training->evaluation_closes_at?->format('H:i') : '' }}">
-                                        Atur waktu
-                                    </button>
-                                @endif
-                                <form action="{{ route('training.toggle-evaluation', $training) }}" method="POST" class="m-0">
-                                    @csrf
-                                    <button type="submit" class="btn btn-default btn-xs text-nowrap {{ $training->has_evaluation ? 'text-danger' : '' }}">
-                                        {{ $training->has_evaluation ? 'Nonaktifkan' : 'Aktifkan' }}
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
+                        {{-- Kontrol tiap langkah, dalam Urutan Langkah Peserta. Langkah sesi tidak punya kontrol di sini (lihat Status Sesi). --}}
+                        @foreach($training->portalStepOrder() as $controlStep)
+                            @includeIf('training.controls.'.$controlStep)
+                        @endforeach
 
                         <!-- URUTAN LANGKAH PESERTA -->
                         <div class="list-group-item d-flex align-items-start justify-content-between gap-2">
@@ -687,7 +557,7 @@
                     <div class="modal-body">
                         <p class="text-muted small">
                             Susun langkah sesuai jalannya sesi Anda. Urutan ini menentukan susunan kartu dan nomor "Langkah" di halaman
-                            peserta. Tiap langkah tetap Anda buka sendiri dari Kontrol Sesi.
+                            peserta, juga susunan baris di Kontrol Sesi. Tiap langkah tetap Anda buka sendiri dari Kontrol Sesi.
                         </p>
                         @php
                             $usedSteps = $training->portalSteps();
@@ -718,7 +588,7 @@
                             @endforeach
                         </ol>
                         <p class="small mb-0" id="portalStepsEvaluationNote"
-                            data-before="Form evaluasi di atas posttest: peserta wajib mengisinya sebelum mengerjakan posttest, dan form terbuka bersama posttest."
+                            data-before="Form evaluasi di atas posttest: peserta wajib mengisinya sebelum mengerjakan posttest. Form punya jam sendiri (selama sesi berlangsung, atau jam yang Anda atur di baris Form Evaluasi), jadi buka sebelum posttest supaya waktu posttest tidak terpotong."
                             data-after="Form evaluasi di bawah posttest: peserta bisa langsung mengerjakan posttest. Form terbuka selama sesi berlangsung atau sudah selesai, atau pada jam yang Anda atur di baris Form Evaluasi."></p>
                     </div>
                     <div class="modal-footer">
