@@ -438,7 +438,7 @@
             $('#roleTab a[href="' + lastTab + '"]').tab('show');
         }
 
-        // Filter jabatan langsung dijalankan server; pencarian dikirim dengan Enter.
+        // Filter jabatan langsung dijalankan server; kotak pencarian mencari sendiri saat berhenti mengetik (layout.footer).
         $('#filterUserRole').on('change', function () {
             document.getElementById('userRoleFilterForm').submit();
         });

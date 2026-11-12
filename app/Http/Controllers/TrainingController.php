@@ -565,7 +565,7 @@ class TrainingController extends Controller
             return back()->with('success', 'Form evaluasi DINONAKTIFKAN. Jawaban yang sudah masuk tetap tersimpan.');
         }
 
-        return back()->with('success', ($training->has_posttest
+        return back()->with('success', ($training->evaluationFollowsPosttest()
             ? 'Form evaluasi DIAKTIFKAN. Peserta mengisinya sebelum mengerjakan posttest.'
             : 'Form evaluasi DIAKTIFKAN. Peserta bisa mengisinya selama sesi berlangsung atau setelah selesai.')
             .' Pertanyaannya bisa diubah lewat Kelola Pertanyaan.');
@@ -621,8 +621,8 @@ class TrainingController extends Controller
      */
     public function updateEvaluationTime(Request $request, Training $training): RedirectResponse
     {
-        if ($training->has_posttest) {
-            return back()->with('error', 'Form evaluasi pelatihan ini terbuka bersama posttest, jadi waktunya diatur lewat Akses Posttest.');
+        if ($training->evaluationFollowsPosttest()) {
+            return back()->with('error', 'Form evaluasi pelatihan ini diisi sebelum posttest dan terbuka bersamanya, jadi waktunya diatur lewat Akses Posttest. Pindahkan evaluasi ke sesudah posttest di Urutan Langkah bila ingin jamnya sendiri.');
         }
 
         if ($request->boolean('reset')) {
@@ -638,6 +638,28 @@ class TrainingController extends Controller
         return back()->with('success', 'Form evaluasi '
             .($scheduled ? 'DIJADWALKAN buka '.Training::timeLabel($scheduled) : 'DIBUKA sekarang')
             .($closesAt ? " dan tutup otomatis pukul {$closesAt->format('H:i')}." : ', tanpa batas waktu.'));
+    }
+
+    /**
+     * Save the order of the participant steps (join the session, pretest, attendance, evaluation form, posttest).
+     * The order drives the portal cards and their "Langkah N" numbers, the trainer's own step list, and whether the
+     * evaluation form has to be filled in before the posttest.
+     */
+    public function updatePortalSteps(Request $request, Training $training): RedirectResponse
+    {
+        $steps = array_keys(Training::PORTAL_STEPS);
+        $validated = $request->validate([
+            'steps' => ['required', 'array', 'size:'.count($steps)],
+            'steps.*' => ['required', 'distinct', Rule::in($steps)],
+        ], [
+            'steps.size' => 'Urutan langkah harus memuat kelima langkah.',
+            'steps.*.distinct' => 'Tiap langkah hanya boleh muncul sekali dalam urutan.',
+        ]);
+
+        $training->update(['portal_steps' => array_values($validated['steps'])]);
+
+        return back()->with('success', 'Urutan langkah peserta disimpan: '
+            .implode(' → ', array_map(fn (string $step) => Training::PORTAL_STEPS[$step], $training->portalSteps())).'.');
     }
 
     /**

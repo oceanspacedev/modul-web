@@ -5,16 +5,26 @@ namespace App\Http\Controllers;
 use App\Http\Requests\DokumenTypeRequest;
 use App\Models\DokumenType;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class DokumenTypeController extends Controller
 {
-    public function index(): View
+    /** Baris per halaman di daftar master data. */
+    private const PER_PAGE = 25;
+
+    public function index(Request $request): View
     {
+        $search = trim((string) $request->query('search'));
+
         return view('setting.dokumentype.index', [
             'title' => 'Tipe Dokumen',
             'active' => 'setting',
-            'dokumentypes' => DokumenType::orderBy('name')->get(),
+            'dokumentypes' => DokumenType::query()
+                ->when($search !== '', fn ($query) => $query->where('name', 'like', "%{$search}%"))
+                ->orderBy('name')
+                ->paginate(self::PER_PAGE)
+                ->withQueryString(),
         ]);
     }
 

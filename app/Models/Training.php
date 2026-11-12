@@ -20,6 +20,25 @@ class Training extends Model
 
     public const PHASES = [self::PHASE_PRETEST, self::PHASE_POSTTEST];
 
+    public const STEP_PRETEST = 'pretest';
+
+    public const STEP_SESSION = 'session';
+
+    public const STEP_ATTENDANCE = 'attendance';
+
+    public const STEP_EVALUATION = 'evaluation';
+
+    public const STEP_POSTTEST = 'posttest';
+
+    /** Langkah peserta di portal pelatihan, dalam urutan bawaan. Pemateri bisa mengubah urutannya per pelatihan. */
+    public const PORTAL_STEPS = [
+        self::STEP_PRETEST => 'Pretest',
+        self::STEP_SESSION => 'Ikuti sesi',
+        self::STEP_ATTENDANCE => 'Presensi',
+        self::STEP_EVALUATION => 'Form evaluasi',
+        self::STEP_POSTTEST => 'Posttest',
+    ];
+
     /** Menit toleransi kiriman form evaluasi setelah jam tutupnya lewat. */
     public const EVALUATION_GRACE_MINUTES = 5;
 
@@ -55,6 +74,7 @@ class Training extends Model
             'is_quiz_active' => 'boolean',
             'is_attendance_active' => 'boolean',
             'has_attendance' => 'boolean',
+            'portal_steps' => 'array',
             'evaluation_opens_at' => 'datetime',
             'evaluation_closes_at' => 'datetime',
             'require_attendance_proof' => 'boolean',
@@ -162,6 +182,56 @@ class Training extends Model
         $mode = $phase === self::PHASE_PRETEST ? ($this->pretest_quiz_mode ?? $this->quiz_mode) : $this->quiz_mode;
 
         return $mode === 'game' ? 'game' : 'formal';
+    }
+
+    /**
+     * Urutan kelima langkah peserta untuk pelatihan ini. Urutan tersimpan dipakai apa adanya; langkah yang belum
+     * tercantum (data lama, langkah baru) menyusul sesuai urutan bawaan.
+     *
+     * @return list<string>
+     */
+    public function portalStepOrder(): array
+    {
+        $known = array_keys(self::PORTAL_STEPS);
+        $stored = array_values(array_unique(array_intersect($this->portal_steps ?? [], $known)));
+
+        return [...$stored, ...array_values(array_diff($known, $stored))];
+    }
+
+    /**
+     * Langkah yang benar-benar dipakai pelatihan ini, dalam urutan pilihan pemateri. Menentukan urutan kartu dan
+     * nomor "Langkah N" di portal peserta.
+     *
+     * @return list<string>
+     */
+    public function portalSteps(): array
+    {
+        $used = [
+            self::STEP_PRETEST => (bool) $this->has_pretest,
+            self::STEP_SESSION => true,
+            self::STEP_ATTENDANCE => (bool) $this->has_attendance,
+            self::STEP_EVALUATION => $this->hasEvaluationForm(),
+            self::STEP_POSTTEST => (bool) $this->has_posttest,
+        ];
+
+        return array_values(array_filter($this->portalStepOrder(), fn (string $step) => $used[$step]));
+    }
+
+    /**
+     * Form evaluasi menempel pada posttest: ada posttest dan evaluasi diurutkan sebelum posttest. Peserta harus
+     * mengisinya dulu sebelum mengerjakan posttest, dan form ikut terbuka/tertutup bersama posttest. Bila evaluasi
+     * diurutkan sesudah posttest (atau tanpa posttest), form berdiri sendiri: mengikuti status pelatihan atau jam yang
+     * diatur pemateri.
+     */
+    public function evaluationFollowsPosttest(): bool
+    {
+        if (! $this->has_posttest) {
+            return false;
+        }
+
+        $order = array_flip($this->portalStepOrder());
+
+        return $order[self::STEP_EVALUATION] < $order[self::STEP_POSTTEST];
     }
 
     public function hasQuiz(): bool
@@ -488,13 +558,13 @@ class Training extends Model
     }
 
     /**
-     * Saatnya evaluasi diisi, terlepas dari ada/tidaknya form. Dengan posttest, evaluasi ikut terbuka bersama
-     * posttest. Tanpa posttest: mengikuti jam buka/tutup yang diatur pemateri bila ada, selain itu terbuka selama
-     * sesi berlangsung atau sudah selesai.
+     * Saatnya evaluasi diisi, terlepas dari ada/tidaknya form. Evaluasi yang menempel pada posttest ikut terbuka
+     * bersama posttest. Selain itu: mengikuti jam buka/tutup yang diatur pemateri bila ada, atau terbuka selama sesi
+     * berlangsung atau sudah selesai.
      */
     public function evaluationWindowOpen(): bool
     {
-        if ($this->has_posttest) {
+        if ($this->evaluationFollowsPosttest()) {
             return $this->isPhaseActive(self::PHASE_POSTTEST);
         }
 
@@ -507,11 +577,11 @@ class Training extends Model
     }
 
     /**
-     * Pemateri mengatur sendiri jam form evaluasi (hanya untuk pelatihan tanpa posttest).
+     * Pemateri mengatur sendiri jam form evaluasi (hanya bila form tidak menempel pada posttest).
      */
     public function hasEvaluationSchedule(): bool
     {
-        return ! $this->has_posttest && $this->evaluation_opens_at !== null;
+        return ! $this->evaluationFollowsPosttest() && $this->evaluation_opens_at !== null;
     }
 
     /**
@@ -569,11 +639,20 @@ class Training extends Model
     }
 
     /**
-     * Peserta ini harus mengisi form evaluasi dulu sebelum masuk posttest. Butuh relasi evaluation pada peserta.
+     * Peserta ini belum mengisi form evaluasi yang tersedia. Butuh relasi evaluation pada peserta.
      */
     public function awaitsEvaluationFrom(TrainingParticipant $participant): bool
     {
         return $participant->evaluation === null && $this->hasEvaluationForm();
+    }
+
+    /**
+     * Peserta ini belum boleh masuk posttest karena form evaluasinya (yang diurutkan sebelum posttest) belum diisi.
+     * Butuh relasi evaluation pada peserta.
+     */
+    public function requiresEvaluationBeforePosttest(TrainingParticipant $participant): bool
+    {
+        return $this->evaluationFollowsPosttest() && $this->awaitsEvaluationFrom($participant);
     }
 
     public function trainer()

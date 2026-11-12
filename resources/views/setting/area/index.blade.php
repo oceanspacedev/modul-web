@@ -14,7 +14,13 @@
             <x-flash />
 
             <div class="card">
-                <div class="card-body table-responsive p-0" style="max-height: 560px;">
+                {{-- Pencarian dan pembagian halaman dijalankan server; mengetik langsung mencari (lihat layout.footer). --}}
+                <div class="card-header filter-toolbar">
+                    <form action="{{ route('area.index') }}" method="GET" class="w-100 m-0" role="search">
+                        <x-search-field placeholder="Cari area..." :clear-url="route('area.index')" style="max-width: 360px;" />
+                    </form>
+                </div>
+                <div class="card-body table-responsive p-0">
                     <table class="table table-head-fixed text-nowrap">
                         <thead>
                             <tr>
@@ -27,7 +33,7 @@
                         <tbody>
                             @forelse ($areas as $area)
                                 <tr>
-                                    <td class="text-muted">{{ $loop->iteration }}</td>
+                                    <td class="text-muted">{{ $areas->firstItem() + $loop->index }}</td>
                                     <td><strong>{{ $area->name }}</strong></td>
                                     <td>{{ $area->users_count }}</td>
                                     <td class="text-right">
@@ -44,12 +50,20 @@
                             @empty
                                 <tr>
                                     <td colspan="4">
-                                        <x-empty-state icon="fa-building" title="Belum ada area" text="Tambahkan badan usaha pertama untuk mulai mengelompokkan karyawan."><button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addArea">Tambah Area</button></x-empty-state>
+                                        @if (filled(request('search')))
+                                            <x-empty-state icon="fa-search" title="Tidak ada hasil" text="Tidak ada area yang cocok dengan pencarian ini." />
+                                        @else
+                                            <x-empty-state icon="fa-building" title="Belum ada area" text="Tambahkan badan usaha pertama untuk mulai mengelompokkan karyawan."><button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addArea">Tambah Area</button></x-empty-state>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <span class="text-muted small">Total {{ $areas->total() }} area</span>
+                    {{ $areas->links('pagination::bootstrap-4') }}
                 </div>
             </div>
         </div>

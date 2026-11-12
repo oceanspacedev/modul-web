@@ -14,7 +14,13 @@
             <x-flash />
 
             <div class="card">
-                <div class="card-body table-responsive p-0" style="max-height: 560px;">
+                {{-- Pencarian dan pembagian halaman dijalankan server; mengetik langsung mencari (lihat layout.footer). --}}
+                <div class="card-header filter-toolbar">
+                    <form action="{{ route('position.index') }}" method="GET" class="w-100 m-0" role="search">
+                        <x-search-field placeholder="Cari posisi..." :clear-url="route('position.index')" style="max-width: 360px;" />
+                    </form>
+                </div>
+                <div class="card-body table-responsive p-0">
                     <table class="table table-head-fixed text-nowrap">
                         <thead>
                             <tr>
@@ -27,7 +33,7 @@
                         <tbody>
                             @forelse ($positions as $position)
                                 <tr>
-                                    <td class="text-muted">{{ $loop->iteration }}</td>
+                                    <td class="text-muted">{{ $positions->firstItem() + $loop->index }}</td>
                                     <td><strong>{{ $position->name }}</strong></td>
                                     <td>{{ $position->users_count }}</td>
                                     <td class="text-right">
@@ -44,12 +50,20 @@
                             @empty
                                 <tr>
                                     <td colspan="4">
-                                        <x-empty-state icon="fa-id-badge" title="Belum ada posisi" text="Tambahkan posisi pertama untuk dipakai pada data karyawan."><button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addPosition">Tambah Posisi</button></x-empty-state>
+                                        @if (filled(request('search')))
+                                            <x-empty-state icon="fa-search" title="Tidak ada hasil" text="Tidak ada posisi yang cocok dengan pencarian ini." />
+                                        @else
+                                            <x-empty-state icon="fa-id-badge" title="Belum ada posisi" text="Tambahkan posisi pertama untuk dipakai pada data karyawan."><button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addPosition">Tambah Posisi</button></x-empty-state>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <span class="text-muted small">Total {{ $positions->total() }} posisi</span>
+                    {{ $positions->links('pagination::bootstrap-4') }}
                 </div>
             </div>
         </div>

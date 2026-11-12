@@ -189,7 +189,7 @@ class TrainingPortalController extends Controller
 
         // Form evaluasi diisi tepat sebelum posttest. Hanya pintu masuk kuis yang dijaga: jawaban peserta yang sudah
         // mengerjakan saat pemateri menyalakan evaluasi tetap diterima.
-        if ($phase === Training::PHASE_POSTTEST && $training->awaitsEvaluationFrom($participant)) {
+        if ($phase === Training::PHASE_POSTTEST && $training->requiresEvaluationBeforePosttest($participant)) {
             return redirect($urls['portal'].'/evaluation')->with(
                 'warning',
                 'Isi form evaluasi pelatihan terlebih dahulu, setelah itu kuis langsung terbuka.'
@@ -526,12 +526,13 @@ class TrainingPortalController extends Controller
     }
 
     /**
-     * After the evaluation the participant goes straight into the posttest when it is open, has questions, and they
-     * still have an attempt left.
+     * After an evaluation that comes before the posttest, the participant goes straight into the posttest when it is
+     * open, has questions, and they still have an attempt left.
      */
     private function quizFollowsEvaluation(Training $training, TrainingParticipant $participant): bool
     {
-        return $training->isPhaseActive(Training::PHASE_POSTTEST)
+        return $training->evaluationFollowsPosttest()
+            && $training->isPhaseActive(Training::PHASE_POSTTEST)
             && $training->phaseQuestions(Training::PHASE_POSTTEST)->exists()
             && $training->quizAttemptsLeft($participant->quizResult) !== 0;
     }
