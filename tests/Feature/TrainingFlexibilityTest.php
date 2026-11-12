@@ -388,9 +388,9 @@ class TrainingFlexibilityTest extends TestCase
         $training->update(['status' => TrainingStatus::Ongoing]);
         $this->assertTrue($training->fresh()->isEvaluationOpen());
 
-        // Dengan posttest, evaluasi menempel ke posttest dan jamnya tidak diatur terpisah.
+        // Dengan posttest pun jam evaluasi tetap diatur terpisah, supaya tidak memotong waktu posttest.
         $training->update(['has_posttest' => true]);
-        $this->actingAs($this->admin)->post(route('training.evaluation-time', $training), ['open_mode' => 'now', 'close_mode' => 'none'])->assertSessionHas('error');
+        $this->actingAs($this->admin)->post(route('training.evaluation-time', $training), ['open_mode' => 'now', 'close_mode' => 'none'])->assertSessionHas('success');
         $this->actingAs(User::factory()->staff()->create())->from('/my-trainings')
             ->post(route('training.evaluation-time', $training), ['reset' => '1'])->assertSessionHas('error');
     }

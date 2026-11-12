@@ -549,8 +549,8 @@
 
                         <!-- FORM EVALUASI -->
                         @php
-                            // Form yang tidak menempel pada posttest (tanpa posttest, atau diurutkan sesudahnya) boleh punya jam sendiri.
-                            $evaluationTimed = $training->has_evaluation && ! $training->evaluationFollowsPosttest();
+                            // Form evaluasi selalu punya jam sendiri, terpisah dari posttest.
+                            $evaluationTimed = (bool) $training->has_evaluation;
                             $evaluationOpensAt = $training->evaluationOpensAt();
                             $evaluationClosesAt = $training->evaluationClosesAt();
                         @endphp
@@ -562,8 +562,9 @@
                                         Peserta tidak diminta mengisi evaluasi
                                     @else
                                         @if($training->evaluationFollowsPosttest())
-                                            Diisi peserta sebelum posttest
-                                        @elseif($evaluationOpensAt)
+                                            Wajib diisi sebelum posttest &middot;
+                                        @endif
+                                        @if($evaluationOpensAt)
                                             Terjadwal buka {{ \App\Models\Training::timeLabel($evaluationOpensAt) }}
                                             &middot; {{ $training->evaluation_closes_at ? 'tutup '.$training->evaluation_closes_at->format('H:i') : 'tanpa batas waktu' }}
                                         @elseif($training->evaluationTimedOut())
@@ -578,8 +579,6 @@
                                 </div>
                                 @if($training->has_evaluation && $training->evaluationQuestions->isEmpty())
                                     <div class="text-warning text-xs">Belum ada pertanyaan, jadi form belum tampil ke peserta</div>
-                                @elseif($training->has_evaluation && $training->evaluationFollowsPosttest() && $training->questionsFor('posttest')->isEmpty())
-                                    <div class="text-warning text-xs">Posttest belum punya soal, jadi evaluasi belum bisa dibuka. Buat soal, atau matikan posttest di Aturan Kuis</div>
                                 @endif
                                 <a href="{{ route('training.evaluation.index', $training) }}" class="text-xs">Kelola pertanyaan ({{ $training->evaluationQuestions->count() }})</a>
                             </div>

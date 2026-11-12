@@ -241,7 +241,8 @@ class TrainingScenarioTest extends TestCase
     public function test_posttest_with_evaluation_tells_the_participant_to_fill_the_form_first(): void
     {
         $training = $this->training(pretest: false, posttest: true, evaluation: true);
-        $this->assertSame('Menunggu pemateri', $this->participant($training)->nextStep()['label']);
+        // Sesi berlangsung: evaluasi sudah bisa diisi sebelum posttest dibuka, jadi tidak memotong waktunya.
+        $this->assertSame(['label' => 'Isi evaluasi', 'kind' => 'action'], $this->participant($training)->nextStep());
 
         $this->actingAs($this->admin)->post(route('training.toggle-quiz', $training), ['open' => '1', 'close_mode' => 'none'])->assertSessionHas('success');
         $this->assertSame(['label' => 'Isi evaluasi, lalu kerjakan kuis', 'kind' => 'action'], $this->participant($training)->nextStep());

@@ -137,7 +137,7 @@ class TrainingStepOrderTest extends TestCase
 
         $this->get(self::PORTAL.'/quiz')->assertRedirect(self::PORTAL.'/evaluation');
         $this->assertSame('Isi evaluasi, lalu kerjakan posttest', $this->participant()->nextStep()['label']);
-        $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertOk()->assertSee('Diisi peserta sebelum posttest');
+        $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertOk()->assertSee('Wajib diisi sebelum posttest');
     }
 
     public function test_evaluation_after_the_posttest_no_longer_blocks_it(): void
@@ -170,11 +170,11 @@ class TrainingStepOrderTest extends TestCase
         $this->fillEvaluation();
         $this->assertSame(['label' => 'Selesai', 'kind' => 'done'], $this->participant()->nextStep());
 
-        // Form yang berdiri sendiri boleh punya jam sendiri; yang menempel pada posttest tidak.
+        // Jam form evaluasi diatur sendiri, di urutan mana pun.
         $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertOk()->assertSee('Atur waktu Form Evaluasi');
         $this->actingAs($this->admin)->post(route('training.evaluation-time', $this->training), ['open_mode' => 'now', 'close_mode' => 'none'])->assertSessionHas('success');
         $this->saveOrder(['session', 'pretest', 'attendance', 'evaluation', 'posttest']);
-        $this->actingAs($this->admin)->post(route('training.evaluation-time', $this->training), ['open_mode' => 'now', 'close_mode' => 'none'])->assertSessionHas('error');
+        $this->actingAs($this->admin)->post(route('training.evaluation-time', $this->training), ['open_mode' => 'now', 'close_mode' => 'none'])->assertSessionHas('success');
     }
 
     public function test_participants_next_step_follows_the_order(): void

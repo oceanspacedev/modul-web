@@ -35,9 +35,7 @@
         </a>
     @else
         <div class="text-center py-4 text-muted">
-            @if($evaluationFollowsPosttest)
-                Form evaluasi dibuka bersamaan dengan kuis.
-            @elseif($training->evaluationOpensAt())
+            @if($training->evaluationOpensAt())
                 Form evaluasi dibuka otomatis {{ \App\Models\Training::timeLabel($training->evaluationOpensAt()) }} WIB.
             @elseif($training->evaluationTimedOut())
                 Waktu pengisian form evaluasi sudah habis.

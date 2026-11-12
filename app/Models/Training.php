@@ -218,10 +218,9 @@ class Training extends Model
     }
 
     /**
-     * Form evaluasi menempel pada posttest: ada posttest dan evaluasi diurutkan sebelum posttest. Peserta harus
-     * mengisinya dulu sebelum mengerjakan posttest, dan form ikut terbuka/tertutup bersama posttest. Bila evaluasi
-     * diurutkan sesudah posttest (atau tanpa posttest), form berdiri sendiri: mengikuti status pelatihan atau jam yang
-     * diatur pemateri.
+     * Evaluasi diurutkan sebelum posttest: selama form evaluasi terbuka, peserta harus mengisinya dulu sebelum
+     * mengerjakan posttest. Jam form evaluasi tetap berdiri sendiri (status pelatihan atau jam yang diatur pemateri),
+     * jadi waktu mengisinya tidak memotong waktu posttest.
      */
     public function evaluationFollowsPosttest(): bool
     {
@@ -549,8 +548,7 @@ class Training extends Model
     }
 
     /**
-     * Form evaluasi bisa diisi sekarang. Tempatnya tepat sebelum posttest, jadi ikut terbuka saat posttest dibuka;
-     * pelatihan tanpa posttest membukanya selama sesi berlangsung atau sudah selesai.
+     * Form evaluasi bisa diisi sekarang: jamnya sedang terbuka dan formnya punya pertanyaan.
      */
     public function isEvaluationOpen(): bool
     {
@@ -558,30 +556,29 @@ class Training extends Model
     }
 
     /**
-     * Saatnya evaluasi diisi, terlepas dari ada/tidaknya form. Evaluasi yang menempel pada posttest ikut terbuka
-     * bersama posttest. Selain itu: mengikuti jam buka/tutup yang diatur pemateri bila ada, atau terbuka selama sesi
-     * berlangsung atau sudah selesai.
+     * Saatnya evaluasi diisi, terlepas dari ada/tidaknya form: mengikuti jam buka/tutup yang diatur pemateri bila
+     * ada, atau terbuka selama sesi berlangsung atau sudah selesai. Jam ini berdiri sendiri, termasuk saat evaluasi
+     * diurutkan sebelum posttest, supaya peserta mengisinya sebelum waktu posttest berjalan. Tanpa jadwal sendiri,
+     * evaluasi yang diurutkan sebelum posttest juga terbuka selama posttest dibuka, supaya tidak terlewat bila status
+     * pelatihan belum diubah ke Berlangsung.
      */
     public function evaluationWindowOpen(): bool
     {
-        if ($this->evaluationFollowsPosttest()) {
-            return $this->isPhaseActive(self::PHASE_POSTTEST);
-        }
-
         if ($this->hasEvaluationSchedule()) {
             return ! $this->evaluation_opens_at->isFuture()
                 && ($this->evaluation_closes_at === null || $this->evaluation_closes_at->isFuture());
         }
 
-        return in_array($this->status, [TrainingStatus::Ongoing, TrainingStatus::Completed], true);
+        return in_array($this->status, [TrainingStatus::Ongoing, TrainingStatus::Completed], true)
+            || ($this->evaluationFollowsPosttest() && $this->isPhaseActive(self::PHASE_POSTTEST));
     }
 
     /**
-     * Pemateri mengatur sendiri jam form evaluasi (hanya bila form tidak menempel pada posttest).
+     * Pemateri mengatur sendiri jam form evaluasi.
      */
     public function hasEvaluationSchedule(): bool
     {
-        return ! $this->evaluationFollowsPosttest() && $this->evaluation_opens_at !== null;
+        return $this->evaluation_opens_at !== null;
     }
 
     /**
@@ -652,7 +649,8 @@ class Training extends Model
      */
     public function requiresEvaluationBeforePosttest(TrainingParticipant $participant): bool
     {
-        return $this->evaluationFollowsPosttest() && $this->awaitsEvaluationFrom($participant);
+        // Hanya selama form bisa diisi: jadwal evaluasi yang belum tiba atau sudah lewat tidak mengunci posttest.
+        return $this->evaluationFollowsPosttest() && $this->awaitsEvaluationFrom($participant) && $this->evaluationWindowOpen();
     }
 
     public function trainer()
