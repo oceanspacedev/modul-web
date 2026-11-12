@@ -14,6 +14,7 @@ use App\Jobs\ReviseTrainingQuestion;
 use App\Models\Document;
 use App\Models\Training;
 use App\Models\TrainingQuestion;
+use App\Services\TrainingDocumentQuestionImporter;
 use App\Support\QuizImage;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -23,6 +24,7 @@ use Illuminate\Routing\Attributes\Controllers\Authorize;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -36,11 +38,18 @@ class TrainingQuestionController extends Controller
     /**
      * Show quiz questions management for a training
      */
-    public function index(Training $training): View
+    public function index(Request $request, Training $training): View
     {
         $training->load(['questions', 'documents.versions']);
         $allDocuments = Document::with('dokumentype')->orderBy('name')->get();
         $isGeminiConfigured = ! empty(config('services.gemini.api_key'));
+        $canImportDocumentQuestions = $request->user()->checkPermissionTo('manage-documents');
+        $quizDocuments = $canImportDocumentQuestions
+            ? Document::hasQuizQuestions()
+                ->with(['quizModule' => fn ($query) => $query->withCount('questions')])
+                ->orderBy('name')->get()
+            : collect();
+        $selectedQuizDocumentId = filter_var($request->old('quiz_document_id', $request->query('quiz_document')), FILTER_VALIDATE_INT);
 
         return view('training.questions.index', [
             'title' => 'Kelola Kuis Pelatihan: '.$training->title,
@@ -49,6 +58,9 @@ class TrainingQuestionController extends Controller
             'questions' => $training->questions,
             'documents' => $training->documents,
             'allDocuments' => $allDocuments,
+            'canImportDocumentQuestions' => $canImportDocumentQuestions,
+            'quizDocuments' => $quizDocuments,
+            'selectedQuizDocumentId' => $quizDocuments->contains('id', $selectedQuizDocumentId) ? $selectedQuizDocumentId : null,
             'isGeminiConfigured' => $isGeminiConfigured,
             // Hasil kuis yang sudah masuk: menentukan tampilnya tombol Hitung Ulang Nilai.
             'resultCount' => $training->results()->count(),
@@ -121,6 +133,33 @@ class TrainingQuestionController extends Controller
         });
 
         return back()->with('success', 'Berhasil menambahkan '.count($questions).' soal kuis dari teks copy-paste!');
+    }
+
+    public function importDocument(Request $request, Training $training, TrainingDocumentQuestionImporter $importer): RedirectResponse
+    {
+        // Soal beserta kunci jawabannya hanya tersedia bagi pengelola kuis dokumen.
+        abort_unless($request->user()->checkPermissionTo('manage-documents'), 403);
+
+        $validated = $request->validate([
+            'quiz_document_id' => ['required', 'integer'],
+        ], [
+            'quiz_document_id.required' => 'Pilih dokumen sumber soal.',
+            'quiz_document_id.integer' => 'Dokumen sumber soal tidak valid.',
+        ]);
+
+        $quiz = Document::hasQuizQuestions()->with('quizModule')->find($validated['quiz_document_id'])?->quizModule;
+        if (! $quiz) {
+            throw ValidationException::withMessages([
+                'quiz_document_id' => 'Pilih dokumen aktif yang punya soal pretest atau posttest.',
+            ]);
+        }
+
+        $count = $importer->import($training, $quiz);
+        $redirect = to_route('training.questions.index', $training);
+
+        return $count > 0
+            ? $redirect->with('success', "{$count} soal dari dokumen berhasil ditambahkan ke pelatihan.")
+            : $redirect->with('info', 'Semua soal dari dokumen ini sudah pernah ditambahkan ke pelatihan.');
     }
 
     /**

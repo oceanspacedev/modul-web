@@ -39,8 +39,16 @@
                 <button type="button" class="btn btn-default" data-toggle="modal" data-target="#addQuestionModal">
                     <i class="fas fa-plus"></i> Tambah Manual
                 </button>
-                @php $showSetupNext = $training->needsSetup() && $questions->isNotEmpty(); @endphp
-                <button type="button" class="btn {{ $showSetupNext ? 'btn-default' : 'btn-primary' }}" data-toggle="modal" data-target="#aiGenerateModal">
+                @php
+                    $showSetupNext = $training->needsSetup() && $questions->isNotEmpty();
+                    $preferDocumentImport = $questions->isEmpty() && $quizDocuments->isNotEmpty();
+                @endphp
+                @if($canImportDocumentQuestions)
+                    <button type="button" class="btn {{ $preferDocumentImport ? 'btn-primary' : 'btn-default' }}" data-toggle="modal" data-target="#importDocumentModal">
+                        <i class="fas fa-file-import" aria-hidden="true"></i> Ambil Soal dari Dokumen
+                    </button>
+                @endif
+                <button type="button" class="btn {{ $showSetupNext || $preferDocumentImport ? 'btn-default' : 'btn-primary' }}" data-toggle="modal" data-target="#aiGenerateModal">
                     <i class="fas fa-magic"></i> Buat Soal via AI
                 </button>
                 @if($showSetupNext)
@@ -235,9 +243,14 @@
                     </div>
                 </div>
                 @empty
-                <x-empty-state icon="fa-question-circle" title="Belum ada soal kuis" text="Tambahkan soal untuk pelatihan ini secara manual, lewat AI, atau import dari teks maupun Excel.">
+                <x-empty-state icon="fa-question-circle" title="Belum ada soal kuis" text="Siapkan soal untuk pretest atau posttest pelatihan ini.">
                     <div class="d-flex justify-content-center flex-wrap gap-2">
-                        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#aiGenerateModal">
+                        @if($preferDocumentImport)
+                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#importDocumentModal">
+                                <i class="fas fa-file-import" aria-hidden="true"></i> Ambil Soal dari Dokumen
+                            </button>
+                        @endif
+                        <button type="button" class="btn {{ $preferDocumentImport ? 'btn-default' : 'btn-primary' }}" data-toggle="modal" data-target="#aiGenerateModal">
                             <i class="fas fa-magic"></i> Buat Soal via AI
                         </button>
                         <button type="button" class="btn btn-default" data-toggle="modal" data-target="#addQuestionModal">
@@ -256,6 +269,10 @@
         </div>
     </div>
 </section>
+
+@if($canImportDocumentQuestions)
+    @include('training.questions.partials.import-document-modal')
+@endif
 
 <!-- AI QUESTION GENERATOR MODAL (GEMINI) -->
 <div class="modal fade modal-center" id="aiGenerateModal" tabindex="-1" role="dialog" aria-labelledby="aiGenerateModalLabel" aria-hidden="true" data-backdrop="static">
@@ -772,15 +789,15 @@ document.addEventListener('DOMContentLoaded', function () {
         }).on('change', updateDocCount);
     }
 
-    // Import teks yang ditolak: buka lagi dialognya dengan teks yang tadi ditempel supaya tinggal diperbaiki.
-    @if(old('raw_text'))
-        if (typeof $ !== 'undefined') $('#importTextModal').modal('show');
+    @if($canImportDocumentQuestions && ($selectedQuizDocumentId || $errors->has('quiz_document_id')))
+        $('#importDocumentModal').modal('show');
+    @elseif(old('raw_text'))
+        $('#importTextModal').modal('show');
+    @else
+        if (window.location.search.indexOf('open_ai=1') !== -1) {
+            aiModal.modal('show');
+        }
     @endif
-
-    // Auto-open modal if URL contains open_ai=1
-    if (window.location.search.indexOf('open_ai=1') !== -1) {
-        aiModal.modal('show');
-    }
 
     // Update document selection counter
     function updateDocCount() {

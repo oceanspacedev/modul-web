@@ -66,6 +66,21 @@ class QuizImage
         return $path;
     }
 
+    public static function copy(string $source, string $field): string
+    {
+        $path = self::DIRECTORY.'/'.Str::random(30).'.'.pathinfo($source, PATHINFO_EXTENSION);
+
+        if (! Storage::copy($source, $path)) {
+            self::delete($path);
+
+            throw ValidationException::withMessages([
+                $field => 'Gambar soal dari dokumen gagal disalin. Periksa gambar di kuis dokumen, lalu coba lagi.',
+            ]);
+        }
+
+        return $path;
+    }
+
     public static function delete(?string ...$paths): void
     {
         foreach (array_filter($paths) as $path) {

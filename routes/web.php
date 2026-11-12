@@ -193,6 +193,7 @@ Route::middleware('auth')->group(function () {
                 Route::post('export', 'export')->name('export');
                 Route::post('import-excel', 'importExcel')->name('import-excel');
                 Route::post('import-text', 'importText')->name('import-text');
+                Route::post('import-document', 'importDocument')->name('import-document');
                 Route::post('generate-ai', 'generateAiQuestions')->name('generate-ai');
                 Route::get('ai-status/{token}', 'aiStatus')->name('ai-status');
                 Route::post('revise-ai', 'reviseAiQuestion')->name('revise-ai');
