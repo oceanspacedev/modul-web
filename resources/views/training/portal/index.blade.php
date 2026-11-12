@@ -151,6 +151,9 @@
             const currentHasEvaluation  = {{ $training->hasEvaluationForm() ? 'true' : 'false' }};
             const currentEvaluationOpen = {{ $training->isEvaluationOpen() ? 'true' : 'false' }};
             const watchEvaluation       = {{ $evaluation ? 'false' : 'true' }};
+            // Evaluasi yang diurutkan sebelum kuis dan belum diisi: tombol kuis mengarah ke form evaluasi, dan itu hanya
+            // dirender server. Form evaluasi kini bisa sudah terbuka sebelum kuis, jadi dibukanya kuis harus memuat ulang.
+            const evaluationBeforeQuiz  = {{ $evaluationFollowsPosttest && ! $evaluation && $training->hasEvaluationForm() ? 'true' : 'false' }};
             let currentRequireProof     = {{ $training->require_attendance_proof ? 'true' : 'false' }};
             const attendanceStatus      = '{{ $participant->attendance_status }}';
             const hasQuizResult         = {{ $participant->quizResult ? 'true' : 'false' }};
@@ -424,6 +427,12 @@
                         if (!hasQuizResult) {
                             const quizBody = document.getElementById('quizBody');
                             if (!quizBody) return;
+
+                            // Ditunda selama presensi sedang diisi; pengecekan berikutnya mencoba lagi.
+                            if (evaluationBeforeQuiz && data.is_quiz_active !== currentQuizActive) {
+                                if (!attendanceInProgress()) window.location.reload();
+                                return;
+                            }
 
                             if (data.is_quiz_active && !currentQuizActive) {
                                 currentQuizActive = true;

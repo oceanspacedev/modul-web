@@ -7,6 +7,7 @@ use App\Exports\TrainingScoresSheet;
 use App\Models\LearningModule;
 use App\Models\LearningModuleAttempt;
 use App\Models\Training;
+use App\Models\TrainingEvaluation;
 use App\Models\User;
 use App\Models\Video;
 use App\Services\MaterialQuizService;
@@ -80,7 +81,10 @@ class ScoreRecapTest extends TestCase
         $rows = ['trainings' => [], 'modules' => []];
         Excel::assertStored($notification->data['download_path'], 'local', function (ScoreRecapExport $export) use (&$rows) {
             foreach ($export->sheets() as $sheet) {
-                $rows[$sheet instanceof TrainingScoresSheet ? 'trainings' : 'modules'] = $sheet->array();
+                // Baris pelatihan dipetakan ke judul kolomnya, karena kolomnya mengikuti pengaturan pelatihan.
+                $rows[$sheet instanceof TrainingScoresSheet ? 'trainings' : 'modules'] = $sheet instanceof TrainingScoresSheet
+                    ? array_map(fn (array $row) => array_combine($sheet->headings(), $row), $sheet->array())
+                    : $sheet->array();
             }
 
             return true;
@@ -101,11 +105,71 @@ class ScoreRecapTest extends TestCase
             'sections' => ['trainings', 'standalone', 'video', 'document'],
         ]);
 
-        $this->assertSame([['K3 Gudang', 'BUDI', 80.0], ['K3 Gudang', 'SITI', 80.0]], array_map(fn ($row) => [$row[1], $row[4], $row[11]], $rows['trainings']));
+        $this->assertSame([['K3 Gudang', 'BUDI', 80.0], ['K3 Gudang', 'SITI', 80.0]], array_map(fn ($row) => [$row['Pelatihan'], $row['Nama Peserta'], $row['Nilai Posttest (0-100)']], $rows['trainings']));
         $this->assertSame(
             [['Modul Belajar', 'Modul SOP', 'BUDI', 0.0, 100.0, 'Lulus'], ['Kuis Video', 'Video K3', 'SITI', '-', 0.0, 'Belum Lulus']],
             array_map(fn ($row) => [$row[0], $row[1], $row[4], $row[7], $row[9], $row[12]], $rows['modules']),
         );
+    }
+
+    public function test_training_columns_follow_the_active_settings_of_the_trainings(): void
+    {
+        $payload = ['from' => now()->subDay()->toDateString(), 'to' => now()->toDateString(), 'sections' => ['trainings']];
+        $base = ['Tanggal', 'Pelatihan', 'Pemateri', 'ID Karyawan', 'Nama Peserta', 'Divisi'];
+        // Pretest dan posttest memakai kolom yang sama persis.
+        $phase = fn (string $label) => ["Status {$label}", "Nilai {$label} (0-100)", "Waktu Submit {$label}"];
+        $posttest = $phase('Posttest');
+
+        // Pelatihan posttest saja: tidak ada kolom pretest atau evaluasi.
+        $this->assertSame([...$base, 'Kehadiran', ...$posttest], array_keys($this->exportRows($payload)['trainings'][0]));
+
+        // Pretest dan form evaluasi dinyalakan, evaluasi diurutkan sesudah posttest: kolomnya ikut, dalam urutan itu.
+        $training = Training::where('title', 'K3 Gudang')->sole();
+        $training->update(['has_pretest' => true, 'has_evaluation' => true, 'portal_steps' => ['pretest', 'session', 'attendance', 'posttest', 'evaluation']]);
+        $budi = $training->participants()->where('user_id', $this->budi->id)->sole();
+        $budi->pretestResult()->create([
+            'training_id' => $training->id, 'user_id' => $this->budi->id, 'phase' => 'pretest', 'total_questions' => 5, 'correct_answers' => 1,
+            'score' => 20, 'mc_score' => 20, 'essay_status' => 'none', 'submitted_at' => now(),
+        ]);
+        TrainingEvaluation::create([
+            'training_id' => $training->id, 'training_participant_id' => $budi->id, 'user_id' => $this->budi->id, 'submitted_at' => now(),
+            'answers' => $training->evaluationQuestions()->get()->filter->isScale()->mapWithKeys(fn ($question) => [$question->id => 4])->all(),
+        ]);
+
+        $this->admin->notifications()->delete();
+        $rows = $this->exportRows($payload)['trainings'];
+        $this->assertSame([
+            ...$base,
+            ...$phase('Pretest'),
+            'Kehadiran',
+            ...$posttest,
+            'Status Evaluasi', 'Rata-rata Evaluasi (1-5)', 'Waktu Isi Evaluasi',
+        ], array_keys($rows[0]));
+
+        $this->assertSame(['Sudah Mengerjakan', 20.0, 80.0, 'Sudah Mengisi', 4.0], array_values(array_intersect_key($rows[0], array_flip([
+            'Status Pretest', 'Nilai Pretest (0-100)', 'Nilai Posttest (0-100)', 'Status Evaluasi', 'Rata-rata Evaluasi (1-5)',
+        ]))));
+        $this->assertSame(['Belum Mengerjakan', '-', 80.0, 'Belum Mengisi', '-'], array_values(array_intersect_key($rows[1], array_flip([
+            'Status Pretest', 'Nilai Pretest (0-100)', 'Nilai Posttest (0-100)', 'Status Evaluasi', 'Rata-rata Evaluasi (1-5)',
+        ]))));
+
+        // Soal essay di posttest: nilainya dipecah menjadi PG, essay, dan akhir; pretest tetap satu kolom nilai.
+        $training->questions()->create(['type' => 'essay', 'question' => 'Jelaskan APD.', 'used_in' => 'posttest']);
+        $this->admin->notifications()->delete();
+        $headings = array_keys($this->exportRows($payload)['trainings'][0]);
+        $this->assertContains('Nilai Pretest (0-100)', $headings);
+        $this->assertNotContains('Nilai PG Pretest (0-100)', $headings);
+        $this->assertSame(
+            ['Status Posttest', 'Nilai PG Posttest (0-100)', 'Status Essay Posttest', 'Nilai Essay Posttest (0-100)', 'Nilai Akhir Posttest (0-100)', 'Waktu Submit Posttest'],
+            array_values(array_filter($headings, fn (string $heading) => str_contains($heading, 'Posttest'))),
+        );
+        $training->questions()->delete();
+
+        // Pelatihan lain di rentang yang sama tanpa pretest/evaluasi mengisi kolom itu dengan "-".
+        $this->training('Sosialisasi Ringkas', now());
+        $this->admin->notifications()->delete();
+        $plain = collect($this->exportRows($payload)['trainings'])->firstWhere('Pelatihan', 'Sosialisasi Ringkas');
+        $this->assertSame(['-', '-', 'Sudah Mengerjakan'], [$plain['Status Pretest'], $plain['Status Evaluasi'], $plain['Status Posttest']]);
     }
 
     public function test_filters_by_division_and_section(): void
@@ -117,7 +181,7 @@ class ScoreRecapTest extends TestCase
             'divisi_id' => 1,
         ]);
 
-        $this->assertSame(['BUDI'], array_column($rows['trainings'], 4));
+        $this->assertSame(['BUDI'], array_column($rows['trainings'], 'Nama Peserta'));
         $this->assertSame([], $rows['modules']); // Budi only took the standalone module, which was not selected.
     }
 

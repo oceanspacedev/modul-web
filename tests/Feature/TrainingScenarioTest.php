@@ -157,12 +157,21 @@ class TrainingScenarioTest extends TestCase
             $this->get('/training/portal/token_skenario/quiz')->assertRedirect('/training/portal/token_skenario');
         }
 
-        // Rekap: kolom fase yang tidak diadakan berisi "-", bukan "Belum Mengerjakan".
+        // Rekap: hanya langkah yang diadakan yang mendapat kolom, dan pretest/posttest memakai kolom yang sama.
         $row = $this->rekapRow($training);
-        $this->assertSame($posttest ? 'Belum Mengerjakan' : '-', $row['Status Kuis']);
-        // Belum mengerjakan tidak ditulis 0, supaya tidak tertukar dengan peserta yang nilainya memang 0.
-        $this->assertSame('-', $row['Nilai Akhir (0-100)']);
-        $this->assertSame($pretest ? 'Belum Mengerjakan' : '-', $row['Nilai Pretest (0-100)']);
+        foreach (['Pretest' => $pretest, 'Posttest' => $posttest] as $label => $used) {
+            $this->assertSame($used, array_key_exists("Status {$label}", $row));
+            $this->assertSame($used, array_key_exists("Nilai {$label} (0-100)", $row));
+            if ($used) {
+                $this->assertSame('Belum Mengerjakan', $row["Status {$label}"]);
+                // Belum mengerjakan tidak ditulis 0, supaya tidak tertukar dengan peserta yang nilainya memang 0.
+                $this->assertSame('-', $row["Nilai {$label} (0-100)"]);
+            }
+        }
+        $this->assertSame($evaluation, array_key_exists('Status Evaluasi', $row));
+        $this->assertArrayNotHasKey('Status Kuis', $row);
+        // Soalnya pilihan ganda saja: tidak ada kolom PG/essay terpisah.
+        $this->assertSame([], array_values(array_filter(array_keys($row), fn (string $heading) => str_contains($heading, 'Essay') || str_contains($heading, 'PG'))));
         $this->actingAs($this->admin)->post(route('training.export', $training))->assertSessionHasNoErrors();
     }
 
@@ -186,7 +195,7 @@ class TrainingScenarioTest extends TestCase
         $this->assertSame(['label' => 'Selesai', 'kind' => 'done'], $this->participant($training)->nextStep());
         $this->actingAs($training->participants()->sole()->user)->get(route('training.my-trainings'))->assertOk()->assertSee('Selesai')->assertSee('100');
         $this->assertSame(100.0, $this->rekapRow($training)['Nilai Pretest (0-100)']);
-        $this->assertSame('-', $this->rekapRow($training)['Status Kuis']);
+        $this->assertArrayNotHasKey('Status Posttest', $this->rekapRow($training));
     }
 
     public function test_training_with_both_phases_shows_the_pretest_next_to_the_posttest(): void
@@ -208,8 +217,39 @@ class TrainingScenarioTest extends TestCase
         $this->actingAs($this->admin)->get(route('training.answer-sheet', [$other, $pretest]))->assertNotFound();
 
         $row = $this->rekapRow($training);
-        $this->assertSame(100.0, $row['Nilai Akhir (0-100)']);
+        $this->assertSame(100.0, $row['Nilai Posttest (0-100)']);
         $this->assertSame(0.0, $row['Nilai Pretest (0-100)']);
+        // Pretest dan posttest punya kolom yang sama, dan tanpa soal essay tidak ada kolom PG/essay.
+        $columns = fn (array $row, string $label) => array_map(fn (string $heading) => str_replace($label, '', $heading), array_values(array_filter(array_keys($row), fn (string $heading) => str_contains($heading, $label))));
+        $this->assertSame(['Status ', 'Nilai  (0-100)', 'Pelanggaran Tab ', 'Status Submit ', 'Waktu Submit '], $columns($row, 'Pretest'));
+        $this->assertSame($columns($row, 'Pretest'), $columns($row, 'Posttest'));
+
+        // Soal essay hanya di posttest: kolom PG, essay, dan nilai akhir muncul untuk posttest saja.
+        TrainingQuestion::create(['training_id' => $training->id, 'type' => 'essay', 'question' => 'Jelaskan APD.', 'used_in' => 'posttest']);
+        $row = $this->rekapRow($training->fresh());
+        $this->assertSame(['Status ', 'Nilai  (0-100)', 'Pelanggaran Tab ', 'Status Submit ', 'Waktu Submit '], $columns($row, 'Pretest'));
+        $this->assertSame(
+            ['Status ', 'Nilai PG  (0-100)', 'Status Essay ', 'Nilai Essay  (0-100)', 'Nilai Akhir  (0-100)', 'Catatan Essay ', 'Pelanggaran Tab ', 'Status Submit ', 'Waktu Submit '],
+            $columns($row, 'Posttest'),
+        );
+        $this->assertSame(100.0, $row['Nilai Akhir Posttest (0-100)']);
+    }
+
+    public function test_recap_keeps_the_off_cam_record_when_attendance_is_not_used(): void
+    {
+        $training = $this->training(pretest: false, posttest: true, evaluation: false);
+        $training->participants()->sole()->update(['is_off_cam' => true, 'off_cam_count' => 2]);
+
+        // Dengan presensi: menempel di Status Kehadiran, tanpa kolom tersendiri.
+        $row = $this->rekapRow($training->fresh());
+        $this->assertSame('Belum Absen (Off Cam 2x)', $row['Status Kehadiran']);
+        $this->assertArrayNotHasKey('Off Cam', $row);
+
+        // Tanpa presensi kolom kehadiran hilang, jadi catatan Off Cam pelatihan daring mendapat kolom sendiri.
+        $training->update(['has_attendance' => false]);
+        $row = $this->rekapRow($training->fresh());
+        $this->assertArrayNotHasKey('Status Kehadiran', $row);
+        $this->assertSame('2x', $row['Off Cam']);
     }
 
     public function test_evaluation_only_training_guides_the_participant_to_the_form(): void

@@ -4,16 +4,20 @@ namespace App\Exports;
 
 use App\Exports\Concerns\WritesTextAsText;
 use App\Models\Training;
-use App\Support\StorageUrl;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 
+/**
+ * Rekap satu pelatihan. Kolomnya mengikuti pengaturan aktif pelatihan: hanya langkah yang dipakai (presensi, pretest,
+ * form evaluasi, posttest) yang mendapat kolom, dalam Urutan Langkah Peserta (lihat TrainingStepColumns).
+ */
 class TrainingRekapExport implements FromArray, WithCustomValueBinder, WithEvents, WithTitle
 {
     use WritesTextAsText;
@@ -24,11 +28,23 @@ class TrainingRekapExport implements FromArray, WithCustomValueBinder, WithEvent
 
     const DATA_START = 8;
 
-    const LAST_COL = 'R';
+    private const BASE_HEADINGS = ['No', 'ID Karyawan', 'Nama Peserta', 'Divisi', 'No WhatsApp'];
+
+    /** Lebar kolom menurut judulnya; judul lain memakai DEFAULT_WIDTH. */
+    private const WIDTHS = [
+        'No' => 5, 'ID Karyawan' => 14, 'Nama Peserta' => 28, 'Divisi' => 20, 'No WhatsApp' => 16,
+        'Status Kehadiran' => 15, 'Waktu Absen' => 16, 'Bukti Screenshot' => 40,
+    ];
+
+    private const DEFAULT_WIDTH = 18;
 
     public function __construct(Training $training)
     {
         $this->training = $training;
+
+        // Kolom kuis mengikuti soalnya dan kolom evaluasi butuh relasi ini; pemanggil yang belum memuatnya tidak
+        // perlu tahu.
+        $training->loadMissing(['questions', ...($training->has_evaluation ? ['evaluationQuestions', 'participants.evaluation'] : [])]);
     }
 
     public function title(): string
@@ -36,9 +52,32 @@ class TrainingRekapExport implements FromArray, WithCustomValueBinder, WithEvent
         return 'Rekap Pelatihan';
     }
 
+    /**
+     * @return list<string>
+     */
+    public function headings(): array
+    {
+        return [
+            ...self::BASE_HEADINGS,
+            ...($this->hasOffCamColumn() ? ['Off Cam'] : []),
+            ...array_merge([], ...array_map(fn (string $step) => TrainingStepColumns::headings($step, detailed: true, essay: TrainingStepColumns::hasEssay($this->training, $step)), TrainingStepColumns::stepsOf($this->training))),
+        ];
+    }
+
+    /**
+     * Off Cam biasanya menempel di kolom Status Kehadiran. Pelatihan daring tanpa presensi tidak punya kolom itu,
+     * jadi catatan Off Cam-nya mendapat kolom sendiri.
+     */
+    private function hasOffCamColumn(): bool
+    {
+        return ! $this->training->has_attendance && $this->training->isOnline();
+    }
+
     public function array(): array
     {
         $training = $this->training;
+        $steps = TrainingStepColumns::stepsOf($training);
+        $essay = array_combine($steps, array_map(fn (string $step) => TrainingStepColumns::hasEssay($training, $step), $steps));
         $rows = [];
 
         $rows[] = ['REKAP HASIL PELATIHAN'];
@@ -48,44 +87,11 @@ class TrainingRekapExport implements FromArray, WithCustomValueBinder, WithEvent
         $rows[] = ['Waktu',           substr($training->start_time, 0, 5).' - '.substr($training->end_time, 0, 5).' WIB'];
         $rows[] = ['Total Peserta',   $training->participants->count().' orang'];
 
-        $rows[] = [
-            'No', 'ID Karyawan', 'Nama Peserta', 'Divisi', 'No WhatsApp',
-            'Status Kehadiran', 'Waktu Absen', 'Bukti Screenshot', 'Status Kuis',
-            'Nilai PG (0-100)', 'Status Essay', 'Nilai Essay (0-100)', 'Nilai Akhir (0-100)',
-            'Catatan Essay', 'Pelanggaran Tab', 'Status Submit', 'Waktu Submit Kuis', 'Nilai Pretest (0-100)',
-        ];
+        $rows[] = $this->headings();
 
         $no = 1;
         foreach ($training->participants as $participant) {
             $user = $participant->user;
-            // Kolom kuis adalah posttest. Pelatihan tanpa posttest (pretest saja, hanya evaluasi, atau hanya sesi)
-            // mengisinya dengan "-", bukan "Belum Mengerjakan".
-            $hasPosttest = (bool) $training->has_posttest;
-            $quiz = $hasPosttest ? $participant->quizResult : null;
-            $pretest = $training->has_pretest ? $participant->pretestResult : null;
-
-            $essayStatusLabel = $hasPosttest ? 'Tidak Ada Essay' : '-';
-            if ($quiz) {
-                $essayStatusLabel = match ($quiz->essay_status) {
-                    'graded' => 'Sudah Dinilai',
-                    'pending' => 'Menunggu Dinilai',
-                    default => 'Tidak Ada Essay',
-                };
-            }
-
-            $offCamSuffix = '';
-            if ($participant->is_off_cam) {
-                $count = $participant->off_cam_count ?: 1;
-                $offCamSuffix = " (Off Cam {$count}x)";
-            }
-
-            $attendanceLabel = match (true) {
-                // Pelatihan tanpa presensi.
-                ! $training->has_attendance => '-'.$offCamSuffix,
-                $participant->attendance_status === 'hadir' => 'Hadir'.$offCamSuffix,
-                $participant->attendance_status === 'tidak_hadir' => 'Tidak Hadir'.$offCamSuffix,
-                default => 'Belum Absen'.$offCamSuffix,
-            };
 
             $rows[] = [
                 $no++,
@@ -93,35 +99,8 @@ class TrainingRekapExport implements FromArray, WithCustomValueBinder, WithEvent
                 $user->nama_lengkap ?? '-',
                 $user->divisi->name ?? '-',
                 $user->no_hp ?? '-',
-                $attendanceLabel,
-                $participant->attended_at
-                    ? Carbon::parse($participant->attended_at)->format('d-m-Y H:i')
-                    : '-',
-                // The spreadsheet is opened long after export, so sign the link for as long as S3 allows.
-                $participant->attendance_proof
-                    ? StorageUrl::for($participant->attendance_proof, StorageUrl::MAX_TTL_MINUTES)
-                    : '-',
-                match (true) {
-                    ! $hasPosttest => '-',
-                    $quiz !== null => 'Sudah Mengerjakan',
-                    default => 'Belum Mengerjakan',
-                },
-                // Belum mengerjakan ditulis "-", bukan 0: nilai 0 berarti mengerjakan dan salah semua.
-                $quiz ? (float) ($quiz->mc_score ?? $quiz->score) : '-',
-                $essayStatusLabel,
-                $quiz && $quiz->essay_score !== null ? (float) $quiz->essay_score : '-',
-                $quiz ? (float) $quiz->score : '-',
-                $quiz ? ($quiz->essay_feedback ?? '-') : '-',
-                $quiz ? (($quiz->tab_switch_count ?? 0).' kali') : '-',
-                $quiz ? ($quiz->is_force_submitted ? 'Auto-Submit (Melanggar)' : 'Normal') : '-',
-                $quiz && $quiz->submitted_at
-                    ? Carbon::parse($quiz->submitted_at)->format('d-m-Y H:i')
-                    : '-',
-                match (true) {
-                    ! $training->has_pretest => '-',
-                    $pretest !== null => (float) $pretest->score,
-                    default => 'Belum Mengerjakan',
-                },
+                ...($this->hasOffCamColumn() ? [$participant->is_off_cam ? ($participant->off_cam_count ?: 1).'x' : '-'] : []),
+                ...array_merge([], ...array_map(fn (string $step) => TrainingStepColumns::cells($step, $training, $participant, detailed: true, essay: $essay[$step]), $steps)),
             ];
         }
 
@@ -135,11 +114,12 @@ class TrainingRekapExport implements FromArray, WithCustomValueBinder, WithEvent
                 self::restoreDefaultValueBinder();
 
                 $sheet = $event->sheet->getDelegate();
+                $headings = $this->headings();
                 $totalRows = $this->training->participants->count();
                 $lastRow = self::DATA_START + $totalRows - 1;
                 $hRow = self::HEADING_ROW;
                 $dStart = self::DATA_START;
-                $lastCol = self::LAST_COL;
+                $lastCol = Coordinate::stringFromColumnIndex(count($headings));
 
                 // ── Judul baris 1: bold, rata tengah, merge ───────────────────
                 $sheet->mergeCells('A1:'.$lastCol.'1');
@@ -180,25 +160,19 @@ class TrainingRekapExport implements FromArray, WithCustomValueBinder, WithEvent
                         'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
                     ]);
 
-                    // Rata tengah kolom No dan nilai
-                    foreach (['A', 'F', 'J', 'L', 'M'] as $col) {
-                        $sheet->getStyle($col.$dStart.':'.$col.$lastRow)
-                            ->getAlignment()
-                            ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                    // Rata tengah kolom No, status kehadiran, dan nilai
+                    foreach ($headings as $index => $heading) {
+                        if (in_array($heading, ['No', 'Status Kehadiran'], true) || str_starts_with($heading, 'Nilai ') || str_starts_with($heading, 'Rata-rata ')) {
+                            $col = Coordinate::stringFromColumnIndex($index + 1);
+                            $sheet->getStyle($col.$dStart.':'.$col.$lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                        }
                     }
                 }
 
                 // ── Lebar kolom ───────────────────────────────────────────────
-                $widths = [
-                    'A' => 5,  'B' => 14,  'C' => 28,  'D' => 20,
-                    'E' => 16,  'F' => 15,  'G' => 16,  'H' => 40,
-                    'I' => 18,  'J' => 13,  'K' => 18,  'L' => 14,
-                    'M' => 14,  'N' => 28,  'O' => 15,  'P' => 22,
-                    'Q' => 18,
-                    'R' => 18,
-                ];
-                foreach ($widths as $col => $width) {
-                    $sheet->getColumnDimension($col)->setWidth($width);
+                foreach ($headings as $index => $heading) {
+                    $width = self::WIDTHS[$heading] ?? (str_starts_with($heading, 'Catatan Essay') ? 28 : self::DEFAULT_WIDTH);
+                    $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($index + 1))->setWidth($width);
                 }
             },
         ];

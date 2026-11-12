@@ -43,7 +43,8 @@ class LearningModuleScoresSheet implements FromArray, ShouldAutoSize, WithCustom
 
     public function title(): string
     {
-        return 'Pretest & Posttest';
+        // Bukan "Pretest & Posttest": pretest/posttest pelatihan ada di sheet Pelatihan.
+        return 'Modul & Kuis Materi';
     }
 
     public function headings(): array

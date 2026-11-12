@@ -124,9 +124,8 @@ class TrainingParticipant extends Model
     }
 
     /**
-     * Semua yang diminta pelatihan ini dari peserta sudah dikerjakan: posttest (yang sudah mencakup evaluasi bila
-     * evaluasi diurutkan sebelumnya); selain itu pretest dan form evaluasi yang ada; tanpa semuanya, cukup presensi
-     * (bila dipakai).
+     * Semua yang diminta pelatihan ini dari peserta sudah dikerjakan: posttest, pretest (bila tanpa posttest), dan
+     * form evaluasi yang ada; tanpa semuanya, cukup presensi (bila dipakai).
      */
     public function hasFinishedTasks(): bool
     {
@@ -137,9 +136,9 @@ class TrainingParticipant extends Model
                 return false;
             }
 
-            // Evaluasi yang diurutkan sebelum posttest wajib diisi dulu, jadi posttest yang selesai sudah mencakupnya;
-            // yang diurutkan sesudahnya masih harus diisi.
-            return $training->evaluationFollowsPosttest() || ! $training->hasEvaluationForm() || $this->evaluation !== null;
+            // Form evaluasi punya jam sendiri, jadi posttest bisa selesai tanpa evaluasi (jam evaluasinya belum tiba
+            // atau sudah lewat). Di urutan mana pun, form yang ada masih harus diisi.
+            return ! $training->hasEvaluationForm() || $this->evaluation !== null;
         }
 
         $hasEvaluation = $training->hasEvaluationForm();

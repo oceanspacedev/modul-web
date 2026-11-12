@@ -186,6 +186,26 @@ class TrainingEvaluationTest extends TestCase
         $this->travel(20)->minutes();
         $this->assertFalse($this->training->fresh()->isEvaluationOpen());
         $this->get(self::PORTAL.'/quiz')->assertOk();
+
+        // Posttest selesai tanpa evaluasi belum berarti selesai: begitu form dibuka lagi, evaluasinya ditagih.
+        $this->post(self::PORTAL.'/quiz', ['answers' => [$this->question->id => 'a']])->assertRedirect(self::PORTAL.'/result');
+        $next = fn () => TrainingParticipant::with(['training.evaluationQuestions', 'quizResult', 'pretestResult', 'evaluation'])->findOrFail($this->participant->id)->nextStep();
+        $this->assertNotSame('done', $next()['kind']);
+        $this->actingAs($this->admin)->post(route('training.evaluation-time', $this->training), ['open_mode' => 'now', 'close_mode' => 'none'])->assertSessionHas('success');
+        $this->assertSame(['label' => 'Isi evaluasi', 'kind' => 'action'], $next());
+        $this->post(self::PORTAL.'/evaluation', $this->answers())->assertSessionHas('success');
+        $this->assertSame(['label' => 'Selesai', 'kind' => 'done'], $next());
+    }
+
+    public function test_portal_reloads_when_the_quiz_opens_while_the_evaluation_is_still_owed(): void
+    {
+        // Evaluasi sudah terbuka sebelum kuis: saat kuis dibuka, kartu kuis harus dirender ulang server supaya
+        // tombolnya mengarah ke form evaluasi, bukan langsung ke kuis.
+        $this->training->update(['status' => TrainingStatus::Ongoing]);
+        $this->get(self::PORTAL)->assertOk()->assertSee('const evaluationBeforeQuiz  = true;', false);
+
+        $this->post(self::PORTAL.'/evaluation', $this->answers());
+        $this->get(self::PORTAL)->assertOk()->assertSee('const evaluationBeforeQuiz  = false;', false);
     }
 
     public function test_participant_fills_the_evaluation_before_the_posttest(): void
