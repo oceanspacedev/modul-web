@@ -314,14 +314,14 @@
         </div>
 
         <!-- FORM EVALUASI PELATIHAN (sebelum posttest) -->
-        @if($training->has_evaluation)
+        @if($training->hasEvaluationForm())
         <div class="content-card" id="evaluationCard">
             <div class="content-card-header">
                 <span><span class="badge badge-primary mr-1">Langkah {{ ++$step }}</span> Evaluasi Pelatihan</span>
                 @if($evaluation)
                     <span class="badge badge-success">Terisi</span>
                 @else
-                    <span class="text-muted small">{{ count(\App\Support\TrainingEvaluationForm::questions()) }} Penilaian</span>
+                    <span class="text-muted small">{{ $training->evaluationQuestions->count() }} Pertanyaan</span>
                 @endif
             </div>
 
@@ -459,7 +459,7 @@
             const currentPretestActive  = {{ $training->isPhaseActive('pretest') ? 'true' : 'false' }};
             const watchPretest          = {{ $training->has_pretest && ! $pretestResult ? 'true' : 'false' }};
             // Form evaluasi juga dirender server: muat ulang saat pemateri menyalakan/mematikan atau membukanya.
-            const currentHasEvaluation  = {{ $training->has_evaluation ? 'true' : 'false' }};
+            const currentHasEvaluation  = {{ $training->hasEvaluationForm() ? 'true' : 'false' }};
             const currentEvaluationOpen = {{ $training->isEvaluationOpen() ? 'true' : 'false' }};
             const watchEvaluation       = {{ $evaluation ? 'false' : 'true' }};
             let currentRequireProof     = {{ $training->require_attendance_proof ? 'true' : 'false' }};
@@ -616,6 +616,13 @@
                 }
             }
 
+            function attendanceInProgress() {
+                const proof = document.getElementById('attendanceProofInput');
+                const notes = document.querySelectorAll('#attendanceCard textarea');
+                return (proof && proof.files && proof.files.length > 0)
+                    || Array.prototype.some.call(notes, function (note) { return note.value.trim() !== ''; });
+            }
+
             function poll() {
                 fetch(STATUS_URL)
                     .then(function(res) { return res.json(); })
@@ -626,7 +633,10 @@
                             return;
                         }
 
-                        if (watchEvaluation && (data.has_evaluation !== currentHasEvaluation || data.is_evaluation_open !== currentEvaluationOpen)) {
+                        // Ditunda selama peserta sedang mengisi presensi (foto terpilih / alasan diketik) supaya isiannya
+                        // tidak hilang; pengecekan berikutnya mencoba lagi.
+                        if (watchEvaluation && !attendanceInProgress()
+                            && (data.has_evaluation !== currentHasEvaluation || data.is_evaluation_open !== currentEvaluationOpen)) {
                             window.location.reload();
                             return;
                         }

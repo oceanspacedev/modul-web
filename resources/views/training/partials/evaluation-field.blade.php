@@ -1,14 +1,17 @@
 {{--
-    Saklar Form Evaluasi di form pelatihan. Pertanyaannya tetap (App\Support\TrainingEvaluationForm).
+    Saklar Form Evaluasi di form pelatihan. Pertanyaannya dikelola per pelatihan di halaman Kelola Pertanyaan.
     $training: Training yang sedang diatur (null untuk pelatihan baru).
 --}}
 @php
-    $evaluationOn = (bool) old('has_evaluation', ($training ?? null)?->has_evaluation ?? false);
-    $evaluationCount = count(\App\Support\TrainingEvaluationForm::questions());
+    $evaluationTraining = $training ?? null;
+    $evaluationOn = (bool) old('has_evaluation', $evaluationTraining?->has_evaluation ?? false);
 @endphp
 <div class="card" id="form-evaluasi">
     <div class="card-header">
         <h3 class="card-title">Form Evaluasi</h3>
+        @if($evaluationTraining?->exists)
+            <a href="{{ route('training.evaluation.index', $evaluationTraining) }}" class="small card-tools">Kelola pertanyaan ({{ $evaluationTraining->evaluationQuestions()->count() }})</a>
+        @endif
     </div>
     <div class="card-body">
         <div class="quiz-rule mb-0">
@@ -22,8 +25,10 @@
             </div>
         </div>
         <p class="text-muted small mb-0 mt-2">
-            Peserta menilai pemateri dan pelatihan ({{ $evaluationCount }} skala 1-5 dan masukan opsional) sebelum mengerjakan posttest.
-            Nama, jabatan, divisi, tanggal, dan materi tidak ditanyakan lagi karena sudah ada di data peserta dan jadwal.
+            Peserta menilai pemateri dan pelatihan sebelum mengerjakan posttest. Form dimulai dari pertanyaan bawaan
+            ({{ count(\App\Support\TrainingEvaluationForm::defaultQuestions()) }} pertanyaan) dan bisa diubah per pelatihan lewat
+            <b>Kelola pertanyaan</b>{{ $evaluationTraining?->exists ? '' : ' setelah pelatihan disimpan' }}.
+            Nama, jabatan, divisi, tanggal, dan materi tidak perlu ditanyakan karena sudah ada di data peserta dan jadwal.
         </p>
     </div>
 </div>

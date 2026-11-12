@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Exports\LearningModuleQuestionsExport;
 use App\Exports\LearningModuleRekapExport;
 use App\Exports\ScoreRecapExport;
+use App\Exports\TrainingEvaluationSheet;
 use App\Exports\TrainingQuestionsExport;
 use App\Exports\TrainingRekapExport;
 use App\Exports\TrainingRekapWorkbook;
@@ -77,7 +78,12 @@ class GenerateExportFile extends BackgroundTask
         };
 
         $path = self::DIRECTORY.'/'.Str::uuid().'/'.$filename;
-        Excel::store($export, $path, 'local');
+        try {
+            Excel::store($export, $path, 'local');
+        } finally {
+            // Sheet evaluasi memasang pengikat nilai sendiri; pastikan kembali ke bawaan walau export gagal di tengah.
+            TrainingEvaluationSheet::restoreDefaultValueBinder();
+        }
 
         return new BackgroundTaskFinished(
             $this->kind(),
@@ -94,13 +100,17 @@ class GenerateExportFile extends BackgroundTask
      */
     private function training(): array
     {
-        $training = Training::with(['trainer', 'participants.user.divisi', 'participants.quizResult', 'participants.pretestResult'])->findOrFail($this->modelId);
+        $training = Training::findOrFail($this->modelId);
 
-        // Pelatihan dengan form evaluasi mendapat sheet kedua berisi jawaban evaluasi.
+        // Pelatihan dengan form evaluasi mendapat sheet kedua berisi jawaban evaluasi. Semua relasi dimuat sekali:
+        // load() bertingkat yang menyusul akan memuat ulang peserta dan membuang relasi yang sudah dimuat.
         $withEvaluation = $training->has_evaluation || $training->evaluations()->exists();
-        if ($withEvaluation) {
-            $training->load(['participants.evaluation', 'participants.user.position', 'participants.user.area', 'participants.user.roles']);
-        }
+        $training->load([
+            'trainer', 'participants.user.divisi', 'participants.quizResult', 'participants.pretestResult',
+            ...($withEvaluation
+                ? ['evaluationQuestions', 'participants.evaluation', 'participants.user.position', 'participants.user.area', 'participants.user.roles']
+                : []),
+        ]);
 
         return [
             $withEvaluation ? new TrainingRekapWorkbook($training) : new TrainingRekapExport($training),

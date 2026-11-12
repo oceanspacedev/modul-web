@@ -7,6 +7,7 @@ use App\Models\TrainingEvaluation;
 use App\Models\TrainingParticipant;
 use App\Models\TrainingQuizResult;
 use App\Support\TrainingEvaluationForm;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -58,6 +59,7 @@ class TrainingPortalController extends Controller
             'training.documents.versions',
             'training.documents.dokumentype',
             'training.documents.quizModule',
+            'training.evaluationQuestions',
             'user.divisi',
             'quizResult',
             'pretestResult',
@@ -422,32 +424,25 @@ class TrainingPortalController extends Controller
     }
 
     /**
-     * Evaluation form. Name, position, division, date, and topic come from the participant and the training, so the
-     * participant only rates the session.
+     * Evaluation form with this training's own questions. Name, position, division, date, and topic come from the
+     * participant and the training, so they are shown, not asked.
      */
     public function showEvaluation($token)
     {
         $participant = $this->findParticipant($token, [
             'training.trainer',
+            'training.evaluationQuestions',
             'user.divisi',
             'user.position',
             'user.area',
             'user.roles',
+            'quizResult',
             'evaluation',
         ]);
         $training = $participant->training;
-        $portal = "/training/portal/{$token}";
 
-        if (! $training->has_evaluation) {
-            return redirect($portal)->with('warning', 'Form evaluasi tidak diadakan untuk pelatihan ini.');
-        }
-
-        if ($participant->evaluation) {
-            return redirect($portal)->with('warning', 'Anda sudah mengisi form evaluasi pelatihan ini.');
-        }
-
-        if (! $training->isEvaluationOpen()) {
-            return redirect($portal)->with('warning', 'Form evaluasi belum dibuka. Harap menunggu instruksi dari pemateri.');
+        if ($blocked = $this->evaluationBlocked($training, $participant, "/training/portal/{$token}")) {
+            return $blocked;
         }
 
         return view('training.portal.evaluation', [
@@ -455,31 +450,28 @@ class TrainingPortalController extends Controller
             'participant' => $participant,
             'training' => $training,
             'user' => $participant->user,
-            'sections' => TrainingEvaluationForm::sections(),
+            'questionCount' => $training->evaluationQuestions->count(),
+            'sections' => TrainingEvaluationForm::sections($training->evaluationQuestions),
             'continuesToQuiz' => $this->quizFollowsEvaluation($training, $participant),
         ]);
     }
 
     public function submitEvaluation(Request $request, $token)
     {
-        $participant = $this->findParticipant($token, ['training', 'quizResult', 'evaluation']);
+        $participant = $this->findParticipant($token, ['training.evaluationQuestions', 'quizResult', 'evaluation']);
         $training = $participant->training;
         $portal = "/training/portal/{$token}";
 
-        if (! $training->has_evaluation) {
+        if (! $training->hasEvaluationForm()) {
             abort(404);
         }
 
-        if ($participant->evaluation) {
-            return redirect($portal)->with('warning', 'Anda sudah mengisi form evaluasi pelatihan ini.');
+        if ($blocked = $this->evaluationBlocked($training, $participant, $portal)) {
+            return $blocked;
         }
 
-        if (! $training->isEvaluationOpen()) {
-            return redirect($portal)->with('warning', 'Form evaluasi belum dibuka. Harap menunggu instruksi dari pemateri.');
-        }
-
-        $validated = $request->validate(TrainingEvaluationForm::rules(), TrainingEvaluationForm::messages());
-        $comment = trim((string) ($validated['comment'] ?? ''));
+        $questions = $training->evaluationQuestions;
+        $validated = $request->validate(TrainingEvaluationForm::rules($questions), TrainingEvaluationForm::messages());
 
         // Satu jawaban per peserta: kiriman ganda (klik dua kali) tidak membuat baris kedua.
         TrainingEvaluation::firstOrCreate(
@@ -487,8 +479,7 @@ class TrainingPortalController extends Controller
             [
                 'training_id' => $training->id,
                 'user_id' => $participant->user_id,
-                'ratings' => array_map('intval', array_intersect_key($validated['ratings'], TrainingEvaluationForm::questions())),
-                'comment' => $comment === '' ? null : $comment,
+                'answers' => TrainingEvaluationForm::answersFromInput($questions, $validated['answers'] ?? []),
                 'submitted_at' => now(),
             ],
         );
@@ -498,6 +489,21 @@ class TrainingPortalController extends Controller
         }
 
         return redirect($portal)->with('success', 'Terima kasih, evaluasi Anda tersimpan.');
+    }
+
+    /**
+     * Redirect back to the portal when the evaluation cannot be filled in right now; null when it can.
+     */
+    private function evaluationBlocked(Training $training, TrainingParticipant $participant, string $portal): ?RedirectResponse
+    {
+        $reason = match (true) {
+            ! $training->hasEvaluationForm() => 'Form evaluasi tidak diadakan untuk pelatihan ini.',
+            $participant->evaluation !== null => 'Anda sudah mengisi form evaluasi pelatihan ini.',
+            ! $training->isEvaluationOpen() => 'Form evaluasi belum dibuka. Harap menunggu instruksi dari pemateri.',
+            default => null,
+        };
+
+        return $reason ? redirect($portal)->with('warning', $reason) : null;
     }
 
     /**
@@ -518,13 +524,15 @@ class TrainingPortalController extends Controller
     {
         $participant = $this->findParticipant($token, ['training', 'quizResult']);
         $training = $participant->training;
+        // Dipanggil tiap beberapa detik oleh setiap peserta: cek adanya form evaluasi cukup sekali.
+        $hasEvaluationForm = $training->hasEvaluationForm();
 
         return response()->json([
             'is_attendance_active' => (bool) $training->is_attendance_active,
             'is_quiz_active' => (bool) $training->is_quiz_active,
             'is_pretest_active' => $training->isPhaseActive(Training::PHASE_PRETEST),
-            'has_evaluation' => (bool) $training->has_evaluation,
-            'is_evaluation_open' => $training->isEvaluationOpen(),
+            'has_evaluation' => $hasEvaluationForm,
+            'is_evaluation_open' => $hasEvaluationForm && $training->evaluationWindowOpen(),
             'require_attendance_proof' => (bool) $training->require_attendance_proof,
             'attendance_status' => $participant->attendance_status,
             'has_quiz_result' => $participant->quizResult ? true : false,

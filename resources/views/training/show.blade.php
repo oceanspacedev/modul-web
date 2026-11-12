@@ -297,53 +297,74 @@
 
                 <!-- HASIL FORM EVALUASI -->
                 @if($evaluation)
+                @php $scaleMax = \App\Support\TrainingEvaluationForm::SCALE_MAX; @endphp
                 <div class="card" id="hasil-evaluasi">
                     <div class="card-header">
                         <h3 class="card-title">
                             Hasil Evaluasi Peserta
                             <span class="text-muted text-sm font-weight-normal">({{ $evaluation['count'] }} dari {{ $stats['total'] }} mengisi)</span>
                         </h3>
-                        @unless($training->has_evaluation)
-                            <div class="card-tools"><span class="badge badge-secondary">Nonaktif</span></div>
-                        @endunless
+                        <div class="card-tools d-flex align-items-center gap-1">
+                            @unless($training->has_evaluation)
+                                <span class="badge badge-secondary">Nonaktif</span>
+                            @endunless
+                            <a href="{{ route('training.evaluation.index', $training) }}" class="btn btn-xs btn-default">Kelola Pertanyaan</a>
+                        </div>
                     </div>
                     <div class="card-body">
-                        @if($evaluation['count'] === 0)
+                        @if($evaluation['questionCount'] === 0)
                             <div class="text-center py-2 text-muted text-sm">
-                                Belum ada peserta yang mengisi form evaluasi.
+                                Form evaluasi belum punya pertanyaan.
+                            </div>
+                        @elseif($evaluation['count'] === 0)
+                            <div class="text-center py-2 text-muted text-sm">
+                                Belum ada peserta yang mengisi form evaluasi ({{ $evaluation['questionCount'] }} pertanyaan).
                             </div>
                         @else
-                            <div class="d-flex align-items-baseline gap-2 mb-3">
-                                <span class="score-value" style="font-size: 1.75rem;">{{ number_format($evaluation['average'], 2) }}</span>
-                                <span class="text-muted text-sm">rata-rata dari skala {{ \App\Support\TrainingEvaluationForm::SCALE_MAX }}</span>
-                            </div>
-                            @foreach($evaluation['questions'] as $item)
-                                <div class="mb-2">
-                                    <div class="d-flex justify-content-between align-items-baseline gap-2 text-sm">
-                                        <span>{{ $item['text'] }}</span>
-                                        <strong class="text-nowrap">{{ $item['average'] === null ? '-' : number_format($item['average'], 2) }}</strong>
-                                    </div>
-                                    <div class="rating-bar mt-1"><span style="width: {{ round(($item['average'] ?? 0) / \App\Support\TrainingEvaluationForm::SCALE_MAX * 100) }}%"></span></div>
-                                </div>
-                            @endforeach
-
-                            @if($evaluation['commentCount'] > 0)
-                                <div class="border-top mt-3 pt-3">
-                                    <div class="text-muted text-xs mb-2">
-                                        Masukan peserta ({{ $evaluation['commentCount'] }})
-                                        @if($evaluation['commentCount'] > $evaluation['comments']->count())
-                                            &middot; {{ $evaluation['comments']->count() }} terbaru, selengkapnya di Export Rekap
-                                        @endif
-                                    </div>
-                                    @foreach($evaluation['comments'] as $entry)
-                                        <div class="text-sm mb-2">
-                                            <strong>{{ $entry->user->nama_lengkap ?? 'Peserta' }}</strong>
-                                            <span class="text-muted text-xs">&middot; {{ $entry->submitted_at->format('d M Y H:i') }}</span>
-                                            <div style="white-space: pre-line;">{{ $entry->comment }}</div>
-                                        </div>
-                                    @endforeach
+                            @if($evaluation['average'] !== null)
+                                <div class="d-flex align-items-baseline gap-2 mb-3">
+                                    <span class="score-value" style="font-size: 1.75rem;">{{ number_format($evaluation['average'], 2) }}</span>
+                                    <span class="text-muted text-sm">rata-rata dari skala {{ $scaleMax }}</span>
                                 </div>
                             @endif
+                            @foreach($evaluation['questions'] as $item)
+                                @php $q = $item['question']; @endphp
+                                <div class="{{ $loop->last ? '' : 'mb-3' }}">
+                                    @if($q->isScale())
+                                        <div class="d-flex justify-content-between align-items-baseline gap-2 text-sm">
+                                            <span>{{ $q->question }}</span>
+                                            <strong class="text-nowrap">{{ $item['average'] === null ? '-' : number_format($item['average'], 2) }}</strong>
+                                        </div>
+                                        <div class="rating-bar mt-1"><span style="width: {{ round(($item['average'] ?? 0) / $scaleMax * 100) }}%"></span></div>
+                                    @elseif($q->type === \App\Models\TrainingEvaluationQuestion::TYPE_CHOICE)
+                                        <div class="text-sm mb-1">{{ $q->question }} <span class="text-muted text-xs">({{ $item['answered'] }} jawaban)</span></div>
+                                        @foreach($item['options'] as $option)
+                                            @php $share = $item['answered'] > 0 ? round($option['count'] / $item['answered'] * 100) : 0; @endphp
+                                            <div class="d-flex justify-content-between align-items-baseline gap-2 text-xs text-muted">
+                                                <span>{{ $option['label'] }}{{ $option['removed'] ? ' (opsi lama)' : '' }}</span>
+                                                <span class="text-nowrap">{{ $option['count'] }} &middot; {{ $share }}%</span>
+                                            </div>
+                                            <div class="rating-bar mb-1"><span style="width: {{ $share }}%"></span></div>
+                                        @endforeach
+                                    @else
+                                        <div class="text-sm mb-1">
+                                            {{ $q->question }}
+                                            <span class="text-muted text-xs">
+                                                ({{ $item['answered'] }} jawaban{{ $item['answered'] > count($item['entries']) ? ', '.count($item['entries']).' terbaru; selengkapnya di Export Rekap' : '' }})
+                                            </span>
+                                        </div>
+                                        @forelse($item['entries'] as $entry)
+                                            <div class="text-sm border-left pl-2 mb-2">
+                                                <strong>{{ $entry['name'] }}</strong>
+                                                <span class="text-muted text-xs">&middot; {{ $entry['at']->format('d M Y H:i') }}</span>
+                                                <div style="white-space: pre-line;">{{ $entry['text'] }}</div>
+                                            </div>
+                                        @empty
+                                            <div class="text-muted text-xs">Belum ada jawaban.</div>
+                                        @endforelse
+                                    @endif
+                                </div>
+                            @endforeach
                         @endif
                     </div>
                 </div>
@@ -470,7 +491,7 @@
                         @endif
 
                         <!-- FORM EVALUASI -->
-                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
+                        <div class="list-group-item d-flex align-items-start justify-content-between gap-2">
                             <div class="min-w-0">
                                 <div class="text-sm font-weight-bold">Form Evaluasi</div>
                                 <div class="text-muted text-xs">
@@ -481,6 +502,12 @@
                                         Peserta tidak diminta mengisi evaluasi
                                     @endif
                                 </div>
+                                @if($training->has_evaluation && $training->evaluationQuestions->isEmpty())
+                                    <div class="text-warning text-xs">Belum ada pertanyaan, jadi form belum tampil ke peserta</div>
+                                @elseif($training->has_evaluation && $training->has_posttest && $training->questions->isEmpty())
+                                    <div class="text-warning text-xs">Posttest belum punya soal, jadi evaluasi belum bisa dibuka. Buat soal, atau matikan posttest di Aturan Kuis</div>
+                                @endif
+                                <a href="{{ route('training.evaluation.index', $training) }}" class="text-xs">Kelola pertanyaan ({{ $training->evaluationQuestions->count() }})</a>
                             </div>
                             <form action="{{ route('training.toggle-evaluation', $training) }}" method="POST" class="m-0">
                                 @csrf
@@ -665,7 +692,8 @@
                                     <span class="text-muted">Belum mengerjakan</span>
                                 @endif
                                 @if($training->has_evaluation || $part->evaluation)
-                                    <span class="cell-sub">Evaluasi: {{ $part->evaluation ? number_format($part->evaluation->average() ?? 0, 1).' / '.\App\Support\TrainingEvaluationForm::SCALE_MAX : 'belum' }}</span>
+                                    @php $evaluationAverage = $part->evaluation?->average($training->evaluationQuestions); @endphp
+                                    <span class="cell-sub">Evaluasi: {{ $part->evaluation ? ($evaluationAverage === null ? 'terisi' : number_format($evaluationAverage, 1).' / '.\App\Support\TrainingEvaluationForm::SCALE_MAX) : 'belum' }}</span>
                                 @endif
                                 @if($training->has_pretest)
                                     <span class="cell-sub">Pretest: {{ $pretest ? $pretest->score.(($pretest->attempt_count ?? 1) > 1 ? ' (tertinggi dari '.$pretest->attempt_count.'x)' : '') : 'belum' }}</span>

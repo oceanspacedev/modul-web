@@ -15,7 +15,7 @@
                     <h1 class="h6 mb-0">{{ $training->title }}</h1>
                     <span class="text-muted small">Form Evaluasi Pelatihan</span>
                 </div>
-                <span class="badge badge-primary">{{ collect($sections)->flatten(1)->count() }} Penilaian</span>
+                <span class="badge badge-primary">{{ $questionCount }} Pertanyaan</span>
             </div>
         </div>
     </header>
@@ -62,43 +62,68 @@
             @csrf
 
             @php $number = 0; @endphp
-            @foreach($sections as $sectionTitle => $questions)
+            @foreach($sections as $section)
                 <div class="content-card">
-                    <div class="content-card-header">
-                        <span>{{ $sectionTitle }}</span>
-                        <span class="text-muted small font-weight-normal">1 = terendah, 5 = tertinggi</span>
-                    </div>
+                    @if(filled($section['title']))
+                        <div class="content-card-header">
+                            <span>{{ $section['title'] }}</span>
+                            @if(collect($section['questions'])->contains(fn ($q) => $q->isScale()))
+                                <span class="text-muted small font-weight-normal">1 = terendah, 5 = tertinggi</span>
+                            @endif
+                        </div>
+                    @endif
 
-                    @foreach($questions as $key => $question)
-                        @php $number++; @endphp
+                    @foreach($section['questions'] as $question)
+                        @php
+                            $number++;
+                            $field = 'answers['.$question->id.']';
+                            // Kiriman yang tidak wajar (mis. array) tidak ditampilkan kembali.
+                            $old = old('answers.'.$question->id);
+                            $old = is_scalar($old) ? (string) $old : '';
+                        @endphp
                         <fieldset class="rating-question">
-                            <legend>{{ $number }}. {{ $question['text'] }} <span class="text-danger">*</span></legend>
-                            <div class="rating-scale">
-                                @foreach(\App\Support\TrainingEvaluationForm::scale() as $value)
-                                    <label class="rating-option" title="{{ $loop->first ? $question['low'] : ($loop->last ? $question['high'] : $value) }}">
-                                        <input type="radio" name="ratings[{{ $key }}]" value="{{ $value }}" required
-                                            @checked((string) old('ratings.'.$key) === (string) $value)>
-                                        <span>{{ $value }}</span>
+                            <legend>
+                                {{ $number }}. {{ $question->question }}
+                                @if($question->is_required)
+                                    <span class="text-danger">*</span>
+                                @else
+                                    <span class="text-muted font-weight-normal">(opsional)</span>
+                                @endif
+                            </legend>
+
+                            @if($question->isScale())
+                                <div class="rating-scale">
+                                    @foreach(\App\Support\TrainingEvaluationForm::scale() as $value)
+                                        <label class="rating-option">
+                                            <input type="radio" name="{{ $field }}" value="{{ $value }}" @required($question->is_required)
+                                                @checked($old === (string) $value)>
+                                            <span>{{ $value }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                                @if(filled($question->low_label) || filled($question->high_label))
+                                    <div class="rating-scale-labels">
+                                        <span>{{ $question->low_label }}</span>
+                                        <span>{{ $question->high_label }}</span>
+                                    </div>
+                                @endif
+                            @elseif($question->type === \App\Models\TrainingEvaluationQuestion::TYPE_CHOICE)
+                                @foreach($question->options ?? [] as $option)
+                                    <label class="option-label">
+                                        <input type="radio" name="{{ $field }}" value="{{ $option }}" @required($question->is_required)
+                                            @checked($old === (string) $option)>
+                                        <div>{{ $option }}</div>
                                     </label>
                                 @endforeach
-                            </div>
-                            <div class="rating-scale-labels">
-                                <span>{{ $question['low'] }}</span>
-                                <span>{{ $question['high'] }}</span>
-                            </div>
+                            @else
+                                <textarea name="{{ $field }}" class="form-control" rows="3" @required($question->is_required)
+                                    maxlength="{{ \App\Support\TrainingEvaluationForm::TEXT_MAX }}"
+                                    aria-label="{{ $question->question }}" placeholder="Tuliskan jawaban Anda...">{{ $old }}</textarea>
+                            @endif
                         </fieldset>
                     @endforeach
                 </div>
             @endforeach
-
-            <div class="content-card">
-                <label for="evaluationComment" class="font-weight-bold d-block mb-2">
-                    Ada tanggapan atau masukan untuk keseluruhan sesi ini? <span class="text-muted font-weight-normal">(opsional)</span>
-                </label>
-                <textarea name="comment" id="evaluationComment" class="form-control" rows="4"
-                    maxlength="{{ \App\Support\TrainingEvaluationForm::COMMENT_MAX }}"
-                    placeholder="Tuliskan masukan Anda...">{{ old('comment') }}</textarea>
-            </div>
 
             <div class="content-card text-center mb-5">
                 <p class="text-muted small mb-3">

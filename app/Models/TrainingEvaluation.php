@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
-use App\Support\TrainingEvaluationForm;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 
 /**
- * Jawaban form evaluasi seorang peserta untuk satu pelatihan (satu baris per peserta).
+ * Jawaban form evaluasi seorang peserta untuk satu pelatihan (satu baris per peserta). answers berisi
+ * [id pertanyaan => jawaban]: angka untuk skala, teks untuk jawaban teks dan pilihan.
  */
 class TrainingEvaluation extends Model
 {
@@ -18,19 +19,28 @@ class TrainingEvaluation extends Model
     protected function casts(): array
     {
         return [
-            'ratings' => 'array',
+            'answers' => 'array',
             'submitted_at' => 'datetime',
         ];
     }
 
-    /**
-     * Rata-rata semua skala yang diisi (1-5); null bila tidak ada nilai.
-     */
-    public function average(): ?float
+    public function answerTo(TrainingEvaluationQuestion $question): int|string|null
     {
-        $values = array_filter(array_intersect_key($this->ratings ?? [], TrainingEvaluationForm::questions()));
+        return $this->answers[$question->id] ?? null;
+    }
 
-        return $values === [] ? null : round(array_sum($values) / count($values), 2);
+    /**
+     * Rata-rata jawaban skala (1-5) peserta ini; null bila tidak ada pertanyaan skala yang dijawab.
+     *
+     * @param  Collection<int, TrainingEvaluationQuestion>  $questions  pertanyaan pelatihannya
+     */
+    public function average(Collection $questions): ?float
+    {
+        $values = $questions->filter->isScale()
+            ->map(fn (TrainingEvaluationQuestion $question) => $this->answerTo($question))
+            ->filter(fn ($value) => is_numeric($value));
+
+        return $values->isEmpty() ? null : round($values->avg(), 2);
     }
 
     public function training()

@@ -14,6 +14,7 @@ use App\Http\Controllers\PositionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ScoreRecapController;
 use App\Http\Controllers\TrainingController;
+use App\Http\Controllers\TrainingEvaluationQuestionController;
 use App\Http\Controllers\TrainingPortalController;
 use App\Http\Controllers\TrainingQuestionController;
 use App\Http\Controllers\UserController;
@@ -165,6 +166,16 @@ Route::middleware('auth')->group(function () {
                 Route::post('save-zoom-off-cam', 'saveZoomOffCam')->name('save-zoom-off-cam');
                 Route::post('reset-zoom-off-cam/{participant}', 'resetZoomOffCam')->name('reset-zoom-off-cam');
                 Route::post('update-offcam-count/{participant}', 'updateOffCamCount')->name('update-offcam-count');
+            });
+
+            // # TRAINING EVALUATION FORM QUESTIONS
+            Route::controller(TrainingEvaluationQuestionController::class)->prefix('evaluation')->name('evaluation.')->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::post('/', 'store')->name('store');
+                Route::post('defaults', 'addDefaults')->name('defaults');
+                Route::put('{evaluationQuestion}', 'update')->name('update');
+                Route::post('{evaluationQuestion}/move', 'move')->name('move');
+                Route::delete('{evaluationQuestion}', 'destroy')->name('destroy');
             });
 
             // # TRAINING QUIZ QUESTIONS

@@ -12,7 +12,6 @@ use App\Jobs\SendTrainingInvitation;
 use App\Models\Divisi;
 use App\Models\Document;
 use App\Models\Training;
-use App\Models\TrainingEvaluation;
 use App\Models\TrainingParticipant;
 use App\Models\TrainingQuizResult;
 use App\Models\User;
@@ -41,7 +40,7 @@ class TrainingController extends Controller
     /** Participants per page on the training detail page. */
     private const PARTICIPANTS_PER_PAGE = 50;
 
-    /** Written feedback shown on the detail page; the export has all of it. */
+    /** Written answers shown per text question on the detail page; the export has all of them. */
     private const EVALUATION_COMMENTS_SHOWN = 20;
 
     /**
@@ -164,7 +163,7 @@ class TrainingController extends Controller
      */
     public function show(Request $request, Training $training): View
     {
-        $training->load(['trainer', 'questions', 'documents.versions', 'documents.dokumentype'])->loadCount('participants');
+        $training->load(['trainer', 'questions', 'evaluationQuestions', 'documents.versions', 'documents.dokumentype'])->loadCount('participants');
 
         // Only one page of participants is loaded and rendered, so the page stays small for any class size.
         $search = trim((string) $request->query('peserta'));
@@ -195,27 +194,21 @@ class TrainingController extends Controller
     }
 
     /**
-     * Evaluation averages and the latest written feedback for the detail page; null while the form is off and nobody
-     * has filled it in.
+     * Evaluation results per question for the detail page; null while the form is off and nobody has filled it in.
      *
-     * @return array{count: int, average: float|null, questions: array<string, array{text: string, average: float|null}>, comments: Collection<int, TrainingEvaluation>, commentCount: int}|null
+     * @return array{count: int, average: float|null, questions: list<array<string, mixed>>, questionCount: int}|null
      */
     private function evaluationSummary(Training $training): ?array
     {
-        $evaluations = $training->evaluations()->latest('submitted_at')->get();
+        $evaluations = $training->evaluations()->with('user:id,nama_lengkap')->latest('submitted_at')->get();
 
         if (! $training->has_evaluation && $evaluations->isEmpty()) {
             return null;
         }
 
-        $comments = $evaluations->filter(fn (TrainingEvaluation $evaluation) => filled($evaluation->comment))->values();
-        $shown = $comments->take(self::EVALUATION_COMMENTS_SHOWN);
-        $shown->load('user:id,nama_lengkap');
-
         return [
-            ...TrainingEvaluationForm::summarize($evaluations),
-            'comments' => $shown,
-            'commentCount' => $comments->count(),
+            ...TrainingEvaluationForm::summarize($training->evaluationQuestions, $evaluations, self::EVALUATION_COMMENTS_SHOWN),
+            'questionCount' => $training->evaluationQuestions->count(),
         ];
     }
 
@@ -442,9 +435,10 @@ class TrainingController extends Controller
             return back()->with('success', 'Form evaluasi DINONAKTIFKAN. Jawaban yang sudah masuk tetap tersimpan.');
         }
 
-        return back()->with('success', $training->has_posttest
+        return back()->with('success', ($training->has_posttest
             ? 'Form evaluasi DIAKTIFKAN. Peserta mengisinya sebelum mengerjakan posttest.'
-            : 'Form evaluasi DIAKTIFKAN. Peserta bisa mengisinya selama sesi berlangsung atau setelah selesai.');
+            : 'Form evaluasi DIAKTIFKAN. Peserta bisa mengisinya selama sesi berlangsung atau setelah selesai.')
+            .' Pertanyaannya bisa diubah lewat Kelola Pertanyaan.');
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\TrainingStatus;
 use App\Support\QuizRules;
+use App\Support\TrainingEvaluationForm;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -191,15 +192,62 @@ class Training extends Model
     }
 
     /**
-     * Form evaluasi bisa diisi sekarang. Tempatnya tepat sebelum posttest, jadi ikut terbuka saat posttest dibuka;
-     * pelatihan tanpa posttest membukanya selama sesi berlangsung atau sudah selesai.
+     * Pelatihan yang form evaluasinya baru dinyalakan dan belum punya pertanyaan mendapat template bawaan; pengelola
+     * lalu bebas mengubahnya. Pertanyaan yang sudah ada tidak disentuh.
      */
-    public function isEvaluationOpen(): bool
+    protected static function booted(): void
+    {
+        static::saved(function (Training $training): void {
+            if ($training->has_evaluation && ($training->wasRecentlyCreated || $training->wasChanged('has_evaluation'))) {
+                $training->addDefaultEvaluationQuestions();
+            }
+        });
+    }
+
+    /**
+     * Isi pertanyaan evaluasi dengan template bawaan bila pelatihan belum punya satu pun.
+     */
+    public function addDefaultEvaluationQuestions(): void
+    {
+        if ($this->evaluationQuestions()->exists()) {
+            return;
+        }
+
+        foreach (TrainingEvaluationForm::defaultQuestions() as $position => $question) {
+            $this->evaluationQuestions()->create([...$question, 'position' => $position + 1]);
+        }
+
+        $this->unsetRelation('evaluationQuestions');
+    }
+
+    /**
+     * Form evaluasi dinyalakan dan punya pertanyaan. Tanpa pertanyaan, peserta tidak diminta mengisi apa pun.
+     */
+    public function hasEvaluationForm(): bool
     {
         if (! $this->has_evaluation) {
             return false;
         }
 
+        return $this->relationLoaded('evaluationQuestions')
+            ? $this->evaluationQuestions->isNotEmpty()
+            : $this->evaluationQuestions()->exists();
+    }
+
+    /**
+     * Form evaluasi bisa diisi sekarang. Tempatnya tepat sebelum posttest, jadi ikut terbuka saat posttest dibuka;
+     * pelatihan tanpa posttest membukanya selama sesi berlangsung atau sudah selesai.
+     */
+    public function isEvaluationOpen(): bool
+    {
+        return $this->evaluationWindowOpen() && $this->hasEvaluationForm();
+    }
+
+    /**
+     * Saatnya evaluasi diisi menurut jalannya sesi, terlepas dari ada/tidaknya form.
+     */
+    public function evaluationWindowOpen(): bool
+    {
         return $this->has_posttest
             ? (bool) $this->is_quiz_active
             : in_array($this->status, [TrainingStatus::Ongoing, TrainingStatus::Completed], true);
@@ -210,7 +258,7 @@ class Training extends Model
      */
     public function awaitsEvaluationFrom(TrainingParticipant $participant): bool
     {
-        return $this->has_evaluation && $participant->evaluation === null;
+        return $participant->evaluation === null && $this->hasEvaluationForm();
     }
 
     public function trainer()
@@ -244,6 +292,14 @@ class Training extends Model
     public function evaluations()
     {
         return $this->hasMany(TrainingEvaluation::class, 'training_id');
+    }
+
+    /**
+     * Pertanyaan form evaluasi pelatihan ini, sesuai urutan tampil.
+     */
+    public function evaluationQuestions()
+    {
+        return $this->hasMany(TrainingEvaluationQuestion::class, 'training_id')->orderBy('position')->orderBy('id');
     }
 
     public function videos()

@@ -3,19 +3,27 @@
 namespace App\Exports;
 
 use App\Models\Training;
-use App\Support\TrainingEvaluationForm;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Events\AfterSheet;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 /**
- * Jawaban form evaluasi: satu baris per peserta yang mengisi, satu kolom per pertanyaan (skala 1-5).
- * Butuh relasi participants.evaluation dan participants.user (divisi, position, area, roles).
+ * Jawaban form evaluasi: satu baris per peserta yang mengisi, satu kolom per pertanyaan pelatihan ini.
+ * Butuh relasi evaluationQuestions, participants.evaluation, dan participants.user (divisi, position, area, roles).
+ *
+ * Jawaban teks diketik peserta, jadi setiap teks ditulis apa adanya sebagai teks: jawaban berawalan "=" tidak
+ * menjadi rumus (yang bisa menggagalkan export atau dijalankan Excel) dan "+62..." tidak berubah menjadi angka.
  */
-class TrainingEvaluationSheet implements FromArray, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
+class TrainingEvaluationSheet extends DefaultValueBinder implements FromArray, ShouldAutoSize, WithCustomValueBinder, WithEvents, WithHeadings, WithStyles, WithTitle
 {
     public function __construct(protected Training $training) {}
 
@@ -28,13 +36,14 @@ class TrainingEvaluationSheet implements FromArray, ShouldAutoSize, WithHeadings
     {
         return [
             'No', 'ID Karyawan', 'Nama Peserta', 'Jabatan', 'Posisi', 'Divisi', 'Area', 'Tanggal Pelatihan', 'Materi', 'Waktu Isi',
-            ...array_values(TrainingEvaluationForm::questions()),
-            'Rata-rata', 'Masukan',
+            ...$this->training->evaluationQuestions->pluck('question')->all(),
+            'Rata-rata Skala',
         ];
     }
 
     public function array(): array
     {
+        $questions = $this->training->evaluationQuestions;
         $rows = [];
         $no = 1;
 
@@ -56,13 +65,37 @@ class TrainingEvaluationSheet implements FromArray, ShouldAutoSize, WithHeadings
                 $this->training->training_date->format('d-m-Y'),
                 $this->training->title,
                 $evaluation->submitted_at->format('d-m-Y H:i'),
-                ...array_map(fn (string $key) => $evaluation->ratings[$key] ?? '-', array_keys(TrainingEvaluationForm::questions())),
-                $evaluation->average() ?? '-',
-                $evaluation->comment ?? '-',
+                ...$questions->map(fn ($question) => $evaluation->answerTo($question) ?? '-')->all(),
+                $evaluation->average($questions) ?? '-',
             ];
         }
 
         return $rows;
+    }
+
+    public function bindValue(Cell $cell, mixed $value): bool
+    {
+        if (is_string($value)) {
+            $cell->setValueExplicit($value, DataType::TYPE_STRING);
+
+            return true;
+        }
+
+        return parent::bindValue($cell, $value);
+    }
+
+    /**
+     * Pengikat nilai berlaku global di PhpSpreadsheet, jadi dikembalikan ke bawaan begitu sheet ini selesai agar
+     * export lain di proses yang sama tidak ikut terpengaruh.
+     */
+    public function registerEvents(): array
+    {
+        return [AfterSheet::class => fn () => self::restoreDefaultValueBinder()];
+    }
+
+    public static function restoreDefaultValueBinder(): void
+    {
+        Cell::setValueBinder(app(config('excel.value_binder.default', DefaultValueBinder::class)));
     }
 
     public function styles(Worksheet $sheet): array
