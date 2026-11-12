@@ -154,13 +154,16 @@ class TrainingController extends Controller
             'require_attendance_proof' => ['required', 'boolean'],
         ]);
         $settings = array_map(fn ($value) => (bool) $value, $validated);
+        $training->fill(['has_attendance' => $settings['has_attendance'] ?? $training->has_attendance]);
 
-        // Tanpa presensi, dua jawaban lainnya tidak berlaku.
-        if (! ($settings['has_attendance'] ?? $training->has_attendance)) {
-            $settings = [...$settings, 'is_attendance_active' => false, 'require_attendance_proof' => false];
-        }
-
-        $training->update([...$settings, 'setup_completed_at' => now()]);
+        // "Buka presensi sekarang?" membuka tanpa batas waktu atau menutup; jadwal yang sudah diatur di Kontrol Sesi
+        // tidak ikut terhapus bila jawabannya sama dengan keadaan sekarang. Tanpa presensi, dua jawaban lainnya tidak
+        // berlaku.
+        $training->fill([
+            ...$training->attendanceSwitchAttributes($settings['is_attendance_active']),
+            'require_attendance_proof' => $training->has_attendance && $settings['require_attendance_proof'],
+            'setup_completed_at' => now(),
+        ])->save();
 
         return to_route('training.show', $training)->with('success', 'Pengaturan disimpan. Pelatihan siap dijalankan.');
     }
@@ -322,7 +325,7 @@ class TrainingController extends Controller
         ];
 
         if ($request->has('is_attendance_active')) {
-            $data['is_attendance_active'] = $training->has_attendance && $request->boolean('is_attendance_active');
+            $data = [...$data, ...$training->attendanceSwitchAttributes($request->boolean('is_attendance_active'))];
         }
         if ($request->has('require_attendance_proof')) {
             $data['require_attendance_proof'] = $request->boolean('require_attendance_proof');
@@ -439,6 +442,15 @@ class TrainingController extends Controller
             return back()->with('error', "{$invalidKeys} soal pilihan ganda belum punya kunci jawaban yang valid. Perbaiki dulu di halaman Soal Kuis (soal bertanda \"Kunci jawaban tidak valid\").");
         }
 
+        return $this->openFromDialog($request, $training, $phase, $label);
+    }
+
+    /**
+     * Open a timed step (pretest, posttest, attendance) the way the "Buka" dialog asks: now or by itself at a clock
+     * time, closing at a clock time, after some minutes, or never.
+     */
+    private function openFromDialog(Request $request, Training $training, string $phase, string $label): RedirectResponse
+    {
         $opensAt = $this->openingTime($request, $training);
         $closesAt = $this->closingTime($request, $training, $phase, $opensAt);
         $training->openPhase($phase, $closesAt, $opensAt);
@@ -455,11 +467,12 @@ class TrainingController extends Controller
     }
 
     /**
-     * Change when an open phase closes: a fixed clock time, minutes from now, or no time limit.
+     * Change when an open timed step (pretest, posttest, attendance) closes: a fixed clock time, minutes from now,
+     * or no time limit.
      */
     public function updateQuizDeadline(Request $request, Training $training): RedirectResponse
     {
-        $phase = $request->validate(['phase' => ['required', Rule::in(Training::PHASES)]])['phase'];
+        $phase = $request->validate(['phase' => ['required', Rule::in(Training::TIMED_STEPS)]])['phase'];
         $label = Training::phaseLabel($phase);
 
         if (! $training->isPhaseActive($phase)) {
@@ -512,7 +525,7 @@ class TrainingController extends Controller
         ], [
             'close_time.required_if' => 'Isi jam tutupnya, mis. 09:50.',
             'close_time.date_format' => 'Jam tutup harus berformat jam:menit, mis. 09:50.',
-            'close_minutes.required_if' => 'Isi berapa menit kuis terbuka.',
+            'close_minutes.required_if' => 'Isi berapa menit terbukanya.',
         ]);
         $from = $opensAt ?? now();
 
@@ -543,12 +556,12 @@ class TrainingController extends Controller
     }
 
     /**
-     * Give participants more time on a phase that is open with a time limit.
+     * Give participants more time on a timed step (pretest, posttest, attendance) that is open with a time limit.
      */
     public function extendQuizTime(Request $request, Training $training): RedirectResponse
     {
         $validated = $request->validate([
-            'phase' => ['required', Rule::in(Training::PHASES)],
+            'phase' => ['required', Rule::in(Training::TIMED_STEPS)],
             'minutes' => ['required', 'integer', 'min:1', 'max:120'],
         ]);
         $phase = $validated['phase'];
@@ -589,22 +602,25 @@ class TrainingController extends Controller
     }
 
     /**
-     * Toggle attendance active status (Open/Close Absen)
+     * Open or close attendance. Like the pretest and posttest it can open now or by itself at a clock time, and
+     * close at a clock time, after some minutes, or never. The buttons send what they mean (open=1/0), so "Kunci"
+     * pressed right after the time ran out locks it instead of reopening it; without it the current state is flipped.
      */
-    public function toggleAttendance(Training $training): RedirectResponse
+    public function toggleAttendance(Request $request, Training $training): RedirectResponse
     {
         if (! $training->has_attendance) {
             return back()->with('error', 'Presensi tidak dipakai di pelatihan ini. Nyalakan dulu lewat Pakai Presensi.');
         }
 
-        $newStatus = ! $training->is_attendance_active;
-        $training->update(['is_attendance_active' => $newStatus]);
+        $open = $request->has('open') ? $request->boolean('open') : ! $training->isAttendanceOpen();
 
-        $message = $newStatus
-            ? 'Presensi kehadiran pelatihan telah DIBUKA untuk seluruh peserta!'
-            : 'Presensi kehadiran pelatihan telah DITUTUP sementara.';
+        if (! $open) {
+            $training->closePhase(Training::STEP_ATTENDANCE);
 
-        return back()->with('success', $message);
+            return back()->with('success', 'Presensi kehadiran pelatihan telah DITUTUP sementara.');
+        }
+
+        return $this->openFromDialog($request, $training, Training::STEP_ATTENDANCE, 'Presensi kehadiran pelatihan');
     }
 
     /**
@@ -614,7 +630,8 @@ class TrainingController extends Controller
     public function toggleAttendanceUse(Training $training): RedirectResponse
     {
         $uses = ! $training->has_attendance;
-        $training->update(['has_attendance' => $uses, ...($uses ? [] : ['is_attendance_active' => false])]);
+        // Mematikan presensi ikut menutupnya dan menghapus jadwalnya (lihat Training::booted()).
+        $training->update(['has_attendance' => $uses]);
 
         return back()->with('success', $uses
             ? 'Presensi DIPAKAI lagi. Buka presensi saat sesi dimulai.'

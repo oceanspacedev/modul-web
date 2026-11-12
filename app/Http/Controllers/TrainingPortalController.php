@@ -88,9 +88,15 @@ class TrainingPortalController extends Controller
             return back()->with('warning', 'Pelatihan ini tidak memakai presensi.');
         }
 
-        // Check if attendance is activated by admin (or quiz is active)
-        if (! $training->is_attendance_active && ! $training->isPhaseActive(Training::PHASE_POSTTEST)) {
-            return back()->with('warning', 'Presensi kehadiran saat ini belum dibuka oleh Pemateri / Admin. Harap menunggu instruksi dari pemateri.');
+        // Presensi punya jam buka dan jam tutup sendiri; kiriman masih diterima sebentar setelah jam tutupnya lewat.
+        if (! $training->acceptsAttendanceSubmission()) {
+            $opensAt = $training->phaseOpensAt(Training::STEP_ATTENDANCE);
+
+            return back()->with('warning', match (true) {
+                $opensAt !== null => 'Presensi dibuka otomatis '.Training::timeLabel($opensAt).' WIB.',
+                $training->phaseTimedOut(Training::STEP_ATTENDANCE) => 'Waktu pengisian presensi sudah habis.',
+                default => 'Presensi kehadiran saat ini belum dibuka oleh Pemateri / Admin. Harap menunggu instruksi dari pemateri.',
+            });
         }
 
         $rules = [
@@ -562,6 +568,11 @@ class TrainingPortalController extends Controller
             'pretest_opens_at' => $this->opensLabel($training, Training::PHASE_PRETEST),
             'quiz_timed_out' => $training->phaseTimedOut(Training::PHASE_POSTTEST),
             'pretest_timed_out' => $training->phaseTimedOut(Training::PHASE_PRETEST),
+            // Presensi berjadwal/berbatas waktu, sama seperti pretest dan posttest.
+            'attendance_seconds_left' => $training->phaseSecondsLeft(Training::STEP_ATTENDANCE),
+            'attendance_closes_at' => $training->phaseClosesAt(Training::STEP_ATTENDANCE)?->format('H:i'),
+            'attendance_opens_at' => $this->opensLabel($training, Training::STEP_ATTENDANCE),
+            'attendance_timed_out' => $training->phaseTimedOut(Training::STEP_ATTENDANCE),
             'has_evaluation' => $hasEvaluationForm,
             'is_evaluation_open' => $hasEvaluationForm && $training->evaluationWindowOpen(),
             'require_attendance_proof' => (bool) $training->require_attendance_proof,

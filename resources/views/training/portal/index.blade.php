@@ -87,6 +87,15 @@
             // Fase yang dijadwalkan pemateri: peserta diberi tahu jam bukanya.
             $pretestOpensAt = $training->phaseOpensAt('pretest');
             $quizOpensAt = $training->phaseOpensAt('posttest');
+            $attendanceOpensAt = $training->phaseOpensAt('attendance');
+            // Pesan presensi yang terkunci; dipakai render awal dan pembaruan berkala.
+            $attendanceLockedText = [
+                'title' => 'Presensi Kehadiran Belum Dibuka',
+                'closedTitle' => 'Presensi Kehadiran Sudah Ditutup',
+                'default' => 'Sesi presensi kehadiran saat ini belum dibuka oleh Pemateri / Admin. Silakan tunggu instruksi dari pemateri saat sesi pelatihan berlangsung.',
+                'scheduled' => 'Presensi dibuka otomatis ',
+                'timedOut' => 'Waktu pengisian presensi sudah habis.',
+            ];
         @endphp
 
         {{-- Kartu langkah peserta, dalam urutan yang diatur pemateri untuk pelatihan ini. --}}
@@ -141,8 +150,9 @@
             const QUIZ_URL   = '/training/portal/' + TOKEN + '/quiz';
 
             // State saat ini dari server (render awal Blade)
-            // Absen HANYA track is_attendance_active, tidak terpengaruh is_quiz_active
-            let currentAttendanceActive = {{ $training->is_attendance_active ? 'true' : 'false' }};
+            // Absen hanya mengikuti presensi (dibuka pemateri, jam bukanya sudah tiba, jam tutupnya belum lewat); tidak
+            // terpengaruh is_quiz_active.
+            let currentAttendanceActive = {{ $training->isAttendanceOpen() ? 'true' : 'false' }};
             let currentQuizActive       = {{ $quizActive ? 'true' : 'false' }};
             // Pretest dirender server; saat pemateri membuka/menutupnya halaman dimuat ulang.
             const currentPretestActive  = {{ $training->isPhaseActive('pretest') ? 'true' : 'false' }};
@@ -232,14 +242,17 @@
                     </div>`;
             }
 
+            // Teks presensi yang terkunci: belum dibuka, terjadwal, atau waktunya habis (diisi setAttendanceLocked()).
+            const ATTENDANCE_LOCKED = @json($attendanceLockedText);
+
             function buildAttendanceLockedHTML() {
                 return `
                     <div class="text-center py-4">
                         <span class="empty-state-icon"><i class="fas fa-user-clock"></i></span>
-                        <h6 class="mb-1">Presensi Kehadiran Belum Dibuka</h6>
-                        <p class="text-muted small mb-0" style="max-width: 480px; margin: 0 auto;">
-                            Sesi presensi kehadiran saat ini belum dibuka oleh Pemateri / Admin.
-                            Halaman ini memperbarui otomatis — Anda tidak perlu me-refresh.
+                        <h6 class="mb-1" data-attendance-locked-title>${ATTENDANCE_LOCKED.title}</h6>
+                        <p class="text-muted small mb-0" style="max-width: 480px; margin: 0 auto;" data-locked-text="attendance"
+                            data-default="${ATTENDANCE_LOCKED.default}" data-scheduled="${ATTENDANCE_LOCKED.scheduled}" data-timed-out="${ATTENDANCE_LOCKED.timedOut}">
+                            ${ATTENDANCE_LOCKED.default}
                         </p>
                     </div>`;
             }
@@ -359,6 +372,13 @@
                     : (timedOut ? el.dataset.timedOut : el.dataset.default);
             }
 
+            // Presensi yang terkunci: judul dan pesannya mengikuti jadwal buka atau waktu yang sudah habis.
+            function setAttendanceLocked(opensLabel, timedOut) {
+                setLockedText('attendance', opensLabel, timedOut);
+                const title = document.querySelector('[data-attendance-locked-title]');
+                if (title) title.textContent = timedOut && !opensLabel ? ATTENDANCE_LOCKED.closedTitle : ATTENDANCE_LOCKED.title;
+            }
+
             document.querySelectorAll('[data-deadline]').forEach(function (box) {
                 setDeadline(box.dataset.deadline, box.dataset.secondsLeft);
             });
@@ -371,6 +391,8 @@
 
                         setDeadline('pretest', data.pretest_seconds_left, data.pretest_closes_at);
                         setDeadline('posttest', data.quiz_seconds_left, data.quiz_closes_at);
+                        setDeadline('attendance', data.attendance_seconds_left, data.attendance_closes_at);
+                        setAttendanceLocked(data.attendance_opens_at, data.attendance_timed_out);
                         setLockedText('pretest', data.pretest_opens_at, data.pretest_timed_out);
                         setLockedText('posttest', data.quiz_opens_at, data.quiz_timed_out);
 
@@ -392,7 +414,7 @@
                             const attendanceBody  = document.getElementById('attendanceBody');
                             const attendanceBadge = document.getElementById('attendanceBadge');
 
-                            // Absensi HANYA mengikuti is_attendance_active
+                            // Absensi HANYA mengikuti presensi (terbuka, sudah jam bukanya, belum jam tutupnya);
                             // is_quiz_active TIDAK mempengaruhi tampilan absensi
                             const attendanceOpen = data.is_attendance_active;
 
@@ -409,11 +431,16 @@
                                     attendanceBadge.textContent = 'Belum Konfirmasi';
                                 }
                             } else if (!attendanceOpen && currentAttendanceActive) {
-                                // Admin tutup absen → kembali ke pesan terkunci
-                                currentAttendanceActive = false;
-                                if (attendanceBody) {
-                                    attendanceBody.innerHTML = buildAttendanceLockedHTML();
-                                    attendanceBody.setAttribute('data-state', 'locked');
+                                // Presensi ditutup atau waktunya habis → kembali ke pesan terkunci. Bila waktunya baru
+                                // habis saat peserta sedang mengisi (foto terpilih / alasan diketik), formnya dibiarkan:
+                                // kiriman masih diterima sebentar setelah jam tutup.
+                                if (!(data.attendance_timed_out && attendanceInProgress())) {
+                                    currentAttendanceActive = false;
+                                    if (attendanceBody) {
+                                        attendanceBody.innerHTML = buildAttendanceLockedHTML();
+                                        attendanceBody.setAttribute('data-state', 'locked');
+                                    }
+                                    setAttendanceLocked(data.attendance_opens_at, data.attendance_timed_out);
                                 }
                             } else if (attendanceOpen && data.require_attendance_proof !== currentRequireProof) {
                                 // Admin toggle wajib screenshot saat absen sudah terbuka

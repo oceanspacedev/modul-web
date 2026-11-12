@@ -60,12 +60,22 @@
         </div>
     @else
         {{-- BELUM ABSEN (STATUS: PENDING) --}}
-        @if(!$training->is_attendance_active)
+        {{-- Batas waktu presensi: selalu ada (tersembunyi bila tertutup atau tanpa batas waktu), seperti pretest/posttest. --}}
+        @include('training.partials.portal-deadline', ['phase' => 'attendance'])
+
+        @if(! $training->isAttendanceOpen())
             <div class="text-center py-4" id="attendanceBody" data-state="locked">
                 <span class="empty-state-icon"><i class="fas fa-user-clock"></i></span>
-                <h6 class="mb-1">Presensi Kehadiran Belum Dibuka</h6>
-                <p class="text-muted small mb-0" style="max-width: 480px; margin: 0 auto;">
-                    Sesi presensi kehadiran saat ini belum dibuka oleh Pemateri / Admin. Silakan tunggu instruksi dari pemateri saat sesi pelatihan berlangsung.
+                <h6 class="mb-1" data-attendance-locked-title>{{ $training->phaseTimedOut('attendance') ? $attendanceLockedText['closedTitle'] : $attendanceLockedText['title'] }}</h6>
+                <p class="text-muted small mb-0" style="max-width: 480px; margin: 0 auto;" data-locked-text="attendance"
+                    data-default="{{ $attendanceLockedText['default'] }}" data-scheduled="{{ $attendanceLockedText['scheduled'] }}" data-timed-out="{{ $attendanceLockedText['timedOut'] }}">
+                    @if($attendanceOpensAt)
+                        {{ $attendanceLockedText['scheduled'] }}{{ \App\Models\Training::timeLabel($attendanceOpensAt) }} WIB.
+                    @elseif($training->phaseTimedOut('attendance'))
+                        {{ $attendanceLockedText['timedOut'] }}
+                    @else
+                        {{ $attendanceLockedText['default'] }}
+                    @endif
                 </p>
             </div>
         @else

@@ -20,6 +20,12 @@ class Training extends Model
 
     public const PHASES = [self::PHASE_PRETEST, self::PHASE_POSTTEST];
 
+    /**
+     * Yang punya jam buka dan jam tutup sendiri lewat mekanisme "fase" (isPhaseActive(), openPhase(), dst.): pretest,
+     * posttest, dan presensi. Presensi bukan kuis, tapi dibuka, dijadwalkan, dan ditutup dengan cara yang sama.
+     */
+    public const TIMED_STEPS = [self::PHASE_PRETEST, self::PHASE_POSTTEST, self::STEP_ATTENDANCE];
+
     public const STEP_PRETEST = 'pretest';
 
     public const STEP_SESSION = 'session';
@@ -41,6 +47,9 @@ class Training extends Model
 
     /** Menit toleransi kiriman form evaluasi setelah jam tutupnya lewat. */
     public const EVALUATION_GRACE_MINUTES = 5;
+
+    /** Menit toleransi kiriman presensi (mis. foto yang sedang diunggah) setelah jam tutupnya lewat. */
+    public const ATTENDANCE_GRACE_MINUTES = 2;
 
     protected $guarded = ['id'];
 
@@ -73,6 +82,8 @@ class Training extends Model
             'status' => TrainingStatus::class,
             'is_quiz_active' => 'boolean',
             'is_attendance_active' => 'boolean',
+            'attendance_opens_at' => 'datetime',
+            'attendance_closes_at' => 'datetime',
             'has_attendance' => 'boolean',
             'portal_steps' => 'array',
             'evaluation_opens_at' => 'datetime',
@@ -263,9 +274,16 @@ class Training extends Model
         };
     }
 
+    /**
+     * Pelatihan ini memakai fase/langkah berjadwal itu (lihat TIMED_STEPS).
+     */
     public function hasPhase(string $phase): bool
     {
-        return $phase === self::PHASE_PRETEST ? $this->has_pretest : $this->has_posttest;
+        return (bool) match ($phase) {
+            self::PHASE_PRETEST => $this->has_pretest,
+            self::STEP_ATTENDANCE => $this->has_attendance,
+            default => $this->has_posttest,
+        };
     }
 
     /**
@@ -344,7 +362,12 @@ class Training extends Model
      */
     public function durationMinutes(string $phase): ?int
     {
-        return $phase === self::PHASE_PRETEST ? $this->pretest_duration_minutes : $this->quiz_duration_minutes;
+        return match ($phase) {
+            self::PHASE_PRETEST => $this->pretest_duration_minutes,
+            // Presensi tidak punya batas waktu bawaan; pemateri mengisinya saat membuka.
+            self::STEP_ATTENDANCE => null,
+            default => $this->quiz_duration_minutes,
+        };
     }
 
     /**
@@ -411,17 +434,29 @@ class Training extends Model
 
     private static function activeColumn(string $phase): string
     {
-        return $phase === self::PHASE_PRETEST ? 'is_pretest_active' : 'is_quiz_active';
+        return match ($phase) {
+            self::PHASE_PRETEST => 'is_pretest_active',
+            self::STEP_ATTENDANCE => 'is_attendance_active',
+            default => 'is_quiz_active',
+        };
     }
 
     private static function opensAtColumn(string $phase): string
     {
-        return $phase === self::PHASE_PRETEST ? 'pretest_opens_at' : 'quiz_opens_at';
+        return match ($phase) {
+            self::PHASE_PRETEST => 'pretest_opens_at',
+            self::STEP_ATTENDANCE => 'attendance_opens_at',
+            default => 'quiz_opens_at',
+        };
     }
 
     private static function closesAtColumn(string $phase): string
     {
-        return $phase === self::PHASE_PRETEST ? 'pretest_closes_at' : 'quiz_closes_at';
+        return match ($phase) {
+            self::PHASE_PRETEST => 'pretest_closes_at',
+            self::STEP_ATTENDANCE => 'attendance_closes_at',
+            default => 'quiz_closes_at',
+        };
     }
 
     /**
@@ -442,7 +477,11 @@ class Training extends Model
 
     public static function phaseLabel(string $phase): string
     {
-        return $phase === self::PHASE_PRETEST ? 'Pretest' : 'Posttest';
+        return match ($phase) {
+            self::PHASE_PRETEST => 'Pretest',
+            self::STEP_ATTENDANCE => 'Presensi',
+            default => 'Posttest',
+        };
     }
 
     /**
@@ -510,6 +549,17 @@ class Training extends Model
      */
     protected static function booted(): void
     {
+        // Presensi yang baru ditutup (atau tidak lagi dipakai) tidak menyimpan jadwal. Hanya saat kolomnya memang
+        // berubah, supaya model yang dimuat sebagian kolomnya tidak ikut tertutup.
+        static::saving(function (Training $training): void {
+            if (($training->isDirty('is_attendance_active') && ! $training->is_attendance_active)
+                || ($training->isDirty('has_attendance') && ! $training->has_attendance)) {
+                $training->is_attendance_active = false;
+                $training->attendance_opens_at = null;
+                $training->attendance_closes_at = null;
+            }
+        });
+
         static::saved(function (Training $training): void {
             if ($training->has_evaluation && ($training->wasRecentlyCreated || $training->wasChanged('has_evaluation'))) {
                 $training->addDefaultEvaluationQuestions();
@@ -620,11 +670,53 @@ class Training extends Model
     }
 
     /**
-     * Presensi dipakai dan sedang dibuka pemateri.
+     * Presensi dipakai dan sedang terbuka: dibuka pemateri, jam bukanya (bila dijadwalkan) sudah tiba, dan jam
+     * tutupnya (bila berbatas waktu) belum lewat.
      */
     public function isAttendanceOpen(): bool
     {
-        return $this->has_attendance && $this->is_attendance_active;
+        return $this->isPhaseActive(self::STEP_ATTENDANCE);
+    }
+
+    /**
+     * Presensi sedang terbuka atau dijadwalkan terbuka sendiri; saklar "Buka presensi" di form pelatihan dan
+     * pengaturan awal menampilkan keadaan ini.
+     */
+    public function isAttendanceOpenOrScheduled(): bool
+    {
+        return $this->isAttendanceOpen() || $this->phaseOpensAt(self::STEP_ATTENDANCE) !== null;
+    }
+
+    /**
+     * Kiriman presensi masih diterima: presensi sedang terbuka, atau jam tutupnya baru saja lewat (peserta yang
+     * sedang mengunggah foto saat waktu habis tidak ditolak). Presensi yang dikunci manual langsung tertutup.
+     */
+    public function acceptsAttendanceSubmission(): bool
+    {
+        if ($this->isAttendanceOpen()) {
+            return true;
+        }
+
+        return $this->phaseTimedOut(self::STEP_ATTENDANCE)
+            && $this->attendance_closes_at->copy()->addMinutes(self::ATTENDANCE_GRACE_MINUTES)->isFuture();
+    }
+
+    /**
+     * Kolom untuk saklar buka/tutup presensi (form pelatihan, pengaturan awal): buka sekarang tanpa batas waktu,
+     * atau tutup. Kosong bila keadaannya sudah sesuai, supaya jadwal dan batas waktu yang diatur di Kontrol Sesi
+     * tidak terhapus hanya karena form disimpan.
+     *
+     * @return array<string, mixed>
+     */
+    public function attendanceSwitchAttributes(bool $open): array
+    {
+        $open = $open && $this->has_attendance;
+
+        return $open === $this->isAttendanceOpenOrScheduled() ? [] : [
+            'is_attendance_active' => $open,
+            'attendance_opens_at' => null,
+            'attendance_closes_at' => null,
+        ];
     }
 
     /**

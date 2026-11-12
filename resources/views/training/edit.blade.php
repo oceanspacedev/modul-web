@@ -140,7 +140,9 @@
                         </div>
                         <div class="card-body">
                             <div class="custom-control custom-switch mb-3">
-                                <input type="checkbox" class="custom-control-input" id="is_attendance_active" name="is_attendance_active" value="1" {{ old('is_attendance_active', $training->is_attendance_active) ? 'checked' : '' }}>
+                                {{-- Tanpa ini saklar yang dimatikan tidak terkirim, jadi presensi tidak pernah tertutup dari form ini. --}}
+                                <input type="hidden" name="is_attendance_active" value="0">
+                                <input type="checkbox" class="custom-control-input" id="is_attendance_active" name="is_attendance_active" value="1" {{ old('is_attendance_active', $training->isAttendanceOpenOrScheduled()) ? 'checked' : '' }}>
                                 <label class="custom-control-label" for="is_attendance_active">
                                     Buka presensi
                                 </label>

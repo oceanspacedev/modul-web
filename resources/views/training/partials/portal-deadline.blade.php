@@ -1,8 +1,8 @@
 {{--
-    Peringatan batas waktu pretest/posttest di portal peserta: jam tutup otomatis dan hitung mundurnya. Selalu ada di
-    halaman (tersembunyi bila fase tertutup atau tanpa batas waktu) supaya bisa dimunculkan dari pengecekan status
+    Peringatan batas waktu pretest/posttest/presensi di portal peserta: jam tutup otomatis dan hitung mundurnya. Selalu
+    ada di halaman (tersembunyi bila tertutup atau tanpa batas waktu) supaya bisa dimunculkan dari pengecekan status
     berkala tanpa memuat ulang.
-    $phase: 'pretest' | 'posttest'.
+    $phase: 'pretest' | 'posttest' | 'attendance'.
 --}}
 @php
     $deadlineSeconds = $training->phaseSecondsLeft($phase);
