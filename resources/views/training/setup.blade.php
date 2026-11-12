@@ -46,7 +46,8 @@
                 @foreach($questions as $field => $q)
                     @php
                         $options = $q['options'] ?? ['1' => ['Ya', $q['yes']], '0' => ['Tidak', $q['no']]];
-                        $stored = $training->{$field};
+                        // Presensi yang dijadwalkan atau waktunya habis dinilai dari keadaan nyatanya, bukan saklarnya saja.
+                        $stored = $field === 'is_attendance_active' ? $training->isAttendanceOpenOrScheduled() : $training->{$field};
                         $current = session()->hasOldInput($field) ? (string) old($field) : (is_bool($stored) ? ($stored ? '1' : '0') : (string) $stored);
                     @endphp
                     <fieldset class="setup-wizard-step card-body" data-step="{{ $loop->index }}">

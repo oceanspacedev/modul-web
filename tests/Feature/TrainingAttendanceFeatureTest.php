@@ -117,9 +117,9 @@ class TrainingAttendanceFeatureTest extends TestCase
     }
 
     /**
-     * Test participant can submit attendance when quiz is opened (user requirement: kalo kuis dibuka baru bisa absen)
+     * Presensi punya jam buka/tutup sendiri: kuis yang terbuka tidak ikut membuka presensi yang tertutup.
      */
-    public function test_participant_can_submit_attendance_when_quiz_is_opened()
+    public function test_open_quiz_does_not_open_a_closed_attendance()
     {
         $this->training->update([
             'is_attendance_active' => false,
@@ -130,8 +130,8 @@ class TrainingAttendanceFeatureTest extends TestCase
             'status' => 'hadir',
         ]);
 
-        $res->assertSessionHas('success');
-        $this->assertEquals('hadir', $this->participant->fresh()->attendance_status);
+        $res->assertSessionHas('warning');
+        $this->assertEquals('pending', $this->participant->fresh()->attendance_status);
     }
 
     /**

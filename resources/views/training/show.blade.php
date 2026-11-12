@@ -111,8 +111,13 @@
                 'attendance' => [
                     'label' => 'Presensi',
                     'hint' => 'buka presensi untuk peserta.',
-                    'done' => $training->is_attendance_active || $stats['attended'] > 0,
-                    'action' => 'Buka Presensi', 'post' => route('training.toggle-attendance', $training),
+                    'done' => $training->isAttendanceOpenOrScheduled() || $stats['attended'] > 0,
+                    // Dialog waktu yang sama dengan tombol Buka Presensi di Kontrol Sesi.
+                    'action' => 'Buka Presensi', 'modal' => 'phaseTimeModal', 'modalData' => [
+                        'url' => route('training.toggle-attendance', $training), 'phase' => 'attendance', 'open' => '1',
+                        'title' => 'Buka Presensi', 'submit' => 'Buka Presensi',
+                        'intro' => 'Jam buka dan jam tutup berlaku sama untuk semua peserta. Setelah jam tutup lewat, presensi tertutup sendiri dan peserta yang belum mengisi tercatat Belum Absen.',
+                    ],
                 ],
                 'posttest' => [
                     'label' => $training->has_pretest ? 'Posttest' : 'Kuis',
@@ -599,7 +604,7 @@
             </div>
         </div>
 
-        <!-- MODAL BUKA / ATUR WAKTU PRETEST & POSTTEST (dipakai kedua fase; isinya diatur dari tombol pemicunya) -->
+        <!-- MODAL BUKA / ATUR WAKTU PRETEST, POSTTEST, PRESENSI & FORM EVALUASI (isinya diatur dari tombol pemicunya) -->
         <div class="modal fade" id="phaseTimeModal" tabindex="-1" role="dialog" aria-labelledby="phaseTimeModalTitle" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered" role="document">
                 <form action="" method="POST" class="modal-content">
