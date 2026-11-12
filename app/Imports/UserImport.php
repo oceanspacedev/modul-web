@@ -7,6 +7,7 @@ use App\Models\Divisi;
 use App\Models\Position;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\ApprovalScopeService;
 use App\Services\DataAccessService;
 use App\Support\WhatsAppNumber;
 use Exception;
@@ -19,6 +20,10 @@ use Throwable;
 /**
  * Import Excel karyawan dengan kolom yang sama seperti DnD: user dicocokkan lewat id_karyawan lalu username,
  * area/divisi/posisi dibuat bila belum ada, jabatan (role) harus sudah ada.
+ *
+ * Baris yang bermakna ganda ditolak dengan nomor barisnya, bukan ditebak: ID karyawan dan username yang menunjuk dua
+ * orang berbeda, nama yang sama dengan user lain tanpa username, user yang muncul dua kali di file, dan approval yang
+ * tidak ditemukan atau cocok dengan lebih dari satu orang. Baris lain tetap diimpor.
  */
 class UserImport implements ToModel, WithHeadingRow
 {
@@ -30,6 +35,12 @@ class UserImport implements ToModel, WithHeadingRow
     private int $rowNumber = 1;
 
     private int $successCount = 0;
+
+    /** @var array<int, int> id user => baris yang sudah mengimpornya di file ini */
+    private array $importedRows = [];
+
+    /** @var list<array{userId: int, input: string, row: int}> approval yang belum ditemukan saat barisnya dibaca */
+    private array $pendingApprovals = [];
 
     public function model(array $row): null
     {
@@ -74,9 +85,22 @@ class UserImport implements ToModel, WithHeadingRow
 
         $user = $employeeId !== '' ? User::withTrashed()->where('employee_id', $employeeId)->first() : null;
         $matchedByDerivedUsername = false;
-        if (! $user && $username !== '') {
+        if ($user) {
+            $this->rejectUsernameConflict($user, $rawUsername, $username);
+        } elseif ($username !== '') {
             $user = User::withTrashed()->where('username', $username)->first();
             $matchedByDerivedUsername = $user && $rawUsername === '';
+
+            // Username cocok tetapi ID karyawannya berbeda: dua orang berbeda (mis. nama sama), bukan user yang sama.
+            if ($user && $employeeId !== '' && filled($user->employee_id) && $user->employee_id !== $employeeId) {
+                throw new Exception($matchedByDerivedUsername
+                    ? "Nama ini menghasilkan username \"{$username}\" yang sudah dipakai user lain (ID karyawan {$user->employee_id}). Isi kolom username dengan username lain untuk user baru ini"
+                    : "Username \"{$username}\" sudah dipakai user dengan ID karyawan {$user->employee_id}, berbeda dengan ID di baris ini ({$employeeId})");
+            }
+        }
+
+        if ($user && isset($this->importedRows[$user->id])) {
+            throw new Exception("User ini sudah diimpor di baris {$this->importedRows[$user->id]} file yang sama. Sisakan satu baris per user");
         }
 
         if ($user && $hasPhone && $matchedByDerivedUsername) {
@@ -104,10 +128,14 @@ class UserImport implements ToModel, WithHeadingRow
 
         $position = $this->master(Position::class, (string) $this->value($row, ['position', 'posisi', 'position_name']));
 
-        $approvalInput = trim((string) $this->value($row, ['approval', 'approval_nama_lengkap']));
-        $approval = $approvalInput === '' ? null : User::query()
-            ->where(fn ($query) => $query->whereRaw('LOWER(nama_lengkap) = ?', [Str::lower($approvalInput)])->orWhere('employee_id', $approvalInput))
-            ->first();
+        // "-" adalah isi kolom approval kosong pada file export lama.
+        $approvalInput = Str::squish((string) $this->value($row, ['approval', 'approval_nama_lengkap']));
+        $approvalInput = $approvalInput === '-' ? '' : $approvalInput;
+        $approval = $approvalInput === '' ? null : $this->findApproval($approvalInput);
+
+        if ($approval && $user && ($approval->is($user) || ApprovalScopeService::createsApprovalCycle($user->id, $approval->id))) {
+            throw new Exception("Approval \"{$approvalInput}\" membentuk siklus: ia adalah user ini sendiri atau bawahannya");
+        }
 
         if ($user) {
             if ($user->trashed()) {
@@ -168,6 +196,74 @@ class UserImport implements ToModel, WithHeadingRow
         if ($user->jabatan?->isNot($role)) {
             $user->assignJabatan($role);
         }
+
+        $this->importedRows[$user->id] = $this->rowNumber;
+
+        // Atasan bisa saja baru dibuat oleh baris di bawahnya; dicari lagi setelah semua baris selesai.
+        if ($approvalInput !== '' && ! $approval) {
+            $this->pendingApprovals[] = ['userId' => $user->id, 'input' => $approvalInput, 'row' => $this->rowNumber];
+        }
+    }
+
+    /**
+     * Pasang approval yang belum ditemukan saat barisnya dibaca (atasannya ada di baris sesudahnya). Dipanggil setelah
+     * seluruh file selesai. Yang tetap tidak ditemukan dilaporkan; data lain user itu sudah tersimpan.
+     */
+    public function resolvePendingApprovals(): void
+    {
+        foreach ($this->pendingApprovals as $pending) {
+            try {
+                $user = User::findOrFail($pending['userId']);
+                $approval = $this->findApproval($pending['input'])
+                    ?? throw new Exception("Approval \"{$pending['input']}\" tidak ditemukan sebagai nama lengkap atau ID karyawan");
+
+                if ($approval->is($user) || ApprovalScopeService::createsApprovalCycle($user->id, $approval->id)) {
+                    throw new Exception("Approval \"{$pending['input']}\" membentuk siklus: ia adalah user ini sendiri atau bawahannya");
+                }
+
+                $user->update(['approval_id' => $approval->id]);
+            } catch (Throwable $e) {
+                $this->errors[] = "Baris {$pending['row']}: {$e->getMessage()}. Data lain user ini tersimpan, approval-nya tidak diubah.";
+            }
+        }
+
+        $this->pendingApprovals = [];
+    }
+
+    /**
+     * Atasan dari ID karyawan atau nama lengkapnya; null bila belum ada. Nama yang dimiliki lebih dari satu user
+     * ditolak karena tidak bisa dipastikan siapa yang dimaksud.
+     */
+    private function findApproval(string $input): ?User
+    {
+        $byEmployeeId = User::query()->where('employee_id', $input)->first();
+        if ($byEmployeeId) {
+            return $byEmployeeId;
+        }
+
+        $byName = User::query()->whereRaw('LOWER(nama_lengkap) = ?', [Str::lower($input)])->limit(2)->get();
+        if ($byName->count() > 1) {
+            throw new Exception("Approval \"{$input}\" cocok dengan lebih dari satu user. Isi kolom approval dengan ID karyawan atasannya");
+        }
+
+        return $byName->first();
+    }
+
+    /**
+     * User ditemukan lewat ID karyawan, tetapi kolom username menunjuk ke tempat lain: milik user lain, atau berbeda
+     * dari username user ini (username tidak diubah lewat import).
+     */
+    private function rejectUsernameConflict(User $user, string $rawUsername, string $username): void
+    {
+        if ($rawUsername === '' || $username === $this->normalizeUsername((string) $user->username)) {
+            return;
+        }
+
+        $owner = User::withTrashed()->where('username', $username)->whereKeyNot($user->id)->first();
+
+        throw new Exception($owner
+            ? "ID karyawan menunjuk {$user->nama_lengkap}, tetapi username \"{$username}\" milik {$owner->nama_lengkap}. Samakan keduanya"
+            : "Username di file (\"{$username}\") berbeda dengan username user ini (\"{$user->username}\"). Username tidak diubah lewat import; kosongkan kolomnya atau samakan");
     }
 
     /**

@@ -182,7 +182,7 @@ class BackgroundProcessingTest extends TestCase
     {
         Notification::fake();
         $training = $this->training();
-        Storage::disk('local')->put('imports/soal.csv', "tipe,pertanyaan,kunci,a,b\n"
+        Storage::disk('local')->put('imports/soal.csv', "tipe_soal,pertanyaan,kunci_jawaban,pilihan_a,pilihan_b\n"
             ."PG,APD utama?,A,Helm,Topi\n"
             ."PG,Warna jalur evakuasi?,Z,Merah,Hijau\n");
 

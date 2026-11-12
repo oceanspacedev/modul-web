@@ -191,6 +191,9 @@
                     <p class="text-muted small">
                         Gunakan <a href="{{ $module->url('questions.template') }}">template Excel</a>.
                         Kolom: pertanyaan, kunci_jawaban (A-E), pilihan_a s/d pilihan_e, penjelasan. Minimal isi pilihan A dan B.
+                        Baris pertama harus berisi judul kolom itu (kolom dibaca dari judulnya, hanya sheet pertama). Kunci harus
+                        huruf pilihan yang terisi atau teks yang sama persis dengan salah satu pilihan; satu baris yang tidak jelas
+                        membatalkan seluruh file.
                     </p>
                     <input type="file" name="file" class="form-control-file" accept=".xlsx,.xls,.csv" required>
                 </div>

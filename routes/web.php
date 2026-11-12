@@ -162,6 +162,7 @@ Route::middleware('auth')->group(function () {
                 // {result}: hasil pretest maupun posttest pelatihan ini (Training::results()).
                 Route::get('answer-sheet/{result}', 'answerSheet')->name('answer-sheet');
                 Route::post('grade-essay/{result}', 'gradeEssay')->name('grade-essay');
+                Route::post('regrade', 'regradeQuiz')->name('regrade');
                 Route::post('export', 'export')->name('export');
                 Route::get('live-stats', 'liveStats')->name('live-stats');
                 Route::post('attach-document', 'attachDocument')->name('attach-document');

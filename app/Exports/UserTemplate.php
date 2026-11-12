@@ -2,15 +2,20 @@
 
 namespace App\Exports;
 
+use App\Exports\Concerns\WritesTextAsText;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
 /**
  * Template import user, kolomnya sama dengan template DnD.
  */
-class UserTemplate implements FromCollection, WithHeadings
+class UserTemplate implements FromCollection, WithCustomValueBinder, WithEvents, WithHeadings
 {
+    use WritesTextAsText;
+
     public function collection(): Collection
     {
         return collect([

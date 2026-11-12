@@ -78,10 +78,12 @@ class QuestionExportTest extends TestCase
             $headings = $export->headings();
 
             return $headings[0] === 'tipe_soal'
-                && $headings[10] === 'catatan'
-                && $rows[0] === ['PG', 'APD utama?', 'C', 'Helm', 'Topi', 'Sandal', '', '', '', 'Pembahasan', '']
-                && $rows[1] === ['ESSAY', 'Jelaskan alur evakuasi!', 'Ikuti jalur hijau.', '', '', '', '', '', '', '', '']
-                && $rows[2][10] === TrainingQuestionsExport::IMAGE_NOTE;
+                && $headings[10] === 'dipakai_di'
+                && $headings[11] === 'catatan'
+                && $rows[0] === ['PG', 'APD utama?', 'C', 'Helm', 'Topi', 'Sandal', '', '', '', 'Pembahasan', 'KEDUANYA', '']
+                // Essay tanpa pilihan fase hanya dipakai di posttest.
+                && $rows[1] === ['ESSAY', 'Jelaskan alur evakuasi!', 'Ikuti jalur hijau.', '', '', '', '', '', '', '', 'POSTTEST', '']
+                && $rows[2][11] === TrainingQuestionsExport::IMAGE_NOTE;
         });
     }
 
@@ -91,11 +93,14 @@ class QuestionExportTest extends TestCase
         $this->seedTrainingQuestions($source);
         $target = $this->training('Tujuan');
 
+        // Pilihan "dipakai di" ikut terbawa lewat kolom dipakai_di.
+        $source->questions()->where('question', 'APD utama?')->update(['used_in' => 'pretest']);
+
         $file = UploadedFile::fake()->createWithContent('soal.xlsx', Excel::raw(new TrainingQuestionsExport($source), ExcelFormat::XLSX));
         $this->actingAs($this->admin)->post(route('training.questions.import-excel', $target), ['file' => $file])
             ->assertSessionHas('info');
 
-        $columns = ['type', 'question', 'option_a', 'option_b', 'option_c', 'correct_answer', 'explanation'];
+        $columns = ['type', 'question', 'option_a', 'option_b', 'option_c', 'correct_answer', 'explanation', 'used_in'];
         $this->assertSame(
             $source->questions()->orderBy('id')->get($columns)->toArray(),
             $target->questions()->orderBy('id')->get($columns)->toArray(),

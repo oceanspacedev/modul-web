@@ -2,18 +2,22 @@
 
 namespace App\Exports;
 
+use App\Exports\Concerns\WritesTextAsText;
 use App\Models\Training;
 use App\Support\StorageUrl;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromArray;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 
-class TrainingRekapExport implements FromArray, WithEvents, WithTitle
+class TrainingRekapExport implements FromArray, WithCustomValueBinder, WithEvents, WithTitle
 {
+    use WritesTextAsText;
+
     protected Training $training;
 
     const HEADING_ROW = 7;
@@ -55,7 +59,7 @@ class TrainingRekapExport implements FromArray, WithEvents, WithTitle
         foreach ($training->participants as $participant) {
             $user = $participant->user;
             // Kolom kuis adalah posttest. Pelatihan tanpa posttest (pretest saja, hanya evaluasi, atau hanya sesi)
-            // mengisinya dengan "-", bukan "Belum Mengerjakan" dan nilai 0.
+            // mengisinya dengan "-", bukan "Belum Mengerjakan".
             $hasPosttest = (bool) $training->has_posttest;
             $quiz = $hasPosttest ? $participant->quizResult : null;
             $pretest = $training->has_pretest ? $participant->pretestResult : null;
@@ -102,10 +106,11 @@ class TrainingRekapExport implements FromArray, WithEvents, WithTitle
                     $quiz !== null => 'Sudah Mengerjakan',
                     default => 'Belum Mengerjakan',
                 },
-                $quiz ? (float) ($quiz->mc_score ?? $quiz->score) : ($hasPosttest ? 0 : '-'),
+                // Belum mengerjakan ditulis "-", bukan 0: nilai 0 berarti mengerjakan dan salah semua.
+                $quiz ? (float) ($quiz->mc_score ?? $quiz->score) : '-',
                 $essayStatusLabel,
                 $quiz && $quiz->essay_score !== null ? (float) $quiz->essay_score : '-',
-                $quiz ? (float) $quiz->score : ($hasPosttest ? 0 : '-'),
+                $quiz ? (float) $quiz->score : '-',
                 $quiz ? ($quiz->essay_feedback ?? '-') : '-',
                 $quiz ? (($quiz->tab_switch_count ?? 0).' kali') : '-',
                 $quiz ? ($quiz->is_force_submitted ? 'Auto-Submit (Melanggar)' : 'Normal') : '-',
@@ -127,6 +132,8 @@ class TrainingRekapExport implements FromArray, WithEvents, WithTitle
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
+                self::restoreDefaultValueBinder();
+
                 $sheet = $event->sheet->getDelegate();
                 $totalRows = $this->training->participants->count();
                 $lastRow = self::DATA_START + $totalRows - 1;

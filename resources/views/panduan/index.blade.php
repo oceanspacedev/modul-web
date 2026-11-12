@@ -162,6 +162,7 @@
                         <li><b>Import User (Excel)</b>, pilih file, klik <b>Import</b>.</li>
                     </ol>
                     <p>Import berjalan di belakang layar. Hasilnya dan nomor baris yang gagal muncul di menu <b>Notifikasi</b>; perbaiki lalu impor ulang (tidak membuat duplikat).</p>
+                    <p>Baris yang bermakna ganda ditolak, bukan ditebak: ID karyawan dan username yang menunjuk dua orang berbeda, nama yang sama dengan user lain tanpa kolom username (isi username-nya), user yang muncul dua kali dalam satu file, serta approval yang tidak ditemukan atau cocok dengan lebih dari satu orang (isi dengan ID karyawan atasannya). Username tidak diubah lewat import. File hasil <b>Export</b> bisa langsung diimpor kembali; No. HP dan ID karyawan tersimpan sebagai teks sehingga nol di depannya tidak hilang.</p>
                     <details class="pg-more">
                         <summary>Detail untuk super admin: cakupan data, Import JSON, Sinkronisasi DnD</summary>
                         <div>
@@ -352,6 +353,7 @@
                         <tr><td>Menu tidak muncul</td><td>Jabatan belum punya izin. Minta admin mengatur di Jabatan &amp; Hak Akses.</td></tr>
                         <tr><td>Peserta tidak bisa absen</td><td>Pemateri belum klik <b>Buka Presensi</b>.</td></tr>
                         <tr><td>Peserta tidak bisa membuka kuis</td><td>Kuis belum dibuka (atau jadwal bukanya belum tiba), jam tutupnya sudah lewat (buka lagi dari Kontrol Sesi), belum ada soal, atau batas percobaannya sudah habis. Naikkan batas di <b>Aturan Kuis</b>, atau pakai <b>Reset Kuis Peserta</b> untuk menghapus hasil satu peserta agar ia bisa mengulang.</td></tr>
+                        <tr><td>Kunci jawaban salah, padahal peserta sudah mengerjakan</td><td>Perbaiki kuncinya lewat <b>Edit</b> di halaman soal (soal yang kuncinya rusak bertanda <b>Kunci jawaban tidak valid</b>), lalu tekan <b>Hitung Ulang Nilai</b> di halaman soal atau di menu <b>Opsi</b> halaman detail. Nilai semua peserta dihitung lagi memakai kunci saat ini; jawaban peserta dan nilai essay tidak berubah.</td></tr>
                         <tr><td>WA ke peserta tidak terkirim</td><td>No. HP kosong/salah. Perbaiki di data user, lalu <b>Kirim Notifikasi WA</b>.</td></tr>
                         <tr><td>Video Google Drive tidak bisa diputar</td><td>Ubah akses menjadi "Siapa saja yang memiliki link".</td></tr>
                         <tr><td>Upload gagal / "413 Request Entity Too Large"</td><td>File terlalu besar untuk server. Hubungi administrator.</td></tr>
@@ -360,6 +362,7 @@
                         <tr><td>Soal AI gagal dibuat</td><td>API key AI belum diatur atau dokumen tidak terbaca. Hubungi administrator.</td></tr>
                         <tr><td>Soal AI atau Scan Off Cam memuat sangat lama / tidak selesai</td><td>Prosesnya menunggu giliran di antrean; satu proses AI dikerjakan dalam satu waktu. Bila lebih dari 15 menit, minta administrator memastikan antrean (<b>Horizon</b>) berjalan, lalu ulangi.</td></tr>
                         <tr><td>Soal hasil Import Excel belum muncul</td><td>Import berjalan di belakang layar. Tunggu kabarnya di menu <b>Notifikasi</b>, lalu muat ulang halaman soal. Bila notifikasinya "Import soal gagal", perbaiki baris yang disebut dan impor ulang.</td></tr>
+                        <tr><td>Import soal ditolak</td><td>Notifikasi "Import soal gagal" (Excel) atau pesan merah (Import Teks Cepat) menyebut nomor baris/soal dan sebabnya. Yang paling sering: baris pertama bukan judul kolom template, kunci jawaban bukan huruf pilihan yang terisi, dua pilihan berisi teks sama, atau soal pilihan ganda tanpa baris KUNCI. Tidak ada soal yang tersimpan sampai seluruh file/teks benar.</td></tr>
                         <tr><td>Peserta tidak terlihat di detail pelatihan</td><td>Tabel menampilkan 50 peserta per halaman. Cari namanya di kotak <b>Cari peserta</b> (tekan Enter) atau buka halaman berikutnya.</td></tr>
                         <tr><td>User tidak terlihat saat memilih peserta</td><td>Daftar menampilkan 100 user dulu. Ketik nama, ID karyawan, atau username di kotak pencarian, atau klik tombol <b>Tampilkan &hellip; berikutnya</b> di bawah daftar.</td></tr>
                     </table>

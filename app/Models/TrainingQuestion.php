@@ -39,6 +39,16 @@ class TrainingQuestion extends Model
         });
     }
 
+    /**
+     * Kunci jawaban bisa dipakai menilai: soal pilihan ganda harus menunjuk salah satu pilihannya yang terisi. Essay
+     * dinilai pemateri, jadi selalu dianggap valid.
+     */
+    public function hasValidKey(): bool
+    {
+        return $this->type === 'essay'
+            || array_key_exists(strtolower((string) $this->correct_answer), $this->options());
+    }
+
     public function isUsedIn(string $phase): bool
     {
         return in_array($this->used_in ?? self::USED_IN_BOTH, [self::USED_IN_BOTH, $phase], true);

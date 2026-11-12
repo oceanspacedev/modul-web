@@ -140,6 +140,120 @@ class TrainingFlexibilityTest extends TestCase
         $this->actingAs($this->admin)->get(route('training.questions.index', $single))->assertOk()->assertDontSee('Dipakai di');
     }
 
+    public function test_ai_questions_must_be_saved_with_a_real_answer_key(): void
+    {
+        $training = $this->training();
+        $question = ['type' => 'multiple_choice', 'question' => 'Siapa yang melakukan setting unit?', 'option_a' => 'Kasir', 'option_b' => 'Gadget Specialist'];
+        $save = fn (array $q) => $this->actingAs($this->admin)->postJson(route('training.questions.save-ai-batch', $training), ['questions' => [$q]]);
+
+        // Nilai yang bukan huruf pilihan (dulu "question" dari panel Ubah dengan AI), kunci kosong, dan huruf yang
+        // pilihannya kosong semuanya ditolak.
+        $save([...$question, 'correct_answer' => 'question'])->assertStatus(422)->assertJson(['success' => false]);
+        $save([...$question, 'correct_answer' => ''])->assertStatus(422);
+        $save([...$question, 'correct_answer' => 'c'])->assertStatus(422);
+        $this->assertSame(0, $training->questions()->count());
+
+        $save([...$question, 'correct_answer' => 'B'])->assertOk()->assertJson(['success' => true]);
+        $this->assertSame('b', $training->questions()->sole()->correct_answer);
+
+        // Essay tetap memakai teks pedoman sebagai kuncinya.
+        $save(['type' => 'essay', 'question' => 'Jelaskan alurnya.', 'correct_answer' => 'Kasir memeriksa email.'])->assertOk();
+        $this->assertSame(2, $training->questions()->count());
+    }
+
+    public function test_question_with_a_broken_answer_key_is_flagged_and_blocks_the_quiz(): void
+    {
+        $training = $this->training();
+        $broken = $this->question($training, 'Soal kunci rusak', ['correct_answer' => 'question']);
+        $this->question($training, 'Soal sehat');
+        $this->assertFalse($broken->hasValidKey());
+
+        $this->actingAs($this->admin)->get(route('training.questions.index', $training))->assertOk()
+            ->assertSee('1 soal pilihan ganda tidak punya kunci jawaban yang valid.')->assertSee('Kunci jawaban tidak valid');
+        $this->actingAs($this->admin)->get(route('training.show', $training))->assertOk()
+            ->assertSee('1 soal pilihan ganda tidak punya kunci jawaban yang valid.');
+        $this->actingAs($this->admin)->post(route('training.toggle-quiz', $training), ['open' => '1'])->assertSessionHas('error');
+        $this->assertFalse($training->fresh()->is_quiz_active);
+
+        // Setelah kuncinya diperbaiki lewat Edit, tanda hilang dan kuis bisa dibuka.
+        $this->actingAs($this->admin)->put(route('training.questions.update', [$training, $broken]), [
+            'type' => 'multiple_choice', 'question' => 'Soal kunci rusak', 'option_a' => 'Benar', 'option_b' => 'Salah', 'correct_answer' => 'b',
+        ])->assertSessionHasNoErrors();
+        $this->assertTrue($broken->fresh()->hasValidKey());
+        $this->actingAs($this->admin)->get(route('training.questions.index', $training))->assertOk()->assertDontSee('Kunci jawaban tidak valid');
+        $this->actingAs($this->admin)->post(route('training.toggle-quiz', $training), ['open' => '1'])->assertSessionHas('success');
+    }
+
+    public function test_scores_are_recalculated_after_a_broken_key_is_fixed(): void
+    {
+        $training = $this->training(['has_pretest' => true]);
+        $broken = $this->question($training, 'Soal kunci rusak', ['correct_answer' => 'question']);
+        $healthy = $this->question($training, 'Soal sehat');
+        $essay = TrainingQuestion::create(['training_id' => $training->id, 'type' => 'essay', 'question' => 'Jelaskan.', 'used_in' => 'both']);
+        $participant = $training->participants()->sole();
+        $answer = fn (string $given, string $key, bool $correct) => ['type' => 'multiple_choice', 'user_answer' => $given, 'correct_answer' => $key, 'is_correct' => $correct];
+        $result = fn (string $phase, array $attributes) => TrainingQuizResult::create([
+            'training_id' => $training->id, 'user_id' => $participant->user_id, 'training_participant_id' => $participant->id,
+            'phase' => $phase, 'total_questions' => 3, 'attempt_count' => 1, 'submitted_at' => now(), ...$attributes,
+        ]);
+
+        // Peserta menjawab B pada soal rusak (dinilai salah karena kuncinya "question") dan benar pada soal sehat.
+        $answers = [
+            $broken->id => $answer('b', 'question', false),
+            $healthy->id => $answer('a', 'a', true),
+            $essay->id => ['type' => 'essay', 'user_answer' => 'Uraian.', 'correct_answer' => null, 'is_correct' => null],
+        ];
+        $posttest = $result('posttest', ['answers' => $answers, 'correct_answers' => 1, 'mc_score' => 50, 'score' => 50, 'essay_status' => 'pending']);
+        // Essay pretest sudah dinilai 100: (50 x 2 PG + 100 x 1 essay) / 3.
+        $pretest = $result('pretest', ['answers' => $answers, 'correct_answers' => 1, 'mc_score' => 50, 'essay_score' => 100, 'essay_status' => 'graded', 'score' => 66.67]);
+
+        // Memperbaiki kunci belum mengubah nilai, tetapi pemateri diberi tahu harus menghitung ulang.
+        $this->actingAs($this->admin)->put(route('training.questions.update', [$training, $broken]), [
+            'type' => 'multiple_choice', 'question' => 'Soal kunci rusak', 'option_a' => 'Benar', 'option_b' => 'Salah', 'correct_answer' => 'b',
+        ])->assertSessionHas('success', 'Soal kuis berhasil diperbarui! Kunci jawabannya berubah dan 2 hasil kuis sudah masuk: tekan Hitung Ulang Nilai agar nilai peserta mengikuti kunci baru.');
+        $this->assertSame(50.0, $posttest->fresh()->score);
+        $this->actingAs($this->admin)->get(route('training.questions.index', $training))->assertOk()->assertSee('Hitung Ulang Nilai');
+        $this->actingAs($this->admin)->get(route('training.show', $training))->assertOk()->assertSee('Hitung Ulang Nilai');
+
+        $this->actingAs(User::factory()->staff()->create())->from('/my-trainings')->post(route('training.regrade', $training))->assertSessionHas('error');
+        $this->assertSame(50.0, $posttest->fresh()->score);
+
+        $this->actingAs($this->admin)->post(route('training.regrade', $training))
+            ->assertSessionHas('success', 'Nilai dihitung ulang memakai kunci jawaban saat ini: 2 dari 2 hasil kuis berubah.');
+
+        // Posttest: 2 dari 2 PG benar; essay belum dinilai jadi nilainya nilai PG.
+        $posttest->refresh();
+        $this->assertSame(2, $posttest->correct_answers);
+        $this->assertSame(100.0, $posttest->score);
+        $this->assertSame('pending', $posttest->essay_status);
+        $this->assertTrue($posttest->answers[$broken->id]['is_correct']);
+        $this->assertSame('b', $posttest->answers[$broken->id]['correct_answer']);
+        $this->assertSame('b', $posttest->answers[$broken->id]['user_answer']);
+        // Pretest: nilai essay 100 tetap dipakai, jadi (100 x 2 + 100 x 1) / 3 = 100.
+        $pretest->refresh();
+        $this->assertSame(100.0, $pretest->score);
+        $this->assertSame(100.0, (float) $pretest->essay_score);
+
+        // Dijalankan lagi tanpa perubahan kunci: tidak ada yang berubah.
+        $this->actingAs($this->admin)->post(route('training.regrade', $training))
+            ->assertSessionHas('success', 'Nilai 2 hasil kuis sudah sesuai kunci jawaban saat ini; tidak ada yang berubah.');
+
+        // Soal yang dihapus memakai penilaian lamanya.
+        $healthy->delete();
+        $this->actingAs($this->admin)->post(route('training.regrade', $training))->assertSessionHas('success');
+        $this->assertSame(100.0, $posttest->fresh()->score);
+    }
+
+    public function test_recalculating_without_any_result_changes_nothing(): void
+    {
+        $training = $this->training();
+        $this->question($training, 'Soal');
+
+        $this->actingAs($this->admin)->get(route('training.questions.index', $training))->assertOk()->assertDontSee('Hitung Ulang Nilai');
+        $this->actingAs($this->admin)->post(route('training.regrade', $training))
+            ->assertSessionHas('success', 'Belum ada peserta yang mengerjakan kuis, jadi tidak ada nilai untuk dihitung ulang.');
+    }
+
     public function test_pretest_cannot_open_without_a_question_of_its_own(): void
     {
         $training = $this->training(['has_pretest' => true]);

@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Exports\Concerns\WritesTextAsText;
 use App\Models\Training;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
@@ -10,10 +11,6 @@ use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Events\AfterSheet;
-use PhpOffice\PhpSpreadsheet\Cell\Cell;
-use PhpOffice\PhpSpreadsheet\Cell\DataType;
-use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 /**
@@ -23,8 +20,10 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
  * Jawaban teks diketik peserta, jadi setiap teks ditulis apa adanya sebagai teks: jawaban berawalan "=" tidak
  * menjadi rumus (yang bisa menggagalkan export atau dijalankan Excel) dan "+62..." tidak berubah menjadi angka.
  */
-class TrainingEvaluationSheet extends DefaultValueBinder implements FromArray, ShouldAutoSize, WithCustomValueBinder, WithEvents, WithHeadings, WithStyles, WithTitle
+class TrainingEvaluationSheet implements FromArray, ShouldAutoSize, WithCustomValueBinder, WithEvents, WithHeadings, WithStyles, WithTitle
 {
+    use WritesTextAsText;
+
     public function __construct(protected Training $training) {}
 
     public function title(): string
@@ -71,31 +70,6 @@ class TrainingEvaluationSheet extends DefaultValueBinder implements FromArray, S
         }
 
         return $rows;
-    }
-
-    public function bindValue(Cell $cell, mixed $value): bool
-    {
-        if (is_string($value)) {
-            $cell->setValueExplicit($value, DataType::TYPE_STRING);
-
-            return true;
-        }
-
-        return parent::bindValue($cell, $value);
-    }
-
-    /**
-     * Pengikat nilai berlaku global di PhpSpreadsheet, jadi dikembalikan ke bawaan begitu sheet ini selesai agar
-     * export lain di proses yang sama tidak ikut terpengaruh.
-     */
-    public function registerEvents(): array
-    {
-        return [AfterSheet::class => fn () => self::restoreDefaultValueBinder()];
-    }
-
-    public static function restoreDefaultValueBinder(): void
-    {
-        Cell::setValueBinder(app(config('excel.value_binder.default', DefaultValueBinder::class)));
     }
 
     public function styles(Worksheet $sheet): array

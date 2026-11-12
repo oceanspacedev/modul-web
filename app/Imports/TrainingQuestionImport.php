@@ -2,121 +2,94 @@
 
 namespace App\Imports;
 
+use App\Models\Training;
 use App\Models\TrainingQuestion;
 use Exception;
-use Illuminate\Support\Collection;
-use Maatwebsite\Excel\Concerns\ToCollection;
-use Maatwebsite\Excel\Concerns\WithStartRow;
 
-class TrainingQuestionImport implements ToCollection, WithStartRow
+/**
+ * Kolom: tipe_soal, pertanyaan, kunci_jawaban, pilihan_a..pilihan_f, penjelasan, dipakai_di
+ * (lihat TrainingQuestionTemplate). Aturan bacanya ada di QuestionSheetImport.
+ */
+class TrainingQuestionImport extends QuestionSheetImport
 {
-    protected int $trainingId;
+    private const CHOICE_TYPES = ['pg', 'pilihan ganda', 'pilihan_ganda', 'multiple choice', 'multiple_choice', 'mc'];
 
-    protected int $importedCount = 0;
+    private const ESSAY_TYPES = ['essay', 'esai', 'uraian', 'text'];
 
-    public function __construct(int $trainingId)
+    /** Tulisan kolom dipakai_di yang dikenal => nilai used_in. */
+    private const USED_IN = [
+        'keduanya' => TrainingQuestion::USED_IN_BOTH,
+        'both' => TrainingQuestion::USED_IN_BOTH,
+        'pretest & posttest' => TrainingQuestion::USED_IN_BOTH,
+        'pretest dan posttest' => TrainingQuestion::USED_IN_BOTH,
+        'pretest' => Training::PHASE_PRETEST,
+        'pretest saja' => Training::PHASE_PRETEST,
+        'posttest' => Training::PHASE_POSTTEST,
+        'posttest saja' => Training::PHASE_POSTTEST,
+    ];
+
+    public function __construct(protected int $trainingId) {}
+
+    protected function requiredColumns(): array
     {
-        $this->trainingId = $trainingId;
+        return ['tipe_soal', 'pertanyaan', 'kunci_jawaban', 'pilihan_a', 'pilihan_b'];
     }
 
-    public function startRow(): int
+    protected function optionalColumns(): array
     {
-        return 2;
+        return ['pilihan_c', 'pilihan_d', 'pilihan_e', 'pilihan_f', 'penjelasan', 'dipakai_di'];
     }
 
-    public function collection(Collection $rows): void
+    protected function importRow(array $row, int $rowNumber): void
     {
-        foreach ($rows as $index => $row) {
-            $rowNumber = $index + 2; // offset for 1-based index and header row
-
-            $rawType = trim((string) ($row[0] ?? ''));
-            $questionText = trim((string) ($row[1] ?? ''));
-
-            // Skip empty rows
-            if ($questionText === '') {
-                continue;
-            }
-
-            $rawKey = trim((string) ($row[2] ?? ''));
-            $optA = trim((string) ($row[3] ?? '')) ?: null;
-            $optB = trim((string) ($row[4] ?? '')) ?: null;
-            $optC = trim((string) ($row[5] ?? '')) ?: null;
-            $optD = trim((string) ($row[6] ?? '')) ?: null;
-            $optE = trim((string) ($row[7] ?? '')) ?: null;
-            $optF = trim((string) ($row[8] ?? '')) ?: null;
-            $explanation = trim((string) ($row[9] ?? '')) ?: null;
-
-            $isEssay = in_array(strtolower($rawType), ['essay', 'esai', 'uraian', 'text']);
-
-            if ($isEssay) {
-                TrainingQuestion::create([
-                    'training_id' => $this->trainingId,
-                    'type' => 'essay',
-                    'question' => $questionText,
-                    'option_a' => null,
-                    'option_b' => null,
-                    'option_c' => null,
-                    'option_d' => null,
-                    'option_e' => null,
-                    'option_f' => null,
-                    'correct_answer' => $rawKey ?: null,
-                    'explanation' => $explanation,
-                ]);
-                $this->importedCount++;
-            } else {
-                // Multiple Choice Validation: At least Option A and Option B must be filled
-                if (! $optA || ! $optB) {
-                    throw new Exception("Baris ke-{$rowNumber}: Soal Pilihan Ganda '{$questionText}' harus memiliki minimal Pilihan A dan Pilihan B.");
-                }
-
-                // Determine correct key ('a', 'b', 'c', 'd', 'e', 'f')
-                $keyLetter = strtolower($rawKey);
-                $validOptions = [
-                    'a' => $optA,
-                    'b' => $optB,
-                    'c' => $optC,
-                    'd' => $optD,
-                    'e' => $optE,
-                    'f' => $optF,
-                ];
-
-                // If user wrote the full answer text instead of letter, match it
-                if (! array_key_exists($keyLetter, $validOptions) || empty($validOptions[$keyLetter])) {
-                    $matchedKey = null;
-                    foreach ($validOptions as $letter => $content) {
-                        if ($content !== null && strcasecmp(trim($content), $rawKey) === 0) {
-                            $matchedKey = $letter;
-                            break;
-                        }
-                    }
-
-                    if ($matchedKey) {
-                        $keyLetter = $matchedKey;
-                    } else {
-                        throw new Exception("Baris ke-{$rowNumber}: Kunci jawaban '{$rawKey}' untuk soal '{$questionText}' tidak valid atau tidak cocok dengan pilihan yang tersedia.");
-                    }
-                }
-
-                TrainingQuestion::create([
-                    'training_id' => $this->trainingId,
-                    'type' => 'multiple_choice',
-                    'question' => $questionText,
-                    'option_a' => $optA,
-                    'option_b' => $optB,
-                    'option_c' => $optC,
-                    'option_d' => $optD,
-                    'option_e' => $optE,
-                    'option_f' => $optF,
-                    'correct_answer' => $keyLetter,
-                    'explanation' => $explanation,
-                ]);
-                $this->importedCount++;
-            }
+        if ($row['pertanyaan'] === '') {
+            throw new Exception("Baris ke-{$rowNumber}: kolom pertanyaan kosong padahal kolom lain terisi. Isi pertanyaannya atau kosongkan seluruh baris.");
         }
+
+        $letters = TrainingQuestion::OPTION_LETTERS;
+        $hasOptions = collect($letters)->contains(fn (string $letter) => $row['pilihan_'.$letter] !== '');
+        $isEssay = $this->isEssay($row['tipe_soal'], $hasOptions, $rowNumber);
+
+        if ($isEssay && $hasOptions) {
+            throw new Exception("Baris ke-{$rowNumber}: soal ESSAY tidak boleh punya pilihan jawaban. Kosongkan kolom pilihan, atau ubah tipe_soal menjadi PG.");
+        }
+
+        $options = $isEssay ? [] : $this->options($row, $letters, $rowNumber);
+
+        TrainingQuestion::create([
+            'training_id' => $this->trainingId,
+            'type' => $isEssay ? 'essay' : 'multiple_choice',
+            'question' => $row['pertanyaan'],
+            ...collect($letters)->mapWithKeys(fn (string $letter) => ['option_'.$letter => $options[$letter] ?? null])->all(),
+            'correct_answer' => $isEssay
+                ? ($row['kunci_jawaban'] !== '' ? $row['kunci_jawaban'] : null)
+                : $this->keyLetter($row['kunci_jawaban'], $options, $letters, $rowNumber),
+            'explanation' => $row['penjelasan'] !== '' ? $row['penjelasan'] : null,
+            // Kosong = bawaan (pilihan ganda di kedua kuis, essay hanya di posttest).
+            ...($row['dipakai_di'] !== '' ? ['used_in' => $this->usedIn($row['dipakai_di'], $rowNumber)] : []),
+        ]);
     }
 
-    public function getImportedCount(): int
+    /**
+     * tipe_soal harus PG atau ESSAY. Bila kosong, baris yang punya pilihan dibaca sebagai PG; tanpa pilihan tipenya
+     * tidak bisa dipastikan, jadi ditolak.
+     */
+    private function isEssay(string $rawType, bool $hasOptions, int $rowNumber): bool
     {
-        return $this->importedCount;
+        $type = strtolower($rawType);
+
+        return match (true) {
+            in_array($type, self::ESSAY_TYPES, true) => true,
+            in_array($type, self::CHOICE_TYPES, true) => false,
+            $type === '' && $hasOptions => false,
+            $type === '' => throw new Exception("Baris ke-{$rowNumber}: tipe_soal kosong dan tidak ada pilihan jawaban. Isi tipe_soal dengan PG atau ESSAY."),
+            default => throw new Exception("Baris ke-{$rowNumber}: tipe_soal \"{$rawType}\" tidak dikenal. Isi dengan PG atau ESSAY."),
+        };
+    }
+
+    private function usedIn(string $value, int $rowNumber): string
+    {
+        return self::USED_IN[strtolower(preg_replace('/\s+/', ' ', $value))]
+            ?? throw new Exception("Baris ke-{$rowNumber}: dipakai_di \"{$value}\" tidak dikenal. Isi dengan KEDUANYA, PRETEST, atau POSTTEST (atau kosongkan).");
     }
 }

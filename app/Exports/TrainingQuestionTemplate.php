@@ -2,17 +2,21 @@
 
 namespace App\Exports;
 
+use App\Exports\Concerns\WritesTextAsText;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class TrainingQuestionTemplate implements FromArray, ShouldAutoSize, WithHeadings, WithStyles
+class TrainingQuestionTemplate implements FromArray, ShouldAutoSize, WithCustomValueBinder, WithEvents, WithHeadings, WithStyles
 {
     use Exportable;
+    use WritesTextAsText;
 
     public function headings(): array
     {
@@ -27,6 +31,7 @@ class TrainingQuestionTemplate implements FromArray, ShouldAutoSize, WithHeading
             'pilihan_e',       // Opsi E (opsional)
             'pilihan_f',       // Opsi F (opsional)
             'penjelasan',      // Catatan/pembahasan materi (opsional)
+            'dipakai_di',      // KEDUANYA, PRETEST, atau POSTTEST (opsional; hanya berpengaruh bila ada pretest dan posttest)
         ];
     }
 
@@ -44,6 +49,7 @@ class TrainingQuestionTemplate implements FromArray, ShouldAutoSize, WithHeading
                 '',
                 '',
                 'Verifikasi memastikan dokumen valid sebelum dipublikasikan.',
+                'KEDUANYA',
             ],
             [
                 'PG',
@@ -56,6 +62,7 @@ class TrainingQuestionTemplate implements FromArray, ShouldAutoSize, WithHeading
                 '',
                 '',
                 'Hanya peserta yang hadir yang berhak mengikuti evaluasi.',
+                'PRETEST',
             ],
             [
                 'PG',
@@ -68,6 +75,7 @@ class TrainingQuestionTemplate implements FromArray, ShouldAutoSize, WithHeading
                 'General Affair (GA)',
                 'Legal & Compliance',
                 'Pilihan A-F didukung secara fleksibel oleh sistem.',
+                '',
             ],
             [
                 'ESSAY',
@@ -80,6 +88,7 @@ class TrainingQuestionTemplate implements FromArray, ShouldAutoSize, WithHeading
                 '',
                 '',
                 'Kolom pilihan A-F dikosongkan untuk soal bertipe ESSAY.',
+                'POSTTEST',
             ],
         ];
     }

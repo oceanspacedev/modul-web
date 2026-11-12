@@ -3,75 +3,42 @@
 namespace App\Imports;
 
 use App\Models\LearningModule;
+use App\Models\LearningModuleQuestion;
 use Exception;
-use Illuminate\Support\Collection;
-use Maatwebsite\Excel\Concerns\ToCollection;
-use Maatwebsite\Excel\Concerns\WithStartRow;
 
 /**
- * Kolom: pertanyaan, kunci_jawaban, pilihan_a..pilihan_e, penjelasan (lihat LearningModuleQuestionTemplate).
+ * Kolom: pertanyaan, kunci_jawaban, pilihan_a..pilihan_e, penjelasan (lihat LearningModuleQuestionTemplate). Aturan
+ * bacanya ada di QuestionSheetImport.
  */
-class LearningModuleQuestionImport implements ToCollection, WithStartRow
+class LearningModuleQuestionImport extends QuestionSheetImport
 {
-    protected int $importedCount = 0;
-
     public function __construct(protected LearningModule $module, protected int $sortOrder) {}
 
-    public function startRow(): int
+    protected function requiredColumns(): array
     {
-        return 2;
+        return ['pertanyaan', 'kunci_jawaban', 'pilihan_a', 'pilihan_b'];
     }
 
-    public function collection(Collection $rows): void
+    protected function optionalColumns(): array
     {
-        foreach ($rows as $index => $row) {
-            $rowNumber = $index + 2; // offset for 1-based index and header row
+        return ['pilihan_c', 'pilihan_d', 'pilihan_e', 'penjelasan'];
+    }
 
-            $questionText = trim((string) ($row[0] ?? ''));
-
-            // Skip empty rows
-            if ($questionText === '') {
-                continue;
-            }
-
-            $rawKey = trim((string) ($row[1] ?? ''));
-            $options = [];
-            foreach (['a', 'b', 'c', 'd', 'e'] as $offset => $letter) {
-                $options[$letter] = trim((string) ($row[2 + $offset] ?? '')) ?: null;
-            }
-            $explanation = trim((string) ($row[7] ?? '')) ?: null;
-
-            if (! $options['a'] || ! $options['b']) {
-                throw new Exception("Baris ke-{$rowNumber}: Soal '{$questionText}' harus memiliki minimal Pilihan A dan Pilihan B.");
-            }
-
-            // Kunci boleh berupa huruf atau teks jawaban lengkap.
-            $keyLetter = strtolower($rawKey);
-            if (empty($options[$keyLetter] ?? null)) {
-                $keyLetter = collect($options)->search(fn ($content) => $content !== null && strcasecmp($content, $rawKey) === 0);
-
-                if ($keyLetter === false) {
-                    throw new Exception("Baris ke-{$rowNumber}: Kunci jawaban '{$rawKey}' untuk soal '{$questionText}' tidak valid atau tidak cocok dengan pilihan yang tersedia.");
-                }
-            }
-
-            $this->module->questions()->create([
-                'question' => $questionText,
-                'option_a' => $options['a'],
-                'option_b' => $options['b'],
-                'option_c' => $options['c'],
-                'option_d' => $options['d'],
-                'option_e' => $options['e'],
-                'correct_answer' => $keyLetter,
-                'explanation' => $explanation,
-                'sort_order' => $this->sortOrder++,
-            ]);
-            $this->importedCount++;
+    protected function importRow(array $row, int $rowNumber): void
+    {
+        if ($row['pertanyaan'] === '') {
+            throw new Exception("Baris ke-{$rowNumber}: kolom pertanyaan kosong padahal kolom lain terisi. Isi pertanyaannya atau kosongkan seluruh baris.");
         }
-    }
 
-    public function getImportedCount(): int
-    {
-        return $this->importedCount;
+        $letters = LearningModuleQuestion::OPTION_LETTERS;
+        $options = $this->options($row, $letters, $rowNumber);
+
+        $this->module->questions()->create([
+            'question' => $row['pertanyaan'],
+            ...collect($letters)->mapWithKeys(fn (string $letter) => ['option_'.$letter => $options[$letter] ?? null])->all(),
+            'correct_answer' => $this->keyLetter($row['kunci_jawaban'], $options, $letters, $rowNumber),
+            'explanation' => $row['penjelasan'] !== '' ? $row['penjelasan'] : null,
+            'sort_order' => $this->sortOrder++,
+        ]);
     }
 }
