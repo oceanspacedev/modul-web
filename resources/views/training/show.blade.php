@@ -135,7 +135,7 @@
                     'label' => 'Soal', 'meta' => $questionCount.' soal',
                     'hint' => 'siapkan soal kuis.',
                     'done' => $questionCount > 0,
-                    'action' => 'Buat Soal', 'url' => route('training.questions.index', $training),
+                    'action' => 'Siapkan Soal', 'url' => route('training.questions.index', $training),
                 ]] : []),
                 [
                     'label' => 'Pengaturan',
@@ -350,7 +350,12 @@
                                                 {{ $doc->dokumentype->name ?? 'Dokumen' }} &bull; v{{ $doc->version ?? ($latestVer->version_number ?? 1) }}
                                             </span>
                                         </div>
-                                        <div class="d-flex align-items-center flex-shrink-0 gap-1">
+                                        <div class="d-flex align-items-center justify-content-end flex-wrap gap-1">
+                                            @if($canImportDocumentQuestions && $doc->quizModule?->hasQuiz() && $doc->quizModule->questions_count > 0)
+                                                <a href="{{ route('training.questions.index', ['training' => $training, 'quiz_document' => $doc->id]) }}" class="btn btn-xs btn-default">
+                                                    Ambil Soal
+                                                </a>
+                                            @endif
                                             <a href="{{ $fileUrl }}" target="_blank" class="btn btn-xs btn-default">
                                                 Buka
                                             </a>

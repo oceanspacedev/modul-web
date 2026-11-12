@@ -94,6 +94,13 @@ class Document extends Model
         return $this->morphOne(LearningModule::class, 'source');
     }
 
+    public function scopeHasQuizQuestions(Builder $query): void
+    {
+        $query->whereHas('quizModule', fn (Builder $module) => $module
+            ->where(fn (Builder $phase) => $phase->where('has_pretest', true)->orWhere('has_posttest', true))
+            ->has('questions'));
+    }
+
     /**
      * Kuis yang sedang aktif (pretest atau posttest nyala dan sudah ada soal); butuh relasi quizModule.
      */

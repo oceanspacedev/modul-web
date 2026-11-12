@@ -130,7 +130,7 @@ class TrainingController extends Controller
         }
 
         return to_route('training.questions.index', $training)->with([
-            'success' => 'Pelatihan dibuat dengan '.count($participantIds).' peserta. Langkah berikutnya: buat soal kuis.',
+            'success' => 'Pelatihan dibuat dengan '.count($participantIds).' peserta. Langkah berikutnya adalah menyiapkan soal kuis.',
         ]);
     }
 
@@ -170,7 +170,12 @@ class TrainingController extends Controller
      */
     public function show(Request $request, Training $training): View
     {
-        $training->load(['trainer', 'questions', 'evaluationQuestions', 'documents.versions', 'documents.dokumentype'])->loadCount('participants');
+        $canImportDocumentQuestions = $training->hasQuiz() && $request->user()->checkPermissionTo('manage-documents');
+        $relations = ['trainer', 'questions', 'evaluationQuestions', 'documents.versions', 'documents.dokumentype'];
+        if ($canImportDocumentQuestions) {
+            $relations['documents.quizModule'] = fn ($query) => $query->withCount('questions');
+        }
+        $training->load($relations)->loadCount('participants');
 
         // Only one page of participants is loaded and rendered, so the page stays small for any class size.
         $search = trim((string) $request->query('peserta'));
@@ -195,6 +200,7 @@ class TrainingController extends Controller
             'participants' => $participants,
             'zoomParticipants' => $this->zoomParticipants($training),
             'allDocuments' => $allDocuments,
+            'canImportDocumentQuestions' => $canImportDocumentQuestions,
             'stats' => $this->stats($training),
             'evaluation' => $this->evaluationSummary($training),
         ]);
