@@ -32,7 +32,7 @@ class DashboardController extends Controller
         $totalTraining = Training::count();
         $ongoingTraining = Training::where('status', TrainingStatus::Ongoing)->count();
         $totalParticipant = TrainingParticipant::count();
-        $totalQuizResult = TrainingQuizResult::posttest()->count();
+        $totalQuizResult = TrainingQuizResult::mainPhase()->count();
         $totalDivisi = Divisi::count();
         $totalPosition = Position::count();
         $totalDokumenType = DokumenType::count();
@@ -48,8 +48,8 @@ class DashboardController extends Controller
             ->take(4)
             ->get();
 
-        // Recent quiz evaluation results
-        $recentQuizResults = TrainingQuizResult::posttest()->with(['participant.user', 'training'])
+        // Recent quiz results. "Main phase" = posttest, or the pretest of a training that only has a pretest.
+        $recentQuizResults = TrainingQuizResult::mainPhase()->with(['participant.user', 'training'])
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
@@ -67,7 +67,7 @@ class DashboardController extends Controller
         })->values();
 
         // Chart 2: Quiz Evaluation Score Distribution, counted by the database so the page never loads every score.
-        $scoreStats = TrainingQuizResult::posttest()->toBase()
+        $scoreStats = TrainingQuizResult::mainPhase()->toBase()
             ->selectRaw('COUNT(*) as total, AVG(score) as average, MAX(score) as highest, MIN(score) as lowest')
             ->selectRaw('SUM(CASE WHEN score >= 85 THEN 1 ELSE 0 END) as sangat_baik')
             ->selectRaw('SUM(CASE WHEN score >= 70 AND score < 85 THEN 1 ELSE 0 END) as baik')

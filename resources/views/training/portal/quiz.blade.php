@@ -15,7 +15,10 @@
                     <h1 class="h6 mb-0">{{ $training->title }}</h1>
                     <span class="text-muted small">{{ $phase === 'pretest' ? 'Pretest Pelatihan' : 'Kuis Evaluasi Pelatihan' }}</span>
                 </div>
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center flex-wrap justify-content-end gap-2">
+                    <span class="badge badge-warning" id="deadlineBadge" title="Kuis ditutup otomatis saat waktu habis" hidden>
+                        <i class="far fa-clock"></i> Sisa waktu <span id="deadlineClock"></span>
+                    </span>
                     <span class="badge badge-secondary" title="Maksimal 3 kali keluar halaman">
                         <i class="fas fa-shield-alt"></i> Toleransi Keluar: 3x
                     </span>
@@ -32,8 +35,15 @@
             <strong>Perhatian:</strong> Dilarang berpindah tab atau membuka aplikasi lain selama kuis berlangsung (toleransi maksimal 3 kali sebelum kuis otomatis dikumpulkan).
         </div>
 
+        @if($closesAt)
+            <div class="alert alert-warning mb-4">
+                <strong>Batas waktu:</strong> {{ $phase === 'pretest' ? 'Pretest' : 'Kuis' }} ini ditutup otomatis pukul {{ $closesAt->format('H:i') }} WIB. Saat waktu habis, jawaban yang sudah Anda isi otomatis dikumpulkan.
+            </div>
+        @endif
+
         <form action="{{ $phaseUrls['quiz'] }}" method="POST" id="formQuiz">
             @csrf
+            <input type="hidden" name="is_time_up" id="isTimeUp" value="0">
 
             <!-- Anti-Cheat Hidden Data -->
             <input type="hidden" name="tab_switch_count" id="tabSwitchCount" value="0">
@@ -120,6 +130,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 
+    @include('training.partials.quiz-deadline-script')
     <script>
     (function() {
         let tabSwitchCount = 0;
@@ -270,6 +281,16 @@
         document.getElementById('formQuiz').addEventListener('submit', function() {
             isSubmitting = true;
             stopAlarmSound();
+        });
+
+        // Batas waktu habis: kumpulkan jawaban yang sudah terisi, soal kosong ikut terkirim apa adanya.
+        window.startQuizDeadline(function() {
+            if (isSubmitting) return;
+            isSubmitting = true;
+            stopAlarmSound();
+            document.getElementById('isTimeUp').value = '1';
+            $('#formQuiz').find('[required]').removeAttr('required');
+            document.getElementById('formQuiz').submit();
         });
 
         // Prevent Copy, Cut, Context Menu

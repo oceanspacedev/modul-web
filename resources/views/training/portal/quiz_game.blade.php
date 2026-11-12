@@ -16,6 +16,9 @@
         <span class="game-mode">Mode game</span>
 
         <div class="game-bar-side">
+            <span class="badge badge-warning" id="deadlineBadge" title="Kuis ditutup otomatis saat waktu habis" hidden>
+                <i class="far fa-clock"></i> <span id="deadlineClock"></span>
+            </span>
             <span class="game-meta" id="streakBadge" title="Jawaban benar beruntun" @unless($showsAnswers) style="display: none;" @endunless>
                 <i class="fas fa-fire"></i> <span id="streakCount">0</span>
             </span>
@@ -50,6 +53,12 @@
                     <span class="game-stat-value">Nilai Akhir</span>
                 </div>
             </div>
+
+            @if($closesAt)
+                <p class="game-lead">
+                    {{ $phase === 'pretest' ? 'Pretest' : 'Kuis' }} ditutup otomatis pukul <strong>{{ $closesAt->format('H:i') }} WIB</strong>. Saat waktu habis, jawaban yang sudah masuk otomatis dikumpulkan.
+                </p>
+            @endif
 
             <button type="button" class="btn btn-primary btn-lg" id="btnStartGame">Mulai Game Kuis</button>
         </div>
@@ -173,6 +182,8 @@
         })->values()) !!};
     </script>
 
+    @include('training.partials.quiz-deadline-script')
+
     <!-- Audio FX & Game Controller -->
     <script>
     (function() {
@@ -291,6 +302,8 @@
         let timeLeft = QUESTION_TIME;
         let timerInterval = null;
         let canAnswer = false;
+        let gameStarted = false;
+        let gameEnded = false;
 
         const lobbyScreen = document.getElementById('lobbyScreen');
         const gameplayScreen = document.getElementById('gameplayScreen');
@@ -311,12 +324,31 @@
 
         document.getElementById('btnStartGame').addEventListener('click', () => {
             playClickSound();
+            gameStarted = true;
             lobbyScreen.style.display = 'none';
             gameplayScreen.style.display = 'flex';
             loadQuestion(0);
         });
 
+        // Batas waktu habis: yang sedang bermain langsung dikumpulkan dengan jawaban yang sudah masuk; yang belum
+        // mulai dikembalikan ke halaman pelatihan tanpa memakai jatah percobaan.
+        window.startQuizDeadline(function() {
+            if (gameEnded) return;
+            if (!gameStarted) {
+                window.location.href = @json($phaseUrls['portal']);
+                return;
+            }
+            // Essay yang sedang diketik ikut dikumpulkan.
+            const current = QUIZ_QUESTIONS[currentQuestionIndex];
+            if (canAnswer && current && current.type === 'essay') {
+                answersData[current.id] = essayInput.value.trim();
+            }
+            endGame();
+        });
+
         function loadQuestion(index) {
+            // Jeda antar-soal yang masih berjalan saat waktu habis tidak boleh memunculkan soal berikutnya.
+            if (gameEnded) return;
             currentQuestionIndex = index;
             canAnswer = true;
             feedbackBanner.style.display = 'none';
@@ -636,6 +668,9 @@
 
         // Finish Game & Auto Submit
         function endGame() {
+            if (gameEnded) return;
+            gameEnded = true;
+            canAnswer = false;
             clearInterval(timerInterval);
             if (gameplayScreen) gameplayScreen.style.display = 'none';
             if (finishScreen) {

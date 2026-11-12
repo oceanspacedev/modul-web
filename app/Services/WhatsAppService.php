@@ -6,6 +6,7 @@ use App\Models\Training;
 use App\Models\TrainingParticipant;
 use Carbon\Carbon;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -143,12 +144,36 @@ class WhatsAppService
         $msg .= "Pemateri: {$trainerName}\n";
         $msg .= "Hari/Tanggal: {$dateFormatted}\n";
         $msg .= "Waktu: {$timeFormatted}\n";
-        $msg .= "Link Zoom/Meeting: {$training->zoom_link}\n\n";
-        $msg .= "Untuk melakukan konfirmasi kehadiran dan pengerjaan kuis evaluasi, silakan buka tautan berikut:\n";
+        // Pelatihan tatap muka tidak punya tautan meeting.
+        $msg .= $training->zoom_link ? "Link Zoom/Meeting: {$training->zoom_link}\n\n" : "\n";
+        $msg .= 'Untuk '.self::portalActivities($training).", silakan buka tautan berikut:\n";
         $msg .= "{$portalUrl}\n\n";
         $msg .= 'Mohon hadir tepat waktu. Terima kasih atas perhatian dan kerja samanya.';
 
         return $msg;
+    }
+
+    /**
+     * What the participant does on the portal for this training, e.g. "melakukan konfirmasi kehadiran dan pengerjaan
+     * kuis evaluasi". Only what the training actually has is mentioned (attendance, pretest, posttest, evaluation).
+     */
+    private static function portalActivities(Training $training): string
+    {
+        $quiz = match (true) {
+            $training->has_pretest && $training->has_posttest => 'pengerjaan pretest dan posttest',
+            (bool) $training->has_pretest => 'pengerjaan pretest',
+            (bool) $training->has_posttest => 'pengerjaan kuis evaluasi',
+            default => null,
+        };
+
+        $activities = array_filter([
+            $training->has_attendance ? 'konfirmasi kehadiran' : null,
+            $quiz,
+            $training->has_evaluation ? 'pengisian form evaluasi' : null,
+        ]);
+
+        // Pelatihan yang hanya sesi, tanpa presensi: portal tetap memuat rincian dan materinya.
+        return $activities === [] ? 'melihat rincian pelatihan' : 'melakukan '.Arr::join($activities, ', ', ' dan ');
     }
 
     /**

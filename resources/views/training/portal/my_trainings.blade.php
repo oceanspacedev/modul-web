@@ -29,16 +29,17 @@
                         @forelse($participations as $index => $part)
                         @php
                             $t = $part->training;
-                            $quiz = $part->quizResult;
-                            $pretest = $part->pretestResult;
-                            [$todo, $todoClass, $needsAction] = match (true) {
-                                $t->status === App\Enums\TrainingStatus::Cancelled => ['Dibatalkan', 'text-muted', false],
-                                $quiz !== null => ['Selesai', 'text-success', false],
-                                $t->isPhaseActive('pretest') && $pretest === null => ['Kerjakan pretest', 'text-primary font-weight-bold', true],
-                                $t->is_attendance_active && $part->attendance_status === 'pending' => ['Isi presensi', 'text-primary font-weight-bold', true],
-                                $t->isPhaseActive('posttest') => [$t->has_pretest ? 'Kerjakan posttest' : 'Kerjakan kuis', 'text-primary font-weight-bold', true],
-                                $t->status === App\Enums\TrainingStatus::Completed => ['Selesai', 'text-muted', false],
-                                default => ['Menunggu pemateri', 'text-muted', false],
+                            // Nilai yang ditampilkan: kuis utama pelatihan (posttest, atau pretest bila hanya itu).
+                            $mainPhase = $t->mainPhase();
+                            $quiz = $mainPhase ? $part->resultFor($mainPhase) : null;
+                            $pretest = $mainPhase === 'posttest' && $t->has_pretest ? $part->pretestResult : null;
+                            $step = $part->nextStep();
+                            $todo = $step['label'];
+                            $needsAction = $step['kind'] === 'action';
+                            $todoClass = match ($step['kind']) {
+                                'action' => 'text-primary font-weight-bold',
+                                'done' => 'text-success',
+                                default => 'text-muted',
                             };
                         @endphp
                         <tr>
@@ -61,7 +62,9 @@
                                 <span class="text-muted small">{{ substr($t->start_time, 0, 5) }} - {{ substr($t->end_time, 0, 5) }} WIB</span>
                             </td>
                             <td class="text-center">
-                                @if($part->attendance_status === 'hadir')
+                                @if(! $t->has_attendance)
+                                    <span class="text-muted small">-</span>
+                                @elseif($part->attendance_status === 'hadir')
                                     <span class="badge badge-success">Hadir</span>
                                 @elseif($part->attendance_status === 'tidak_hadir')
                                     <span class="badge badge-danger">Tidak Hadir</span>

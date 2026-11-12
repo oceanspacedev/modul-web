@@ -58,7 +58,9 @@ class TrainingScoresSheet implements FromArray, ShouldAutoSize, WithHeadings, Wi
         foreach ($trainings as $training) {
             foreach ($training->participants->sortBy(fn ($participant) => $participant->user?->nama_lengkap) as $participant) {
                 $user = $participant->user;
-                $quiz = $participant->quizResult;
+                // Kolom kuis adalah posttest; pelatihan tanpa posttest mengisinya dengan "-".
+                $quiz = $training->has_posttest ? $participant->quizResult : null;
+                $pretest = $training->has_pretest ? $participant->pretestResult : null;
 
                 $rows[] = [
                     $training->training_date->format('d-m-Y'),
@@ -67,22 +69,31 @@ class TrainingScoresSheet implements FromArray, ShouldAutoSize, WithHeadings, Wi
                     $user->employee_id ?? '-',
                     $user->nama_lengkap ?? '-',
                     $user?->divisi->name ?? '-',
-                    match ($participant->attendance_status) {
-                        'hadir' => 'Hadir',
-                        'tidak_hadir' => 'Tidak Hadir',
+                    match (true) {
+                        ! $training->has_attendance => '-',
+                        $participant->attendance_status === 'hadir' => 'Hadir',
+                        $participant->attendance_status === 'tidak_hadir' => 'Tidak Hadir',
                         default => 'Belum Absen',
                     },
-                    $quiz ? 'Sudah Mengerjakan' : 'Belum Mengerjakan',
+                    match (true) {
+                        ! $training->has_posttest => '-',
+                        $quiz !== null => 'Sudah Mengerjakan',
+                        default => 'Belum Mengerjakan',
+                    },
                     $quiz ? (float) ($quiz->mc_score ?? $quiz->score) : '-',
                     match ($quiz?->essay_status) {
                         'graded' => 'Sudah Dinilai',
                         'pending' => 'Menunggu Dinilai',
-                        default => 'Tidak Ada Essay',
+                        default => $training->has_posttest ? 'Tidak Ada Essay' : '-',
                     },
                     $quiz && $quiz->essay_score !== null ? (float) $quiz->essay_score : '-',
                     $quiz ? (float) $quiz->score : '-',
                     $quiz?->submitted_at?->format('d-m-Y H:i') ?? '-',
-                    $participant->pretestResult ? (float) $participant->pretestResult->score : '-',
+                    match (true) {
+                        ! $training->has_pretest => '-',
+                        $pretest !== null => (float) $pretest->score,
+                        default => 'Belum Mengerjakan',
+                    },
                 ];
             }
         }

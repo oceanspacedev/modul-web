@@ -4,7 +4,7 @@
 --}}
 <div class="modal-header">
     <h5 class="modal-title">
-        Lembar Jawaban: {{ $userName }}
+        Lembar Jawaban{{ $training->has_pretest && $training->has_posttest ? ' '.\App\Models\Training::phaseLabel($quiz->phase) : '' }}: {{ $userName }}
     </h5>
     <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
         <span aria-hidden="true">&times;</span>
@@ -102,7 +102,8 @@
     @endif
 
     <h6 class="section-title mb-3">Rincian Pertanyaan & Jawaban Peserta</h6>
-    @foreach($training->questions as $qIndex => $question)
+    {{-- Hanya soal yang dipakai fase ini (pretest dan posttest bisa memakai soal berbeda). --}}
+    @foreach($training->questionsFor($quiz->phase) as $qIndex => $question)
         @php
             $ansData = $quiz->answers[$question->id] ?? null;
             $userAns = $ansData['user_answer'] ?? null;

@@ -53,7 +53,7 @@
                     Daftar Pertanyaan <span class="badge badge-secondary">{{ $questions->count() }} soal</span>
                 </h3>
                 <div class="card-tools d-flex align-items-center gap-2">
-                    @if($training->is_quiz_active)
+                    @if($training->isPhaseActive('posttest'))
                         <span class="badge badge-success">Kuis terbuka untuk peserta</span>
                     @else
                         <span class="badge badge-secondary">Kuis terkunci</span>
@@ -83,6 +83,9 @@
                                 <span class="badge badge-secondary">Essay / Uraian</span>
                             @else
                                 <span class="badge badge-secondary">Pilihan Ganda &middot; {{ count($activeOptions) }} opsi (A-{{ strtoupper(array_key_last($activeOptions) ?? 'B') }})</span>
+                            @endif
+                            @if($training->hasBothPhases() && ($q->used_in ?? 'both') !== 'both')
+                                <span class="badge badge-primary">{{ $q->usedInLabel() }}</span>
                             @endif
                         </div>
                         <div class="d-flex align-items-center gap-1">
@@ -163,6 +166,7 @@
                                             <option value="essay" {{ $isEssay ? 'selected' : '' }}>Essay / Uraian</option>
                                         </select>
                                     </div>
+                                    @include('training.questions.used-in-field', ['current' => $q->used_in ?? 'both', 'fieldId' => 'edit_used_in_'.$q->id])
                                     <div class="form-group">
                                         <label>Pertanyaan</label>
                                         <textarea name="question" class="form-control" rows="3" placeholder="Teks pertanyaan (boleh kosong kalau soalnya berupa gambar)">{{ $q->question }}</textarea>
@@ -472,6 +476,7 @@
                             <option value="essay">Essay / Uraian</option>
                         </select>
                     </div>
+                    @include('training.questions.used-in-field', ['current' => 'both', 'fieldId' => 'add_used_in', 'followsType' => 'add_type_select'])
 
                     <div class="form-group">
                         <label>Pertanyaan Soal <span class="text-danger">*</span></label>

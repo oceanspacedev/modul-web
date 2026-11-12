@@ -14,6 +14,7 @@ use App\Http\Controllers\PositionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ScoreRecapController;
 use App\Http\Controllers\TrainingController;
+use App\Http\Controllers\TrainingEvaluationQuestionController;
 use App\Http\Controllers\TrainingPortalController;
 use App\Http\Controllers\TrainingQuestionController;
 use App\Http\Controllers\UserController;
@@ -48,6 +49,8 @@ Route::prefix('training/portal/{token}')
         Route::get('retake', 'retakeQuiz')->name('.retake');
         Route::post('retake', 'retakeQuiz')->name('.retake.post');
         Route::get('result', 'showResult')->name('.result');
+        Route::get('evaluation', 'showEvaluation')->name('.evaluation');
+        Route::post('evaluation', 'submitEvaluation')->name('.evaluation.submit');
 
         // Pretest: alamat sendiri, aksi yang sama dengan fase 'pretest'.
         Route::get('pretest', 'showQuiz')->name('.pretest')->defaults('phase', 'pretest');
@@ -141,8 +144,13 @@ Route::middleware('auth')->group(function () {
                 Route::post('status', 'updateStatus')->name('status');
                 Route::post('toggle-quiz', 'toggleQuiz')->name('toggle-quiz');
                 Route::post('toggle-attendance', 'toggleAttendance')->name('toggle-attendance');
+                Route::post('toggle-attendance-use', 'toggleAttendanceUse')->name('toggle-attendance-use');
+                Route::post('evaluation-time', 'updateEvaluationTime')->name('evaluation-time');
                 Route::post('toggle-proof', 'toggleAttendanceProof')->name('toggle-proof');
                 Route::post('toggle-pretest', 'togglePretest')->name('toggle-pretest');
+                Route::post('extend-quiz-time', 'extendQuizTime')->name('extend-quiz-time');
+                Route::post('quiz-deadline', 'updateQuizDeadline')->name('quiz-deadline');
+                Route::post('toggle-evaluation', 'toggleEvaluation')->name('toggle-evaluation');
                 Route::post('quiz-rules', 'updateQuizRules')->name('quiz-rules');
                 Route::get('setup', 'setup')->name('setup');
                 Route::post('setup', 'saveSetup')->name('setup.save');
@@ -151,8 +159,9 @@ Route::middleware('auth')->group(function () {
                 Route::post('reset-quiz/{participant}', 'resetParticipantQuiz')->name('reset-quiz');
                 Route::post('reset-attendance/{participant}', 'resetParticipantAttendance')->name('reset-attendance');
                 Route::post('update-attendance/{participant}', 'updateParticipantAttendance')->name('update-attendance');
-                Route::get('answer-sheet/{quizResult}', 'answerSheet')->name('answer-sheet');
-                Route::post('grade-essay/{quizResult}', 'gradeEssay')->name('grade-essay');
+                // {result}: hasil pretest maupun posttest pelatihan ini (Training::results()).
+                Route::get('answer-sheet/{result}', 'answerSheet')->name('answer-sheet');
+                Route::post('grade-essay/{result}', 'gradeEssay')->name('grade-essay');
                 Route::post('export', 'export')->name('export');
                 Route::get('live-stats', 'liveStats')->name('live-stats');
                 Route::post('attach-document', 'attachDocument')->name('attach-document');
@@ -162,6 +171,16 @@ Route::middleware('auth')->group(function () {
                 Route::post('save-zoom-off-cam', 'saveZoomOffCam')->name('save-zoom-off-cam');
                 Route::post('reset-zoom-off-cam/{participant}', 'resetZoomOffCam')->name('reset-zoom-off-cam');
                 Route::post('update-offcam-count/{participant}', 'updateOffCamCount')->name('update-offcam-count');
+            });
+
+            // # TRAINING EVALUATION FORM QUESTIONS
+            Route::controller(TrainingEvaluationQuestionController::class)->prefix('evaluation')->name('evaluation.')->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::post('/', 'store')->name('store');
+                Route::post('defaults', 'addDefaults')->name('defaults');
+                Route::put('{evaluationQuestion}', 'update')->name('update');
+                Route::post('{evaluationQuestion}/move', 'move')->name('move');
+                Route::delete('{evaluationQuestion}', 'destroy')->name('destroy');
             });
 
             // # TRAINING QUIZ QUESTIONS

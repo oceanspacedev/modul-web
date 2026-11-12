@@ -4,7 +4,7 @@
     sebagai quiz[...].
     $quiz: LearningModule yang sedang diatur (null bila belum ada).
     $trainingRules: Training yang sedang diatur, sebagai ganti $quiz. Pelatihan tidak punya KKM, acak soal, dan
-        detik per soal, jadi field itu tidak tampil.
+        detik per soal, jadi field itu tidak tampil; sebagai gantinya tiap fase punya batas waktu sejak dibuka pemateri.
     $card = true: tampil sebagai card tersendiri.
     $defaultOn = true: kedua fase nyala untuk data baru (Modul Belajar).
 --}}
@@ -28,6 +28,8 @@
             'max' => $quizValue('pretest_max_attempts', 1, $quizTraining ? $quizTraining->pretest_max_attempts : $quiz?->pretest_max_attempts),
             // Soalnya sama dengan posttest, jadi pretest baru hanya menampilkan nilai.
             'answers' => (bool) $quizValue('pretest_shows_answers', false, $quizTraining?->pretest_shows_answers ?? $quiz?->pretest_shows_answers),
+            'duration' => $quizValue('pretest_duration_minutes', null, $quizTraining?->pretest_duration_minutes),
+            'mode' => $quizValue('pretest_mode', 'formal', $quizTraining?->quizMode('pretest')) ?? 'formal',
         ],
         'posttest' => [
             'label' => 'Posttest',
@@ -35,6 +37,8 @@
             'on' => (bool) $quizValue('posttest', $quizTraining ? true : $quizDefaultOn, $quizTraining?->has_posttest ?? $quiz?->has_posttest),
             'max' => $quizValue('posttest_max_attempts', $quizTraining ? 1 : null, $quizTraining ? $quizTraining->quiz_max_attempts : $quiz?->posttest_max_attempts),
             'answers' => (bool) $quizValue('posttest_shows_answers', true, $quizTraining?->show_quiz_answers ?? $quiz?->posttest_shows_answers),
+            'duration' => $quizValue('posttest_duration_minutes', null, $quizTraining?->quiz_duration_minutes),
+            'mode' => $quizValue('posttest_mode', 'formal', $quizTraining?->quizMode('posttest')) ?? 'formal',
         ],
     ];
     $quizAnyOn = $quizPhases['pretest']['on'] || $quizPhases['posttest']['on'];
@@ -53,8 +57,12 @@
     </div>
     @if($quizAsCard)<div class="card-body">@endif
     <p class="text-muted small mb-3">
-        Nyalakan kuis yang dibutuhkan. Pretest dan posttest memakai soal yang sama.
-        @if($quizTraining) Pretest hanya memakai soal pilihan ganda. @endif
+        Nyalakan kuis yang dibutuhkan.
+        @if($quizTraining)
+            Pretest dan posttest memakai soal yang sama, kecuali soal yang Anda tandai khusus pretest atau khusus posttest di halaman soal.
+        @else
+            Pretest dan posttest memakai soal yang sama.
+        @endif
     </p>
 
     @foreach($quizPhases as $phase => $rule)
@@ -86,6 +94,26 @@
                         </select>
                     </div>
                 </div>
+                @if($quizTraining)
+                    <div class="form-group mb-0 mt-3">
+                        <label for="quiz_{{ $phase }}_mode">Mode kuis</label>
+                        <select class="form-control" id="quiz_{{ $phase }}_mode" name="quiz[{{ $phase }}_mode]">
+                            <option value="formal" @selected($rule['mode'] !== 'game')>Formal: semua soal dalam satu halaman</option>
+                            <option value="game" @selected($rule['mode'] === 'game')>Game: satu soal per layar dengan timer</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-0 mt-3">
+                        <label for="quiz_{{ $phase }}_duration">Batas waktu bawaan sejak dibuka</label>
+                        <select class="form-control" id="quiz_{{ $phase }}_duration" name="quiz[{{ $phase }}_duration_minutes]">
+                            @foreach(QuizRules::durationOptions(is_numeric($rule['duration']) ? (int) $rule['duration'] : null) as $value => $label)
+                                <option value="{{ $value }}" @selected((string) $rule['duration'] === (string) $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        <small class="form-text text-muted mb-0">
+                            Isian awal saat Anda menekan Buka {{ $rule['label'] }}: dibuka 09.40 dengan 10 menit berarti tutup otomatis 09.50. Saat membuka, Anda tetap bisa mengisi jam buka dan jam tutup pasti.
+                        </small>
+                    </div>
+                @endif
             </div>
         </div>
     @endforeach
@@ -109,6 +137,8 @@
             </div>
         </div>
         @endunless
+        {{-- Pelatihan memilih mode per fase di atas, jadi pilihan mode bersama ini hanya untuk modul/video/dokumen. --}}
+        @unless($quizTraining)
         @include('learning_module.partials.quiz-mode-fields', [
             'modeName' => 'quiz[mode]',
             'secondsName' => $quizTraining ? null : 'quiz[question_seconds]',
@@ -116,6 +146,7 @@
             'seconds' => $quizValue('question_seconds', 30, $quiz?->question_seconds) ?? 30,
             'idPrefix' => 'quiz',
         ])
+        @endunless
     </div>
     @if($quizAsCard)</div>@endif
 </div>

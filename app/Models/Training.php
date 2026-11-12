@@ -4,9 +4,11 @@ namespace App\Models;
 
 use App\Enums\TrainingStatus;
 use App\Support\QuizRules;
+use App\Support\TrainingEvaluationForm;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 class Training extends Model
 {
@@ -18,15 +20,22 @@ class Training extends Model
 
     public const PHASES = [self::PHASE_PRETEST, self::PHASE_POSTTEST];
 
+    /** Menit toleransi kiriman form evaluasi setelah jam tutupnya lewat. */
+    public const EVALUATION_GRACE_MINUTES = 5;
+
     protected $guarded = ['id'];
 
     /**
      * Kuis utama pelatihan adalah posttest: is_quiz_active, quiz_max_attempts, dan show_quiz_answers miliknya.
      * Pretest punya kolom sendiri (is_pretest_active, pretest_max_attempts, pretest_shows_answers).
+     * Waktu per fase: *_duration_minutes (bawaan dari Aturan Kuis), lalu *_opens_at dan *_closes_at yang dicatat saat
+     * pemateri membuka atau menjadwalkan fase itu.
      */
     protected $attributes = [
         'has_pretest' => false,
         'has_posttest' => true,
+        'has_evaluation' => false,
+        'has_attendance' => true,
         'show_quiz_answers' => true,
         'quiz_max_attempts' => 1,
         'pretest_shows_answers' => false,
@@ -45,14 +54,24 @@ class Training extends Model
             'status' => TrainingStatus::class,
             'is_quiz_active' => 'boolean',
             'is_attendance_active' => 'boolean',
+            'has_attendance' => 'boolean',
+            'evaluation_opens_at' => 'datetime',
+            'evaluation_closes_at' => 'datetime',
             'require_attendance_proof' => 'boolean',
             'show_quiz_answers' => 'boolean',
             'quiz_max_attempts' => 'integer',
             'has_pretest' => 'boolean',
             'has_posttest' => 'boolean',
+            'has_evaluation' => 'boolean',
             'is_pretest_active' => 'boolean',
             'pretest_max_attempts' => 'integer',
             'pretest_shows_answers' => 'boolean',
+            'pretest_duration_minutes' => 'integer',
+            'pretest_opens_at' => 'datetime',
+            'pretest_closes_at' => 'datetime',
+            'quiz_duration_minutes' => 'integer',
+            'quiz_opens_at' => 'datetime',
+            'quiz_closes_at' => 'datetime',
             'setup_completed_at' => 'datetime',
         ];
     }
@@ -80,12 +99,17 @@ class Training extends Model
             'quiz.posttest_shows_answers' => ['boolean'],
             'quiz.pretest_max_attempts' => QuizRules::attemptRules(),
             'quiz.posttest_max_attempts' => QuizRules::attemptRules(),
+            'quiz.pretest_duration_minutes' => QuizRules::durationRules(),
+            'quiz.posttest_duration_minutes' => QuizRules::durationRules(),
             'quiz.mode' => ['nullable', 'in:formal,game'],
+            'quiz.pretest_mode' => ['nullable', 'in:formal,game'],
+            'quiz.posttest_mode' => ['nullable', 'in:formal,game'],
         ];
     }
 
     /**
-     * Petakan field quiz[...] ke kolom pelatihan. Fase yang dimatikan sekaligus ditutup untuk peserta.
+     * Petakan field quiz[...] ke kolom pelatihan. Fase yang dimatikan sekaligus ditutup untuk peserta. Durasi baru
+     * berlaku saat fase dibuka berikutnya; jam tutup fase yang sedang terbuka tidak ikut berubah.
      *
      * @param  array<string, mixed>  $quiz
      * @return array<string, mixed>
@@ -94,24 +118,80 @@ class Training extends Model
     {
         $pretest = (bool) ($quiz['pretest'] ?? false);
         $posttest = (bool) ($quiz['posttest'] ?? false);
-        $attempts = fn (string $key) => isset($quiz[$key]) ? (int) $quiz[$key] : null;
+        $number = fn (string $key) => isset($quiz[$key]) ? (int) $quiz[$key] : null;
 
         return [
             'has_pretest' => $pretest,
             'has_posttest' => $posttest,
-            'pretest_max_attempts' => $attempts('pretest_max_attempts'),
-            'quiz_max_attempts' => $attempts('posttest_max_attempts'),
+            'pretest_max_attempts' => $number('pretest_max_attempts'),
+            'quiz_max_attempts' => $number('posttest_max_attempts'),
+            'pretest_duration_minutes' => $number('pretest_duration_minutes'),
+            'quiz_duration_minutes' => $number('posttest_duration_minutes'),
             'pretest_shows_answers' => (bool) ($quiz['pretest_shows_answers'] ?? false),
             'show_quiz_answers' => (bool) ($quiz['posttest_shows_answers'] ?? true),
-            ...(isset($quiz['mode']) ? ['quiz_mode' => $quiz['mode']] : []),
-            ...($pretest ? [] : ['is_pretest_active' => false]),
-            ...($posttest ? [] : ['is_quiz_active' => false]),
+            ...self::quizModesFromInput($quiz),
+            ...($pretest ? [] : ['is_pretest_active' => false, 'pretest_opens_at' => null, 'pretest_closes_at' => null]),
+            ...($posttest ? [] : ['is_quiz_active' => false, 'quiz_opens_at' => null, 'quiz_closes_at' => null]),
         ];
+    }
+
+    /**
+     * Mode kuis per fase dari quiz[pretest_mode] / quiz[posttest_mode]. quiz[mode] (satu mode untuk keduanya) tetap
+     * diterima dari form lama: posttest memakainya dan pretest kembali mengikuti posttest.
+     *
+     * @param  array<string, mixed>  $quiz
+     * @return array<string, mixed>
+     */
+    private static function quizModesFromInput(array $quiz): array
+    {
+        $shared = $quiz['mode'] ?? null;
+        $posttest = $quiz['posttest_mode'] ?? $shared;
+
+        return [
+            ...($posttest !== null ? ['quiz_mode' => $posttest] : []),
+            ...(isset($quiz['pretest_mode']) ? ['pretest_quiz_mode' => $quiz['pretest_mode']] : ($shared !== null ? ['pretest_quiz_mode' => null] : [])),
+        ];
+    }
+
+    /**
+     * Mode kuis sebuah fase: 'formal' (semua soal satu halaman) atau 'game'. Pretest tanpa mode sendiri mengikuti
+     * mode posttest.
+     */
+    public function quizMode(string $phase): string
+    {
+        $mode = $phase === self::PHASE_PRETEST ? ($this->pretest_quiz_mode ?? $this->quiz_mode) : $this->quiz_mode;
+
+        return $mode === 'game' ? 'game' : 'formal';
     }
 
     public function hasQuiz(): bool
     {
         return $this->has_pretest || $this->has_posttest;
+    }
+
+    /**
+     * Fase yang nilainya menjadi "nilai pelatihan" di ringkasan, tabel peserta, dan rekap: posttest bila ada, kalau
+     * tidak pretest (pelatihan pretest saja); null untuk pelatihan tanpa kuis.
+     */
+    public function mainPhase(): ?string
+    {
+        return match (true) {
+            (bool) $this->has_posttest => self::PHASE_POSTTEST,
+            (bool) $this->has_pretest => self::PHASE_PRETEST,
+            default => null,
+        };
+    }
+
+    /**
+     * Sebutan fase utama: "Posttest" bila ada pretest juga, "Pretest" bila hanya pretest, selain itu "Kuis".
+     */
+    public function mainPhaseLabel(): string
+    {
+        return match (true) {
+            $this->has_pretest && $this->has_posttest => 'Posttest',
+            (bool) $this->has_pretest && ! $this->has_posttest => 'Pretest',
+            default => 'Kuis',
+        };
     }
 
     public function hasPhase(string $phase): bool
@@ -120,11 +200,159 @@ class Training extends Model
     }
 
     /**
-     * Fase ini sedang dibuka pemateri untuk dikerjakan.
+     * Fase ini sedang terbuka untuk dikerjakan: dibuka pemateri, jam bukanya (bila dijadwalkan) sudah tiba, dan jam
+     * tutupnya (bila berbatas waktu) belum lewat. Jadwal berjalan sendiri tanpa perlu dibuka atau dikunci manual.
      */
     public function isPhaseActive(string $phase): bool
     {
-        return $this->hasPhase($phase) && ($phase === self::PHASE_PRETEST ? $this->is_pretest_active : $this->is_quiz_active);
+        if (! $this->hasPhase($phase) || ! $this->{self::activeColumn($phase)}) {
+            return false;
+        }
+
+        $opensAt = $this->{self::opensAtColumn($phase)};
+        $closesAt = $this->{self::closesAtColumn($phase)};
+
+        return ($opensAt === null || ! $opensAt->isFuture()) && ($closesAt === null || $closesAt->isFuture());
+    }
+
+    /**
+     * Jam fase ini terbuka sendiri; null bila tidak sedang dijadwalkan (tertutup, atau sudah terbuka).
+     */
+    public function phaseOpensAt(string $phase): ?Carbon
+    {
+        $opensAt = $this->{self::opensAtColumn($phase)};
+
+        return $this->hasPhase($phase) && $this->{self::activeColumn($phase)} && $opensAt?->isFuture() ? $opensAt : null;
+    }
+
+    /**
+     * Jam fase ini tutup otomatis; null bila fase tertutup atau tanpa batas waktu. Berlaku juga untuk fase yang baru
+     * dijadwalkan dan belum terbuka.
+     */
+    public function phaseClosesAt(string $phase): ?Carbon
+    {
+        return $this->isPhaseActive($phase) || $this->phaseOpensAt($phase) ? $this->{self::closesAtColumn($phase)} : null;
+    }
+
+    /**
+     * Sisa detik sampai fase yang sedang terbuka tutup otomatis; null bila tertutup atau tanpa batas waktu.
+     */
+    public function phaseSecondsLeft(string $phase): ?int
+    {
+        $closesAt = $this->isPhaseActive($phase) ? $this->{self::closesAtColumn($phase)} : null;
+
+        return $closesAt ? max(0, (int) ceil(now()->diffInSeconds($closesAt))) : null;
+    }
+
+    /**
+     * Fase ini pernah dibuka dengan batas waktu dan waktunya sudah habis (belum dibuka lagi atau dikunci manual).
+     */
+    public function phaseTimedOut(string $phase): bool
+    {
+        $closesAt = $this->{self::closesAtColumn($phase)};
+
+        return $this->hasPhase($phase) && $this->{self::activeColumn($phase)} && $closesAt !== null && ! $closesAt->isFuture();
+    }
+
+    /**
+     * Jam untuk dibaca orang: "pukul 09:40" bila hari ini, selain itu dengan tanggalnya ("13 Nov pukul 09:40").
+     */
+    public static function timeLabel(Carbon $at): string
+    {
+        return ($at->isToday() ? '' : $at->translatedFormat('j M').' ').'pukul '.$at->format('H:i');
+    }
+
+    /**
+     * Tanggal yang dipakai jam buka terjadwal: hari pelatihan bila masih akan datang, selain itu hari ini.
+     */
+    public function scheduleDate(): Carbon
+    {
+        return $this->training_date?->isFuture() ? $this->training_date->copy() : now();
+    }
+
+    /**
+     * Batas waktu fase dalam menit sejak dibuka; null berarti tanpa batas waktu.
+     */
+    public function durationMinutes(string $phase): ?int
+    {
+        return $phase === self::PHASE_PRETEST ? $this->pretest_duration_minutes : $this->quiz_duration_minutes;
+    }
+
+    /**
+     * Jam tutup bawaan untuk fase yang dibuka pada $from (bawaan: sekarang), dari batas waktu di Aturan Kuis; null
+     * berarti tanpa batas waktu.
+     */
+    public function defaultClosesAt(string $phase, ?Carbon $from = null): ?Carbon
+    {
+        $minutes = $this->durationMinutes($phase);
+
+        return $minutes ? ($from ?? now())->copy()->addMinutes($minutes) : null;
+    }
+
+    /**
+     * Buka fase untuk semua peserta. $opensAt null berarti terbuka sekarang, selain itu terbuka sendiri pada jam itu;
+     * $closesAt null berarti terbuka sampai dikunci manual.
+     */
+    public function openPhase(string $phase, ?Carbon $closesAt, ?Carbon $opensAt = null): void
+    {
+        $this->update([
+            self::activeColumn($phase) => true,
+            self::opensAtColumn($phase) => $opensAt,
+            self::closesAtColumn($phase) => $closesAt,
+        ]);
+    }
+
+    /**
+     * Ganti jam tutup fase yang sedang terbuka (null = tanpa batas waktu). False bila fase tidak sedang terbuka.
+     */
+    public function setPhaseClosesAt(string $phase, ?Carbon $closesAt): bool
+    {
+        if (! $this->isPhaseActive($phase)) {
+            return false;
+        }
+
+        $this->update([self::closesAtColumn($phase) => $closesAt]);
+
+        return true;
+    }
+
+    public function closePhase(string $phase): void
+    {
+        $this->update([
+            self::activeColumn($phase) => false,
+            self::opensAtColumn($phase) => null,
+            self::closesAtColumn($phase) => null,
+        ]);
+    }
+
+    /**
+     * Mundurkan jam tutup fase yang sedang terbuka dengan batas waktu. False bila tidak ada jam tutup untuk diundur.
+     */
+    public function extendPhase(string $phase, int $minutes): bool
+    {
+        $closesAt = $this->phaseClosesAt($phase);
+        if (! $closesAt) {
+            return false;
+        }
+
+        $this->update([self::closesAtColumn($phase) => $closesAt->copy()->addMinutes($minutes)]);
+
+        return true;
+    }
+
+    private static function activeColumn(string $phase): string
+    {
+        return $phase === self::PHASE_PRETEST ? 'is_pretest_active' : 'is_quiz_active';
+    }
+
+    private static function opensAtColumn(string $phase): string
+    {
+        return $phase === self::PHASE_PRETEST ? 'pretest_opens_at' : 'quiz_opens_at';
+    }
+
+    private static function closesAtColumn(string $phase): string
+    {
+        return $phase === self::PHASE_PRETEST ? 'pretest_closes_at' : 'quiz_closes_at';
     }
 
     /**
@@ -149,14 +377,33 @@ class Training extends Model
     }
 
     /**
-     * Soal yang dipakai sebuah fase. Pretest hanya memakai pilihan ganda; essay dinilai pemateri di posttest saja.
-     * Butuh relasi questions.
+     * Pelatihan punya pretest dan posttest sekaligus; hanya saat itulah pilihan "dipakai di" tiap soal berpengaruh.
+     */
+    public function hasBothPhases(): bool
+    {
+        return $this->has_pretest && $this->has_posttest;
+    }
+
+    /**
+     * Soal yang dipakai sebuah fase. Dengan pretest dan posttest sekaligus, tiap soal mengikuti pilihan "dipakai di"
+     * miliknya; pelatihan dengan satu fase memakai semua soalnya. Butuh relasi questions.
      */
     public function questionsFor(string $phase)
     {
-        return $phase === self::PHASE_PRETEST
-            ? $this->questions->where('type', '!=', 'essay')->values()
+        return $this->hasBothPhases()
+            ? $this->questions->filter(fn (TrainingQuestion $question) => $question->isUsedIn($phase))->values()
             : $this->questions;
+    }
+
+    /**
+     * Query soal sebuah fase, untuk hitungan dan pengecekan tanpa memuat soalnya.
+     */
+    public function phaseQuestions(string $phase)
+    {
+        return $this->questions()->when(
+            $this->hasBothPhases(),
+            fn ($query) => $query->whereIn('used_in', [TrainingQuestion::USED_IN_BOTH, $phase]),
+        );
     }
 
     /**
@@ -188,6 +435,147 @@ class Training extends Model
         return $this->isPhaseActive($phase) && $this->quizAttemptsLeft($result, $phase) !== 0;
     }
 
+    /**
+     * Pelatihan yang form evaluasinya baru dinyalakan dan belum punya pertanyaan mendapat template bawaan; pengelola
+     * lalu bebas mengubahnya. Pertanyaan yang sudah ada tidak disentuh.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (Training $training): void {
+            if ($training->has_evaluation && ($training->wasRecentlyCreated || $training->wasChanged('has_evaluation'))) {
+                $training->addDefaultEvaluationQuestions();
+            }
+        });
+    }
+
+    /**
+     * Isi pertanyaan evaluasi dengan template bawaan bila pelatihan belum punya satu pun.
+     */
+    public function addDefaultEvaluationQuestions(): void
+    {
+        if ($this->evaluationQuestions()->exists()) {
+            return;
+        }
+
+        foreach (TrainingEvaluationForm::defaultQuestions() as $position => $question) {
+            $this->evaluationQuestions()->create([...$question, 'position' => $position + 1]);
+        }
+
+        $this->unsetRelation('evaluationQuestions');
+    }
+
+    /**
+     * Form evaluasi dinyalakan dan punya pertanyaan. Tanpa pertanyaan, peserta tidak diminta mengisi apa pun.
+     */
+    public function hasEvaluationForm(): bool
+    {
+        if (! $this->has_evaluation) {
+            return false;
+        }
+
+        return $this->relationLoaded('evaluationQuestions')
+            ? $this->evaluationQuestions->isNotEmpty()
+            : $this->evaluationQuestions()->exists();
+    }
+
+    /**
+     * Form evaluasi bisa diisi sekarang. Tempatnya tepat sebelum posttest, jadi ikut terbuka saat posttest dibuka;
+     * pelatihan tanpa posttest membukanya selama sesi berlangsung atau sudah selesai.
+     */
+    public function isEvaluationOpen(): bool
+    {
+        return $this->evaluationWindowOpen() && $this->hasEvaluationForm();
+    }
+
+    /**
+     * Saatnya evaluasi diisi, terlepas dari ada/tidaknya form. Dengan posttest, evaluasi ikut terbuka bersama
+     * posttest. Tanpa posttest: mengikuti jam buka/tutup yang diatur pemateri bila ada, selain itu terbuka selama
+     * sesi berlangsung atau sudah selesai.
+     */
+    public function evaluationWindowOpen(): bool
+    {
+        if ($this->has_posttest) {
+            return $this->isPhaseActive(self::PHASE_POSTTEST);
+        }
+
+        if ($this->hasEvaluationSchedule()) {
+            return ! $this->evaluation_opens_at->isFuture()
+                && ($this->evaluation_closes_at === null || $this->evaluation_closes_at->isFuture());
+        }
+
+        return in_array($this->status, [TrainingStatus::Ongoing, TrainingStatus::Completed], true);
+    }
+
+    /**
+     * Pemateri mengatur sendiri jam form evaluasi (hanya untuk pelatihan tanpa posttest).
+     */
+    public function hasEvaluationSchedule(): bool
+    {
+        return ! $this->has_posttest && $this->evaluation_opens_at !== null;
+    }
+
+    /**
+     * Jam form evaluasi terbuka sendiri; null bila tidak dijadwalkan atau sudah terbuka.
+     */
+    public function evaluationOpensAt(): ?Carbon
+    {
+        return $this->hasEvaluationSchedule() && $this->evaluation_opens_at->isFuture() ? $this->evaluation_opens_at : null;
+    }
+
+    /**
+     * Jam form evaluasi tutup sendiri; null bila tanpa jadwal, tanpa batas waktu, atau sudah tertutup.
+     */
+    public function evaluationClosesAt(): ?Carbon
+    {
+        return $this->hasEvaluationSchedule() && $this->evaluation_closes_at?->isFuture() ? $this->evaluation_closes_at : null;
+    }
+
+    /**
+     * Jam tutup form evaluasi yang diatur pemateri sudah lewat.
+     */
+    public function evaluationTimedOut(): bool
+    {
+        return $this->hasEvaluationSchedule() && $this->evaluation_closes_at !== null && ! $this->evaluation_closes_at->isFuture();
+    }
+
+    /**
+     * Kiriman form evaluasi masih diterima: form sedang terbuka, atau jam tutupnya baru saja lewat (peserta yang
+     * sedang mengetik saat waktu habis tidak kehilangan isiannya).
+     */
+    public function acceptsEvaluationSubmission(): bool
+    {
+        if ($this->isEvaluationOpen()) {
+            return true;
+        }
+
+        return $this->hasEvaluationForm() && $this->evaluationTimedOut()
+            && $this->evaluation_closes_at->copy()->addMinutes(self::EVALUATION_GRACE_MINUTES)->isFuture();
+    }
+
+    /**
+     * Presensi dipakai dan sedang dibuka pemateri.
+     */
+    public function isAttendanceOpen(): bool
+    {
+        return $this->has_attendance && $this->is_attendance_active;
+    }
+
+    /**
+     * Pelatihan daring punya tautan meeting; tanpa tautan berarti tatap muka, jadi fitur khusus Zoom tidak tampil.
+     */
+    public function isOnline(): bool
+    {
+        return filled($this->zoom_link);
+    }
+
+    /**
+     * Peserta ini harus mengisi form evaluasi dulu sebelum masuk posttest. Butuh relasi evaluation pada peserta.
+     */
+    public function awaitsEvaluationFrom(TrainingParticipant $participant): bool
+    {
+        return $participant->evaluation === null && $this->hasEvaluationForm();
+    }
+
     public function trainer()
     {
         return $this->belongsTo(User::class, 'trainer_id');
@@ -214,6 +602,27 @@ class Training extends Model
     public function pretestResults()
     {
         return $this->hasMany(TrainingQuizResult::class, 'training_id')->where('phase', self::PHASE_PRETEST);
+    }
+
+    /**
+     * Hasil kuis semua fase; dipakai route yang menerima hasil pretest maupun posttest (lembar jawaban).
+     */
+    public function results()
+    {
+        return $this->hasMany(TrainingQuizResult::class, 'training_id');
+    }
+
+    public function evaluations()
+    {
+        return $this->hasMany(TrainingEvaluation::class, 'training_id');
+    }
+
+    /**
+     * Pertanyaan form evaluasi pelatihan ini, sesuai urutan tampil.
+     */
+    public function evaluationQuestions()
+    {
+        return $this->hasMany(TrainingEvaluationQuestion::class, 'training_id')->orderBy('position')->orderBy('id');
     }
 
     public function videos()

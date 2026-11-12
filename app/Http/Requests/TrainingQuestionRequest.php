@@ -33,6 +33,8 @@ class TrainingQuestionRequest extends FormRequest
         $questionImage = [
             'question_image' => QuizImage::fileRules(),
             'remove_question_image' => ['nullable', 'boolean'],
+            // Hanya dikirim form pelatihan yang punya pretest dan posttest; tanpa field ini pilihan lama dipertahankan.
+            'used_in' => ['sometimes', 'required', 'in:'.implode(',', array_keys(TrainingQuestion::USED_IN))],
         ];
 
         if ($this->isEssay()) {
