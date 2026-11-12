@@ -4,7 +4,8 @@
     Stepper ringkas: satu baris label pendek (selesai dicentang), lalu satu bar "Berikutnya" untuk langkah aktif.
     Tiap langkah: ['label' => kata pendek, 'meta' => keterangan singkat (tooltip), 'hint' => kalimat untuk bar berikutnya,
                   'done' => bool, 'optional' => bool, 'action' => teks tombol, dan salah satu dari
-                  'url' | 'modal' (id modal) | 'post' (url form POST)].
+                  'url' | 'modal' (id modal, dengan 'modalData' opsional: atribut data-* untuk tombol pemicunya) |
+                  'post' (url form POST)].
     Usage: <x-setup-steps title="Langkah menyiapkan modul" :steps="$steps" />
 --}}
 @php
@@ -51,7 +52,8 @@
                         <button type="submit" class="btn btn-primary btn-sm">{{ $next['action'] }}</button>
                     </form>
                 @elseif (! empty($next['modal']))
-                    <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#{{ $next['modal'] }}">{{ $next['action'] }}</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#{{ $next['modal'] }}"
+                        @foreach ($next['modalData'] ?? [] as $name => $value) data-{{ $name }}="{{ $value }}" @endforeach>{{ $next['action'] }}</button>
                 @elseif (! empty($next['url']))
                     <a href="{{ $next['url'] }}" class="btn btn-primary btn-sm">{{ $next['action'] }}</a>
                 @endif

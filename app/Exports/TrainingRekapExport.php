@@ -54,10 +54,13 @@ class TrainingRekapExport implements FromArray, WithEvents, WithTitle
         $no = 1;
         foreach ($training->participants as $participant) {
             $user = $participant->user;
-            $quiz = $participant->quizResult;
+            // Kolom kuis adalah posttest. Pelatihan tanpa posttest (pretest saja, hanya evaluasi, atau hanya sesi)
+            // mengisinya dengan "-", bukan "Belum Mengerjakan" dan nilai 0.
+            $hasPosttest = (bool) $training->has_posttest;
+            $quiz = $hasPosttest ? $participant->quizResult : null;
             $pretest = $training->has_pretest ? $participant->pretestResult : null;
 
-            $essayStatusLabel = 'Tidak Ada Essay';
+            $essayStatusLabel = $hasPosttest ? 'Tidak Ada Essay' : '-';
             if ($quiz) {
                 $essayStatusLabel = match ($quiz->essay_status) {
                     'graded' => 'Sudah Dinilai',
@@ -72,9 +75,11 @@ class TrainingRekapExport implements FromArray, WithEvents, WithTitle
                 $offCamSuffix = " (Off Cam {$count}x)";
             }
 
-            $attendanceLabel = match ($participant->attendance_status) {
-                'hadir' => 'Hadir'.$offCamSuffix,
-                'tidak_hadir' => 'Tidak Hadir'.$offCamSuffix,
+            $attendanceLabel = match (true) {
+                // Pelatihan tanpa presensi.
+                ! $training->has_attendance => '-'.$offCamSuffix,
+                $participant->attendance_status === 'hadir' => 'Hadir'.$offCamSuffix,
+                $participant->attendance_status === 'tidak_hadir' => 'Tidak Hadir'.$offCamSuffix,
                 default => 'Belum Absen'.$offCamSuffix,
             };
 
@@ -92,18 +97,26 @@ class TrainingRekapExport implements FromArray, WithEvents, WithTitle
                 $participant->attendance_proof
                     ? StorageUrl::for($participant->attendance_proof, StorageUrl::MAX_TTL_MINUTES)
                     : '-',
-                $quiz ? 'Sudah Mengerjakan' : 'Belum Mengerjakan',
-                $quiz ? (float) ($quiz->mc_score ?? $quiz->score) : 0,
+                match (true) {
+                    ! $hasPosttest => '-',
+                    $quiz !== null => 'Sudah Mengerjakan',
+                    default => 'Belum Mengerjakan',
+                },
+                $quiz ? (float) ($quiz->mc_score ?? $quiz->score) : ($hasPosttest ? 0 : '-'),
                 $essayStatusLabel,
                 $quiz && $quiz->essay_score !== null ? (float) $quiz->essay_score : '-',
-                $quiz ? (float) $quiz->score : 0,
+                $quiz ? (float) $quiz->score : ($hasPosttest ? 0 : '-'),
                 $quiz ? ($quiz->essay_feedback ?? '-') : '-',
                 $quiz ? (($quiz->tab_switch_count ?? 0).' kali') : '-',
                 $quiz ? ($quiz->is_force_submitted ? 'Auto-Submit (Melanggar)' : 'Normal') : '-',
                 $quiz && $quiz->submitted_at
                     ? Carbon::parse($quiz->submitted_at)->format('d-m-Y H:i')
                     : '-',
-                $pretest ? (float) $pretest->score : '-',
+                match (true) {
+                    ! $training->has_pretest => '-',
+                    $pretest !== null => (float) $pretest->score,
+                    default => 'Belum Mengerjakan',
+                },
             ];
         }
 

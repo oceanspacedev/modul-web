@@ -84,8 +84,12 @@ class TrainingPortalController extends Controller
         $participant = $this->findParticipant($token, ['training']);
         $training = $participant->training;
 
+        if (! $training->has_attendance) {
+            return back()->with('warning', 'Pelatihan ini tidak memakai presensi.');
+        }
+
         // Check if attendance is activated by admin (or quiz is active)
-        if (! $training->is_attendance_active && ! $training->is_quiz_active) {
+        if (! $training->is_attendance_active && ! $training->isPhaseActive(Training::PHASE_POSTTEST)) {
             return back()->with('warning', 'Presensi kehadiran saat ini belum dibuka oleh Pemateri / Admin. Harap menunggu instruksi dari pemateri.');
         }
 
@@ -102,9 +106,11 @@ class TrainingPortalController extends Controller
         }
 
         $messages = [
-            'attendance_proof.required' => 'Wajib mengunggah screenshot bukti Anda mengikuti pelatihan / Zoom untuk konfirmasi kehadiran.',
+            'attendance_proof.required' => $training->isOnline()
+                ? 'Wajib mengunggah screenshot bukti Anda mengikuti pelatihan / Zoom untuk konfirmasi kehadiran.'
+                : 'Wajib mengunggah foto bukti kehadiran Anda di lokasi pelatihan.',
             'attendance_proof.image' => 'File bukti kehadiran harus berupa gambar (JPG, PNG, atau WEBP).',
-            'attendance_proof.max' => 'Ukuran file screenshot bukti maksimal 5MB.',
+            'attendance_proof.max' => 'Ukuran file bukti kehadiran maksimal 5MB.',
         ];
 
         $validated = $request->validate($rules, $messages);
@@ -190,10 +196,12 @@ class TrainingPortalController extends Controller
             );
         }
 
-        $viewName = ($training->quiz_mode === 'game') ? 'training.portal.quiz_game' : 'training.portal.quiz';
+        // Pretest dan posttest boleh memakai mode berbeda.
+        $isGame = $training->quizMode($phase) === 'game';
+        $viewName = $isGame ? 'training.portal.quiz_game' : 'training.portal.quiz';
 
         $leaderboard = [];
-        if ($training->quiz_mode === 'game') {
+        if ($isGame) {
             $leaderboard = TrainingQuizResult::with('user')
                 ->where('training_id', $training->id)
                 ->where('phase', $phase)
@@ -212,6 +220,8 @@ class TrainingPortalController extends Controller
             'phase' => $phase,
             'phaseUrls' => $urls,
             'showsAnswers' => $training->showsAnswers($phase),
+            'secondsLeft' => $training->phaseSecondsLeft($phase),
+            'closesAt' => $training->phaseClosesAt($phase),
         ]);
     }
 
@@ -304,6 +314,8 @@ class TrainingPortalController extends Controller
 
         $tabSwitchCount = (int) $request->input('tab_switch_count', 0);
         $isForceSubmitted = (bool) $request->input('is_force_submitted', false);
+        // Halaman kuis mengumpulkan sendiri saat batas waktu habis; kiriman itu tetap diterima seperti biasa.
+        $isTimeUp = $request->boolean('is_time_up');
         $violationLogsInput = $request->input('violation_logs');
         $violationLogs = is_string($violationLogsInput)
             ? json_decode($violationLogsInput, true)
@@ -378,10 +390,12 @@ class TrainingPortalController extends Controller
             ]);
         }
 
-        $flashMsg = $isForceSubmitted
-            ? 'Kuis telah otomatis dikumpulkan karena Anda terdeteksi berpindah tab melebihi batas toleransi!'
-            : 'Jawaban kuis Anda berhasil dikirim dan tersimpan di sistem!';
-        $flashType = $isForceSubmitted ? 'warning' : 'success';
+        $flashMsg = match (true) {
+            $isForceSubmitted => 'Kuis telah otomatis dikumpulkan karena Anda terdeteksi berpindah tab melebihi batas toleransi!',
+            $isTimeUp => 'Waktu pengerjaan habis. Jawaban yang sudah Anda isi otomatis dikumpulkan.',
+            default => 'Jawaban kuis Anda berhasil dikirim dan tersimpan di sistem!',
+        };
+        $flashType = $isForceSubmitted || $isTimeUp ? 'warning' : 'success';
 
         if ($keptPreviousScore !== null) {
             $flashMsg = "Nilai percobaan ini {$mcScore}. Nilai tertinggi Anda ({$keptPreviousScore}) tetap dipakai.";
@@ -466,7 +480,7 @@ class TrainingPortalController extends Controller
             abort(404);
         }
 
-        if ($blocked = $this->evaluationBlocked($training, $participant, $portal)) {
+        if ($blocked = $this->evaluationBlocked($training, $participant, $portal, submitting: true)) {
             return $blocked;
         }
 
@@ -494,13 +508,18 @@ class TrainingPortalController extends Controller
     /**
      * Redirect back to the portal when the evaluation cannot be filled in right now; null when it can.
      */
-    private function evaluationBlocked(Training $training, TrainingParticipant $participant, string $portal): ?RedirectResponse
+    private function evaluationBlocked(Training $training, TrainingParticipant $participant, string $portal, bool $submitting = false): ?RedirectResponse
     {
+        // A form that is being submitted is still accepted shortly after its closing time passed.
+        $open = $submitting ? $training->acceptsEvaluationSubmission() : $training->isEvaluationOpen();
+
         $reason = match (true) {
             ! $training->hasEvaluationForm() => 'Form evaluasi tidak diadakan untuk pelatihan ini.',
             $participant->evaluation !== null => 'Anda sudah mengisi form evaluasi pelatihan ini.',
-            ! $training->isEvaluationOpen() => 'Form evaluasi belum dibuka. Harap menunggu instruksi dari pemateri.',
-            default => null,
+            $open => null,
+            $training->evaluationTimedOut() => 'Waktu pengisian form evaluasi sudah habis.',
+            $training->evaluationOpensAt() !== null => 'Form evaluasi dibuka otomatis '.Training::timeLabel($training->evaluationOpensAt()).' WIB.',
+            default => 'Form evaluasi belum dibuka. Harap menunggu instruksi dari pemateri.',
         };
 
         return $reason ? redirect($portal)->with('warning', $reason) : null;
@@ -513,7 +532,7 @@ class TrainingPortalController extends Controller
     private function quizFollowsEvaluation(Training $training, TrainingParticipant $participant): bool
     {
         return $training->isPhaseActive(Training::PHASE_POSTTEST)
-            && $training->questions()->exists()
+            && $training->phaseQuestions(Training::PHASE_POSTTEST)->exists()
             && $training->quizAttemptsLeft($participant->quizResult) !== 0;
     }
 
@@ -528,15 +547,33 @@ class TrainingPortalController extends Controller
         $hasEvaluationForm = $training->hasEvaluationForm();
 
         return response()->json([
-            'is_attendance_active' => (bool) $training->is_attendance_active,
-            'is_quiz_active' => (bool) $training->is_quiz_active,
+            'is_attendance_active' => $training->isAttendanceOpen(),
+            'is_quiz_active' => $training->isPhaseActive(Training::PHASE_POSTTEST),
             'is_pretest_active' => $training->isPhaseActive(Training::PHASE_PRETEST),
+            // Sisa detik sampai tutup otomatis (null = tanpa batas waktu atau tertutup); dihitung server supaya jam
+            // perangkat peserta yang meleset tidak berpengaruh.
+            'quiz_seconds_left' => $training->phaseSecondsLeft(Training::PHASE_POSTTEST),
+            'pretest_seconds_left' => $training->phaseSecondsLeft(Training::PHASE_PRETEST),
+            'quiz_closes_at' => $training->phaseClosesAt(Training::PHASE_POSTTEST)?->format('H:i'),
+            'pretest_closes_at' => $training->phaseClosesAt(Training::PHASE_PRETEST)?->format('H:i'),
+            // Jadwal buka (mis. "pukul 09:40"); null bila tidak dijadwalkan atau sudah terbuka.
+            'quiz_opens_at' => $this->opensLabel($training, Training::PHASE_POSTTEST),
+            'pretest_opens_at' => $this->opensLabel($training, Training::PHASE_PRETEST),
+            'quiz_timed_out' => $training->phaseTimedOut(Training::PHASE_POSTTEST),
+            'pretest_timed_out' => $training->phaseTimedOut(Training::PHASE_PRETEST),
             'has_evaluation' => $hasEvaluationForm,
             'is_evaluation_open' => $hasEvaluationForm && $training->evaluationWindowOpen(),
             'require_attendance_proof' => (bool) $training->require_attendance_proof,
             'attendance_status' => $participant->attendance_status,
             'has_quiz_result' => $participant->quizResult ? true : false,
         ]);
+    }
+
+    private function opensLabel(Training $training, string $phase): ?string
+    {
+        $opensAt = $training->phaseOpensAt($phase);
+
+        return $opensAt ? Training::timeLabel($opensAt) : null;
     }
 
     /**
@@ -546,7 +583,7 @@ class TrainingPortalController extends Controller
     {
         $userId = auth()->id();
 
-        $participations = TrainingParticipant::with(['training.trainer', 'quizResult', 'pretestResult'])
+        $participations = TrainingParticipant::with(['training.trainer', 'training.evaluationQuestions', 'quizResult', 'pretestResult', 'evaluation'])
             ->where('user_id', $userId)
             ->whereHas('training')
             ->latest()

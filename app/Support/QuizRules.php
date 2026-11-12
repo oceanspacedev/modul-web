@@ -13,6 +13,11 @@ final class QuizRules
 
     public const MAX_ATTEMPTS = 255;
 
+    /** Pilihan batas waktu (menit) kuis pelatihan; nilai lain yang sudah tersimpan tetap ikut tampil. */
+    public const DURATION_CHOICES = [5, 10, 15, 20, 30, 45, 60];
+
+    public const MAX_DURATION_MINUTES = 600;
+
     /**
      * Opsi <select> batas percobaan: ['1' => '1 kali', ..., '' => 'Tanpa batas'].
      *
@@ -38,6 +43,40 @@ final class QuizRules
     public static function attemptsLabel(?int $max): string
     {
         return $max === null ? 'Tanpa batas' : $max.' kali';
+    }
+
+    /**
+     * Opsi <select> batas waktu kuis pelatihan: ['' => 'Tanpa batas waktu', '5' => '5 menit', ...].
+     *
+     * @return array<string, string>
+     */
+    public static function durationOptions(?int $current = null): array
+    {
+        $choices = self::DURATION_CHOICES;
+        if ($current !== null && ! in_array($current, $choices, true)) {
+            $choices[] = $current;
+            sort($choices);
+        }
+
+        $options = ['' => self::durationLabel(null)];
+        foreach ($choices as $minutes) {
+            $options[(string) $minutes] = self::durationLabel($minutes);
+        }
+
+        return $options;
+    }
+
+    public static function durationLabel(?int $minutes): string
+    {
+        return $minutes === null ? 'Tanpa batas waktu' : $minutes.' menit';
+    }
+
+    /**
+     * Sisa waktu sebagai menit:detik, mis. 432 detik menjadi "07:12".
+     */
+    public static function clock(int $seconds): string
+    {
+        return sprintf('%02d:%02d', intdiv(max(0, $seconds), 60), max(0, $seconds) % 60);
     }
 
     /**
@@ -85,5 +124,15 @@ final class QuizRules
     public static function attemptRules(): array
     {
         return ['nullable', 'integer', 'min:1', 'max:'.self::MAX_ATTEMPTS];
+    }
+
+    /**
+     * Aturan validasi untuk field batas waktu dalam menit (kosong = tanpa batas waktu).
+     *
+     * @return list<string>
+     */
+    public static function durationRules(): array
+    {
+        return ['nullable', 'integer', 'min:1', 'max:'.self::MAX_DURATION_MINUTES];
     }
 }

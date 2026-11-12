@@ -27,7 +27,8 @@ class StoreTrainingRequest extends FormRequest
             'training_date' => ['required', 'date'],
             'start_time' => ['required'],
             'end_time' => ['required'],
-            'zoom_link' => ['required', 'string'],
+            // Kosong untuk pelatihan tatap muka.
+            'zoom_link' => ['nullable', 'string'],
             'participants' => ['required', 'array', 'min:1'],
             'participants.*' => ['integer', 'exists:users,id'],
             'documents' => ['nullable', 'array'],

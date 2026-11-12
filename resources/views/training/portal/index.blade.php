@@ -63,6 +63,28 @@
             $evaluationUrl = '/training/portal/'.$participant->token.'/evaluation';
             // Evaluasi diisi sebelum posttest: selama belum terisi, tombol kuis mengarah ke form evaluasi.
             $awaitsEvaluation = $training->awaitsEvaluationFrom($participant);
+            $quizActive = $training->isPhaseActive('posttest');
+            // Teks bukti presensi: tangkapan layar Zoom untuk pelatihan daring, foto di lokasi untuk tatap muka.
+            $proofText = $training->isOnline() ? [
+                'shown' => 'Bukti Screenshot Pelatihan / Zoom',
+                'requiredTitle' => 'Wajib Screenshot',
+                'required' => 'Anda diwajibkan mengunggah foto / tangkapan layar saat bergabung dalam sesi Zoom / pelatihan.',
+                'upload' => 'Unggah Screenshot Bukti Zoom / Pelatihan',
+                'pick' => 'Pilih screenshot bukti zoom...',
+                'hint' => 'Pastikan tampilan Zoom / nama Anda tampak.',
+                'replace' => 'Ganti Screenshot',
+            ] : [
+                'shown' => 'Foto Bukti Kehadiran',
+                'requiredTitle' => 'Wajib Foto',
+                'required' => 'Anda diwajibkan mengunggah foto bukti kehadiran di lokasi pelatihan.',
+                'upload' => 'Unggah Foto Bukti Kehadiran',
+                'pick' => 'Pilih foto bukti kehadiran...',
+                'hint' => 'Pastikan Anda tampak di lokasi pelatihan.',
+                'replace' => 'Ganti Foto',
+            ];
+            // Fase yang dijadwalkan pemateri: peserta diberi tahu jam bukanya.
+            $pretestOpensAt = $training->phaseOpensAt('pretest');
+            $quizOpensAt = $training->phaseOpensAt('posttest');
         @endphp
 
         @if($training->has_pretest)
@@ -72,6 +94,10 @@
                 <span><span class="badge badge-primary mr-1">Langkah {{ ++$step }}</span> Pretest</span>
                 <span class="text-muted small">{{ $pretestQuestionCount }} Pertanyaan</span>
             </div>
+
+            @if($training->quizAttemptsLeft($pretestResult, 'pretest') !== 0)
+                @include('training.partials.portal-deadline', ['phase' => 'pretest'])
+            @endif
 
             @if($pretestResult)
                 <div class="p-4 bg-light rounded text-center border mb-3">
@@ -105,8 +131,15 @@
                     Mulai Pretest
                 </a>
             @else
-                <div class="text-center py-4 text-muted">
-                    Pretest belum dibuka oleh pemateri.
+                <div class="text-center py-4 text-muted" data-locked-text="pretest"
+                    data-default="Pretest belum dibuka oleh pemateri." data-scheduled="Pretest dibuka otomatis " data-timed-out="Waktu pengerjaan pretest sudah habis.">
+                    @if($pretestOpensAt)
+                        Pretest dibuka otomatis {{ \App\Models\Training::timeLabel($pretestOpensAt) }} WIB.
+                    @elseif($training->phaseTimedOut('pretest'))
+                        Waktu pengerjaan pretest sudah habis.
+                    @else
+                        Pretest belum dibuka oleh pemateri.
+                    @endif
                 </div>
             @endif
         </div>
@@ -143,13 +176,18 @@
 
             @if($training->status === App\Enums\TrainingStatus::Cancelled)
                 <div class="alert alert-danger mb-0">
-                    <i class="fas fa-ban mr-1"></i> Pelatihan ini dibatalkan. Tautan Zoom tidak lagi tersedia.
+                    <i class="fas fa-ban mr-1"></i> Pelatihan ini dibatalkan.{{ $training->zoom_link ? ' Tautan Zoom tidak lagi tersedia.' : '' }}
                 </div>
-            @else
+            @elseif($training->zoom_link)
                 <div>
                     <a href="{{ $training->zoom_link }}" target="_blank" rel="noopener" class="btn btn-primary btn-block">
                         <i class="fas fa-video mr-1"></i> Buka Tautan Zoom
                     </a>
+                </div>
+            @else
+                {{-- Pelatihan tatap muka: tidak ada tautan meeting. --}}
+                <div class="alert alert-light border mb-0 small">
+                    <i class="fas fa-map-marker-alt mr-1"></i> Pelatihan ini diadakan tatap muka, tanpa tautan meeting.
                 </div>
             @endif
 
@@ -177,7 +215,8 @@
             @endif
         </div>
 
-        <!-- KONFIRMASI KEHADIRAN -->
+        <!-- KONFIRMASI KEHADIRAN (tidak tampil bila pelatihan tanpa presensi) -->
+        @if($training->has_attendance)
         <div class="content-card" id="attendanceCard">
             <div class="content-card-header">
                 <span><span class="badge badge-primary mr-1">Langkah {{ ++$step }}</span> Presensi Kehadiran</span>
@@ -209,7 +248,7 @@
                     @if($participant->attendance_proof)
                         <div class="mt-3 p-3 bg-white rounded border">
                             <span class="small font-weight-bold text-dark d-block mb-2">
-                                <i class="fas fa-camera mr-1 text-primary"></i> Bukti Screenshot Pelatihan / Zoom:
+                                <i class="fas fa-camera mr-1 text-primary"></i> {{ $proofText['shown'] }}:
                             </span>
                             <div class="text-center">
                                 <a href="{{ $participant->attendance_proof_url }}" target="_blank" title="Klik untuk perbesar">
@@ -250,7 +289,7 @@
 
                     @if($training->require_attendance_proof)
                         <div class="alert alert-info py-2 px-3 small mb-3" id="proofInfoBox">
-                            <i class="fas fa-info-circle mr-1"></i> <strong>Wajib Screenshot:</strong> Anda diwajibkan mengunggah foto / tangkapan layar (screenshot) saat bergabung dalam sesi Zoom / pelatihan.
+                            <i class="fas fa-info-circle mr-1"></i> <strong>{{ $proofText['requiredTitle'] }}:</strong> {{ $proofText['required'] }}
                         </div>
                     @else
                         <div class="d-none" id="proofInfoBox"></div>
@@ -263,21 +302,21 @@
                         <div id="proofFieldWrapper" class="{{ $training->require_attendance_proof ? '' : 'd-none' }}">
                             <div class="form-group mb-3">
                                 <label class="small font-weight-bold text-dark mb-1" for="attendanceProofInput">
-                                    Unggah Screenshot Bukti Zoom / Pelatihan <span class="text-danger">*</span>
+                                    {{ $proofText['upload'] }} <span class="text-danger">*</span>
                                 </label>
                                 <div class="custom-file">
                                     <input type="file" name="attendance_proof" id="attendanceProofInput" class="custom-file-input" accept="image/png, image/jpeg, image/jpg, image/webp" {{ $training->require_attendance_proof ? 'required' : '' }} onchange="previewAttendanceProof(this)">
                                     <label class="custom-file-label text-muted text-truncate" for="attendanceProofInput" id="attendanceProofLabel">
-                                        Pilih screenshot bukti zoom...
+                                        {{ $proofText['pick'] }}
                                     </label>
                                 </div>
-                                <small class="form-text text-muted">Format: JPG, PNG, atau WEBP. Maksimal 5MB. Pastikan tampilan Zoom / nama Anda tampak.</small>
+                                <small class="form-text text-muted">Format: JPG, PNG, atau WEBP. Maksimal 5MB. {{ $proofText['hint'] }}</small>
 
                                 <div id="proofPreviewWrapper" class="mt-2 text-center d-none">
                                     <img id="proofPreviewImg" src="#" alt="Preview Screenshot" class="img-fluid rounded border shadow-sm" style="max-height: 180px; object-fit: contain;">
                                     <div class="mt-1">
                                         <button type="button" class="btn btn-link btn-xs text-danger" onclick="clearProofInput()">
-                                            <i class="fas fa-trash-alt mr-1"></i> Ganti Screenshot
+                                            <i class="fas fa-trash-alt mr-1"></i> {{ $proofText['replace'] }}
                                         </button>
                                     </div>
                                 </div>
@@ -312,6 +351,7 @@
                 @endif
             @endif
         </div>
+        @endif
 
         <!-- FORM EVALUASI PELATIHAN (sebelum posttest) -->
         @if($training->hasEvaluationForm())
@@ -336,12 +376,27 @@
                     Beri penilaian singkat tentang pemateri dan pelatihan ini{{ $training->has_posttest ? ' sebelum mengerjakan kuis' : '' }}.
                     Nama, jabatan, dan data pelatihan sudah terisi otomatis.
                 </p>
+                @if($training->evaluationClosesAt())
+                    <div class="alert alert-warning py-2 px-3 small mb-3">
+                        <i class="far fa-clock mr-1"></i> Bisa diisi sampai pukul <strong>{{ $training->evaluationClosesAt()->format('H:i') }}</strong> WIB.
+                    </div>
+                @endif
                 <a href="{{ $evaluationUrl }}" class="btn btn-primary btn-block">
                     Isi Form Evaluasi
                 </a>
             @else
                 <div class="text-center py-4 text-muted">
-                    {{ $training->has_posttest ? 'Form evaluasi dibuka bersamaan dengan kuis.' : 'Form evaluasi dibuka saat sesi berlangsung.' }}
+                    @if($training->has_posttest)
+                        Form evaluasi dibuka bersamaan dengan kuis.
+                    @elseif($training->evaluationOpensAt())
+                        Form evaluasi dibuka otomatis {{ \App\Models\Training::timeLabel($training->evaluationOpensAt()) }} WIB.
+                    @elseif($training->evaluationTimedOut())
+                        Waktu pengisian form evaluasi sudah habis.
+                    @elseif($training->hasEvaluationSchedule())
+                        Form evaluasi belum dibuka oleh pemateri.
+                    @else
+                        Form evaluasi dibuka saat sesi berlangsung.
+                    @endif
                 </div>
             @endif
         </div>
@@ -352,8 +407,12 @@
         <div class="content-card" id="quizCard">
             <div class="content-card-header">
                 <span><span class="badge badge-primary mr-1">Langkah {{ ++$step }}</span> {{ $training->has_pretest ? 'Posttest' : 'Kuis Evaluasi' }}</span>
-                <span class="text-muted small">{{ $training->questions->count() }} Pertanyaan</span>
+                <span class="text-muted small">{{ $training->questionsFor('posttest')->count() }} Pertanyaan</span>
             </div>
+
+            @if($training->quizAttemptsLeft($participant->quizResult) !== 0)
+                @include('training.partials.portal-deadline', ['phase' => 'posttest'])
+            @endif
 
             @if($participant->quizResult)
                 <div class="p-4 bg-light rounded text-center border mb-3">
@@ -381,14 +440,14 @@
                 @endif
             @else
                 <div id="quizBody">
-                @if($training->is_quiz_active && $awaitsEvaluation)
+                @if($quizActive && $awaitsEvaluation)
                     <p class="text-muted small mb-3">
                         Kuis sudah dibuka. Isi form evaluasi terlebih dahulu, setelah itu kuis langsung terbuka.
                     </p>
                     <a href="{{ $evaluationUrl }}" class="btn btn-primary btn-block">
                         Isi Evaluasi, lalu Kerjakan Kuis
                     </a>
-                @elseif($training->is_quiz_active)
+                @elseif($quizActive)
                     <p class="text-muted small mb-3">
                         Kuis evaluasi telah dibuka oleh pemateri. {{ \App\Support\QuizRules::summary($training->quiz_max_attempts, $training->show_quiz_answers) }}.
                     </p>
@@ -396,8 +455,15 @@
                         Mulai Kerjakan Kuis
                     </a>
                 @else
-                    <div class="text-center py-4 text-muted" id="quizLockedMsg">
-                        Kuis belum dibuka oleh pemateri.
+                    <div class="text-center py-4 text-muted" id="quizLockedMsg" data-locked-text="posttest"
+                        data-default="Kuis belum dibuka oleh pemateri." data-scheduled="Kuis dibuka otomatis " data-timed-out="Waktu pengerjaan kuis sudah habis.">
+                        @if($quizOpensAt)
+                            Kuis dibuka otomatis {{ \App\Models\Training::timeLabel($quizOpensAt) }} WIB.
+                        @elseif($training->phaseTimedOut('posttest'))
+                            Waktu pengerjaan kuis sudah habis.
+                        @else
+                            Kuis belum dibuka oleh pemateri.
+                        @endif
                     </div>
                 @endif
                 </div>
@@ -438,7 +504,7 @@
             const previewImg = document.getElementById('proofPreviewImg');
 
             if (input) input.value = '';
-            if (label) label.textContent = 'Pilih screenshot bukti zoom...';
+            if (label) label.textContent = '{{ $proofText['pick'] }}';
             if (previewImg) previewImg.src = '#';
             if (previewWrapper) previewWrapper.classList.add('d-none');
         }
@@ -454,7 +520,7 @@
             // State saat ini dari server (render awal Blade)
             // Absen HANYA track is_attendance_active, tidak terpengaruh is_quiz_active
             let currentAttendanceActive = {{ $training->is_attendance_active ? 'true' : 'false' }};
-            let currentQuizActive       = {{ $training->is_quiz_active ? 'true' : 'false' }};
+            let currentQuizActive       = {{ $quizActive ? 'true' : 'false' }};
             // Pretest dirender server; saat pemateri membuka/menutupnya halaman dimuat ulang.
             const currentPretestActive  = {{ $training->isPhaseActive('pretest') ? 'true' : 'false' }};
             const watchPretest          = {{ $training->has_pretest && ! $pretestResult ? 'true' : 'false' }};
@@ -473,12 +539,12 @@
                 if (requireProof) {
                     proofHtml = `
                         <div class="alert alert-info py-2 px-3 small mb-3">
-                            <i class="fas fa-info-circle mr-1"></i> <strong>Wajib Screenshot:</strong>
-                            Anda diwajibkan mengunggah foto / tangkapan layar saat bergabung dalam sesi Zoom / pelatihan.
+                            <i class="fas fa-info-circle mr-1"></i> <strong>{{ $proofText['requiredTitle'] }}:</strong>
+                            {{ $proofText['required'] }}
                         </div>
                         <div class="form-group mb-3">
                             <label class="small font-weight-bold text-dark mb-1" for="attendanceProofInput">
-                                Unggah Screenshot Bukti Zoom / Pelatihan <span class="text-danger">*</span>
+                                {{ $proofText['upload'] }} <span class="text-danger">*</span>
                             </label>
                             <div class="custom-file">
                                 <input type="file" name="attendance_proof" id="attendanceProofInput"
@@ -488,7 +554,7 @@
                                     onchange="previewAttendanceProof(this)">
                                 <label class="custom-file-label text-muted text-truncate"
                                     for="attendanceProofInput" id="attendanceProofLabel">
-                                    Pilih screenshot bukti zoom...
+                                    {{ $proofText['pick'] }}
                                 </label>
                             </div>
                             <small class="form-text text-muted">Format: JPG, PNG, atau WEBP. Maksimal 5MB.</small>
@@ -498,7 +564,7 @@
                                     style="max-height: 180px; object-fit: contain;">
                                 <div class="mt-1">
                                     <button type="button" class="btn btn-link btn-xs text-danger" onclick="clearProofInput()">
-                                        <i class="fas fa-trash-alt mr-1"></i> Ganti Screenshot
+                                        <i class="fas fa-trash-alt mr-1"></i> {{ $proofText['replace'] }}
                                     </button>
                                 </div>
                             </div>
@@ -564,7 +630,8 @@
 
             function buildQuizLockedHTML() {
                 return `
-                    <div class="text-center py-4 text-muted">
+                    <div class="text-center py-4 text-muted" data-locked-text="posttest"
+                        data-default="Kuis belum dibuka oleh pemateri." data-scheduled="Kuis dibuka otomatis " data-timed-out="Waktu pengerjaan kuis sudah habis.">
                         Kuis belum dibuka oleh pemateri.
                     </div>`;
             }
@@ -593,7 +660,7 @@
                         if (proofInput) proofInput.setAttribute('required', 'required');
                         if (proofInfoBox) {
                             proofInfoBox.className = 'alert alert-info py-2 px-3 small mb-3';
-                            proofInfoBox.innerHTML = '<i class="fas fa-info-circle mr-1"></i> <strong>Wajib Screenshot:</strong> Anda diwajibkan mengunggah foto / tangkapan layar saat bergabung dalam sesi Zoom / pelatihan.';
+                            proofInfoBox.innerHTML = '<i class="fas fa-info-circle mr-1"></i> <strong>{{ $proofText['requiredTitle'] }}:</strong> {{ $proofText['required'] }}';
                         }
                     } else {
                         proofFieldWrapper.classList.add('d-none');
@@ -607,7 +674,7 @@
                         const proofLabel     = document.getElementById('attendanceProofLabel');
                         if (previewWrapper) previewWrapper.classList.add('d-none');
                         if (previewImg) previewImg.src = '#';
-                        if (proofLabel) proofLabel.textContent = 'Pilih screenshot bukti zoom...';
+                        if (proofLabel) proofLabel.textContent = '{{ $proofText['pick'] }}';
                         if (proofInfoBox) {
                             proofInfoBox.className = 'd-none';
                             proofInfoBox.innerHTML = '';
@@ -623,10 +690,63 @@
                     || Array.prototype.some.call(notes, function (note) { return note.value.trim() !== ''; });
             }
 
+            // ---- BATAS WAKTU pretest/posttest: hitung mundur dari sisa detik yang dikirim server ----
+            const deadlineEnds = {};
+
+            function setDeadline(phase, secondsLeft, timeLabel) {
+                const box = document.querySelector('[data-deadline="' + phase + '"]');
+                if (!box) return;
+
+                if (secondsLeft === null || secondsLeft === undefined || secondsLeft === '') {
+                    delete deadlineEnds[phase];
+                    box.hidden = true;
+                    return;
+                }
+
+                deadlineEnds[phase] = Date.now() + Number(secondsLeft) * 1000;
+                if (timeLabel) box.querySelector('[data-deadline-time]').textContent = timeLabel;
+                box.hidden = false;
+            }
+
+            function tickDeadlines() {
+                Object.keys(deadlineEnds).forEach(function (phase) {
+                    const box = document.querySelector('[data-deadline="' + phase + '"]');
+                    const left = Math.max(0, Math.round((deadlineEnds[phase] - Date.now()) / 1000));
+                    box.querySelector('[data-deadline-clock]').textContent =
+                        String(Math.floor(left / 60)).padStart(2, '0') + ':' + String(left % 60).padStart(2, '0');
+
+                    // Waktu habis: sembunyikan, lalu tanya server supaya tombol kuis ikut terkunci.
+                    if (left === 0) {
+                        delete deadlineEnds[phase];
+                        box.hidden = true;
+                        poll();
+                    }
+                });
+            }
+
+            // Pesan fase yang terkunci: jam buka terjadwal, "waktu sudah habis", atau "belum dibuka".
+            function setLockedText(phase, opensLabel, timedOut) {
+                const el = document.querySelector('[data-locked-text="' + phase + '"]');
+                if (!el) return;
+                el.textContent = opensLabel
+                    ? el.dataset.scheduled + opensLabel + ' WIB.'
+                    : (timedOut ? el.dataset.timedOut : el.dataset.default);
+            }
+
+            document.querySelectorAll('[data-deadline]').forEach(function (box) {
+                setDeadline(box.dataset.deadline, box.dataset.secondsLeft);
+            });
+            setInterval(tickDeadlines, 1000);
+
             function poll() {
                 fetch(STATUS_URL)
                     .then(function(res) { return res.json(); })
                     .then(function(data) {
+
+                        setDeadline('pretest', data.pretest_seconds_left, data.pretest_closes_at);
+                        setDeadline('posttest', data.quiz_seconds_left, data.quiz_closes_at);
+                        setLockedText('pretest', data.pretest_opens_at, data.pretest_timed_out);
+                        setLockedText('posttest', data.quiz_opens_at, data.quiz_timed_out);
 
                         if (watchPretest && data.is_pretest_active !== currentPretestActive) {
                             window.location.reload();
@@ -688,6 +808,7 @@
                             } else if (!data.is_quiz_active && currentQuizActive) {
                                 currentQuizActive = false;
                                 quizBody.innerHTML = buildQuizLockedHTML();
+                                setLockedText('posttest', data.quiz_opens_at, data.quiz_timed_out);
                             }
                         }
                     })

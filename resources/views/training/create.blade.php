@@ -64,9 +64,10 @@
                             </div>
 
                             <div class="form-group">
-                                <label for="zoom_link">Link Meeting <span class="text-danger">*</span></label>
+                                <label for="zoom_link">Link Meeting <span class="text-muted font-weight-normal">(opsional)</span></label>
                                 <input type="url" id="zoom_link" name="zoom_link" class="form-control"
-                                    value="{{ old('zoom_link') }}" placeholder="https://zoom.us/j/..." required>
+                                    value="{{ old('zoom_link') }}" placeholder="https://zoom.us/j/...">
+                                <small class="form-text text-muted">Kosongkan untuk pelatihan tatap muka.</small>
                             </div>
 
                             <div class="form-group mb-0">

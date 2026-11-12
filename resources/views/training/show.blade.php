@@ -32,9 +32,12 @@
                 <a href="{{ route('training.index') }}" class="btn btn-default">
                     <i class="fas fa-arrow-left"></i> Kembali
                 </a>
-                <button type="button" class="btn btn-default" data-toggle="modal" data-target="#scanZoomModal">
-                    <i class="fas fa-video-slash"></i> Scan Off Cam
-                </button>
+                {{-- Kamera hanya relevan untuk pelatihan daring. --}}
+                @if($training->isOnline())
+                    <button type="button" class="btn btn-default" data-toggle="modal" data-target="#scanZoomModal">
+                        <i class="fas fa-video-slash"></i> Scan Off Cam
+                    </button>
+                @endif
                 <div class="dropdown d-inline-block">
                     <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         Opsi
@@ -55,9 +58,11 @@
                         </a>
                     </div>
                 </div>
-                <a href="/training/{{ $training->id }}/questions" class="btn btn-primary">
-                    Soal Kuis ({{ $training->questions->count() }})
-                </a>
+                @if($training->hasQuiz())
+                    <a href="/training/{{ $training->id }}/questions" class="btn btn-primary">
+                        Soal Kuis ({{ $training->questions->count() }})
+                    </a>
+                @endif
             </x-slot:actions>
         </x-page-header>
     </div>
@@ -95,20 +100,27 @@
                 ...($training->has_pretest ? [[
                     'label' => 'Pretest',
                     'hint' => 'buka pretest sebelum materi dimulai.',
-                    'done' => $training->is_pretest_active || $training->pretestResults()->exists(),
-                    'action' => 'Buka Pretest', 'post' => route('training.toggle-pretest', $training),
+                    'done' => $training->isPhaseActive('pretest') || $training->phaseOpensAt('pretest') || $training->pretestResults()->exists(),
+                    // Dialog waktu yang sama dengan tombol Buka Pretest di Kontrol Sesi.
+                    'action' => 'Buka Pretest', 'modal' => 'phaseTimeModal', 'modalData' => [
+                        'url' => route('training.toggle-pretest', $training), 'phase' => 'pretest', 'open' => '1',
+                        'title' => 'Buka Pretest', 'submit' => 'Buka Pretest', 'minutes' => $training->durationMinutes('pretest'),
+                    ],
                 ]] : []),
-                [
+                ...($training->has_attendance ? [[
                     'label' => 'Presensi',
                     'hint' => 'buka presensi saat sesi dimulai.',
                     'done' => $training->is_attendance_active || $stats['attended'] > 0,
                     'action' => 'Buka Presensi', 'post' => route('training.toggle-attendance', $training),
-                ],
+                ]] : []),
                 ...($training->has_posttest ? [[
                     'label' => $training->has_pretest ? 'Posttest' : 'Kuis',
                     'hint' => $training->has_pretest ? 'buka posttest setelah materi selesai.' : 'buka kuis setelah materi selesai.',
-                    'done' => $training->is_quiz_active || $stats['quizSubmitted'] > 0,
-                    'action' => $training->has_pretest ? 'Buka Posttest' : 'Buka Kuis', 'post' => route('training.toggle-quiz', $training),
+                    'done' => $training->isPhaseActive('posttest') || $training->phaseOpensAt('posttest') || $stats['quizSubmitted'] > 0,
+                    'action' => $training->has_pretest ? 'Buka Posttest' : 'Buka Kuis', 'modal' => 'phaseTimeModal', 'modalData' => [
+                        'url' => route('training.toggle-quiz', $training), 'phase' => 'posttest', 'open' => '1',
+                        'title' => 'Buka Kuis', 'submit' => 'Buka Kuis', 'minutes' => $training->durationMinutes('posttest'),
+                    ],
                 ]] : []),
                 [
                     'label' => 'Rekap',
@@ -126,6 +138,9 @@
         @php
             $attendanceRate = $stats['total'] > 0 ? round(($stats['attended'] / $stats['total']) * 100) : 0;
             $quizRate = $stats['total'] > 0 ? round(($stats['quizSubmitted'] / $stats['total']) * 100) : 0;
+            // Kuis yang nilainya ditampilkan sebagai nilai pelatihan: posttest, atau pretest bila pelatihan hanya punya itu.
+            $mainPhase = $training->mainPhase();
+            $mainPhaseLabel = $training->mainPhaseLabel();
         @endphp
         <div class="row">
             <div class="col-lg-3 col-6 mb-3">
@@ -133,10 +148,15 @@
                     <div class="min-w-0">
                         <p class="stat-tile-label">Peserta</p>
                         <p class="stat-tile-value" id="statTotal">{{ $stats['total'] }}</p>
-                        <p class="stat-tile-hint"><span id="statAttended">{{ $stats['attended'] }}</span> hadir &middot; <span id="statPending">{{ $stats['pending'] }}</span> belum absen</p>
+                        @if($training->has_attendance)
+                            <p class="stat-tile-hint"><span id="statAttended">{{ $stats['attended'] }}</span> hadir &middot; <span id="statPending">{{ $stats['pending'] }}</span> belum absen</p>
+                        @else
+                            <p class="stat-tile-hint">tanpa presensi</p>
+                        @endif
                     </div>
                 </div>
             </div>
+            @if($training->has_attendance)
             <div class="col-lg-3 col-6 mb-3">
                 <div class="stat-tile h-100">
                     <div class="min-w-0">
@@ -146,24 +166,52 @@
                     </div>
                 </div>
             </div>
-            <div class="col-lg-3 col-6 mb-3">
-                <div class="stat-tile h-100">
-                    <div class="min-w-0">
-                        <p class="stat-tile-label">Kuis selesai</p>
-                        <p class="stat-tile-value"><span id="statQuiz">{{ $stats['quizSubmitted'] }}</span><span class="text-muted text-sm font-weight-normal"> / {{ $stats['total'] }}</span></p>
-                        <p class="stat-tile-hint">{{ $quizRate }}% peserta</p>
+            @endif
+            {{-- Dua kotak terakhir mengikuti isi pelatihan: kuis utamanya (posttest, atau pretest bila hanya itu), form
+                 evaluasi bila tanpa kuis, atau tidak tampil bila pelatihan hanya sesi dan presensi. --}}
+            @if($mainPhase)
+                <div class="col-lg-3 col-6 mb-3">
+                    <div class="stat-tile h-100">
+                        <div class="min-w-0">
+                            <p class="stat-tile-label">{{ $mainPhaseLabel }} selesai</p>
+                            <p class="stat-tile-value"><span id="statQuiz">{{ $stats['quizSubmitted'] }}</span><span class="text-muted text-sm font-weight-normal"> / {{ $stats['total'] }}</span></p>
+                            <p class="stat-tile-hint">{{ $quizRate }}% peserta</p>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-lg-3 col-6 mb-3">
-                <div class="stat-tile h-100">
-                    <div class="min-w-0">
-                        <p class="stat-tile-label">Rata-rata nilai</p>
-                        <p class="stat-tile-value" id="statAvg">{{ $stats['avgScore'] }}</p>
-                        <p class="stat-tile-hint">dari yang sudah mengerjakan</p>
+                <div class="col-lg-3 col-6 mb-3">
+                    <div class="stat-tile h-100">
+                        <div class="min-w-0">
+                            <p class="stat-tile-label">Rata-rata nilai{{ $training->has_pretest && $training->has_posttest ? ' posttest' : '' }}</p>
+                            <p class="stat-tile-value" id="statAvg">{{ $stats['avgScore'] }}</p>
+                            @if($training->has_pretest && $training->has_posttest)
+                                <p class="stat-tile-hint">pretest <span id="statPretestAvg">{{ $stats['pretestAvg'] }}</span> dari <span id="statPretest">{{ $stats['pretestSubmitted'] }}</span> peserta</p>
+                            @else
+                                <p class="stat-tile-hint">dari yang sudah mengerjakan</p>
+                            @endif
+                        </div>
                     </div>
                 </div>
-            </div>
+            @elseif($training->has_evaluation && $evaluation)
+                <div class="col-lg-3 col-6 mb-3">
+                    <div class="stat-tile h-100">
+                        <div class="min-w-0">
+                            <p class="stat-tile-label">Evaluasi terisi</p>
+                            <p class="stat-tile-value">{{ $evaluation['count'] }}<span class="text-muted text-sm font-weight-normal"> / {{ $stats['total'] }}</span></p>
+                            <p class="stat-tile-hint">{{ $stats['total'] > 0 ? round(($evaluation['count'] / $stats['total']) * 100) : 0 }}% peserta</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-6 mb-3">
+                    <div class="stat-tile h-100">
+                        <div class="min-w-0">
+                            <p class="stat-tile-label">Rata-rata evaluasi</p>
+                            <p class="stat-tile-value">{{ $evaluation['average'] === null ? '-' : number_format($evaluation['average'], 1) }}<span class="text-muted text-sm font-weight-normal"> / {{ \App\Support\TrainingEvaluationForm::SCALE_MAX }}</span></p>
+                            <p class="stat-tile-hint">dari yang sudah mengisi</p>
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
 
         <!-- TRAINING DETAIL OVERVIEW & SESSION CONTROL -->
@@ -189,7 +237,7 @@
                                         Buka Tautan Zoom
                                     </a>
                                 @else
-                                    <span class="text-muted">-</span>
+                                    <span class="text-muted">Tatap muka (tanpa tautan)</span>
                                 @endif
                             </div>
                             <div class="col-sm-4">
@@ -217,9 +265,11 @@
                             <button type="button" class="btn btn-xs btn-default" data-toggle="modal" data-target="#attachDocumentModal">
                                 Lampirkan Dokumen
                             </button>
-                            <a href="/training/{{ $training->id }}/questions?open_ai=1" class="btn btn-xs btn-default">
-                                Buat Soal AI
-                            </a>
+                            @if($training->hasQuiz())
+                                <a href="/training/{{ $training->id }}/questions?open_ai=1" class="btn btn-xs btn-default">
+                                    Buat Soal AI
+                                </a>
+                            @endif
                         </div>
                     </div>
                     <div class="card-body">
@@ -397,33 +447,49 @@
                     <!-- PENGATURAN AKSES & FITUR -->
                     <div class="list-group list-group-flush border-top">
                         <!-- AKSES ABSENSI -->
-                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
+                        <div class="list-group-item d-flex {{ $training->has_attendance ? 'flex-wrap' : '' }} align-items-center justify-content-between gap-2">
                             <div class="min-w-0">
                                 <div class="text-sm font-weight-bold">Akses Presensi</div>
                                 <div class="text-muted text-xs">
-                                    {{ $training->is_attendance_active ? 'Peserta dapat mengisi presensi' : 'Presensi ditutup untuk peserta' }}
+                                    @if(! $training->has_attendance)
+                                        Presensi tidak dipakai di pelatihan ini
+                                    @else
+                                        {{ $training->is_attendance_active ? 'Peserta dapat mengisi presensi' : 'Presensi ditutup untuk peserta' }}
+                                    @endif
                                 </div>
                             </div>
-                            <form action="/training/{{ $training->id }}/toggle-attendance" method="POST" class="m-0">
-                                @csrf
-                                @if($training->is_attendance_active)
-                                    <button type="submit" class="btn btn-default btn-xs text-danger text-nowrap">
-                                        Kunci Presensi
-                                    </button>
-                                @else
+                            <div class="d-flex flex-wrap justify-content-end gap-1 {{ $training->has_attendance ? 'w-100' : 'flex-shrink-0' }}">
+                                <form action="{{ route('training.toggle-attendance-use', $training) }}" method="POST" class="m-0"
+                                    @if($training->has_attendance) onsubmit="return confirm('Pelatihan ini tidak memakai presensi? Kotak, kolom, dan langkah presensi disembunyikan; data yang sudah masuk tetap tersimpan.')" @endif>
+                                    @csrf
                                     <button type="submit" class="btn btn-default btn-xs text-nowrap">
-                                        Buka Presensi
+                                        {{ $training->has_attendance ? 'Tidak Dipakai' : 'Pakai Presensi' }}
                                     </button>
+                                </form>
+                                @if($training->has_attendance)
+                                    <form action="/training/{{ $training->id }}/toggle-attendance" method="POST" class="m-0">
+                                        @csrf
+                                        @if($training->is_attendance_active)
+                                            <button type="submit" class="btn btn-default btn-xs text-danger text-nowrap">
+                                                Kunci Presensi
+                                            </button>
+                                        @else
+                                            <button type="submit" class="btn btn-default btn-xs text-nowrap">
+                                                Buka Presensi
+                                            </button>
+                                        @endif
+                                    </form>
                                 @endif
-                            </form>
+                            </div>
                         </div>
 
                         <!-- SYARAT SCREENSHOT -->
+                        @if($training->has_attendance)
                         <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
                             <div class="min-w-0">
-                                <div class="text-sm font-weight-bold">Bukti Foto / SS</div>
+                                <div class="text-sm font-weight-bold">Bukti Foto{{ $training->isOnline() ? ' / SS' : '' }}</div>
                                 <div class="text-muted text-xs">
-                                    {{ $training->require_attendance_proof ? 'Wajib upload foto selfie/meeting' : 'Presensi tanpa upload foto' }}
+                                    {{ $training->require_attendance_proof ? ($training->isOnline() ? 'Wajib upload foto selfie/meeting' : 'Wajib upload foto kehadiran') : 'Presensi tanpa upload foto' }}
                                 </div>
                             </div>
                             <form action="/training/{{ $training->id }}/toggle-proof" method="POST" class="m-0">
@@ -433,88 +499,87 @@
                                 </button>
                             </form>
                         </div>
+                        @endif
 
                         <!-- AKSES PRETEST -->
                         @if($training->has_pretest)
-                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
-                            <div class="min-w-0">
-                                <div class="text-sm font-weight-bold">Akses Pretest</div>
-                                <div class="text-muted text-xs">
-                                    {{ $training->is_pretest_active ? 'Pretest aktif untuk dikerjakan' : ($pretestQuestionCount === 0 ? 'Belum ada soal pilihan ganda' : 'Pengerjaan pretest terkunci') }}
-                                </div>
-                            </div>
-                            <form action="{{ route('training.toggle-pretest', $training) }}" method="POST" class="m-0">
-                                @csrf
-                                @if($training->is_pretest_active)
-                                    <button type="submit" class="btn btn-default btn-xs text-danger text-nowrap">
-                                        Kunci Pretest
-                                    </button>
-                                @elseif($pretestQuestionCount === 0)
-                                    <a href="{{ route('training.questions.index', $training) }}" class="btn btn-default btn-xs text-nowrap" title="Pretest butuh soal pilihan ganda">
-                                        Buat soal dulu
-                                    </a>
-                                @else
-                                    <button type="submit" class="btn btn-default btn-xs text-nowrap">
-                                        Buka Pretest
-                                    </button>
-                                @endif
-                            </form>
-                        </div>
+                            @include('training.partials.phase-access', [
+                                'phase' => 'pretest', 'heading' => 'Akses Pretest', 'noun' => 'Pretest',
+                                'questionCount' => $pretestQuestionCount, 'emptyText' => 'Belum ada soal untuk pretest',
+                                'toggleUrl' => route('training.toggle-pretest', $training),
+                            ])
                         @endif
 
                         <!-- AKSES POSTTEST (KUIS UTAMA) -->
                         @if($training->has_posttest)
-                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
-                            <div class="min-w-0">
-                                <div class="text-sm font-weight-bold">{{ $training->has_pretest ? 'Akses Posttest' : 'Akses Kuis' }}</div>
-                                <div class="text-muted text-xs">
-                                    {{ $training->is_quiz_active ? 'Kuis aktif untuk dikerjakan' : ($training->questions->isEmpty() ? 'Belum ada soal kuis' : 'Pengerjaan kuis terkunci') }}
-                                </div>
-                            </div>
-                            <form action="/training/{{ $training->id }}/toggle-quiz" method="POST" class="m-0">
-                                @csrf
-                                @if($training->is_quiz_active)
-                                    <button type="submit" class="btn btn-default btn-xs text-danger text-nowrap">
-                                        Kunci Kuis
-                                    </button>
-                                @elseif($training->questions->isEmpty())
-                                    <a href="{{ route('training.questions.index', $training) }}" class="btn btn-default btn-xs text-nowrap" title="Kuis belum punya soal">
-                                        Buat soal dulu
-                                    </a>
-                                @else
-                                    <button type="submit" class="btn btn-default btn-xs text-nowrap">
-                                        Buka Kuis
-                                    </button>
-                                @endif
-                            </form>
-                        </div>
+                            @include('training.partials.phase-access', [
+                                'phase' => 'posttest', 'heading' => $training->has_pretest ? 'Akses Posttest' : 'Akses Kuis', 'noun' => 'Kuis',
+                                'questionCount' => $training->questionsFor('posttest')->count(), 'emptyText' => 'Belum ada soal kuis',
+                                'toggleUrl' => route('training.toggle-quiz', $training),
+                            ])
                         @endif
 
                         <!-- FORM EVALUASI -->
-                        <div class="list-group-item d-flex align-items-start justify-content-between gap-2">
+                        @php
+                            // Tanpa posttest, pemateri boleh mengatur sendiri jam buka/tutup form evaluasi.
+                            $evaluationTimed = $training->has_evaluation && ! $training->has_posttest;
+                            $evaluationOpensAt = $training->evaluationOpensAt();
+                            $evaluationClosesAt = $training->evaluationClosesAt();
+                        @endphp
+                        <div class="list-group-item d-flex {{ $evaluationTimed ? 'flex-wrap' : '' }} align-items-start justify-content-between gap-2">
                             <div class="min-w-0">
                                 <div class="text-sm font-weight-bold">Form Evaluasi</div>
                                 <div class="text-muted text-xs">
-                                    @if($training->has_evaluation)
-                                        {{ $training->has_posttest ? 'Diisi peserta sebelum posttest' : 'Diisi peserta selama/sesudah sesi' }}
-                                        &middot; {{ $evaluation['count'] }} dari {{ $stats['total'] }} mengisi
-                                    @else
+                                    @if(! $training->has_evaluation)
                                         Peserta tidak diminta mengisi evaluasi
+                                    @else
+                                        @if($training->has_posttest)
+                                            Diisi peserta sebelum posttest
+                                        @elseif($evaluationOpensAt)
+                                            Terjadwal buka {{ \App\Models\Training::timeLabel($evaluationOpensAt) }}
+                                            &middot; {{ $training->evaluation_closes_at ? 'tutup '.$training->evaluation_closes_at->format('H:i') : 'tanpa batas waktu' }}
+                                        @elseif($training->evaluationTimedOut())
+                                            Waktu pengisian habis (tutup {{ $training->evaluation_closes_at->format('H:i') }})
+                                        @elseif($training->hasEvaluationSchedule())
+                                            Terbuka &middot; {{ $evaluationClosesAt ? 'tutup otomatis '.$evaluationClosesAt->format('H:i') : 'tanpa batas waktu' }}
+                                        @else
+                                            Diisi peserta selama/sesudah sesi
+                                        @endif
+                                        &middot; {{ $evaluation['count'] }} dari {{ $stats['total'] }} mengisi
                                     @endif
                                 </div>
                                 @if($training->has_evaluation && $training->evaluationQuestions->isEmpty())
                                     <div class="text-warning text-xs">Belum ada pertanyaan, jadi form belum tampil ke peserta</div>
-                                @elseif($training->has_evaluation && $training->has_posttest && $training->questions->isEmpty())
+                                @elseif($training->has_evaluation && $training->has_posttest && $training->questionsFor('posttest')->isEmpty())
                                     <div class="text-warning text-xs">Posttest belum punya soal, jadi evaluasi belum bisa dibuka. Buat soal, atau matikan posttest di Aturan Kuis</div>
                                 @endif
                                 <a href="{{ route('training.evaluation.index', $training) }}" class="text-xs">Kelola pertanyaan ({{ $training->evaluationQuestions->count() }})</a>
                             </div>
-                            <form action="{{ route('training.toggle-evaluation', $training) }}" method="POST" class="m-0">
-                                @csrf
-                                <button type="submit" class="btn btn-default btn-xs text-nowrap {{ $training->has_evaluation ? 'text-danger' : '' }}">
-                                    {{ $training->has_evaluation ? 'Nonaktifkan' : 'Aktifkan' }}
-                                </button>
-                            </form>
+                            <div class="d-flex flex-wrap justify-content-end gap-1 {{ $evaluationTimed ? 'w-100' : 'flex-shrink-0' }}">
+                                @if($evaluationTimed)
+                                    @if($training->hasEvaluationSchedule())
+                                        <form action="{{ route('training.evaluation-time', $training) }}" method="POST" class="m-0">
+                                            @csrf
+                                            <input type="hidden" name="reset" value="1">
+                                            <button type="submit" class="btn btn-default btn-xs text-nowrap" title="Kembali terbuka selama sesi berlangsung atau sudah selesai">Ikuti status</button>
+                                        </form>
+                                    @endif
+                                    <button type="button" class="btn btn-default btn-xs text-nowrap" data-toggle="modal" data-target="#phaseTimeModal"
+                                        data-url="{{ route('training.evaluation-time', $training) }}" data-phase="evaluation" data-open="1"
+                                        data-title="Atur waktu Form Evaluasi" data-submit="Simpan Waktu"
+                                        data-intro="Jam buka dan jam tutup berlaku sama untuk semua peserta. Setelah jam tutup lewat, form evaluasi tidak bisa diisi lagi."
+                                        data-none-label="Tanpa batas waktu"
+                                        data-open-time="{{ $evaluationOpensAt?->format('H:i') }}" data-time="{{ ($evaluationOpensAt || $evaluationClosesAt) ? $training->evaluation_closes_at?->format('H:i') : '' }}">
+                                        Atur waktu
+                                    </button>
+                                @endif
+                                <form action="{{ route('training.toggle-evaluation', $training) }}" method="POST" class="m-0">
+                                    @csrf
+                                    <button type="submit" class="btn btn-default btn-xs text-nowrap {{ $training->has_evaluation ? 'text-danger' : '' }}">
+                                        {{ $training->has_evaluation ? 'Nonaktifkan' : 'Aktifkan' }}
+                                    </button>
+                                </form>
+                            </div>
                         </div>
 
                         <!-- ATURAN KUIS -->
@@ -525,13 +590,12 @@
                                     <div class="text-muted text-xs">
                                         {{ \App\Models\Training::phaseLabel($phase) }}: {{ mb_strtolower(\App\Support\QuizRules::attemptsLabel($training->maxAttempts($phase))) }}
                                         &middot; hasil {{ mb_strtolower(\App\Support\QuizRules::answersLabel($training->showsAnswers($phase))) }}
+                                        &middot; {{ $training->durationMinutes($phase) ? 'terbuka '.$training->durationMinutes($phase).' menit' : 'tanpa batas waktu' }}
+                                        &middot; mode {{ $training->quizMode($phase) === 'game' ? 'game' : 'formal' }}
                                     </div>
                                 @empty
                                     <div class="text-muted text-xs">Tanpa kuis</div>
                                 @endforelse
-                                @if($training->hasQuiz())
-                                    <div class="text-muted text-xs">Mode {{ $training->quiz_mode === 'game' ? 'Game' : 'Formal' }}</div>
-                                @endif
                                 @if($training->has_posttest && $training->allowsQuizRetake() && $training->show_quiz_answers)
                                     <div class="text-warning text-xs">Kunci jawaban terlihat, peserta bisa menyontek saat mengulang</div>
                                 @endif
@@ -573,20 +637,81 @@
             </div>
         </div>
 
+        <!-- MODAL BUKA / ATUR WAKTU PRETEST & POSTTEST (dipakai kedua fase; isinya diatur dari tombol pemicunya) -->
+        <div class="modal fade" id="phaseTimeModal" tabindex="-1" role="dialog" aria-labelledby="phaseTimeModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <form action="" method="POST" class="modal-content">
+                    @csrf
+                    <input type="hidden" name="phase" value="">
+                    <input type="hidden" name="open" value="">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="phaseTimeModalTitle">Atur waktu</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Tutup"><span aria-hidden="true">&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        @php $phaseScheduleDate = $training->scheduleDate(); @endphp
+                        <p class="text-muted small" id="phaseTimeModalIntro"
+                            data-default="Jam buka dan jam tutup berlaku sama untuk semua peserta. Setelah jam tutup lewat, kuis terkunci sendiri dan peserta yang belum mengerjakan tidak mendapat nilai.">
+                            Jam buka dan jam tutup berlaku sama untuk semua peserta. Setelah jam tutup lewat, kuis terkunci
+                            sendiri dan peserta yang belum mengerjakan tidak mendapat nilai.
+                        </p>
+
+                        <div id="phaseOpenChoice">
+                            <div class="text-sm font-weight-bold mb-2">Dibuka</div>
+                            <div class="custom-control custom-radio mb-2">
+                                <input type="radio" class="custom-control-input" id="openModeNow" name="open_mode" value="now">
+                                <label class="custom-control-label" for="openModeNow">Sekarang</label>
+                            </div>
+                            <div class="custom-control custom-radio mb-3">
+                                <input type="radio" class="custom-control-input" id="openModeClock" name="open_mode" value="clock">
+                                <label class="custom-control-label" for="openModeClock">Otomatis pada pukul</label>
+                                <input type="time" class="form-control form-control-sm d-inline-block w-auto ml-2 align-middle" name="open_time" aria-label="Jam buka" data-pick="open_mode:clock">
+                                <span class="text-muted small ml-1">WIB, {{ $phaseScheduleDate->isToday() ? 'hari ini' : $phaseScheduleDate->translatedFormat('j M Y') }}</span>
+                            </div>
+                            <div class="text-sm font-weight-bold mb-2">Ditutup</div>
+                        </div>
+
+                        <div class="custom-control custom-radio mb-2">
+                            <input type="radio" class="custom-control-input" id="closeModeClock" name="close_mode" value="clock">
+                            <label class="custom-control-label" for="closeModeClock">Otomatis pada pukul</label>
+                            <input type="time" class="form-control form-control-sm d-inline-block w-auto ml-2 align-middle" name="close_time" aria-label="Jam tutup" data-pick="close_mode:clock">
+                            <span class="text-muted small ml-1">WIB</span>
+                        </div>
+                        <div class="custom-control custom-radio mb-2">
+                            <input type="radio" class="custom-control-input" id="closeModeMinutes" name="close_mode" value="minutes">
+                            <label class="custom-control-label" for="closeModeMinutes">Otomatis setelah</label>
+                            <input type="number" min="1" max="{{ \App\Support\QuizRules::MAX_DURATION_MINUTES }}" class="form-control form-control-sm d-inline-block ml-2 align-middle" style="width: 5rem;" name="close_minutes" aria-label="Lama terbuka dalam menit" data-pick="close_mode:minutes">
+                            <span class="small ml-1" id="phaseMinutesHint">menit</span>
+                        </div>
+                        <div class="custom-control custom-radio">
+                            <input type="radio" class="custom-control-input" id="closeModeNone" name="close_mode" value="none">
+                            <label class="custom-control-label" for="closeModeNone" id="phaseNoneLabel" data-default="Tanpa batas waktu, saya kunci sendiri">Tanpa batas waktu, saya kunci sendiri</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary" id="phaseTimeModalSubmit">Simpan Waktu</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- TABEL REKAP PESERTA & NILAI -->
         <div class="card" id="peserta">
             <div class="card-header">
                 <h3 class="card-title">
-                    Daftar Peserta & Nilai
+                    {{ $training->hasQuiz() ? 'Daftar Peserta & Nilai' : 'Daftar Peserta' }}
                     <span class="text-muted text-sm font-weight-normal">({{ $training->participants_count }} orang)</span>
                 </h3>
                 <div class="card-tools d-flex align-items-center flex-wrap gap-2">
                     <a href="{{ route('training.edit', $training) }}#peserta" class="btn btn-default btn-sm">
                         <i class="fas fa-user-plus"></i> Tambah / Ubah Peserta
                     </a>
-                    <button type="button" class="btn btn-default btn-sm" id="btnToggleManualOffCamMode">
-                        <i class="fas fa-user-edit"></i> Input Off Cam Manual
-                    </button>
+                    @if($training->isOnline())
+                        <button type="button" class="btn btn-default btn-sm" id="btnToggleManualOffCamMode">
+                            <i class="fas fa-user-edit"></i> Input Off Cam Manual
+                        </button>
+                    @endif
                     {{-- Pencarian dijalankan server: tabel hanya memuat satu halaman peserta. --}}
                     <form action="{{ route('training.show', $training) }}#peserta" method="GET" class="m-0" role="search" style="width: 220px; max-width: 100%;">
                         <x-search-field name="peserta" placeholder="Cari peserta..."
@@ -616,15 +741,24 @@
                             <th class="text-center" style="width: 50px;">No</th>
                             <th>Peserta</th>
                             <th>WhatsApp</th>
-                            <th>Presensi</th>
-                            <th>Kuis</th>
-                            <th class="text-center">Nilai</th>
+                            {{-- Tanpa presensi, kolom ini hanya memuat catatan kamera (pelatihan daring) atau tidak tampil. --}}
+                            @if($training->has_attendance)
+                                <th>Presensi</th>
+                            @elseif($training->isOnline())
+                                <th>Kamera</th>
+                            @endif
+                            @if($mainPhase)
+                                <th>{{ $mainPhaseLabel }}</th>
+                                <th class="text-center">Nilai</th>
+                            @elseif($training->has_evaluation)
+                                <th>Evaluasi</th>
+                            @endif
                             <th class="text-center" style="width: 110px;" id="thActionHeader">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         @php
-                            $hasEssay = $training->questions->contains('type', 'essay');
+                            $hasEssay = $mainPhase !== null && $training->questionsFor($mainPhase)->contains('type', 'essay');
                         @endphp
                         @forelse($participants as $part)
                         @php
@@ -634,8 +768,9 @@
                             $userEmail = optional($user)->email ?? '-';
                             $userIdKaryawan = optional($user)->employee_id ?? '-';
                             $userNoWa = optional($user)->no_hp ?? '-';
-                            $quiz = $part->quizResult;
-                            $pretest = $training->has_pretest ? $part->pretestResult : null;
+                            // Kolom kuis memuat fase utama; pretest tampil sebagai baris kecil hanya bila ada posttest juga.
+                            $quiz = $mainPhase ? $part->resultFor($mainPhase) : null;
+                            $pretest = $mainPhase === 'posttest' && $training->has_pretest ? $part->pretestResult : null;
                         @endphp
                         <tr>
                             <td class="text-center align-middle text-muted">
@@ -649,8 +784,11 @@
                                 <span class="d-block">{{ $userNoWa }}</span>
                                 <span class="cell-sub">{{ $part->wa_sent_at ? 'WA terkirim' : 'Belum dikirim' }}</span>
                             </td>
+                            @if($training->has_attendance || $training->isOnline())
                             <td class="align-middle text-nowrap">
-                                @if($part->attendance_status === 'hadir')
+                                @if(! $training->has_attendance)
+                                    {{-- Presensi tidak dipakai. --}}
+                                @elseif($part->attendance_status === 'hadir')
                                     <span class="status-dot is-success">Hadir</span>
                                     <span class="cell-sub">
                                         {{ \Carbon\Carbon::parse($part->attended_at)->format('H:i') }} WIB
@@ -675,8 +813,12 @@
                                     @endif
                                 </div>
                             </td>
+                            @endif
+                            @if($mainPhase || $training->has_evaluation)
                             <td class="align-middle text-nowrap">
-                                @if($quiz)
+                                @if(! $mainPhase)
+                                    {{-- Pelatihan tanpa kuis: kolom ini hanya berisi form evaluasi. --}}
+                                @elseif($quiz)
                                     <span class="d-block">Selesai</span>
                                     <span class="cell-sub">
                                         {{ $quiz->correct_answers }} PG benar
@@ -692,13 +834,28 @@
                                     <span class="text-muted">Belum mengerjakan</span>
                                 @endif
                                 @if($training->has_evaluation || $part->evaluation)
-                                    @php $evaluationAverage = $part->evaluation?->average($training->evaluationQuestions); @endphp
-                                    <span class="cell-sub">Evaluasi: {{ $part->evaluation ? ($evaluationAverage === null ? 'terisi' : number_format($evaluationAverage, 1).' / '.\App\Support\TrainingEvaluationForm::SCALE_MAX) : 'belum' }}</span>
+                                    @php
+                                        $evaluationAverage = $part->evaluation?->average($training->evaluationQuestions);
+                                        $evaluationScore = $evaluationAverage === null ? null : number_format($evaluationAverage, 1).' / '.\App\Support\TrainingEvaluationForm::SCALE_MAX;
+                                    @endphp
+                                    @if($mainPhase)
+                                        <span class="cell-sub">Evaluasi: {{ $part->evaluation ? ($evaluationScore ?? 'terisi') : 'belum' }}</span>
+                                    @elseif($part->evaluation)
+                                        <span class="d-block">Terisi</span>
+                                        <span class="cell-sub">{{ $evaluationScore ? $evaluationScore.' · ' : '' }}{{ $part->evaluation->submitted_at?->format('d/m H:i') }}</span>
+                                    @else
+                                        <span class="text-muted">Belum mengisi</span>
+                                    @endif
                                 @endif
-                                @if($training->has_pretest)
+                                @if($mainPhase === 'posttest' && $training->has_pretest)
                                     <span class="cell-sub">Pretest: {{ $pretest ? $pretest->score.(($pretest->attempt_count ?? 1) > 1 ? ' (tertinggi dari '.$pretest->attempt_count.'x)' : '') : 'belum' }}</span>
+                                    @if($pretest?->essay_status === 'pending')
+                                        <span class="cell-flag is-warning"><i class="fas fa-hourglass-half"></i> Essay pretest perlu dinilai</span>
+                                    @endif
                                 @endif
                             </td>
+                            @endif
+                            @if($mainPhase)
                             <td class="text-center align-middle text-nowrap">
                                 @if($quiz)
                                     <span class="score-value {{ $quiz->score < 50 ? 'is-danger' : ($quiz->score < 75 ? 'is-warning' : '') }}">{{ $quiz->score }}</span>
@@ -717,6 +874,7 @@
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
+                            @endif
                             <td class="text-center align-middle">
                                 <!-- DEFAULT ACTION DROPDOWN -->
                                 <div class="dropdown default-action-wrapper">
@@ -726,8 +884,15 @@
                                     <div class="dropdown-menu dropdown-menu-right" style="max-height: 280px; overflow-y: auto;">
                                         @if($quiz && $quiz->answers)
                                             <a class="dropdown-item answer-sheet-link" href="#" data-url="{{ route('training.answer-sheet', [$training, $quiz]) }}">
-                                                Lembar Jawaban {{ $hasEssay ? '& Review Essay' : '' }}
+                                                Lembar Jawaban {{ $pretest ? 'Posttest' : '' }} {{ $hasEssay && $mainPhase === 'posttest' ? '& Review Essay' : '' }}
                                             </a>
+                                        @endif
+                                        @if($pretest && $pretest->answers)
+                                            <a class="dropdown-item answer-sheet-link" href="#" data-url="{{ route('training.answer-sheet', [$training, $pretest]) }}">
+                                                Lembar Jawaban Pretest {{ $pretest->essay_status === 'pending' ? '& Review Essay' : '' }}
+                                            </a>
+                                        @endif
+                                        @if(($quiz && $quiz->answers) || ($pretest && $pretest->answers))
                                             <div class="dropdown-divider"></div>
                                         @endif
 
@@ -742,6 +907,7 @@
                                             </button>
                                         </form>
 
+                                        @if($training->has_attendance)
                                         <a class="dropdown-item" href="#" data-toggle="modal" data-target="#editAttendanceModal_{{ $part->id }}">
                                             Atur Presensi Manual
                                         </a>
@@ -754,8 +920,9 @@
                                                 </button>
                                             </form>
                                         @endif
+                                        @endif
 
-                                        @if($quiz)
+                                        @if($quiz || $pretest)
                                             <div class="dropdown-divider"></div>
                                             <form action="/training/{{ $training->id }}/reset-quiz/{{ $part->id }}" method="POST" class="d-inline" onsubmit="return confirm(@js('Reset hasil kuis untuk '.$userName.'?'))">
                                                 @csrf
@@ -1387,12 +1554,90 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateStat('statPending',  data.pending);
                 updateStat('statQuiz',     data.quizSubmitted);
                 updateStat('statAvg',      data.avgScore);
+                updateStat('statPretest',    data.pretestSubmitted);
+                updateStat('statPretestAvg', data.pretestAvg);
             })
             .catch(function() { /* silent fail */ });
     }
 
     setInterval(pollStats, 10000);
 })();
+
+// ---------------------------------------------------------------
+// HITUNG MUNDUR pretest/posttest berbatas waktu di Kontrol Sesi. Saat habis, barisnya berganti ke "waktu habis"
+// dan tombolnya kembali menjadi "Buka"; server sudah menganggap fase itu tertutup.
+// ---------------------------------------------------------------
+document.querySelectorAll('[data-phase-timer]').forEach(function (row) {
+    const endsAt = Date.now() + Number(row.dataset.phaseTimer) * 1000;
+    const countdown = row.querySelector('[data-phase-countdown]');
+
+    const timer = setInterval(function () {
+        const left = Math.max(0, Math.round((endsAt - Date.now()) / 1000));
+        if (left > 0) {
+            countdown.textContent = String(Math.floor(left / 60)).padStart(2, '0') + ':' + String(left % 60).padStart(2, '0');
+            return;
+        }
+
+        clearInterval(timer);
+        row.classList.remove('flex-wrap');
+        row.querySelector('[data-phase-status]').textContent = row.dataset.timeoutText;
+        row.querySelector('[data-phase-open-controls]').classList.replace('d-flex', 'd-none');
+        row.querySelector('[data-phase-closed-controls]').classList.replace('d-none', 'd-flex');
+    }, 1000);
+});
+
+// Fase terjadwal: saat jam bukanya tiba, statusnya berganti ke "aktif" (server sudah membukanya untuk peserta).
+document.querySelectorAll('[data-phase-starts]').forEach(function (row) {
+    setTimeout(function () {
+        row.querySelector('[data-phase-status]').textContent = row.dataset.openedText;
+        row.querySelector('[data-phase-lock]').textContent = row.dataset.lockLabel;
+    }, Number(row.dataset.phaseStarts) * 1000);
+});
+
+// ---------------------------------------------------------------
+// DIALOG BUKA / JADWAL / ATUR WAKTU: satu dialog untuk pretest dan posttest. Tombol pemicunya membawa alamat tujuan,
+// fase, dan isian awal (jadwal yang sedang berlaku, atau batas waktu bawaan dari Aturan Kuis).
+// ---------------------------------------------------------------
+if (typeof $ !== 'undefined') {
+    $('#phaseTimeModal').on('show.bs.modal', function (event) {
+        const trigger = event.relatedTarget;
+        const form = this.querySelector('form');
+        if (!trigger) return;
+
+        const pick = function (name, value) {
+            form.querySelector('input[name="' + name + '"][value="' + value + '"]').checked = true;
+        };
+        // "Atur waktu" pada fase yang sudah terbuka hanya mengganti jam tutup, jadi pilihan jam buka disembunyikan.
+        const opening = Boolean(trigger.dataset.open);
+
+        form.action = trigger.dataset.url;
+        form.elements.phase.value = trigger.dataset.phase;
+        form.elements.open.value = trigger.dataset.open || '';
+        form.elements.open.disabled = !opening;
+        document.getElementById('phaseTimeModalTitle').textContent = trigger.dataset.title;
+        document.getElementById('phaseTimeModalSubmit').textContent = trigger.dataset.submit;
+        const intro = document.getElementById('phaseTimeModalIntro');
+        intro.textContent = trigger.dataset.intro || intro.dataset.default;
+        const noneLabel = document.getElementById('phaseNoneLabel');
+        noneLabel.textContent = trigger.dataset.noneLabel || noneLabel.dataset.default;
+
+        document.getElementById('phaseOpenChoice').classList.toggle('d-none', !opening);
+        form.querySelectorAll('[name="open_mode"], [name="open_time"]').forEach(function (field) { field.disabled = !opening; });
+        form.elements.open_time.value = trigger.dataset.openTime || '';
+        pick('open_mode', trigger.dataset.openTime ? 'clock' : 'now');
+        document.getElementById('phaseMinutesHint').textContent = opening ? 'menit sejak dibuka' : 'menit dari sekarang';
+
+        form.elements.close_time.value = trigger.dataset.time || '';
+        form.elements.close_minutes.value = trigger.dataset.minutes || '';
+        pick('close_mode', trigger.dataset.time ? 'clock' : (trigger.dataset.minutes ? 'minutes' : 'none'));
+    });
+
+    // Mengisi jam atau menit sekaligus memilih opsinya.
+    $('#phaseTimeModal [data-pick]').on('focus input', function () {
+        const choice = this.dataset.pick.split(':');
+        this.form.querySelector('input[name="' + choice[0] + '"][value="' + choice[1] + '"]').checked = true;
+    });
+}
 
 if (typeof $ !== 'undefined') {
     $(function() {

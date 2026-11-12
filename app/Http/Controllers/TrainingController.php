@@ -16,17 +16,20 @@ use App\Models\TrainingParticipant;
 use App\Models\TrainingQuizResult;
 use App\Models\User;
 use App\Services\WhatsAppService;
+use App\Support\QuizRules;
 use App\Support\TrainingEvaluationForm;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Attributes\Controllers\Authorize;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -146,14 +149,18 @@ class TrainingController extends Controller
     public function saveSetup(Request $request, Training $training): RedirectResponse
     {
         $validated = $request->validate([
+            'has_attendance' => ['sometimes', 'required', 'boolean'],
             'is_attendance_active' => ['required', 'boolean'],
             'require_attendance_proof' => ['required', 'boolean'],
         ]);
+        $settings = array_map(fn ($value) => (bool) $value, $validated);
 
-        $training->update([
-            ...array_map(fn ($value) => (bool) $value, $validated),
-            'setup_completed_at' => now(),
-        ]);
+        // Tanpa presensi, dua jawaban lainnya tidak berlaku.
+        if (! ($settings['has_attendance'] ?? $training->has_attendance)) {
+            $settings = [...$settings, 'is_attendance_active' => false, 'require_attendance_proof' => false];
+        }
+
+        $training->update([...$settings, 'setup_completed_at' => now()]);
 
         return to_route('training.show', $training)->with('success', 'Pengaturan disimpan. Pelatihan siap dijalankan.');
     }
@@ -215,18 +222,18 @@ class TrainingController extends Controller
     /**
      * One participant's answer sheet (and essay grading form), loaded into the detail page's modal on demand.
      */
-    public function answerSheet(Training $training, TrainingQuizResult $quizResult): View
+    public function answerSheet(Training $training, TrainingQuizResult $result): View
     {
-        abort_unless($quizResult->answers, 404);
+        abort_unless($result->answers, 404);
 
         $training->load('questions');
-        $quizResult->load('user');
+        $result->load('user');
 
         return view('training.partials.answer-sheet', [
             'training' => $training,
-            'quiz' => $quizResult,
-            'userName' => $quizResult->user->nama_lengkap ?? 'Peserta',
-            'hasEssay' => $training->questions->contains('type', 'essay'),
+            'quiz' => $result,
+            'userName' => $result->user->nama_lengkap ?? 'Peserta',
+            'hasEssay' => $training->questionsFor($result->phase)->contains('type', 'essay'),
         ]);
     }
 
@@ -309,7 +316,7 @@ class TrainingController extends Controller
         ];
 
         if ($request->has('is_attendance_active')) {
-            $data['is_attendance_active'] = $request->boolean('is_attendance_active');
+            $data['is_attendance_active'] = $training->has_attendance && $request->boolean('is_attendance_active');
         }
         if ($request->has('require_attendance_proof')) {
             $data['require_attendance_proof'] = $request->boolean('require_attendance_proof');
@@ -379,49 +386,166 @@ class TrainingController extends Controller
     }
 
     /**
-     * Toggle quiz active status
+     * Open/close the posttest (the main quiz).
      */
-    public function toggleQuiz(Training $training): RedirectResponse
+    public function toggleQuiz(Request $request, Training $training): RedirectResponse
     {
-        $newStatus = ! $training->is_quiz_active;
-
-        if ($newStatus && ! $training->has_posttest) {
-            return back()->with('error', 'Posttest dimatikan di Aturan Kuis pelatihan ini.');
-        }
-
-        if ($newStatus && ! $training->questions()->exists()) {
-            return back()->with('error', 'Kuis belum bisa dibuka: buat soal kuis terlebih dahulu.');
-        }
-
-        $training->update(['is_quiz_active' => $newStatus]);
-
-        $message = $newStatus
-            ? 'Kuis pelatihan telah DIBUKA untuk seluruh peserta!'
-            : 'Kuis pelatihan telah DITUTUP sementara.';
-
-        return back()->with('success', $message);
+        return $this->togglePhase($request, $training, Training::PHASE_POSTTEST);
     }
 
     /**
-     * Open/close the pretest. It only uses multiple-choice questions, so at least one must exist.
+     * Open/close the pretest.
      */
-    public function togglePretest(Training $training): RedirectResponse
+    public function togglePretest(Request $request, Training $training): RedirectResponse
     {
-        $newStatus = ! $training->is_pretest_active;
+        return $this->togglePhase($request, $training, Training::PHASE_PRETEST);
+    }
 
-        if ($newStatus && ! $training->has_pretest) {
-            return back()->with('error', 'Pretest dimatikan di Aturan Kuis pelatihan ini.');
+    /**
+     * Open or close a quiz phase. The buttons send what they mean (open=1/0), so "Kunci" pressed right after the time
+     * ran out locks the phase instead of reopening it; without it the current state is flipped.
+     */
+    private function togglePhase(Request $request, Training $training, string $phase): RedirectResponse
+    {
+        $isPretest = $phase === Training::PHASE_PRETEST;
+        $label = $isPretest ? 'Pretest' : 'Kuis pelatihan';
+        $open = $request->has('open') ? $request->boolean('open') : ! $training->isPhaseActive($phase);
+
+        if (! $open) {
+            $training->closePhase($phase);
+
+            return back()->with('success', $isPretest ? 'Pretest telah DITUTUP.' : 'Kuis pelatihan telah DITUTUP sementara.');
         }
 
-        if ($newStatus && ! $training->questions()->where('type', '!=', 'essay')->exists()) {
-            return back()->with('error', 'Pretest belum bisa dibuka: buat minimal 1 soal pilihan ganda terlebih dahulu.');
+        if (! $training->hasPhase($phase)) {
+            return back()->with('error', Training::phaseLabel($phase).' dimatikan di Aturan Kuis pelatihan ini.');
         }
 
-        $training->update(['is_pretest_active' => $newStatus]);
+        if (! $training->phaseQuestions($phase)->exists()) {
+            return back()->with('error', $isPretest
+                ? 'Pretest belum bisa dibuka: buat minimal 1 soal yang dipakai di pretest terlebih dahulu.'
+                : 'Kuis belum bisa dibuka: buat soal kuis terlebih dahulu.');
+        }
 
-        return back()->with('success', $newStatus
-            ? 'Pretest telah DIBUKA untuk seluruh peserta!'
-            : 'Pretest telah DITUTUP.');
+        $opensAt = $this->openingTime($request, $training);
+        $closesAt = $this->closingTime($request, $training, $phase, $opensAt);
+        $training->openPhase($phase, $closesAt, $opensAt);
+
+        if ($opensAt) {
+            return back()->with('success', "{$label} DIJADWALKAN buka ".Training::timeLabel($opensAt).($closesAt
+                ? " dan tutup otomatis pukul {$closesAt->format('H:i')}."
+                : ', tanpa batas waktu.'));
+        }
+
+        return back()->with('success', "{$label} telah DIBUKA untuk seluruh peserta".($closesAt
+            ? ", tutup otomatis pukul {$closesAt->format('H:i')}."
+            : '!'));
+    }
+
+    /**
+     * Change when an open phase closes: a fixed clock time, minutes from now, or no time limit.
+     */
+    public function updateQuizDeadline(Request $request, Training $training): RedirectResponse
+    {
+        $phase = $request->validate(['phase' => ['required', Rule::in(Training::PHASES)]])['phase'];
+        $label = Training::phaseLabel($phase);
+
+        if (! $training->isPhaseActive($phase)) {
+            return back()->with('error', "Waktu hanya bisa diatur selama {$label} terbuka. Buka {$label} terlebih dahulu.");
+        }
+
+        $training->setPhaseClosesAt($phase, $this->closingTime($request, $training, $phase));
+        $closesAt = $training->phaseClosesAt($phase);
+
+        return back()->with('success', $closesAt
+            ? "{$label} tutup otomatis pukul {$closesAt->format('H:i')}."
+            : "{$label} sekarang tanpa batas waktu; kunci secara manual bila sudah selesai.");
+    }
+
+    /**
+     * When a phase should open, as chosen in the "Buka" dialog: now (null), or by itself at a clock time
+     * (open_mode=clock) on the training day. A time that has already passed opens the phase right away.
+     */
+    private function openingTime(Request $request, Training $training): ?Carbon
+    {
+        $choice = $request->validate([
+            'open_mode' => ['nullable', Rule::in(['now', 'clock'])],
+            'open_time' => ['nullable', 'required_if:open_mode,clock', 'date_format:H:i'],
+        ], [
+            'open_time.required_if' => 'Isi jam bukanya, mis. 09:40.',
+            'open_time.date_format' => 'Jam buka harus berformat jam:menit, mis. 09:40.',
+        ]);
+
+        if (($choice['open_mode'] ?? null) !== 'clock') {
+            return null;
+        }
+
+        $opensAt = $training->scheduleDate()->setTimeFromTimeString($choice['open_time']);
+
+        return $opensAt->isFuture() ? $opensAt : null;
+    }
+
+    /**
+     * When a phase should close, as chosen in the "Buka / Atur waktu" dialog: at a clock time (close_mode=clock),
+     * some minutes after it opens (minutes), or never (none). Without a choice the time limit from Aturan Kuis
+     * applies ($phase null, the evaluation form, has no such default). $opensAt is the scheduled opening; null
+     * means it is open from now.
+     */
+    private function closingTime(Request $request, Training $training, ?string $phase, ?Carbon $opensAt = null): ?Carbon
+    {
+        $choice = $request->validate([
+            'close_mode' => ['nullable', Rule::in(['clock', 'minutes', 'none'])],
+            'close_time' => ['nullable', 'required_if:close_mode,clock', 'date_format:H:i'],
+            'close_minutes' => ['nullable', 'required_if:close_mode,minutes', 'integer', 'min:1', 'max:'.QuizRules::MAX_DURATION_MINUTES],
+        ], [
+            'close_time.required_if' => 'Isi jam tutupnya, mis. 09:50.',
+            'close_time.date_format' => 'Jam tutup harus berformat jam:menit, mis. 09:50.',
+            'close_minutes.required_if' => 'Isi berapa menit kuis terbuka.',
+        ]);
+        $from = $opensAt ?? now();
+
+        return match ($choice['close_mode'] ?? null) {
+            'none' => null,
+            'minutes' => $from->copy()->addMinutes((int) $choice['close_minutes']),
+            'clock' => $this->closingClock($choice['close_time'], $from, scheduled: $opensAt !== null),
+            default => $phase ? $training->defaultClosesAt($phase, $from) : null,
+        };
+    }
+
+    /**
+     * The closing clock time on the day the phase opens. It must come after the opening, otherwise the phase would
+     * close the moment it opens.
+     */
+    private function closingClock(string $time, Carbon $from, bool $scheduled): Carbon
+    {
+        $closesAt = $from->copy()->setTimeFromTimeString($time);
+
+        if ($closesAt->lessThanOrEqualTo($from)) {
+            throw ValidationException::withMessages(['close_time' => $scheduled
+                ? "Jam tutup {$time} harus setelah jam buka {$from->format('H:i')}."
+                : "Jam tutup {$time} sudah lewat (sekarang pukul {$from->format('H:i')}). Isi jam yang lebih dari sekarang.",
+            ]);
+        }
+
+        return $closesAt;
+    }
+
+    /**
+     * Give participants more time on a phase that is open with a time limit.
+     */
+    public function extendQuizTime(Request $request, Training $training): RedirectResponse
+    {
+        $validated = $request->validate([
+            'phase' => ['required', Rule::in(Training::PHASES)],
+            'minutes' => ['required', 'integer', 'min:1', 'max:120'],
+        ]);
+        $phase = $validated['phase'];
+
+        if (! $training->extendPhase($phase, (int) $validated['minutes'])) {
+            return back()->with('error', 'Waktu hanya bisa ditambah selama '.Training::phaseLabel($phase).' terbuka dengan batas waktu.');
+        }
+
+        return back()->with('success', Training::phaseLabel($phase)." ditambah {$validated['minutes']} menit, tutup otomatis pukul {$training->phaseClosesAt($phase)->format('H:i')}.");
     }
 
     /**
@@ -457,6 +581,10 @@ class TrainingController extends Controller
      */
     public function toggleAttendance(Training $training): RedirectResponse
     {
+        if (! $training->has_attendance) {
+            return back()->with('error', 'Presensi tidak dipakai di pelatihan ini. Nyalakan dulu lewat Pakai Presensi.');
+        }
+
         $newStatus = ! $training->is_attendance_active;
         $training->update(['is_attendance_active' => $newStatus]);
 
@@ -465,6 +593,45 @@ class TrainingController extends Controller
             : 'Presensi kehadiran pelatihan telah DITUTUP sementara.';
 
         return back()->with('success', $message);
+    }
+
+    /**
+     * Turn attendance on/off for the whole training. Off means participants are never asked to confirm attendance
+     * and the attendance figures are hidden; records already made are kept.
+     */
+    public function toggleAttendanceUse(Training $training): RedirectResponse
+    {
+        $uses = ! $training->has_attendance;
+        $training->update(['has_attendance' => $uses, ...($uses ? [] : ['is_attendance_active' => false])]);
+
+        return back()->with('success', $uses
+            ? 'Presensi DIPAKAI lagi. Buka presensi saat sesi dimulai.'
+            : 'Presensi TIDAK DIPAKAI di pelatihan ini. Data presensi yang sudah masuk tetap tersimpan.');
+    }
+
+    /**
+     * Set when the evaluation form of a training without posttest opens and closes, or go back to following the
+     * training status (reset=1).
+     */
+    public function updateEvaluationTime(Request $request, Training $training): RedirectResponse
+    {
+        if ($training->has_posttest) {
+            return back()->with('error', 'Form evaluasi pelatihan ini terbuka bersama posttest, jadi waktunya diatur lewat Akses Posttest.');
+        }
+
+        if ($request->boolean('reset')) {
+            $training->update(['evaluation_opens_at' => null, 'evaluation_closes_at' => null]);
+
+            return back()->with('success', 'Form evaluasi kembali mengikuti status pelatihan: terbuka selama sesi berlangsung atau sudah selesai.');
+        }
+
+        $scheduled = $this->openingTime($request, $training);
+        $closesAt = $this->closingTime($request, $training, null, $scheduled);
+        $training->update(['evaluation_opens_at' => $scheduled ?? now(), 'evaluation_closes_at' => $closesAt]);
+
+        return back()->with('success', 'Form evaluasi '
+            .($scheduled ? 'DIJADWALKAN buka '.Training::timeLabel($scheduled) : 'DIBUKA sekarang')
+            .($closesAt ? " dan tutup otomatis pukul {$closesAt->format('H:i')}." : ', tanpa batas waktu.'));
     }
 
     /**
@@ -577,10 +744,8 @@ class TrainingController extends Controller
     /**
      * Grade essay answers by trainer
      */
-    public function gradeEssay(Request $request, Training $training, TrainingQuizResult $quizResult): RedirectResponse
+    public function gradeEssay(Request $request, Training $training, TrainingQuizResult $result): RedirectResponse
     {
-        $result = $quizResult;
-
         $validated = $request->validate([
             'essay_score' => 'required|numeric|min:0|max:100',
             'essay_feedback' => 'nullable|string|max:500',
@@ -589,9 +754,11 @@ class TrainingController extends Controller
         $essayScore = (float) $validated['essay_score'];
         $mcScore = $result->mc_score !== null ? (float) $result->mc_score : 100;
 
-        $mcQuestionsCount = $training->questions()->where('type', '!=', 'essay')->count();
-        $essayQuestionsCount = $training->questions()->where('type', 'essay')->count();
-        $totalQuestions = $mcQuestionsCount + $essayQuestionsCount;
+        // Bobot dihitung dari soal fase yang dikerjakan (pretest dan posttest bisa memakai soal berbeda).
+        $questions = $training->load('questions')->questionsFor($result->phase);
+        $essayQuestionsCount = $questions->where('type', 'essay')->count();
+        $mcQuestionsCount = $questions->count() - $essayQuestionsCount;
+        $totalQuestions = $questions->count();
 
         if ($totalQuestions > 0 && $mcQuestionsCount > 0 && $essayQuestionsCount > 0) {
             // Proportional weighting based on questions count
@@ -824,7 +991,7 @@ class TrainingController extends Controller
     /**
      * Counted by the database: this is polled every few seconds, so it must not load participants and quiz answers.
      *
-     * @return array{total: int, attended: int, absent: int, pending: int, quizSubmitted: int, avgScore: float|int}
+     * @return array{total: int, attended: int, absent: int, pending: int, quizSubmitted: int, avgScore: float|int, pretestSubmitted: int, pretestAvg: float|int}
      */
     private function stats(Training $training): array
     {
@@ -833,21 +1000,41 @@ class TrainingController extends Controller
             ->selectRaw("SUM(CASE WHEN attendance_status = 'hadir' THEN 1 ELSE 0 END) as attended")
             ->selectRaw("SUM(CASE WHEN attendance_status = 'tidak_hadir' THEN 1 ELSE 0 END) as absent")
             ->first();
-        $quiz = $training->quizResults()->toBase()->selectRaw('COUNT(*) as submitted, AVG(score) as average')->first();
+        // The counted quiz is the training's main phase: the posttest, or the pretest when that is all it has.
+        $quiz = $this->phaseStats($training, $training->mainPhase());
+        $pretest = $this->phaseStats($training, $training->has_pretest && $training->has_posttest ? Training::PHASE_PRETEST : null);
 
         $total = (int) $attendance->total;
         $attended = (int) $attendance->attended;
         $absent = (int) $attendance->absent;
-        $quizSubmitted = (int) $quiz->submitted;
 
         return [
             'total' => $total,
             'attended' => $attended,
             'absent' => $absent,
             'pending' => $total - ($attended + $absent),
-            'quizSubmitted' => $quizSubmitted,
-            'avgScore' => $quizSubmitted > 0 ? round((float) $quiz->average, 1) : 0,
+            'quizSubmitted' => $quiz['submitted'],
+            'avgScore' => $quiz['average'],
+            'pretestSubmitted' => $pretest['submitted'],
+            'pretestAvg' => $pretest['average'],
         ];
+    }
+
+    /**
+     * How many participants finished a phase and their average score; zeros when the training has no such phase.
+     *
+     * @return array{submitted: int, average: float|int}
+     */
+    private function phaseStats(Training $training, ?string $phase): array
+    {
+        if ($phase === null) {
+            return ['submitted' => 0, 'average' => 0];
+        }
+
+        $row = $training->results()->where('phase', $phase)->toBase()->selectRaw('COUNT(*) as submitted, AVG(score) as average')->first();
+        $submitted = (int) $row->submitted;
+
+        return ['submitted' => $submitted, 'average' => $submitted > 0 ? round((float) $row->average, 1) : 0];
     }
 
     private function addParticipant(Training $training, int $userId): TrainingParticipant

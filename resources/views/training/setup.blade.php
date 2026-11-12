@@ -4,6 +4,11 @@
     // Pertanyaan pengaturan sesi; ditampilkan satu per layar. Tanpa JavaScript semuanya tampil sekaligus.
     // Aturan kuis (pretest/posttest, batas percobaan, hasil) diatur di blok Aturan Kuis pada form pelatihan.
     $questions = [
+        'has_attendance' => [
+            'question' => 'Pakai presensi kehadiran?',
+            'yes' => 'Peserta mengonfirmasi hadir lewat portal.',
+            'no' => 'Pelatihan tanpa presensi; kotak dan kolom presensi tidak tampil.',
+        ],
         'is_attendance_active' => [
             'question' => 'Buka presensi sekarang?',
             'yes' => 'Peserta langsung bisa absen.',
@@ -108,8 +113,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     form.classList.add('is-enhanced');
 
+    // Tanpa presensi, pertanyaan presensi lainnya dilewati.
+    function attendanceOff() {
+        const choice = form.querySelector('input[name="has_attendance"]:checked');
+        return choice !== null && choice.value === '0';
+    }
+
     function fillSummary() {
         form.querySelectorAll('[data-summary-for]').forEach(function (row) {
+            row.hidden = attendanceOff() && row.dataset.summaryFor !== 'has_attendance';
             const checked = form.querySelector('input[name="' + row.dataset.summaryFor + '"]:checked');
             row.querySelector('[data-answer]').textContent = checked ? checked.closest('.choice-card').querySelector('.choice-card-title').textContent : '-';
         });
@@ -128,13 +140,22 @@ document.addEventListener('DOMContentLoaded', function () {
         save.hidden = !onSummary;
     }
 
-    back.addEventListener('click', function () { show(current - 1); });
-    next.addEventListener('click', function () { show(current + 1); });
+    // Pertanyaan pertama adalah "pakai presensi?"; bila tidak, langsung ke ringkasan (dan sebaliknya saat kembali).
+    function move(delta) {
+        if (attendanceOff() && ((delta > 0 && current === 0) || (delta < 0 && current === total))) {
+            show(delta > 0 ? total : 0);
+            return;
+        }
+        show(current + delta);
+    }
+
+    back.addEventListener('click', function () { move(-1); });
+    next.addEventListener('click', function () { move(1); });
 
     // Memilih jawaban langsung lanjut ke pertanyaan berikutnya.
     form.querySelectorAll('.choice-card input').forEach(function (input) {
         // 'click' juga terpicu saat memilih jawaban yang sudah terpilih (nilai bawaan).
-        input.addEventListener('click', function () { setTimeout(function () { show(current + 1); }, 180); });
+        input.addEventListener('click', function () { setTimeout(function () { move(1); }, 180); });
     });
 
     show(0);

@@ -144,8 +144,12 @@ Route::middleware('auth')->group(function () {
                 Route::post('status', 'updateStatus')->name('status');
                 Route::post('toggle-quiz', 'toggleQuiz')->name('toggle-quiz');
                 Route::post('toggle-attendance', 'toggleAttendance')->name('toggle-attendance');
+                Route::post('toggle-attendance-use', 'toggleAttendanceUse')->name('toggle-attendance-use');
+                Route::post('evaluation-time', 'updateEvaluationTime')->name('evaluation-time');
                 Route::post('toggle-proof', 'toggleAttendanceProof')->name('toggle-proof');
                 Route::post('toggle-pretest', 'togglePretest')->name('toggle-pretest');
+                Route::post('extend-quiz-time', 'extendQuizTime')->name('extend-quiz-time');
+                Route::post('quiz-deadline', 'updateQuizDeadline')->name('quiz-deadline');
                 Route::post('toggle-evaluation', 'toggleEvaluation')->name('toggle-evaluation');
                 Route::post('quiz-rules', 'updateQuizRules')->name('quiz-rules');
                 Route::get('setup', 'setup')->name('setup');
@@ -155,8 +159,9 @@ Route::middleware('auth')->group(function () {
                 Route::post('reset-quiz/{participant}', 'resetParticipantQuiz')->name('reset-quiz');
                 Route::post('reset-attendance/{participant}', 'resetParticipantAttendance')->name('reset-attendance');
                 Route::post('update-attendance/{participant}', 'updateParticipantAttendance')->name('update-attendance');
-                Route::get('answer-sheet/{quizResult}', 'answerSheet')->name('answer-sheet');
-                Route::post('grade-essay/{quizResult}', 'gradeEssay')->name('grade-essay');
+                // {result}: hasil pretest maupun posttest pelatihan ini (Training::results()).
+                Route::get('answer-sheet/{result}', 'answerSheet')->name('answer-sheet');
+                Route::post('grade-essay/{result}', 'gradeEssay')->name('grade-essay');
                 Route::post('export', 'export')->name('export');
                 Route::get('live-stats', 'liveStats')->name('live-stats');
                 Route::post('attach-document', 'attachDocument')->name('attach-document');

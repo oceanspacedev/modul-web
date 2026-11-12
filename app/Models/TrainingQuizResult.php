@@ -33,6 +33,19 @@ class TrainingQuizResult extends Model
         $query->where('phase', Training::PHASE_POSTTEST);
     }
 
+    /**
+     * Hasil yang menjadi nilai pelatihannya: posttest, ditambah pretest dari pelatihan yang hanya punya pretest.
+     * Dipakai angka dan grafik dashboard supaya pelatihan pretest saja ikut terhitung.
+     */
+    public function scopeMainPhase($query): void
+    {
+        $query->where(fn ($main) => $main
+            ->where('phase', Training::PHASE_POSTTEST)
+            ->orWhere(fn ($pretest) => $pretest
+                ->where('phase', Training::PHASE_PRETEST)
+                ->whereHas('training', fn ($training) => $training->where('has_posttest', false))));
+    }
+
     public function isPretest(): bool
     {
         return $this->phase === Training::PHASE_PRETEST;

@@ -68,6 +68,9 @@ class TrainingLiveStatsTest extends TestCase
             'pending' => 1,
             'quizSubmitted' => 2,
             'avgScore' => 77.5,
+            // Pelatihan ini hanya punya posttest, jadi angka pretest pembandingnya kosong.
+            'pretestSubmitted' => 0,
+            'pretestAvg' => 0,
         ];
 
         $this->actingAs($admin)
