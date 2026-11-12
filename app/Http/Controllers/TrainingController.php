@@ -574,7 +574,8 @@ class TrainingController extends Controller
     }
 
     /**
-     * Turn the evaluation form on/off. Answers already sent are kept either way.
+     * Turn the evaluation form on/off. Answers already sent are kept either way. Turning it off also closes it
+     * (see Training::booted()); turning it on leaves it closed until the trainer opens it.
      */
     public function toggleEvaluation(Training $training): RedirectResponse
     {
@@ -584,10 +585,9 @@ class TrainingController extends Controller
             return back()->with('success', 'Form evaluasi DINONAKTIFKAN. Jawaban yang sudah masuk tetap tersimpan.');
         }
 
-        return back()->with('success', ($training->evaluationFollowsPosttest()
-            ? 'Form evaluasi DIAKTIFKAN. Peserta mengisinya sebelum mengerjakan posttest.'
-            : 'Form evaluasi DIAKTIFKAN. Peserta bisa mengisinya selama sesi berlangsung atau setelah selesai.')
-            .' Pertanyaannya bisa diubah lewat Kelola Pertanyaan.');
+        return back()->with('success', 'Form evaluasi DIAKTIFKAN. Form masih tertutup: buka lewat Buka Evaluasi saat peserta boleh mengisinya'
+            .($training->evaluationFollowsPosttest() ? ' (sebelum posttest, supaya waktu posttest tidak terpotong)' : '')
+            .'. Pertanyaannya bisa diubah lewat Kelola Pertanyaan.');
     }
 
     /**
@@ -639,25 +639,30 @@ class TrainingController extends Controller
     }
 
     /**
-     * Set when the evaluation form opens and closes, or go back to following the training status (reset=1). The
-     * evaluation keeps its own time even when it comes before the posttest, so filling it in never eats into the
-     * posttest time.
+     * Open or close the evaluation form. Like attendance and the quizzes it stays closed until the trainer opens it:
+     * now or by itself at a clock time, closing at a clock time, after some minutes, or never. It never opens on its
+     * own from the training status or the posttest. The buttons send what they mean (open=1/0); without it the
+     * current state is flipped.
      */
-    public function updateEvaluationTime(Request $request, Training $training): RedirectResponse
+    public function toggleEvaluationAccess(Request $request, Training $training): RedirectResponse
     {
-        if ($request->boolean('reset')) {
-            $training->update(['evaluation_opens_at' => null, 'evaluation_closes_at' => null]);
+        $open = $request->has('open') ? $request->boolean('open') : ! $training->evaluationWindowOpen();
 
-            return back()->with('success', 'Form evaluasi kembali mengikuti status pelatihan: terbuka selama sesi berlangsung atau sudah selesai.');
+        if (! $open) {
+            $training->closePhase(Training::STEP_EVALUATION);
+
+            return back()->with('success', 'Form evaluasi telah DITUTUP.');
         }
 
-        $scheduled = $this->openingTime($request, $training);
-        $closesAt = $this->closingTime($request, $training, null, $scheduled);
-        $training->update(['evaluation_opens_at' => $scheduled ?? now(), 'evaluation_closes_at' => $closesAt]);
+        if (! $training->has_evaluation) {
+            return back()->with('error', 'Form evaluasi tidak dipakai di pelatihan ini. Nyalakan dulu lewat Aktifkan.');
+        }
 
-        return back()->with('success', 'Form evaluasi '
-            .($scheduled ? 'DIJADWALKAN buka '.Training::timeLabel($scheduled) : 'DIBUKA sekarang')
-            .($closesAt ? " dan tutup otomatis pukul {$closesAt->format('H:i')}." : ', tanpa batas waktu.'));
+        if (! $training->hasEvaluationForm()) {
+            return back()->with('error', 'Form evaluasi belum bisa dibuka: tambahkan pertanyaannya dulu lewat Kelola pertanyaan.');
+        }
+
+        return $this->openFromDialog($request, $training, Training::STEP_EVALUATION, 'Form evaluasi');
     }
 
     /**

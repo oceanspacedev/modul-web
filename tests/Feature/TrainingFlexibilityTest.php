@@ -331,24 +331,24 @@ class TrainingFlexibilityTest extends TestCase
 
     public function test_evaluation_without_posttest_can_have_its_own_hours(): void
     {
-        // Status masih Terjadwal: tanpa jam sendiri, form belum terbuka.
+        // Sebelum pemateri membuka atau menjadwalkannya, form tertutup.
         $training = $this->training(['has_posttest' => false, 'has_evaluation' => true, 'status' => TrainingStatus::Scheduled]);
         $this->get(self::PORTAL.'/evaluation')->assertRedirect(self::PORTAL);
 
         // Dijadwalkan 09.50 sampai 10.00.
-        $this->actingAs($this->admin)->post(route('training.evaluation-time', $training), [
-            'open_mode' => 'clock', 'open_time' => '09:50', 'close_mode' => 'clock', 'close_time' => '10:00',
+        $this->actingAs($this->admin)->post(route('training.toggle-evaluation-access', $training), [
+            'open' => '1', 'open_mode' => 'clock', 'open_time' => '09:50', 'close_mode' => 'clock', 'close_time' => '10:00',
         ])->assertSessionHas('success', 'Form evaluasi DIJADWALKAN buka pukul 09:50 dan tutup otomatis pukul 10:00.');
         $this->get(self::PORTAL)->assertOk()->assertSee('Form evaluasi dibuka otomatis pukul 09:50 WIB.');
         $this->get(self::PORTAL.'/status')->assertJson(['is_evaluation_open' => false]);
         $this->get(self::PORTAL.'/evaluation')->assertRedirect(self::PORTAL)->assertSessionHas('warning', 'Form evaluasi dibuka otomatis pukul 09:50 WIB.');
         $this->actingAs($this->admin)->get(route('training.show', $training))->assertOk()
-            ->assertSee('Terjadwal buka pukul 09:50')->assertSee('Ikuti status')->assertSee('Atur waktu');
+            ->assertSee('Terjadwal buka pukul 09:50')->assertSee('Ubah jadwal')->assertSee('Batalkan jadwal');
 
         // 09.50: terbuka sendiri walau status belum Berlangsung.
         $this->travelTo(now()->setTime(9, 50, 0));
-        $this->get(self::PORTAL.'/status')->assertJson(['is_evaluation_open' => true]);
-        $this->get(self::PORTAL)->assertOk()->assertSee('Bisa diisi sampai pukul')->assertSee('Isi Form Evaluasi');
+        $this->get(self::PORTAL.'/status')->assertJson(['is_evaluation_open' => true, 'evaluation_closes_at' => '10:00']);
+        $this->get(self::PORTAL)->assertOk()->assertSee('data-deadline="evaluation" data-seconds-left="600"', false)->assertSee('Isi Form Evaluasi');
         $this->get(self::PORTAL.'/evaluation')->assertOk();
         $this->assertSame('Isi evaluasi', $this->participant($training)->nextStep()['label']);
 
@@ -368,31 +368,35 @@ class TrainingFlexibilityTest extends TestCase
         $this->assertSame(1, TrainingEvaluation::count());
     }
 
-    public function test_evaluation_hours_can_open_now_and_go_back_to_following_the_status(): void
+    public function test_evaluation_follows_the_trainer_not_the_training_status(): void
     {
         $training = $this->training(['has_posttest' => false, 'has_evaluation' => true, 'status' => TrainingStatus::Scheduled]);
 
-        $this->actingAs($this->admin)->post(route('training.evaluation-time', $training), ['open_mode' => 'now', 'close_mode' => 'minutes', 'close_minutes' => '15'])
-            ->assertSessionHas('success', 'Form evaluasi DIBUKA sekarang dan tutup otomatis pukul 09:15.');
+        $this->actingAs($this->admin)->post(route('training.toggle-evaluation-access', $training), ['open' => '1', 'close_mode' => 'minutes', 'close_minutes' => '15'])
+            ->assertSessionHas('success', 'Form evaluasi telah DIBUKA untuk seluruh peserta, tutup otomatis pukul 09:15.');
         $this->assertTrue($training->fresh()->isEvaluationOpen());
 
-        $this->actingAs($this->admin)->post(route('training.evaluation-time', $training), ['open_mode' => 'now', 'close_mode' => 'none'])->assertSessionHas('success');
+        $this->actingAs($this->admin)->post(route('training.quiz-deadline', $training), ['phase' => 'evaluation', 'close_mode' => 'none'])
+            ->assertSessionHas('success', 'Form Evaluasi sekarang tanpa batas waktu; kunci secara manual bila sudah selesai.');
         $this->travel(3)->hours();
         $this->assertTrue($training->fresh()->isEvaluationOpen());
 
-        // "Ikuti status": kembali tertutup karena pelatihan masih Terjadwal.
-        $this->actingAs($this->admin)->post(route('training.evaluation-time', $training), ['reset' => '1'])->assertSessionHas('success');
+        // Dikunci: tertutup, dan status Berlangsung/Selesai tidak membukanya lagi.
+        $this->actingAs($this->admin)->post(route('training.toggle-evaluation-access', $training), ['open' => '0'])->assertSessionHas('success');
         $training->refresh();
         $this->assertNull($training->evaluation_opens_at);
         $this->assertFalse($training->isEvaluationOpen());
         $training->update(['status' => TrainingStatus::Ongoing]);
-        $this->assertTrue($training->fresh()->isEvaluationOpen());
+        $this->assertFalse($training->fresh()->isEvaluationOpen());
+        $training->update(['status' => TrainingStatus::Completed]);
+        $this->assertFalse($training->fresh()->isEvaluationOpen());
 
-        // Dengan posttest pun jam evaluasi tetap diatur terpisah, supaya tidak memotong waktu posttest.
+        // Dengan posttest pun form evaluasi dibuka terpisah, supaya tidak memotong waktu posttest.
         $training->update(['has_posttest' => true]);
-        $this->actingAs($this->admin)->post(route('training.evaluation-time', $training), ['open_mode' => 'now', 'close_mode' => 'none'])->assertSessionHas('success');
+        $this->actingAs($this->admin)->post(route('training.toggle-evaluation-access', $training), ['open' => '1'])->assertSessionHas('success');
         $this->actingAs(User::factory()->staff()->create())->from('/my-trainings')
-            ->post(route('training.evaluation-time', $training), ['reset' => '1'])->assertSessionHas('error');
+            ->post(route('training.toggle-evaluation-access', $training), ['open' => '0'])->assertSessionHas('error');
+        $this->assertTrue($training->fresh()->isEvaluationOpen());
     }
 
     public function test_attendance_can_be_turned_off_for_the_whole_training(): void

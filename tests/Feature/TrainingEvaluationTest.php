@@ -80,6 +80,16 @@ class TrainingEvaluationTest extends TestCase
         return ['answers' => $answers];
     }
 
+    /**
+     * Pemateri membuka form evaluasi lewat dialog "Buka Evaluasi" (bawaan: sekarang, tanpa batas waktu).
+     *
+     * @param  array<string, string>  $choice
+     */
+    private function openEvaluation(array $choice = [])
+    {
+        return $this->actingAs($this->admin)->post(route('training.toggle-evaluation-access', $this->training), ['open' => '1', ...$choice]);
+    }
+
     private function scaleQuestions()
     {
         return $this->training->evaluationQuestions()->where('type', TrainingEvaluationQuestion::TYPE_SCALE)->get();
@@ -127,7 +137,8 @@ class TrainingEvaluationTest extends TestCase
     public function test_trainer_toggles_the_evaluation_from_session_controls(): void
     {
         $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertOk()
-            ->assertSee('Form Evaluasi')->assertSee('Wajib diisi sebelum posttest')->assertSee('Atur waktu Form Evaluasi')->assertSee('Nonaktifkan');
+            ->assertSee('Form Evaluasi')->assertSee('Wajib diisi sebelum posttest selama form terbuka')
+            ->assertSee('Form evaluasi ditutup untuk peserta')->assertSee('Buka Evaluasi')->assertSee('Nonaktifkan');
 
         $this->actingAs($this->admin)->post(route('training.toggle-evaluation', $this->training))->assertSessionHas('success');
         $this->assertFalse($this->training->fresh()->has_evaluation);
@@ -142,25 +153,37 @@ class TrainingEvaluationTest extends TestCase
         $this->assertTrue($this->training->fresh()->has_evaluation);
     }
 
-    public function test_evaluation_waits_until_the_session_or_the_posttest_is_opened(): void
+    public function test_evaluation_stays_closed_until_the_trainer_opens_it(): void
     {
-        $this->get(self::PORTAL)->assertOk()->assertSee('Evaluasi Pelatihan')->assertSee('Form evaluasi dibuka saat sesi berlangsung');
-        $this->get(self::PORTAL.'/status')->assertJson(['has_evaluation' => true, 'is_evaluation_open' => false]);
+        // Tidak terbuka sendiri: sesi berlangsung dan posttest dibuka pun form tetap tertutup, dan posttest tidak
+        // terkunci olehnya.
+        $this->training->update(['status' => TrainingStatus::Ongoing, 'is_quiz_active' => true]);
+        $this->get(self::PORTAL)->assertOk()->assertSee('Evaluasi Pelatihan')->assertSee('Form evaluasi belum dibuka oleh pemateri.')
+            ->assertSee('Mulai Kerjakan Kuis')->assertDontSee('Isi Evaluasi, lalu Kerjakan Kuis');
+        $this->get(self::PORTAL.'/status')->assertJson(['has_evaluation' => true, 'is_evaluation_open' => false, 'is_quiz_active' => true]);
         $this->get(self::PORTAL.'/evaluation')->assertRedirect(self::PORTAL)->assertSessionHas('warning');
         $this->post(self::PORTAL.'/evaluation', $this->answers())->assertRedirect(self::PORTAL)->assertSessionHas('warning');
         $this->assertSame(0, TrainingEvaluation::count());
+        $this->get(self::PORTAL.'/quiz')->assertOk();
 
-        $this->training->update(['is_quiz_active' => true]);
-
-        $this->get(self::PORTAL.'/status')->assertJson(['is_evaluation_open' => true]);
+        // Dibuka pemateri: peserta bisa mengisi, dan kuis kini menunggu evaluasinya.
+        $this->openEvaluation()->assertSessionHas('success', 'Form evaluasi telah DIBUKA untuk seluruh peserta!');
+        $this->get(self::PORTAL.'/status')->assertJson(['is_evaluation_open' => true, 'evaluation_seconds_left' => null]);
         $this->get(self::PORTAL)->assertSee('Isi Form Evaluasi')->assertSee('Isi Evaluasi, lalu Kerjakan Kuis')
             ->assertDontSee('href="'.self::PORTAL.'/quiz"', false);
+        $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertOk()
+            ->assertSee('Evaluasi aktif')->assertSee('tanpa batas waktu')->assertSee('Kunci Evaluasi')->assertSee('Atur waktu Evaluasi');
+
+        // Dikunci lagi: langsung tertutup.
+        $this->actingAs($this->admin)->post(route('training.toggle-evaluation-access', $this->training), ['open' => '0'])
+            ->assertSessionHas('success', 'Form evaluasi telah DITUTUP.');
+        $this->get(self::PORTAL.'/evaluation')->assertRedirect(self::PORTAL);
     }
 
-    public function test_evaluation_before_the_posttest_opens_on_its_own_so_it_does_not_eat_the_posttest_time(): void
+    public function test_evaluation_opened_before_the_posttest_does_not_eat_the_posttest_time(): void
     {
-        // Sesi berlangsung: evaluasi sudah bisa diisi walau posttest belum dibuka.
-        $this->training->update(['status' => TrainingStatus::Ongoing]);
+        // Pemateri membuka evaluasi lebih dulu: peserta mengisinya walau posttest belum dibuka.
+        $this->openEvaluation()->assertSessionHas('success');
         $this->get(self::PORTAL.'/status')->assertJson(['is_quiz_active' => false, 'is_evaluation_open' => true]);
         $this->get(self::PORTAL)->assertSee('Isi Form Evaluasi');
         $this->assertSame('Isi evaluasi', $this->participant->fresh()->nextStep()['label']);
@@ -173,12 +196,38 @@ class TrainingEvaluationTest extends TestCase
         $this->get(self::PORTAL.'/quiz')->assertOk()->assertSee('Batas toleransi terlambat?');
     }
 
-    public function test_evaluation_before_the_posttest_can_have_its_own_hours(): void
+    public function test_evaluation_can_be_scheduled_and_closes_by_itself(): void
+    {
+        $this->travelTo(now()->setTime(9, 18, 0));
+        $this->openEvaluation(['open_mode' => 'clock', 'open_time' => '09:40', 'close_mode' => 'clock', 'close_time' => '09:50'])
+            ->assertSessionHas('success', 'Form evaluasi DIJADWALKAN buka pukul 09:40 dan tutup otomatis pukul 09:50.');
+
+        // Belum waktunya.
+        $this->get(self::PORTAL)->assertOk()->assertSee('Form evaluasi dibuka otomatis pukul 09:40 WIB.');
+        $this->get(self::PORTAL.'/evaluation')->assertRedirect(self::PORTAL)->assertSessionHas('warning', 'Form evaluasi dibuka otomatis pukul 09:40 WIB.');
+        $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertOk()
+            ->assertSee('Terjadwal buka pukul 09:40')->assertSee('tutup 09:50')->assertSee('Ubah jadwal')->assertSee('Batalkan jadwal');
+
+        // 09.40: terbuka sendiri, dengan hitung mundur.
+        $this->travelTo(now()->setTime(9, 40, 0));
+        $this->get(self::PORTAL.'/status')->assertJson(['is_evaluation_open' => true, 'evaluation_seconds_left' => 600, 'evaluation_closes_at' => '09:50']);
+        $this->get(self::PORTAL)->assertOk()->assertSee('Isi Form Evaluasi')->assertSee('data-deadline="evaluation" data-seconds-left="600"', false);
+        $this->actingAs($this->admin)->post(route('training.extend-quiz-time', $this->training), ['phase' => 'evaluation', 'minutes' => '5'])
+            ->assertSessionHas('success', 'Form Evaluasi ditambah 5 menit, tutup otomatis pukul 09:55.');
+
+        // 09.55: tertutup sendiri; kiriman yang sedang diketik masih diterima sebentar.
+        $this->travelTo(now()->setTime(9, 55, 0));
+        $this->get(self::PORTAL.'/status')->assertJson(['is_evaluation_open' => false]);
+        $this->get(self::PORTAL)->assertOk()->assertSee('Waktu pengisian form evaluasi sudah habis.');
+        $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertOk()->assertSee('Waktu habis, evaluasi ditutup otomatis');
+        $this->post(self::PORTAL.'/evaluation', $this->answers())->assertSessionHas('success');
+    }
+
+    public function test_evaluation_hours_do_not_lock_the_posttest_once_they_ran_out(): void
     {
         $this->training->update(['is_quiz_active' => true]);
 
-        $this->actingAs($this->admin)->post(route('training.evaluation-time', $this->training), ['open_mode' => 'now', 'close_mode' => 'minutes', 'close_minutes' => '15'])
-            ->assertSessionHas('success');
+        $this->openEvaluation(['close_mode' => 'minutes', 'close_minutes' => '15'])->assertSessionHas('success');
         $this->assertTrue($this->training->fresh()->isEvaluationOpen());
         $this->get(self::PORTAL.'/quiz')->assertRedirect(self::PORTAL.'/evaluation');
 
@@ -191,17 +240,49 @@ class TrainingEvaluationTest extends TestCase
         $this->post(self::PORTAL.'/quiz', ['answers' => [$this->question->id => 'a']])->assertRedirect(self::PORTAL.'/result');
         $next = fn () => TrainingParticipant::with(['training.evaluationQuestions', 'quizResult', 'pretestResult', 'evaluation'])->findOrFail($this->participant->id)->nextStep();
         $this->assertNotSame('done', $next()['kind']);
-        $this->actingAs($this->admin)->post(route('training.evaluation-time', $this->training), ['open_mode' => 'now', 'close_mode' => 'none'])->assertSessionHas('success');
+        $this->openEvaluation()->assertSessionHas('success');
         $this->assertSame(['label' => 'Isi evaluasi', 'kind' => 'action'], $next());
         $this->post(self::PORTAL.'/evaluation', $this->answers())->assertSessionHas('success');
         $this->assertSame(['label' => 'Selesai', 'kind' => 'done'], $next());
+    }
+
+    public function test_evaluation_cannot_be_opened_while_it_is_off_or_has_no_questions(): void
+    {
+        $this->training->evaluationQuestions()->delete();
+        $this->openEvaluation()->assertSessionHas('error', 'Form evaluasi belum bisa dibuka: tambahkan pertanyaannya dulu lewat Kelola pertanyaan.');
+        $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertOk()
+            ->assertSee('Belum ada pertanyaan, jadi form belum bisa dibuka')->assertSee('Buat pertanyaan dulu');
+
+        $this->training->update(['has_evaluation' => false]);
+        $this->openEvaluation()->assertSessionHas('error', 'Form evaluasi tidak dipakai di pelatihan ini. Nyalakan dulu lewat Aktifkan.');
+        $this->assertFalse($this->training->fresh()->is_evaluation_active);
+
+        // Peserta biasa tidak boleh membukanya.
+        $this->training->update(['has_evaluation' => true]);
+        $this->actingAs($this->staff)->from('/my-trainings')->post(route('training.toggle-evaluation-access', $this->training), ['open' => '1'])->assertSessionHas('error');
+        $this->assertFalse($this->training->fresh()->is_evaluation_active);
+    }
+
+    public function test_turning_the_evaluation_off_closes_it_and_clears_its_schedule(): void
+    {
+        $this->openEvaluation(['close_mode' => 'minutes', 'close_minutes' => '30'])->assertSessionHas('success');
+
+        $this->actingAs($this->admin)->post(route('training.toggle-evaluation', $this->training))->assertSessionHas('success');
+        $training = $this->training->fresh();
+        $this->assertFalse($training->is_evaluation_active);
+        $this->assertNull($training->evaluation_opens_at);
+        $this->assertNull($training->evaluation_closes_at);
+
+        // Dinyalakan lagi: tetap tertutup sampai pemateri membukanya.
+        $this->actingAs($this->admin)->post(route('training.toggle-evaluation', $this->training))->assertSessionHas('success');
+        $this->assertFalse($this->training->fresh()->isEvaluationOpen());
     }
 
     public function test_portal_reloads_when_the_quiz_opens_while_the_evaluation_is_still_owed(): void
     {
         // Evaluasi sudah terbuka sebelum kuis: saat kuis dibuka, kartu kuis harus dirender ulang server supaya
         // tombolnya mengarah ke form evaluasi, bukan langsung ke kuis.
-        $this->training->update(['status' => TrainingStatus::Ongoing]);
+        $this->openEvaluation()->assertSessionHas('success');
         $this->get(self::PORTAL)->assertOk()->assertSee('const evaluationBeforeQuiz  = true;', false);
 
         $this->post(self::PORTAL.'/evaluation', $this->answers());
@@ -210,7 +291,7 @@ class TrainingEvaluationTest extends TestCase
 
     public function test_participant_fills_the_evaluation_before_the_posttest(): void
     {
-        $this->training->update(['is_quiz_active' => true]);
+        $this->training->update(['is_quiz_active' => true, 'is_evaluation_active' => true]);
 
         // Posttest belum bisa dibuka: peserta diarahkan ke form evaluasi.
         $this->get(self::PORTAL.'/quiz')->assertRedirect(self::PORTAL.'/evaluation');
@@ -249,7 +330,7 @@ class TrainingEvaluationTest extends TestCase
 
     public function test_evaluation_is_sent_only_once(): void
     {
-        $this->training->update(['is_quiz_active' => true]);
+        $this->training->update(['is_quiz_active' => true, 'is_evaluation_active' => true]);
 
         $this->post(self::PORTAL.'/evaluation', $this->answers(5))->assertRedirect(self::PORTAL.'/quiz');
         $this->post(self::PORTAL.'/evaluation', $this->answers(1))->assertRedirect(self::PORTAL)->assertSessionHas('warning');
@@ -260,7 +341,7 @@ class TrainingEvaluationTest extends TestCase
 
     public function test_required_answers_are_enforced_per_question_type(): void
     {
-        $this->training->update(['is_quiz_active' => true]);
+        $this->training->update(['is_quiz_active' => true, 'is_evaluation_active' => true]);
         $first = $this->scaleQuestions()->first();
 
         $missing = $this->answers();
@@ -335,7 +416,7 @@ class TrainingEvaluationTest extends TestCase
         $this->assertSame(11, $this->training->evaluationQuestions()->count());
 
         // Peserta melihat form sesuai pertanyaan pelatihan ini dan pertanyaan wajib yang baru ikut divalidasi.
-        $this->training->update(['is_quiz_active' => true]);
+        $this->training->update(['is_quiz_active' => true, 'is_evaluation_active' => true]);
         $this->get(self::PORTAL.'/evaluation')->assertOk()
             ->assertSee('Pemateri menjelaskan sanksi dengan jelas')->assertSee('Sangat jelas')
             ->assertSee('Kebutuhan Manajemen')->assertSee('Apakah perlu pelatihan lanjutan?')->assertSee('Ragu-ragu')
@@ -394,7 +475,7 @@ class TrainingEvaluationTest extends TestCase
 
     public function test_form_without_questions_does_not_hold_back_the_posttest(): void
     {
-        $this->training->update(['is_quiz_active' => true]);
+        $this->training->update(['is_quiz_active' => true, 'is_evaluation_active' => true]);
         $this->training->evaluationQuestions()->delete();
 
         $this->get(self::PORTAL)->assertOk()->assertDontSee('Evaluasi Pelatihan');
@@ -403,7 +484,7 @@ class TrainingEvaluationTest extends TestCase
 
         $manage = route('training.evaluation.index', $this->training);
         $this->actingAs($this->admin)->get($manage)->assertOk()->assertSee('Belum ada pertanyaan')->assertSee('Pakai template bawaan');
-        $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertSee('Belum ada pertanyaan, jadi form belum tampil ke peserta');
+        $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertSee('Belum ada pertanyaan, jadi form belum bisa dibuka');
 
         $this->actingAs($this->admin)->post(route('training.evaluation.defaults', $this->training))->assertSessionHas('success');
         $this->assertSame(10, $this->training->evaluationQuestions()->count());
@@ -426,14 +507,15 @@ class TrainingEvaluationTest extends TestCase
         $this->assertSame(0, TrainingEvaluation::count());
     }
 
-    public function test_training_without_posttest_opens_the_evaluation_while_the_session_runs(): void
+    public function test_training_without_posttest_also_waits_for_the_trainer_to_open_the_evaluation(): void
     {
-        $this->training->update(['has_posttest' => false]);
+        $this->training->update(['has_posttest' => false, 'status' => TrainingStatus::Ongoing]);
 
-        $this->get(self::PORTAL)->assertSee('Form evaluasi dibuka saat sesi berlangsung');
+        // Sesi berlangsung saja belum membuka form.
+        $this->get(self::PORTAL)->assertSee('Form evaluasi belum dibuka oleh pemateri.');
         $this->get(self::PORTAL.'/evaluation')->assertRedirect(self::PORTAL);
 
-        $this->training->update(['status' => TrainingStatus::Ongoing]);
+        $this->openEvaluation()->assertSessionHas('success');
 
         $this->get(self::PORTAL.'/evaluation')->assertOk()->assertSee('Kirim Evaluasi');
         $this->post(self::PORTAL.'/evaluation', $this->answers())->assertRedirect(self::PORTAL)->assertSessionHas('success');
@@ -442,7 +524,7 @@ class TrainingEvaluationTest extends TestCase
 
     public function test_detail_page_and_export_show_the_answers(): void
     {
-        $this->training->update(['is_quiz_active' => true]);
+        $this->training->update(['is_quiz_active' => true, 'is_evaluation_active' => true]);
         $this->post(self::PORTAL.'/evaluation', $this->answers(4, 'Durasinya kurang lama.'));
 
         $second = TrainingParticipant::create([
@@ -495,7 +577,7 @@ class TrainingEvaluationTest extends TestCase
 
     public function test_text_answers_stay_text_in_the_export(): void
     {
-        $this->training->update(['is_quiz_active' => true]);
+        $this->training->update(['is_quiz_active' => true, 'is_evaluation_active' => true]);
         $comment = $this->commentQuestion();
 
         // Jawaban berawalan "=" dulu dianggap rumus: rumus rusak menggagalkan seluruh export, rumus sah dijalankan Excel.
@@ -537,7 +619,7 @@ class TrainingEvaluationTest extends TestCase
         $choice = $this->training->evaluationQuestions()->where('type', 'choice')->sole();
         $this->assertSame(['0', '1', '2 atau lebih'], $choice->options);
 
-        $this->training->update(['is_quiz_active' => true]);
+        $this->training->update(['is_quiz_active' => true, 'is_evaluation_active' => true]);
         $answers = $this->answers();
         $answers['answers'][$choice->id] = '0';
         $this->post(self::PORTAL.'/evaluation', $answers)->assertSessionHasNoErrors();
@@ -574,11 +656,11 @@ class TrainingEvaluationTest extends TestCase
             ->assertSee(json_encode(route('training.evaluation.update', [$this->training, $first]), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT), false);
     }
 
-    public function test_evaluation_before_a_posttest_without_questions_still_opens_with_the_session(): void
+    public function test_evaluation_can_be_opened_even_when_the_posttest_has_no_questions(): void
     {
         $this->question->delete();
-        $this->training->update(['status' => TrainingStatus::Ongoing]);
 
+        $this->openEvaluation()->assertSessionHas('success');
         $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertOk()->assertDontSee('Posttest belum punya soal');
         $this->get(self::PORTAL.'/evaluation')->assertOk();
     }
@@ -593,7 +675,7 @@ class TrainingEvaluationTest extends TestCase
         $choice = $this->training->evaluationQuestions()->where('type', 'choice')->sole();
         $this->assertSame(['Ya', '1', '01', 'Folder C:\\', '"Kutip", koma'], $choice->options);
 
-        $this->training->update(['is_quiz_active' => true]);
+        $this->training->update(['is_quiz_active' => true, 'is_evaluation_active' => true]);
         $portals = [];
         foreach ($choice->options as $index => $option) {
             TrainingParticipant::create([
@@ -616,7 +698,7 @@ class TrainingEvaluationTest extends TestCase
 
     public function test_text_limit_counts_a_line_break_once_like_the_browser(): void
     {
-        $this->training->update(['is_quiz_active' => true]);
+        $this->training->update(['is_quiz_active' => true, 'is_evaluation_active' => true]);
         $comment = $this->commentQuestion();
 
         // 990 huruf + 10 baris baru = 1000 karakter di browser, tetapi terkirim sebagai 1010 karakter (CR+LF).
@@ -635,7 +717,7 @@ class TrainingEvaluationTest extends TestCase
 
     public function test_malformed_answers_are_rejected_without_breaking_the_form(): void
     {
-        $this->training->update(['is_quiz_active' => true]);
+        $this->training->update(['is_quiz_active' => true, 'is_evaluation_active' => true]);
         $first = $this->scaleQuestions()->first();
         $comment = $this->commentQuestion();
 

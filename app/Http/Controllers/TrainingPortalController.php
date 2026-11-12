@@ -193,7 +193,7 @@ class TrainingPortalController extends Controller
             );
         }
 
-        // Form evaluasi diisi tepat sebelum posttest. Hanya pintu masuk kuis yang dijaga: jawaban peserta yang sudah
+        // Selama form evaluasi dibuka pemateri, form itu diisi sebelum posttest. Hanya pintu masuk kuis yang dijaga: jawaban peserta yang sudah
         // mengerjakan saat pemateri menyalakan evaluasi tetap diterima.
         if ($phase === Training::PHASE_POSTTEST && $training->requiresEvaluationBeforePosttest($participant)) {
             return redirect($urls['portal'].'/evaluation')->with(
@@ -575,6 +575,9 @@ class TrainingPortalController extends Controller
             'attendance_timed_out' => $training->phaseTimedOut(Training::STEP_ATTENDANCE),
             'has_evaluation' => $hasEvaluationForm,
             'is_evaluation_open' => $hasEvaluationForm && $training->evaluationWindowOpen(),
+            // Form evaluasi dibuka pemateri dengan batas waktu sendiri, sama seperti langkah lain.
+            'evaluation_seconds_left' => $hasEvaluationForm ? $training->phaseSecondsLeft(Training::STEP_EVALUATION) : null,
+            'evaluation_closes_at' => $hasEvaluationForm ? $training->phaseClosesAt(Training::STEP_EVALUATION)?->format('H:i') : null,
             'require_attendance_proof' => (bool) $training->require_attendance_proof,
             'attendance_status' => $participant->attendance_status,
             'has_quiz_result' => $participant->quizResult ? true : false,

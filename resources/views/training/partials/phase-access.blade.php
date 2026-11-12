@@ -1,14 +1,16 @@
 {{--
-    Baris "Akses Pretest" / "Akses Posttest" / "Akses Presensi" di Kontrol Sesi: status (terkunci, terjadwal, terbuka,
-    waktu habis), hitung mundur bila berbatas waktu, dan tombolnya. "Buka", "Ubah jadwal", dan "Atur waktu" membuka
-    dialog #phaseTimeModal (jam buka, lalu jam tutup pasti / sekian menit / tanpa batas waktu). Saat jadwal buka tiba
-    atau waktu habis, baris berganti status tanpa memuat ulang halaman.
-    $phase: 'pretest' | 'posttest' | 'attendance' (Training::TIMED_STEPS).
-    $heading: judul baris. $noun: sebutannya dalam kalimat ("Pretest" / "Kuis" / "Presensi").
-    $questionCount: jumlah soal yang dipakai fase ini; null untuk presensi, yang tidak butuh soal.
+    Baris "Akses Pretest" / "Akses Posttest" / "Akses Presensi" / "Form Evaluasi" di Kontrol Sesi: status (terkunci,
+    terjadwal, terbuka, waktu habis), hitung mundur bila berbatas waktu, dan tombolnya. "Buka", "Ubah jadwal", dan
+    "Atur waktu" membuka dialog #phaseTimeModal (jam buka, lalu jam tutup pasti / sekian menit / tanpa batas waktu).
+    Saat jadwal buka tiba atau waktu habis, baris berganti status tanpa memuat ulang halaman.
+    $phase: 'pretest' | 'posttest' | 'attendance' | 'evaluation' (Training::TIMED_STEPS).
+    $heading: judul baris. $noun: sebutannya dalam kalimat ("Pretest" / "Kuis" / "Presensi" / "Evaluasi").
+    $questionCount: jumlah soal/pertanyaan yang dipakai; null untuk presensi, yang tidak butuh soal.
     $emptyText: status saat soalnya belum ada. $toggleUrl: alamat buka/kunci.
-    Opsional: $lockedText (status saat terkunci), $intro (penjelasan di dialog waktu), dan $extraControl
-    ['url', 'label', 'confirm'] untuk satu tombol tambahan yang selalu tampil (mis. "Tidak Dipakai" pada presensi).
+    Opsional: $lockedText (status saat terkunci), $intro (penjelasan di dialog waktu), $emptyAction ['url', 'label']
+    (tombol saat soalnya belum ada; bawaan "Buat soal dulu"), $subtext (keterangan tetap di bawah status), $link
+    ['url', 'label'] (tautan di bawah status), dan $extraControl ['url', 'label', 'confirm', 'class'] untuk satu
+    tombol tambahan yang selalu tampil (mis. "Tidak Dipakai" pada presensi, "Nonaktifkan" pada evaluasi).
 --}}
 @php
     use App\Models\Training;
@@ -24,6 +26,9 @@
     $lockedText ??= 'Pengerjaan '.mb_strtolower($noun).' terkunci';
     $intro ??= null;
     $extraControl ??= null;
+    $emptyAction ??= ['url' => route('training.questions.index', $training), 'label' => 'Buat soal dulu'];
+    $subtext ??= null;
+    $link ??= null;
 @endphp
 <div class="list-group-item d-flex {{ $phaseActive || $phaseOpensAt ? 'flex-wrap' : '' }} align-items-center justify-content-between gap-2"
     @if($phaseSecondsLeft !== null) data-phase-timer="{{ $phaseSecondsLeft }}" data-timeout-text="{{ $phaseTimedOutText }}" @endif
@@ -47,6 +52,12 @@
                 {{ $lockedText }}
             @endif
         </div>
+        @if($subtext)
+            <div class="text-muted text-xs">{{ $subtext }}</div>
+        @endif
+        @if($link)
+            <a href="{{ $link['url'] }}" class="text-xs">{{ $link['label'] }}</a>
+        @endif
     </div>
 
     {{-- Fase terbuka atau terjadwal: tombolnya di baris sendiri supaya statusnya tidak terjepit. --}}
@@ -55,7 +66,7 @@
         @if($extraControl)
             <form action="{{ $extraControl['url'] }}" method="POST" class="m-0" @isset($extraControl['confirm']) onsubmit="return confirm(@js($extraControl['confirm']))" @endisset>
                 @csrf
-                <button type="submit" class="btn btn-default btn-xs text-nowrap">{{ $extraControl['label'] }}</button>
+                <button type="submit" class="btn btn-default btn-xs text-nowrap {{ $extraControl['class'] ?? '' }}">{{ $extraControl['label'] }}</button>
             </form>
         @endif
         @if($phaseOpensAt)
@@ -96,12 +107,12 @@
         @if($extraControl)
             <form action="{{ $extraControl['url'] }}" method="POST" class="m-0" @isset($extraControl['confirm']) onsubmit="return confirm(@js($extraControl['confirm']))" @endisset>
                 @csrf
-                <button type="submit" class="btn btn-default btn-xs text-nowrap">{{ $extraControl['label'] }}</button>
+                <button type="submit" class="btn btn-default btn-xs text-nowrap {{ $extraControl['class'] ?? '' }}">{{ $extraControl['label'] }}</button>
             </form>
         @endif
         @if($questionCount === 0)
-            <a href="{{ route('training.questions.index', $training) }}" class="btn btn-default btn-xs text-nowrap" title="{{ $noun }} belum punya soal">
-                Buat soal dulu
+            <a href="{{ $emptyAction['url'] }}" class="btn btn-default btn-xs text-nowrap" title="{{ $emptyText }}">
+                {{ $emptyAction['label'] }}
             </a>
         @else
             <button type="button" class="btn btn-default btn-xs text-nowrap" data-toggle="modal" data-target="#phaseTimeModal" @if($intro) data-intro="{{ $intro }}" @endif

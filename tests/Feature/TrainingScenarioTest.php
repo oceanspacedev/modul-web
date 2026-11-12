@@ -256,6 +256,9 @@ class TrainingScenarioTest extends TestCase
     {
         $training = $this->training(pretest: false, posttest: false, evaluation: true);
 
+        // Sesi berlangsung, tapi form baru bisa diisi setelah pemateri membukanya.
+        $this->assertSame(['label' => 'Menunggu pemateri', 'kind' => 'idle'], $this->participant($training)->nextStep());
+        $this->actingAs($this->admin)->post(route('training.toggle-evaluation-access', $training), ['open' => '1'])->assertSessionHas('success');
         $this->assertSame(['label' => 'Isi evaluasi', 'kind' => 'action'], $this->participant($training)->nextStep());
         $this->get('/training/portal/token_skenario')->assertOk()->assertSee('Isi Form Evaluasi');
         $this->get('/training/portal/token_skenario/evaluation')->assertOk();
@@ -281,7 +284,10 @@ class TrainingScenarioTest extends TestCase
     public function test_posttest_with_evaluation_tells_the_participant_to_fill_the_form_first(): void
     {
         $training = $this->training(pretest: false, posttest: true, evaluation: true);
-        // Sesi berlangsung: evaluasi sudah bisa diisi sebelum posttest dibuka, jadi tidak memotong waktunya.
+        $this->assertSame('Menunggu pemateri', $this->participant($training)->nextStep()['label']);
+
+        // Pemateri membuka evaluasi sebelum posttest, jadi mengisinya tidak memotong waktu posttest.
+        $this->actingAs($this->admin)->post(route('training.toggle-evaluation-access', $training), ['open' => '1'])->assertSessionHas('success');
         $this->assertSame(['label' => 'Isi evaluasi', 'kind' => 'action'], $this->participant($training)->nextStep());
 
         $this->actingAs($this->admin)->post(route('training.toggle-quiz', $training), ['open' => '1', 'close_mode' => 'none'])->assertSessionHas('success');

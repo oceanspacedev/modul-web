@@ -45,6 +45,12 @@
                 'Pemateri' => $training->trainer?->nama_lengkap,
             ]);
         @endphp
+        @if($training->evaluationClosesAt())
+            <div class="alert alert-warning py-2 px-3 small mb-3">
+                <i class="far fa-clock mr-1"></i> Form ditutup otomatis pukul <strong>{{ $training->evaluationClosesAt()->format('H:i') }}</strong> WIB. Kirim sebelum waktunya habis.
+            </div>
+        @endif
+
         <div class="content-card">
             <div class="content-card-header">
                 <span>Data Anda</span>

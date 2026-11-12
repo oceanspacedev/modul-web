@@ -146,7 +146,8 @@ class TrainingStepOrderTest extends TestCase
 
     public function test_evaluation_before_the_posttest_must_be_filled_first(): void
     {
-        $this->training->update(['is_quiz_active' => true]);
+        // Form evaluasi dan posttest sama-sama dibuka pemateri.
+        $this->training->update(['is_quiz_active' => true, 'is_evaluation_active' => true]);
 
         $this->get(self::PORTAL.'/quiz')->assertRedirect(self::PORTAL.'/evaluation');
         $this->assertSame('Isi evaluasi, lalu kerjakan posttest', $this->participant()->nextStep()['label']);
@@ -159,8 +160,8 @@ class TrainingStepOrderTest extends TestCase
         $this->training->refresh();
         $this->assertFalse($this->training->evaluationFollowsPosttest());
 
-        // Posttest langsung bisa dikerjakan; form evaluasi berdiri sendiri (sesi sedang berlangsung, jadi terbuka).
-        $this->training->update(['is_quiz_active' => true]);
+        // Posttest langsung bisa dikerjakan; form evaluasi berdiri sendiri (dibuka pemateri).
+        $this->training->update(['is_quiz_active' => true, 'is_evaluation_active' => true]);
         $this->get(self::PORTAL.'/quiz')->assertOk();
         $this->get(self::PORTAL.'/evaluation')->assertOk();
         $this->get(self::PORTAL)->assertOk()
@@ -183,11 +184,11 @@ class TrainingStepOrderTest extends TestCase
         $this->fillEvaluation();
         $this->assertSame(['label' => 'Selesai', 'kind' => 'done'], $this->participant()->nextStep());
 
-        // Jam form evaluasi diatur sendiri, di urutan mana pun.
-        $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertOk()->assertSee('Atur waktu Form Evaluasi');
-        $this->actingAs($this->admin)->post(route('training.evaluation-time', $this->training), ['open_mode' => 'now', 'close_mode' => 'none'])->assertSessionHas('success');
+        // Form evaluasi dibuka dan diatur waktunya sendiri, di urutan mana pun.
+        $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertOk()->assertSee('Atur waktu Evaluasi');
+        $this->actingAs($this->admin)->post(route('training.toggle-evaluation-access', $this->training), ['open' => '1', 'close_mode' => 'none'])->assertSessionHas('success');
         $this->saveOrder(['session', 'pretest', 'attendance', 'evaluation', 'posttest']);
-        $this->actingAs($this->admin)->post(route('training.evaluation-time', $this->training), ['open_mode' => 'now', 'close_mode' => 'none'])->assertSessionHas('success');
+        $this->actingAs($this->admin)->post(route('training.toggle-evaluation-access', $this->training), ['open' => '1', 'close_mode' => 'none'])->assertSessionHas('success');
     }
 
     public function test_participants_next_step_follows_the_order(): void
