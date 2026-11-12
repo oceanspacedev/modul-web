@@ -109,8 +109,9 @@ class TrainingParticipant extends Model
         return match ($step) {
             Training::STEP_ATTENDANCE => $training->isAttendanceOpen() && $this->attendance_status === 'pending' ? 'Isi presensi' : null,
             Training::STEP_PRETEST => $training->isPhaseActive(Training::PHASE_PRETEST) && $this->pretestResult === null ? 'Kerjakan pretest' : null,
-            // Evaluasi yang menempel pada posttest ditagih lewat langkah posttest.
-            Training::STEP_EVALUATION => ! $training->evaluationFollowsPosttest() && $training->awaitsEvaluationFrom($this) && $training->isEvaluationOpen()
+            // Selama posttest terbuka, evaluasi yang wajib diisi sebelumnya ditagih lewat langkah posttest.
+            Training::STEP_EVALUATION => $training->awaitsEvaluationFrom($this) && $training->isEvaluationOpen()
+                && $this->pendingStepLabel(Training::STEP_POSTTEST) === null
                 ? 'Isi evaluasi'
                 : null,
             Training::STEP_POSTTEST => match (true) {

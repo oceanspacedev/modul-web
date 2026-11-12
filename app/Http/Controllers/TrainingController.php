@@ -622,15 +622,12 @@ class TrainingController extends Controller
     }
 
     /**
-     * Set when the evaluation form of a training without posttest opens and closes, or go back to following the
-     * training status (reset=1).
+     * Set when the evaluation form opens and closes, or go back to following the training status (reset=1). The
+     * evaluation keeps its own time even when it comes before the posttest, so filling it in never eats into the
+     * posttest time.
      */
     public function updateEvaluationTime(Request $request, Training $training): RedirectResponse
     {
-        if ($training->evaluationFollowsPosttest()) {
-            return back()->with('error', 'Form evaluasi pelatihan ini diisi sebelum posttest dan terbuka bersamanya, jadi waktunya diatur lewat Akses Posttest. Pindahkan evaluasi ke sesudah posttest di Urutan Langkah bila ingin jamnya sendiri.');
-        }
-
         if ($request->boolean('reset')) {
             $training->update(['evaluation_opens_at' => null, 'evaluation_closes_at' => null]);
 
