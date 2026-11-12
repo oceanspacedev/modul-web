@@ -100,6 +100,9 @@
                     <div id="aturan-kuis">
                         @include('learning_module.partials.quiz-rules-fields', ['trainingRules' => new \App\Models\Training, 'card' => true])
                     </div>
+
+                    {{-- FORM EVALUASI --}}
+                    @include('training.partials.evaluation-field', ['training' => null])
                 </div>
 
                 {{-- PESERTA --}}

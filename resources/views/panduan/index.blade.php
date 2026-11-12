@@ -212,6 +212,7 @@
                         <li><b>Buka Presensi</b> agar peserta bisa absen, lalu <b>Buka Kuis</b> saat kuis dimulai.</li>
                         <li><b>Aturan Kuis</b> (di form pelatihan, atau <b>Ubah</b> di Kontrol Sesi): nyalakan <b>Pretest</b> dan/atau <b>Posttest</b>, lalu pilih berapa kali boleh dikerjakan dan apa yang dilihat peserta setelah selesai. Bawaan: hanya posttest, 1 kali. Pretest memakai soal pilihan ganda saja.</li>
                         <li><b>Buka Pretest</b> sebelum materi dimulai dan <b>Buka Posttest</b> setelah materi selesai; keduanya dibuka terpisah.</li>
+                        <li><b>Form Evaluasi</b> (saklar di form pelatihan, atau <b>Aktifkan</b>/<b>Nonaktifkan</b> di Kontrol Sesi): bila aktif, peserta menilai pemateri dan pelatihan (9 skala 1-5 dan masukan opsional) tepat sebelum posttest; pelatihan tanpa posttest membukanya selama status <b>Berlangsung</b> atau <b>Selesai</b>. Nama, jabatan, divisi, tanggal, dan materi tidak ditanyakan karena sudah ada di sistem. Rata-rata dan masukan tampil di kartu <b>Hasil Evaluasi Peserta</b>, dan <b>Export Rekap</b> mendapat sheet <b>Evaluasi</b>.</li>
                         <li><b>Broadcast WA ke Peserta</b> mengirim ulang undangan ke semua peserta.</li>
                         <li><b>Lampirkan Dokumen</b> dan <b>Upload Video Materi</b> untuk materi sesi.</li>
                         <li><b>Daftar Peserta &amp; Nilai</b> menampilkan 50 peserta per halaman. Ketik nama, ID karyawan, No. HP, atau divisi di kotak <b>Cari peserta</b> lalu tekan <b>Enter</b>; pindah halaman lewat nomor halaman di bawah tabel. Angka di kartu ringkasan tetap menghitung semua peserta.</li>
@@ -325,6 +326,7 @@
                     <div class="pg-head"><h2>13. Mengerjakan kuis</h2></div>
                     <ol>
                         <li>Bila pelatihan punya <b>pretest</b>, kerjakan dulu sebelum materi: setelah pemateri membukanya, ketuk <b>Mulai Pretest</b>.</li>
+                        <li>Bila pelatihan memakai <b>form evaluasi</b>, isi dulu sebelum kuis: ketuk <b>Isi Form Evaluasi</b>, beri nilai 1-5 untuk tiap pernyataan, lalu <b>Kirim</b>. Data diri Anda sudah terisi otomatis dan evaluasi hanya dikirim sekali.</li>
                         <li>Setelah kuis dibuka pemateri, ketuk <b>Mulai Kerjakan Kuis</b>.</li>
                         <li>Jawab semua soal, ketuk <b>Kirim Jawaban</b>.</li>
                         <li>Ketuk <b>Lihat Pembahasan</b> (atau <b>Lihat Hasil</b> untuk pretest) untuk melihat nilai. Kunci jawaban dan pembahasan ikut tampil bila pemateri mengizinkannya; bila tidak, hanya nilainya.</li>

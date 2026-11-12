@@ -27,6 +27,7 @@ class Training extends Model
     protected $attributes = [
         'has_pretest' => false,
         'has_posttest' => true,
+        'has_evaluation' => false,
         'show_quiz_answers' => true,
         'quiz_max_attempts' => 1,
         'pretest_shows_answers' => false,
@@ -50,6 +51,7 @@ class Training extends Model
             'quiz_max_attempts' => 'integer',
             'has_pretest' => 'boolean',
             'has_posttest' => 'boolean',
+            'has_evaluation' => 'boolean',
             'is_pretest_active' => 'boolean',
             'pretest_max_attempts' => 'integer',
             'pretest_shows_answers' => 'boolean',
@@ -188,6 +190,29 @@ class Training extends Model
         return $this->isPhaseActive($phase) && $this->quizAttemptsLeft($result, $phase) !== 0;
     }
 
+    /**
+     * Form evaluasi bisa diisi sekarang. Tempatnya tepat sebelum posttest, jadi ikut terbuka saat posttest dibuka;
+     * pelatihan tanpa posttest membukanya selama sesi berlangsung atau sudah selesai.
+     */
+    public function isEvaluationOpen(): bool
+    {
+        if (! $this->has_evaluation) {
+            return false;
+        }
+
+        return $this->has_posttest
+            ? (bool) $this->is_quiz_active
+            : in_array($this->status, [TrainingStatus::Ongoing, TrainingStatus::Completed], true);
+    }
+
+    /**
+     * Peserta ini harus mengisi form evaluasi dulu sebelum masuk posttest. Butuh relasi evaluation pada peserta.
+     */
+    public function awaitsEvaluationFrom(TrainingParticipant $participant): bool
+    {
+        return $this->has_evaluation && $participant->evaluation === null;
+    }
+
     public function trainer()
     {
         return $this->belongsTo(User::class, 'trainer_id');
@@ -214,6 +239,11 @@ class Training extends Model
     public function pretestResults()
     {
         return $this->hasMany(TrainingQuizResult::class, 'training_id')->where('phase', self::PHASE_PRETEST);
+    }
+
+    public function evaluations()
+    {
+        return $this->hasMany(TrainingEvaluation::class, 'training_id');
     }
 
     public function videos()

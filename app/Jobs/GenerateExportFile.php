@@ -7,6 +7,7 @@ use App\Exports\LearningModuleRekapExport;
 use App\Exports\ScoreRecapExport;
 use App\Exports\TrainingQuestionsExport;
 use App\Exports\TrainingRekapExport;
+use App\Exports\TrainingRekapWorkbook;
 use App\Exports\UserExport;
 use App\Models\LearningModule;
 use App\Models\Training;
@@ -89,14 +90,20 @@ class GenerateExportFile extends BackgroundTask
     }
 
     /**
-     * @return array{0: TrainingRekapExport, 1: string, 2: string}
+     * @return array{0: TrainingRekapExport|TrainingRekapWorkbook, 1: string, 2: string}
      */
     private function training(): array
     {
         $training = Training::with(['trainer', 'participants.user.divisi', 'participants.quizResult', 'participants.pretestResult'])->findOrFail($this->modelId);
 
+        // Pelatihan dengan form evaluasi mendapat sheet kedua berisi jawaban evaluasi.
+        $withEvaluation = $training->has_evaluation || $training->evaluations()->exists();
+        if ($withEvaluation) {
+            $training->load(['participants.evaluation', 'participants.user.position', 'participants.user.area', 'participants.user.roles']);
+        }
+
         return [
-            new TrainingRekapExport($training),
+            $withEvaluation ? new TrainingRekapWorkbook($training) : new TrainingRekapExport($training),
             'rekap_pelatihan_'.Str::slug($training->title).'_'.date('Ymd_His').'.xlsx',
             'Export rekap pelatihan selesai',
         ];

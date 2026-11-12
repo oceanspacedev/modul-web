@@ -108,6 +108,9 @@
                     <div id="aturan-kuis">
                         @include('learning_module.partials.quiz-rules-fields', ['trainingRules' => $training, 'card' => true])
                     </div>
+
+                    {{-- FORM EVALUASI --}}
+                    @include('training.partials.evaluation-field', ['training' => $training])
                 </div>
 
                 {{-- PESERTA --}}

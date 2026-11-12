@@ -53,6 +53,11 @@ class TrainingParticipant extends Model
             ->ofMany(['id' => 'max'], fn ($query) => $query->where('phase', Training::PHASE_PRETEST));
     }
 
+    public function evaluation()
+    {
+        return $this->hasOne(TrainingEvaluation::class, 'training_participant_id');
+    }
+
     public function resultFor(string $phase): ?TrainingQuizResult
     {
         return $phase === Training::PHASE_PRETEST ? $this->pretestResult : $this->quizResult;

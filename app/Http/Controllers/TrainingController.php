@@ -12,10 +12,12 @@ use App\Jobs\SendTrainingInvitation;
 use App\Models\Divisi;
 use App\Models\Document;
 use App\Models\Training;
+use App\Models\TrainingEvaluation;
 use App\Models\TrainingParticipant;
 use App\Models\TrainingQuizResult;
 use App\Models\User;
 use App\Services\WhatsAppService;
+use App\Support\TrainingEvaluationForm;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -38,6 +40,9 @@ class TrainingController extends Controller
 {
     /** Participants per page on the training detail page. */
     private const PARTICIPANTS_PER_PAGE = 50;
+
+    /** Written feedback shown on the detail page; the export has all of it. */
+    private const EVALUATION_COMMENTS_SHOWN = 20;
 
     /**
      * Display a listing of trainings
@@ -99,6 +104,7 @@ class TrainingController extends Controller
                 'is_attendance_active' => $request->boolean('is_attendance_active'),
                 'require_attendance_proof' => $request->boolean('require_attendance_proof'),
                 'quiz_mode' => $request->validated('quiz_mode') ?? 'formal',
+                'has_evaluation' => $request->boolean('has_evaluation'),
                 ...$request->quizRules(),
             ]);
 
@@ -163,7 +169,7 @@ class TrainingController extends Controller
         // Only one page of participants is loaded and rendered, so the page stays small for any class size.
         $search = trim((string) $request->query('peserta'));
         $participants = $training->participants()
-            ->with(['user.divisi', 'quizResult', 'pretestResult'])
+            ->with(['user.divisi', 'quizResult', 'pretestResult', 'evaluation'])
             ->when($search !== '', fn (Builder $query) => $query->whereHas('user', fn (Builder $user) => $user
                 ->where('nama_lengkap', 'like', "%{$search}%")
                 ->orWhere('employee_id', 'like', "%{$search}%")
@@ -184,7 +190,33 @@ class TrainingController extends Controller
             'zoomParticipants' => $this->zoomParticipants($training),
             'allDocuments' => $allDocuments,
             'stats' => $this->stats($training),
+            'evaluation' => $this->evaluationSummary($training),
         ]);
+    }
+
+    /**
+     * Evaluation averages and the latest written feedback for the detail page; null while the form is off and nobody
+     * has filled it in.
+     *
+     * @return array{count: int, average: float|null, questions: array<string, array{text: string, average: float|null}>, comments: Collection<int, TrainingEvaluation>, commentCount: int}|null
+     */
+    private function evaluationSummary(Training $training): ?array
+    {
+        $evaluations = $training->evaluations()->latest('submitted_at')->get();
+
+        if (! $training->has_evaluation && $evaluations->isEmpty()) {
+            return null;
+        }
+
+        $comments = $evaluations->filter(fn (TrainingEvaluation $evaluation) => filled($evaluation->comment))->values();
+        $shown = $comments->take(self::EVALUATION_COMMENTS_SHOWN);
+        $shown->load('user:id,nama_lengkap');
+
+        return [
+            ...TrainingEvaluationForm::summarize($evaluations),
+            'comments' => $shown,
+            'commentCount' => $comments->count(),
+        ];
     }
 
     /**
@@ -288,6 +320,9 @@ class TrainingController extends Controller
         }
         if ($request->has('require_attendance_proof')) {
             $data['require_attendance_proof'] = $request->boolean('require_attendance_proof');
+        }
+        if ($request->has('has_evaluation')) {
+            $data['has_evaluation'] = $request->boolean('has_evaluation');
         }
 
         DB::transaction(function () use ($request, $training, $data) {
@@ -394,6 +429,22 @@ class TrainingController extends Controller
         return back()->with('success', $newStatus
             ? 'Pretest telah DIBUKA untuk seluruh peserta!'
             : 'Pretest telah DITUTUP.');
+    }
+
+    /**
+     * Turn the evaluation form on/off. Answers already sent are kept either way.
+     */
+    public function toggleEvaluation(Training $training): RedirectResponse
+    {
+        $training->update(['has_evaluation' => ! $training->has_evaluation]);
+
+        if (! $training->has_evaluation) {
+            return back()->with('success', 'Form evaluasi DINONAKTIFKAN. Jawaban yang sudah masuk tetap tersimpan.');
+        }
+
+        return back()->with('success', $training->has_posttest
+            ? 'Form evaluasi DIAKTIFKAN. Peserta mengisinya sebelum mengerjakan posttest.'
+            : 'Form evaluasi DIAKTIFKAN. Peserta bisa mengisinya selama sesi berlangsung atau setelah selesai.');
     }
 
     /**

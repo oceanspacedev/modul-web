@@ -59,6 +59,10 @@
             $step = 0;
             $pretestResult = $participant->pretestResult;
             $pretestQuestionCount = $training->questionsFor('pretest')->count();
+            $evaluation = $participant->evaluation;
+            $evaluationUrl = '/training/portal/'.$participant->token.'/evaluation';
+            // Evaluasi diisi sebelum posttest: selama belum terisi, tombol kuis mengarah ke form evaluasi.
+            $awaitsEvaluation = $training->awaitsEvaluationFrom($participant);
         @endphp
 
         @if($training->has_pretest)
@@ -309,6 +313,40 @@
             @endif
         </div>
 
+        <!-- FORM EVALUASI PELATIHAN (sebelum posttest) -->
+        @if($training->has_evaluation)
+        <div class="content-card" id="evaluationCard">
+            <div class="content-card-header">
+                <span><span class="badge badge-primary mr-1">Langkah {{ ++$step }}</span> Evaluasi Pelatihan</span>
+                @if($evaluation)
+                    <span class="badge badge-success">Terisi</span>
+                @else
+                    <span class="text-muted small">{{ count(\App\Support\TrainingEvaluationForm::questions()) }} Penilaian</span>
+                @endif
+            </div>
+
+            @if($evaluation)
+                <div class="alert alert-success mb-0">
+                    <i class="fas fa-check-circle mr-1"></i>
+                    <strong>Terima kasih, evaluasi Anda sudah tersimpan.</strong>
+                    <span class="small d-block mt-1">Dikirim pada {{ $evaluation->submitted_at->format('d F Y, H:i') }} WIB.</span>
+                </div>
+            @elseif($training->isEvaluationOpen())
+                <p class="text-muted small mb-3">
+                    Beri penilaian singkat tentang pemateri dan pelatihan ini{{ $training->has_posttest ? ' sebelum mengerjakan kuis' : '' }}.
+                    Nama, jabatan, dan data pelatihan sudah terisi otomatis.
+                </p>
+                <a href="{{ $evaluationUrl }}" class="btn btn-primary btn-block">
+                    Isi Form Evaluasi
+                </a>
+            @else
+                <div class="text-center py-4 text-muted">
+                    {{ $training->has_posttest ? 'Form evaluasi dibuka bersamaan dengan kuis.' : 'Form evaluasi dibuka saat sesi berlangsung.' }}
+                </div>
+            @endif
+        </div>
+        @endif
+
         <!-- KUIS EVALUASI (POSTTEST) -->
         @if($training->has_posttest)
         <div class="content-card" id="quizCard">
@@ -331,7 +369,7 @@
                         Lihat Pembahasan
                     </a>
                     @if($training->canRetakeQuiz($participant->quizResult))
-                        <a href="/training/portal/{{ $participant->token }}/quiz" class="btn btn-primary">
+                        <a href="{{ $awaitsEvaluation ? $evaluationUrl : '/training/portal/'.$participant->token.'/quiz' }}" class="btn btn-primary">
                             Kerjakan Ulang
                         </a>
                     @endif
@@ -343,7 +381,14 @@
                 @endif
             @else
                 <div id="quizBody">
-                @if($training->is_quiz_active)
+                @if($training->is_quiz_active && $awaitsEvaluation)
+                    <p class="text-muted small mb-3">
+                        Kuis sudah dibuka. Isi form evaluasi terlebih dahulu, setelah itu kuis langsung terbuka.
+                    </p>
+                    <a href="{{ $evaluationUrl }}" class="btn btn-primary btn-block">
+                        Isi Evaluasi, lalu Kerjakan Kuis
+                    </a>
+                @elseif($training->is_quiz_active)
                     <p class="text-muted small mb-3">
                         Kuis evaluasi telah dibuka oleh pemateri. {{ \App\Support\QuizRules::summary($training->quiz_max_attempts, $training->show_quiz_answers) }}.
                     </p>
@@ -413,6 +458,10 @@
             // Pretest dirender server; saat pemateri membuka/menutupnya halaman dimuat ulang.
             const currentPretestActive  = {{ $training->isPhaseActive('pretest') ? 'true' : 'false' }};
             const watchPretest          = {{ $training->has_pretest && ! $pretestResult ? 'true' : 'false' }};
+            // Form evaluasi juga dirender server: muat ulang saat pemateri menyalakan/mematikan atau membukanya.
+            const currentHasEvaluation  = {{ $training->has_evaluation ? 'true' : 'false' }};
+            const currentEvaluationOpen = {{ $training->isEvaluationOpen() ? 'true' : 'false' }};
+            const watchEvaluation       = {{ $evaluation ? 'false' : 'true' }};
             let currentRequireProof     = {{ $training->require_attendance_proof ? 'true' : 'false' }};
             const attendanceStatus      = '{{ $participant->attendance_status }}';
             const hasQuizResult         = {{ $participant->quizResult ? 'true' : 'false' }};
@@ -573,6 +622,11 @@
                     .then(function(data) {
 
                         if (watchPretest && data.is_pretest_active !== currentPretestActive) {
+                            window.location.reload();
+                            return;
+                        }
+
+                        if (watchEvaluation && (data.has_evaluation !== currentHasEvaluation || data.is_evaluation_open !== currentEvaluationOpen)) {
                             window.location.reload();
                             return;
                         }

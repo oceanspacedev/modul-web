@@ -294,6 +294,60 @@
                         @endif
                     </div>
                 </div>
+
+                <!-- HASIL FORM EVALUASI -->
+                @if($evaluation)
+                <div class="card" id="hasil-evaluasi">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            Hasil Evaluasi Peserta
+                            <span class="text-muted text-sm font-weight-normal">({{ $evaluation['count'] }} dari {{ $stats['total'] }} mengisi)</span>
+                        </h3>
+                        @unless($training->has_evaluation)
+                            <div class="card-tools"><span class="badge badge-secondary">Nonaktif</span></div>
+                        @endunless
+                    </div>
+                    <div class="card-body">
+                        @if($evaluation['count'] === 0)
+                            <div class="text-center py-2 text-muted text-sm">
+                                Belum ada peserta yang mengisi form evaluasi.
+                            </div>
+                        @else
+                            <div class="d-flex align-items-baseline gap-2 mb-3">
+                                <span class="score-value" style="font-size: 1.75rem;">{{ number_format($evaluation['average'], 2) }}</span>
+                                <span class="text-muted text-sm">rata-rata dari skala {{ \App\Support\TrainingEvaluationForm::SCALE_MAX }}</span>
+                            </div>
+                            @foreach($evaluation['questions'] as $item)
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between align-items-baseline gap-2 text-sm">
+                                        <span>{{ $item['text'] }}</span>
+                                        <strong class="text-nowrap">{{ $item['average'] === null ? '-' : number_format($item['average'], 2) }}</strong>
+                                    </div>
+                                    <div class="rating-bar mt-1"><span style="width: {{ round(($item['average'] ?? 0) / \App\Support\TrainingEvaluationForm::SCALE_MAX * 100) }}%"></span></div>
+                                </div>
+                            @endforeach
+
+                            @if($evaluation['commentCount'] > 0)
+                                <div class="border-top mt-3 pt-3">
+                                    <div class="text-muted text-xs mb-2">
+                                        Masukan peserta ({{ $evaluation['commentCount'] }})
+                                        @if($evaluation['commentCount'] > $evaluation['comments']->count())
+                                            &middot; {{ $evaluation['comments']->count() }} terbaru, selengkapnya di Export Rekap
+                                        @endif
+                                    </div>
+                                    @foreach($evaluation['comments'] as $entry)
+                                        <div class="text-sm mb-2">
+                                            <strong>{{ $entry->user->nama_lengkap ?? 'Peserta' }}</strong>
+                                            <span class="text-muted text-xs">&middot; {{ $entry->submitted_at->format('d M Y H:i') }}</span>
+                                            <div style="white-space: pre-line;">{{ $entry->comment }}</div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+                        @endif
+                    </div>
+                </div>
+                @endif
             </div>
 
             <!-- RIGHT COLUMN: KONTROL SESI -->
@@ -414,6 +468,27 @@
                             </form>
                         </div>
                         @endif
+
+                        <!-- FORM EVALUASI -->
+                        <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
+                            <div class="min-w-0">
+                                <div class="text-sm font-weight-bold">Form Evaluasi</div>
+                                <div class="text-muted text-xs">
+                                    @if($training->has_evaluation)
+                                        {{ $training->has_posttest ? 'Diisi peserta sebelum posttest' : 'Diisi peserta selama/sesudah sesi' }}
+                                        &middot; {{ $evaluation['count'] }} dari {{ $stats['total'] }} mengisi
+                                    @else
+                                        Peserta tidak diminta mengisi evaluasi
+                                    @endif
+                                </div>
+                            </div>
+                            <form action="{{ route('training.toggle-evaluation', $training) }}" method="POST" class="m-0">
+                                @csrf
+                                <button type="submit" class="btn btn-default btn-xs text-nowrap {{ $training->has_evaluation ? 'text-danger' : '' }}">
+                                    {{ $training->has_evaluation ? 'Nonaktifkan' : 'Aktifkan' }}
+                                </button>
+                            </form>
+                        </div>
 
                         <!-- ATURAN KUIS -->
                         <div class="list-group-item d-flex align-items-start justify-content-between gap-2">
@@ -588,6 +663,9 @@
                                     @endif
                                 @else
                                     <span class="text-muted">Belum mengerjakan</span>
+                                @endif
+                                @if($training->has_evaluation || $part->evaluation)
+                                    <span class="cell-sub">Evaluasi: {{ $part->evaluation ? number_format($part->evaluation->average() ?? 0, 1).' / '.\App\Support\TrainingEvaluationForm::SCALE_MAX : 'belum' }}</span>
                                 @endif
                                 @if($training->has_pretest)
                                     <span class="cell-sub">Pretest: {{ $pretest ? $pretest->score.(($pretest->attempt_count ?? 1) > 1 ? ' (tertinggi dari '.$pretest->attempt_count.'x)' : '') : 'belum' }}</span>

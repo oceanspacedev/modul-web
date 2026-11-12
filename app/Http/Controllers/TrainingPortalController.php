@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Training;
+use App\Models\TrainingEvaluation;
 use App\Models\TrainingParticipant;
 use App\Models\TrainingQuizResult;
+use App\Support\TrainingEvaluationForm;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -59,6 +61,7 @@ class TrainingPortalController extends Controller
             'user.divisi',
             'quizResult',
             'pretestResult',
+            'evaluation',
         ]);
 
         $training = $participant->training;
@@ -137,6 +140,7 @@ class TrainingPortalController extends Controller
             'training.questions',
             'quizResult',
             'pretestResult',
+            'evaluation',
         ]);
 
         $training = $participant->training;
@@ -172,6 +176,15 @@ class TrainingPortalController extends Controller
             return redirect($urls['portal'])->with(
                 'warning',
                 'Belum ada soal kuis yang disediakan untuk pelatihan ini.'
+            );
+        }
+
+        // Form evaluasi diisi tepat sebelum posttest. Hanya pintu masuk kuis yang dijaga: jawaban peserta yang sudah
+        // mengerjakan saat pemateri menyalakan evaluasi tetap diterima.
+        if ($phase === Training::PHASE_POSTTEST && $training->awaitsEvaluationFrom($participant)) {
+            return redirect($urls['portal'].'/evaluation')->with(
+                'warning',
+                'Isi form evaluasi pelatihan terlebih dahulu, setelah itu kuis langsung terbuka.'
             );
         }
 
@@ -409,6 +422,96 @@ class TrainingPortalController extends Controller
     }
 
     /**
+     * Evaluation form. Name, position, division, date, and topic come from the participant and the training, so the
+     * participant only rates the session.
+     */
+    public function showEvaluation($token)
+    {
+        $participant = $this->findParticipant($token, [
+            'training.trainer',
+            'user.divisi',
+            'user.position',
+            'user.area',
+            'user.roles',
+            'evaluation',
+        ]);
+        $training = $participant->training;
+        $portal = "/training/portal/{$token}";
+
+        if (! $training->has_evaluation) {
+            return redirect($portal)->with('warning', 'Form evaluasi tidak diadakan untuk pelatihan ini.');
+        }
+
+        if ($participant->evaluation) {
+            return redirect($portal)->with('warning', 'Anda sudah mengisi form evaluasi pelatihan ini.');
+        }
+
+        if (! $training->isEvaluationOpen()) {
+            return redirect($portal)->with('warning', 'Form evaluasi belum dibuka. Harap menunggu instruksi dari pemateri.');
+        }
+
+        return view('training.portal.evaluation', [
+            'title' => 'Evaluasi Pelatihan: '.$training->title,
+            'participant' => $participant,
+            'training' => $training,
+            'user' => $participant->user,
+            'sections' => TrainingEvaluationForm::sections(),
+            'continuesToQuiz' => $this->quizFollowsEvaluation($training, $participant),
+        ]);
+    }
+
+    public function submitEvaluation(Request $request, $token)
+    {
+        $participant = $this->findParticipant($token, ['training', 'quizResult', 'evaluation']);
+        $training = $participant->training;
+        $portal = "/training/portal/{$token}";
+
+        if (! $training->has_evaluation) {
+            abort(404);
+        }
+
+        if ($participant->evaluation) {
+            return redirect($portal)->with('warning', 'Anda sudah mengisi form evaluasi pelatihan ini.');
+        }
+
+        if (! $training->isEvaluationOpen()) {
+            return redirect($portal)->with('warning', 'Form evaluasi belum dibuka. Harap menunggu instruksi dari pemateri.');
+        }
+
+        $validated = $request->validate(TrainingEvaluationForm::rules(), TrainingEvaluationForm::messages());
+        $comment = trim((string) ($validated['comment'] ?? ''));
+
+        // Satu jawaban per peserta: kiriman ganda (klik dua kali) tidak membuat baris kedua.
+        TrainingEvaluation::firstOrCreate(
+            ['training_participant_id' => $participant->id],
+            [
+                'training_id' => $training->id,
+                'user_id' => $participant->user_id,
+                'ratings' => array_map('intval', array_intersect_key($validated['ratings'], TrainingEvaluationForm::questions())),
+                'comment' => $comment === '' ? null : $comment,
+                'submitted_at' => now(),
+            ],
+        );
+
+        if ($this->quizFollowsEvaluation($training, $participant)) {
+            return redirect($portal.'/quiz')->with('success', 'Terima kasih, evaluasi Anda tersimpan. Silakan kerjakan kuis.');
+        }
+
+        return redirect($portal)->with('success', 'Terima kasih, evaluasi Anda tersimpan.');
+    }
+
+    /**
+     * After the evaluation the participant goes straight into the posttest when it is open, has questions, and they
+     * still have an attempt left.
+     */
+    private function quizFollowsEvaluation(Training $training, TrainingParticipant $participant): bool
+    {
+        return $training->isPhaseActive(Training::PHASE_POSTTEST)
+            && $training->questions()->exists()
+            && $training->quizAttemptsLeft($participant->quizResult) !== 0;
+    }
+
+    /**
      * Return current training status as JSON — used by participant portal for live polling
      */
     public function getStatus($token)
@@ -420,6 +523,8 @@ class TrainingPortalController extends Controller
             'is_attendance_active' => (bool) $training->is_attendance_active,
             'is_quiz_active' => (bool) $training->is_quiz_active,
             'is_pretest_active' => $training->isPhaseActive(Training::PHASE_PRETEST),
+            'has_evaluation' => (bool) $training->has_evaluation,
+            'is_evaluation_open' => $training->isEvaluationOpen(),
             'require_attendance_proof' => (bool) $training->require_attendance_proof,
             'attendance_status' => $participant->attendance_status,
             'has_quiz_result' => $participant->quizResult ? true : false,

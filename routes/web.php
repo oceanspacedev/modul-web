@@ -48,6 +48,8 @@ Route::prefix('training/portal/{token}')
         Route::get('retake', 'retakeQuiz')->name('.retake');
         Route::post('retake', 'retakeQuiz')->name('.retake.post');
         Route::get('result', 'showResult')->name('.result');
+        Route::get('evaluation', 'showEvaluation')->name('.evaluation');
+        Route::post('evaluation', 'submitEvaluation')->name('.evaluation.submit');
 
         // Pretest: alamat sendiri, aksi yang sama dengan fase 'pretest'.
         Route::get('pretest', 'showQuiz')->name('.pretest')->defaults('phase', 'pretest');
@@ -143,6 +145,7 @@ Route::middleware('auth')->group(function () {
                 Route::post('toggle-attendance', 'toggleAttendance')->name('toggle-attendance');
                 Route::post('toggle-proof', 'toggleAttendanceProof')->name('toggle-proof');
                 Route::post('toggle-pretest', 'togglePretest')->name('toggle-pretest');
+                Route::post('toggle-evaluation', 'toggleEvaluation')->name('toggle-evaluation');
                 Route::post('quiz-rules', 'updateQuizRules')->name('quiz-rules');
                 Route::get('setup', 'setup')->name('setup');
                 Route::post('setup', 'saveSetup')->name('setup.save');
