@@ -2,11 +2,14 @@
 
 namespace App\Exports;
 
+use App\Exports\Concerns\WritesTextAsText;
 use App\Models\Training;
 use App\Models\TrainingQuestion;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
@@ -16,9 +19,14 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
  * Bank soal pelatihan beserta kunci jawabannya, dengan kolom yang sama seperti TrainingQuestionTemplate sehingga
  * file bisa diedit lalu diimpor ulang. Kolom "catatan" di ujung diabaikan oleh importer.
  */
-class TrainingQuestionsExport implements FromCollection, ShouldAutoSize, WithHeadings, WithMapping, WithStyles
+class TrainingQuestionsExport implements FromCollection, ShouldAutoSize, WithCustomValueBinder, WithEvents, WithHeadings, WithMapping, WithStyles
 {
+    use WritesTextAsText;
+
     public const IMAGE_NOTE = 'Ada gambar soal/pilihan; gambar tidak ikut diekspor, tambahkan lewat Edit setelah import.';
+
+    /** Tulisan kolom dipakai_di; dibaca kembali oleh TrainingQuestionImport. */
+    public const USED_IN_LABELS = ['both' => 'KEDUANYA', 'pretest' => 'PRETEST', 'posttest' => 'POSTTEST'];
 
     public function __construct(protected Training $training) {}
 
@@ -45,6 +53,7 @@ class TrainingQuestionsExport implements FromCollection, ShouldAutoSize, WithHea
             $isEssay ? (string) $question->correct_answer : strtoupper((string) $question->correct_answer),
             ...array_map(fn (string $letter) => $isEssay ? '' : (string) $question->{'option_'.$letter}, TrainingQuestion::OPTION_LETTERS),
             (string) $question->explanation,
+            self::USED_IN_LABELS[$question->used_in ?? TrainingQuestion::USED_IN_BOTH] ?? self::USED_IN_LABELS[TrainingQuestion::USED_IN_BOTH],
             $question->hasImages() ? self::IMAGE_NOTE : '',
         ];
     }

@@ -2,11 +2,14 @@
 
 namespace App\Exports;
 
+use App\Exports\Concerns\WritesTextAsText;
 use App\Models\LearningModuleAttempt;
 use App\Support\LearningModuleProgress;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
@@ -15,8 +18,10 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 /**
  * Setiap percobaan pretest/posttest, termasuk percobaan ulang.
  */
-class LearningModuleAttemptsSheet implements FromArray, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
+class LearningModuleAttemptsSheet implements FromArray, ShouldAutoSize, WithCustomValueBinder, WithEvents, WithHeadings, WithStyles, WithTitle
 {
+    use WritesTextAsText;
+
     /**
      * @param  Collection<int, LearningModuleProgress>  $participants
      */

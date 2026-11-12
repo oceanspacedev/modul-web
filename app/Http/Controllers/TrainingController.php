@@ -427,6 +427,12 @@ class TrainingController extends Controller
                 : 'Kuis belum bisa dibuka: buat soal kuis terlebih dahulu.');
         }
 
+        // Soal pilihan ganda tanpa kunci yang valid membuat semua jawaban peserta pada soal itu dihitung salah.
+        $invalidKeys = $training->load('questions')->questionsFor($phase)->reject->hasValidKey()->count();
+        if ($invalidKeys > 0) {
+            return back()->with('error', "{$invalidKeys} soal pilihan ganda belum punya kunci jawaban yang valid. Perbaiki dulu di halaman Soal Kuis (soal bertanda \"Kunci jawaban tidak valid\").");
+        }
+
         $opensAt = $this->openingTime($request, $training);
         $closesAt = $this->closingTime($request, $training, $phase, $opensAt);
         $training->openPhase($phase, $closesAt, $opensAt);
@@ -780,6 +786,30 @@ class TrainingController extends Controller
         ]);
 
         return back()->with('success', "Nilai essay berhasil disimpan! Nilai akhir peserta kini {$finalScore}/100.");
+    }
+
+    /**
+     * Re-score every quiz result of the training (pretest and posttest) against the current answer keys, for use
+     * after a wrong key was corrected. Essay scores already given are kept.
+     */
+    public function regradeQuiz(Training $training): RedirectResponse
+    {
+        $questions = $training->questions()->get();
+        $total = 0;
+        $changed = 0;
+
+        DB::transaction(function () use ($training, $questions, &$total, &$changed) {
+            $training->results()->orderBy('id')->each(function (TrainingQuizResult $result) use ($questions, &$total, &$changed) {
+                $total++;
+                $changed += $result->regrade($questions) ? 1 : 0;
+            });
+        });
+
+        return back()->with('success', match (true) {
+            $total === 0 => 'Belum ada peserta yang mengerjakan kuis, jadi tidak ada nilai untuk dihitung ulang.',
+            $changed === 0 => "Nilai {$total} hasil kuis sudah sesuai kunci jawaban saat ini; tidak ada yang berubah.",
+            default => "Nilai dihitung ulang memakai kunci jawaban saat ini: {$changed} dari {$total} hasil kuis berubah.",
+        });
     }
 
     /**

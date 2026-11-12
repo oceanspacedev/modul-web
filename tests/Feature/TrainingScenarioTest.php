@@ -157,10 +157,11 @@ class TrainingScenarioTest extends TestCase
             $this->get('/training/portal/token_skenario/quiz')->assertRedirect('/training/portal/token_skenario');
         }
 
-        // Rekap: kolom fase yang tidak diadakan berisi "-", bukan "Belum Mengerjakan" atau nilai 0.
+        // Rekap: kolom fase yang tidak diadakan berisi "-", bukan "Belum Mengerjakan".
         $row = $this->rekapRow($training);
         $this->assertSame($posttest ? 'Belum Mengerjakan' : '-', $row['Status Kuis']);
-        $this->assertSame($posttest ? 0 : '-', $row['Nilai Akhir (0-100)']);
+        // Belum mengerjakan tidak ditulis 0, supaya tidak tertukar dengan peserta yang nilainya memang 0.
+        $this->assertSame('-', $row['Nilai Akhir (0-100)']);
         $this->assertSame($pretest ? 'Belum Mengerjakan' : '-', $row['Nilai Pretest (0-100)']);
         $this->actingAs($this->admin)->post(route('training.export', $training))->assertSessionHasNoErrors();
     }

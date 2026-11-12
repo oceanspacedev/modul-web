@@ -52,6 +52,15 @@
                                 <i class="fas fa-file-excel mr-2 text-muted"></i> Export Rekap Nilai
                             </button>
                         </form>
+                        @if($training->hasQuiz() && $stats['quizSubmitted'] + $stats['pretestSubmitted'] > 0)
+                            <form action="{{ route('training.regrade', $training) }}" method="POST" class="m-0"
+                                onsubmit="return confirm('Hitung ulang nilai semua peserta memakai kunci jawaban saat ini? Jawaban peserta dan nilai essay tidak berubah.')">
+                                @csrf
+                                <button type="submit" class="dropdown-item">
+                                    <i class="fas fa-calculator mr-2 text-muted"></i> Hitung Ulang Nilai
+                                </button>
+                            </form>
+                        @endif
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="#" data-toggle="modal" data-target="#uploadTrainingVideoModal">
                             <i class="fas fa-video mr-2 text-muted"></i> Upload Video Materi
@@ -71,6 +80,16 @@
 <section class="content">
     <div class="container-fluid">
         <x-flash />
+
+        {{-- Kunci jawaban rusak (mis. tersimpan bukan huruf pilihan): nilai peserta salah sampai diperbaiki. --}}
+        @php $invalidKeyCount = $training->hasQuiz() ? $training->questions->reject->hasValidKey()->count() : 0; @endphp
+        @if($invalidKeyCount > 0)
+            <div class="alert alert-danger">
+                <strong>{{ $invalidKeyCount }} soal pilihan ganda tidak punya kunci jawaban yang valid.</strong>
+                Jawaban peserta pada soal itu selalu dihitung salah.
+                <a href="{{ route('training.questions.index', $training) }}" class="alert-link">Perbaiki di Soal Kuis</a>, lalu tekan <strong>Hitung Ulang Nilai</strong> bila sudah ada peserta yang mengerjakan.
+            </div>
+        @endif
 
         {{-- LANGKAH PELATIHAN --}}
         @php

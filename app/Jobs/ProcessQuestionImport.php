@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Imports\FirstSheetOnly;
 use App\Imports\LearningModuleQuestionImport;
 use App\Imports\TrainingQuestionImport;
 use App\Models\LearningModule;
@@ -76,7 +77,7 @@ class ProcessQuestionImport extends BackgroundTask
         $training = Training::findOrFail($this->modelId);
         $import = new TrainingQuestionImport($training->id);
 
-        DB::transaction(fn () => Excel::import($import, $this->path, 'local'));
+        DB::transaction(fn () => Excel::import(new FirstSheetOnly($import), $this->path, 'local'));
 
         return [$import->getImportedCount(), 'kuis pelatihan "'.$training->title.'"'];
     }
@@ -90,7 +91,7 @@ class ProcessQuestionImport extends BackgroundTask
         $nextSortOrder = (int) LearningModuleQuestion::where('learning_module_id', $module->id)->max('sort_order') + 1;
         $import = new LearningModuleQuestionImport($module, $nextSortOrder);
 
-        DB::transaction(fn () => Excel::import($import, $this->path, 'local'));
+        DB::transaction(fn () => Excel::import(new FirstSheetOnly($import), $this->path, 'local'));
         app(MaterialQuizService::class)->refresh($module);
 
         return [$import->getImportedCount(), 'kuis "'.$module->title.'"'];

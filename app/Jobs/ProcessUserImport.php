@@ -31,6 +31,7 @@ class ProcessUserImport extends BackgroundTask
     {
         $import = new UserImport;
         Excel::import($import, $this->path, 'local');
+        $import->resolvePendingApprovals();
 
         $errors = $import->errors();
         $message = "Import selesai. Berhasil: {$import->successCount()} user.";

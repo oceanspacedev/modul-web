@@ -2,10 +2,13 @@
 
 namespace App\Exports;
 
+use App\Exports\Concerns\WritesTextAsText;
 use App\Models\Training;
 use Carbon\CarbonImmutable;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
@@ -14,8 +17,10 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 /**
  * Satu baris per peserta per pelatihan yang tanggalnya masuk rentang. Kolom nilai sama dengan TrainingRekapExport.
  */
-class TrainingScoresSheet implements FromArray, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
+class TrainingScoresSheet implements FromArray, ShouldAutoSize, WithCustomValueBinder, WithEvents, WithHeadings, WithStyles, WithTitle
 {
+    use WritesTextAsText;
+
     public function __construct(
         protected CarbonImmutable $from,
         protected CarbonImmutable $to,

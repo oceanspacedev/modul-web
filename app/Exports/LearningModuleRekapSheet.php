@@ -2,18 +2,22 @@
 
 namespace App\Exports;
 
+use App\Exports\Concerns\WritesTextAsText;
 use App\Models\LearningModule;
 use App\Support\LearningModuleProgress;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromArray;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 
-class LearningModuleRekapSheet implements FromArray, WithEvents, WithTitle
+class LearningModuleRekapSheet implements FromArray, WithCustomValueBinder, WithEvents, WithTitle
 {
+    use WritesTextAsText;
+
     const HEADING_ROW = 6;
 
     const DATA_START = 7;
@@ -74,6 +78,8 @@ class LearningModuleRekapSheet implements FromArray, WithEvents, WithTitle
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
+                self::restoreDefaultValueBinder();
+
                 $sheet = $event->sheet->getDelegate();
                 $lastRow = self::DATA_START + $this->participants->count() - 1;
                 $hRow = self::HEADING_ROW;

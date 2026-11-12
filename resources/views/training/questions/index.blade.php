@@ -26,6 +26,16 @@
                         @endif
                     </div>
                 </div>
+                {{-- Setelah kunci jawaban diperbaiki, nilai yang sudah tersimpan baru berubah lewat tombol ini. --}}
+                @if($resultCount > 0)
+                    <form action="{{ route('training.regrade', $training) }}" method="POST" class="d-inline m-0"
+                        onsubmit="return confirm(@js('Hitung ulang nilai '.$resultCount.' hasil kuis memakai kunci jawaban saat ini? Jawaban peserta dan nilai essay tidak berubah.'))">
+                        @csrf
+                        <button type="submit" class="btn btn-default" title="Nilai peserta dihitung lagi memakai kunci jawaban saat ini">
+                            <i class="fas fa-calculator"></i> Hitung Ulang Nilai
+                        </button>
+                    </form>
+                @endif
                 <button type="button" class="btn btn-default" data-toggle="modal" data-target="#addQuestionModal">
                     <i class="fas fa-plus"></i> Tambah Manual
                 </button>
@@ -70,6 +80,17 @@
             </div>
 
             <div class="card-body">
+                @php $invalidKeyCount = $questions->reject->hasValidKey()->count(); @endphp
+                @if($invalidKeyCount > 0)
+                    <div class="alert alert-danger">
+                        <strong>{{ $invalidKeyCount }} soal pilihan ganda tidak punya kunci jawaban yang valid.</strong>
+                        Jawaban peserta pada soal itu selalu dihitung salah, dan kuis tidak bisa dibuka sampai diperbaiki.
+                        Buka <strong>Edit</strong> pada soal bertanda "Kunci jawaban tidak valid", pilih kunci yang benar, lalu simpan.
+                        @if($resultCount > 0)
+                            Setelah itu tekan <strong>Hitung Ulang Nilai</strong> supaya nilai {{ $resultCount }} hasil kuis yang sudah masuk ikut diperbaiki.
+                        @endif
+                    </div>
+                @endif
                 @forelse($questions as $index => $q)
                 @php
                     $isEssay = ($q->type === 'essay');
@@ -84,6 +105,9 @@
                             @else
                                 <span class="badge badge-secondary">Pilihan Ganda &middot; {{ count($activeOptions) }} opsi (A-{{ strtoupper(array_key_last($activeOptions) ?? 'B') }})</span>
                             @endif
+                            @unless($q->hasValidKey())
+                                <span class="badge badge-danger">Kunci jawaban tidak valid</span>
+                            @endunless
                             @if($training->hasBothPhases() && ($q->used_in ?? 'both') !== 'both')
                                 <span class="badge badge-primary">{{ $q->usedInLabel() }}</span>
                             @endif
@@ -542,7 +566,7 @@
                                     Isi Contoh
                                 </button>
                             </div>
-                            <textarea name="raw_text" id="pasteTextarea" class="form-control text-monospace" style="height: 480px !important; min-height: 440px !important; resize: vertical;" placeholder="Tempelkan teks soal kuis Anda di sini..." required></textarea>
+                            <textarea name="raw_text" id="pasteTextarea" class="form-control text-monospace" style="height: 480px !important; min-height: 440px !important; resize: vertical;" placeholder="Tempelkan teks soal kuis Anda di sini..." required>{{ old('raw_text') }}</textarea>
                         </div>
 
                         <!-- KOLOM KANAN: PANDUAN FORMAT -->
@@ -589,6 +613,13 @@ KUNCI: E
 TIPE: ESSAY<br>
 KUNCI: Acuan poin jawaban peserta
                                     </div>
+                                    <p class="mt-3 mb-1 text-dark"><strong>Aturan baca</strong></p>
+                                    <ul class="pl-3 mb-0">
+                                        <li>Tiap soal pilihan ganda <b>wajib</b> punya baris KUNCI berisi huruf pilihannya (boleh juga "B." atau teks pilihannya).</li>
+                                        <li>Soal tanpa pilihan dibaca sebagai essay.</li>
+                                        <li>Baris tanpa awalan melanjutkan bagian di atasnya (pertanyaan, pilihan, atau penjelasan).</li>
+                                        <li>Satu soal yang tidak jelas membatalkan semuanya; teks Anda dikembalikan untuk diperbaiki.</li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -622,6 +653,12 @@ KUNCI: Acuan poin jawaban peserta
                         <label for="importExcelFile">File Spreadsheet (.xlsx, .xls, .csv)</label>
                         <input type="file" name="file" id="importExcelFile" class="form-control" accept=".xlsx,.xls,.csv" required>
                     </div>
+                    <ul class="small text-muted pl-3 mt-3 mb-0">
+                        <li>Baris pertama harus berisi judul kolom seperti di template; kolom dibaca dari judulnya. Hanya sheet pertama yang dibaca.</li>
+                        <li><b>kunci_jawaban</b> soal pilihan ganda harus huruf pilihan yang terisi (A-F), atau teks yang sama persis dengan salah satu pilihan.</li>
+                        <li><b>tipe_soal</b>: PG atau ESSAY. <b>dipakai_di</b> (opsional): KEDUANYA, PRETEST, atau POSTTEST.</li>
+                        <li>Satu baris yang tidak jelas (kunci tidak cocok, pilihan kembar, pertanyaan kosong) membatalkan seluruh file, dan nomor barisnya dikabarkan lewat Notifikasi.</li>
+                    </ul>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
@@ -734,6 +771,11 @@ document.addEventListener('DOMContentLoaded', function () {
             width: '100%'
         }).on('change', updateDocCount);
     }
+
+    // Import teks yang ditolak: buka lagi dialognya dengan teks yang tadi ditempel supaya tinggal diperbaiki.
+    @if(old('raw_text'))
+        if (typeof $ !== 'undefined') $('#importTextModal').modal('show');
+    @endif
 
     // Auto-open modal if URL contains open_ai=1
     if (window.location.search.indexOf('open_ai=1') !== -1) {
@@ -1191,8 +1233,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     item.option_c = (card.querySelector('.ai-opt-c') ? card.querySelector('.ai-opt-c').value.trim() : '');
                     item.option_d = (card.querySelector('.ai-opt-d') ? card.querySelector('.ai-opt-d').value.trim() : '');
                     item.option_e = (card.querySelector('.ai-opt-e') ? card.querySelector('.ai-opt-e').value.trim() : '');
-                    var selectedKey = card.querySelector('input[type="radio"]:checked');
-                    item.correct_answer = selectedKey ? selectedKey.value : 'a';
+                    // Hanya radio kunci jawaban: kartu juga memuat radio panel "Ubah dengan AI" (pertanyaan/jawaban/semuanya).
+                    var selectedKey = card.querySelector('.ai-radio-key:checked');
+                    item.correct_answer = selectedKey ? selectedKey.value : '';
                 } else {
                     item.correct_answer = card.querySelector('.ai-essay-key') ? card.querySelector('.ai-essay-key').value.trim() : '';
                 }

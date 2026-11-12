@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\TrainingQuestionTemplate;
 use App\Http\Requests\ReviseAiQuestionRequest;
 use App\Http\Requests\TrainingQuestionRequest;
+use App\Imports\TrainingQuestionTextParser;
 use App\Jobs\AiTask;
 use App\Jobs\GenerateExportFile;
 use App\Jobs\GenerateTrainingQuestions;
@@ -19,6 +20,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Attributes\Controllers\Authorize;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -28,6 +30,9 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 #[Authorize('update', 'training')]
 class TrainingQuestionController extends Controller
 {
+    /** Pilihan yang dibuat AI untuk soal pilihan ganda. */
+    private const AI_OPTION_LETTERS = ['a', 'b', 'c', 'd', 'e'];
+
     /**
      * Show quiz questions management for a training
      */
@@ -45,6 +50,8 @@ class TrainingQuestionController extends Controller
             'documents' => $training->documents,
             'allDocuments' => $allDocuments,
             'isGeminiConfigured' => $isGeminiConfigured,
+            // Hasil kuis yang sudah masuk: menentukan tampilnya tombol Hitung Ulang Nilai.
+            'resultCount' => $training->results()->count(),
         ]);
     }
 
@@ -88,164 +95,32 @@ class TrainingQuestionController extends Controller
     }
 
     /**
-     * Import questions via Copy-Paste Plain Text
+     * Import questions via Copy-Paste Plain Text. Semua soal disimpan sekaligus atau tidak sama sekali: satu soal yang
+     * tidak jelas (mis. tanpa kunci) membatalkan seluruh teks, supaya tidak ada soal tersimpan dengan tebakan.
      */
-    public function importText(Request $request, Training $training): RedirectResponse
+    public function importText(Request $request, Training $training, TrainingQuestionTextParser $parser): RedirectResponse
     {
-
         $request->validate([
             'raw_text' => 'required|string|min:5',
         ]);
 
         try {
-            $count = $this->parseTextQuestions($request->input('raw_text'), $training->id);
-            if ($count === 0) {
-                return back()->with('error', 'Tidak ada soal yang berhasil diparsing. Pastikan format penulisan sudah sesuai petunjuk.');
-            }
-
-            return back()->with('success', "Berhasil menambahkan {$count} soal kuis dari teks copy-paste!");
+            $questions = $parser->parse($request->input('raw_text'));
         } catch (Exception $e) {
-            return back()->with('error', 'Gagal memproses teks: '.$e->getMessage());
-        }
-    }
-
-    /**
-     * Helper to parse pasted raw text into questions
-     */
-    protected function parseTextQuestions(string $rawText, int $trainingId): int
-    {
-        // Normalize line breaks
-        $text = str_replace(["\r\n", "\r"], "\n", $rawText);
-
-        // Split by double newline or numbered list pattern
-        $pattern = '/(?:\n\s*\n+)|(?<=\n)(?=(?:(?:Soal\s*)?\d+[\.\)]\s+))/i';
-        $blocks = preg_split($pattern, trim($text));
-
-        $imported = 0;
-
-        foreach ($blocks as $blockIndex => $block) {
-            $block = trim($block);
-            if ($block === '') {
-                continue;
-            }
-
-            $lines = array_values(array_filter(array_map('trim', explode("\n", $block))));
-            if (empty($lines)) {
-                continue;
-            }
-
-            $type = 'multiple_choice';
-            $questionLines = [];
-            $options = [];
-            $key = null;
-            $explanation = null;
-
-            foreach ($lines as $line) {
-                // Check TYPE
-                if (preg_match('/^(?:TIPE|TYPE)\s*:\s*(.*)$/i', $line, $m)) {
-                    $val = strtolower(trim($m[1]));
-                    if (in_array($val, ['essay', 'esai', 'uraian', 'text'])) {
-                        $type = 'essay';
-                    }
-
-                    continue;
-                }
-
-                // Check ANSWER KEY
-                if (preg_match('/^(?:KUNCI|JAWABAN|ANSWER|KEY)\s*:\s*(.*)$/i', $line, $m)) {
-                    $key = trim($m[1]);
-
-                    continue;
-                }
-
-                // Check EXPLANATION / NOTES
-                if (preg_match('/^(?:PENJELASAN|PEMBAHASAN|CATATAN|EXPLANATION|NOTE)\s*:\s*(.*)$/i', $line, $m)) {
-                    $explanation = trim($m[1]);
-
-                    continue;
-                }
-
-                // Check Options A-F
-                if (preg_match('/^([A-Fa-f])[\.\)]\s*(.*)$/', $line, $m)) {
-                    $optLetter = strtolower($m[1]);
-                    $options[$optLetter] = trim($m[2]);
-
-                    continue;
-                }
-
-                // Otherwise, it's question text line
-                $questionLines[] = $line;
-            }
-
-            if (empty($questionLines)) {
-                continue;
-            }
-
-            // Combine question text and strip leading numbering like "1. ", "1) ", "Soal 1: "
-            $fullQuestion = implode(' ', $questionLines);
-            $fullQuestion = preg_replace('/^(?:Soal\s*)?\d+[\.\)]\s*/i', '', $fullQuestion);
-            $fullQuestion = trim($fullQuestion);
-
-            if ($fullQuestion === '') {
-                continue;
-            }
-
-            // If no option A or B found, treat as Essay automatically
-            if (! isset($options['a']) || ! isset($options['b'])) {
-                $type = 'essay';
-            }
-
-            if ($type === 'essay') {
-                TrainingQuestion::create([
-                    'training_id' => $trainingId,
-                    'type' => 'essay',
-                    'question' => $fullQuestion,
-                    'option_a' => null,
-                    'option_b' => null,
-                    'option_c' => null,
-                    'option_d' => null,
-                    'option_e' => null,
-                    'option_f' => null,
-                    'correct_answer' => $key ?: null,
-                    'explanation' => $explanation,
-                ]);
-                $imported++;
-            } else {
-                // Multiple Choice: resolve key letter
-                $keyLetter = 'a';
-                if ($key) {
-                    $cleanedKey = strtolower(trim($key));
-                    if (array_key_exists($cleanedKey, $options)) {
-                        $keyLetter = $cleanedKey;
-                    } else {
-                        // Check if key matches full content of an option
-                        foreach ($options as $l => $content) {
-                            if (strcasecmp($content, $key) === 0) {
-                                $keyLetter = $l;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                TrainingQuestion::create([
-                    'training_id' => $trainingId,
-                    'type' => 'multiple_choice',
-                    'question' => $fullQuestion,
-                    'option_a' => $options['a'] ?? null,
-                    'option_b' => $options['b'] ?? null,
-                    'option_c' => $options['c'] ?? null,
-                    'option_d' => $options['d'] ?? null,
-                    'option_e' => $options['e'] ?? null,
-                    'option_f' => $options['f'] ?? null,
-                    'correct_answer' => $keyLetter,
-                    'explanation' => $explanation,
-                ]);
-                $imported++;
-            }
+            return back()->withInput()->with('error', 'Gagal memproses teks: '.$e->getMessage().' Tidak ada soal yang disimpan.');
         }
 
-        return $imported;
+        if ($questions === []) {
+            return back()->withInput()->with('error', 'Tidak ada soal yang berhasil dibaca. Pastikan format penulisan sudah sesuai petunjuk.');
+        }
+
+        DB::transaction(function () use ($training, $questions) {
+            foreach ($questions as $question) {
+                $training->questions()->create($question);
+            }
+        });
+
+        return back()->with('success', 'Berhasil menambahkan '.count($questions).' soal kuis dari teks copy-paste!');
     }
 
     /**
@@ -265,7 +140,12 @@ class TrainingQuestionController extends Controller
     {
         $question->update($request->questionDataWithImages());
 
-        return back()->with('success', 'Soal kuis berhasil diperbarui!');
+        // Nilai yang sudah tersimpan memakai kunci lama sampai pemateri menghitung ulang.
+        $submitted = $question->wasChanged('correct_answer') && $question->type !== 'essay' ? $training->results()->count() : 0;
+
+        return back()->with('success', 'Soal kuis berhasil diperbarui!'.($submitted > 0
+            ? " Kunci jawabannya berubah dan {$submitted} hasil kuis sudah masuk: tekan Hitung Ulang Nilai agar nilai peserta mengikuti kunci baru."
+            : ''));
     }
 
     /**
@@ -415,6 +295,8 @@ class TrainingQuestionController extends Controller
             'questions.*.question_image' => QuizImage::pathRules(),
             'questions.*.option_images' => 'nullable|array',
             'questions.*.option_images.*' => QuizImage::pathRules(),
+        ], [
+            'questions.*.correct_answer.required' => 'Ada soal yang belum punya kunci jawaban: tandai kuncinya pada soal pilihan ganda, atau isi pedoman jawaban pada soal essay.',
         ]);
 
         foreach ($request->questions as $index => $q) {
@@ -423,6 +305,21 @@ class TrainingQuestionController extends Controller
                     'success' => false,
                     'message' => 'Soal #'.($index + 1).': pertanyaan wajib diisi teks atau gambar.',
                 ], 422);
+            }
+
+            // Kunci pilihan ganda harus salah satu hurufnya dan pilihannya terisi; nilai lain membuat semua jawaban
+            // peserta pada soal itu dihitung salah.
+            if (($q['type'] ?? null) === 'multiple_choice') {
+                $key = strtolower((string) ($q['correct_answer'] ?? ''));
+                $hasOption = in_array($key, self::AI_OPTION_LETTERS, true)
+                    && (filled($q['option_'.$key] ?? null) || filled($q['option_images'][$key] ?? null));
+
+                if (! $hasOption) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Soal #'.($index + 1).': tandai kunci jawaban pada salah satu pilihan yang terisi.',
+                    ], 422);
+                }
             }
         }
 
@@ -437,9 +334,9 @@ class TrainingQuestionController extends Controller
                 'option_c' => ($type === 'multiple_choice') ? ($q['option_c'] ?? null) : null,
                 'option_d' => ($type === 'multiple_choice') ? ($q['option_d'] ?? null) : null,
                 'option_e' => ($type === 'multiple_choice') ? ($q['option_e'] ?? null) : null,
-                'correct_answer' => $q['correct_answer'] ?? 'a',
+                'correct_answer' => $type === 'multiple_choice' ? strtolower((string) $q['correct_answer']) : ($q['correct_answer'] ?? ''),
                 'explanation' => $q['explanation'] ?? null,
-                ...QuizImage::fromPayload($q, $type === 'multiple_choice' ? ['a', 'b', 'c', 'd', 'e'] : []),
+                ...QuizImage::fromPayload($q, $type === 'multiple_choice' ? self::AI_OPTION_LETTERS : []),
             ]);
             $savedCount++;
         }

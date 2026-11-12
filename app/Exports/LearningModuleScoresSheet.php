@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Exports\Concerns\WritesTextAsText;
 use App\Models\LearningModule;
 use App\Models\LearningModuleItem;
 use App\Support\LearningModuleProgress;
@@ -9,6 +10,8 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
@@ -18,8 +21,10 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
  * Satu baris per peserta per modul/kuis video/kuis dokumen, untuk peserta yang terakhir mengerjakan pretest/posttest
  * di dalam rentang tanggal. Kolom nilai sama dengan LearningModuleRekapSheet.
  */
-class LearningModuleScoresSheet implements FromArray, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
+class LearningModuleScoresSheet implements FromArray, ShouldAutoSize, WithCustomValueBinder, WithEvents, WithHeadings, WithStyles, WithTitle
 {
+    use WritesTextAsText;
+
     private const TYPE_LABELS = [
         'standalone' => 'Modul Belajar',
         LearningModuleItem::TYPE_VIDEO => 'Kuis Video',

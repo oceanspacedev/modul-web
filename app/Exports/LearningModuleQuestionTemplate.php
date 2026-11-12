@@ -2,17 +2,21 @@
 
 namespace App\Exports;
 
+use App\Exports\Concerns\WritesTextAsText;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class LearningModuleQuestionTemplate implements FromArray, ShouldAutoSize, WithHeadings, WithStyles
+class LearningModuleQuestionTemplate implements FromArray, ShouldAutoSize, WithCustomValueBinder, WithEvents, WithHeadings, WithStyles
 {
     use Exportable;
+    use WritesTextAsText;
 
     public function headings(): array
     {
