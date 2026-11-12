@@ -392,6 +392,7 @@
                         setDeadline('pretest', data.pretest_seconds_left, data.pretest_closes_at);
                         setDeadline('posttest', data.quiz_seconds_left, data.quiz_closes_at);
                         setDeadline('attendance', data.attendance_seconds_left, data.attendance_closes_at);
+                        setDeadline('evaluation', data.evaluation_seconds_left, data.evaluation_closes_at);
                         setAttendanceLocked(data.attendance_opens_at, data.attendance_timed_out);
                         setLockedText('pretest', data.pretest_opens_at, data.pretest_timed_out);
                         setLockedText('posttest', data.quiz_opens_at, data.quiz_timed_out);

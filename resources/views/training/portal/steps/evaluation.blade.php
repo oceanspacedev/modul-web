@@ -21,15 +21,12 @@
             <span class="small d-block mt-1">Dikirim pada {{ $evaluation->submitted_at->format('d F Y, H:i') }} WIB.</span>
         </div>
     @elseif($training->isEvaluationOpen())
+        {{-- Batas waktu form evaluasi dengan hitung mundur, seperti pretest, posttest, dan presensi. --}}
+        @include('training.partials.portal-deadline', ['phase' => 'evaluation'])
         <p class="text-muted small mb-3">
             Beri penilaian singkat tentang pemateri dan pelatihan ini{{ $evaluationFollowsPosttest ? ' sebelum mengerjakan kuis' : '' }}.
             Nama, jabatan, dan data pelatihan sudah terisi otomatis.
         </p>
-        @if($training->evaluationClosesAt())
-            <div class="alert alert-warning py-2 px-3 small mb-3">
-                <i class="far fa-clock mr-1"></i> Bisa diisi sampai pukul <strong>{{ $training->evaluationClosesAt()->format('H:i') }}</strong> WIB.
-            </div>
-        @endif
         <a href="{{ $evaluationUrl }}" class="btn btn-primary btn-block">
             Isi Form Evaluasi
         </a>
@@ -39,10 +36,8 @@
                 Form evaluasi dibuka otomatis {{ \App\Models\Training::timeLabel($training->evaluationOpensAt()) }} WIB.
             @elseif($training->evaluationTimedOut())
                 Waktu pengisian form evaluasi sudah habis.
-            @elseif($training->hasEvaluationSchedule())
-                Form evaluasi belum dibuka oleh pemateri.
             @else
-                Form evaluasi dibuka saat sesi berlangsung.
+                Form evaluasi belum dibuka oleh pemateri.
             @endif
         </div>
     @endif

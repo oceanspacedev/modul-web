@@ -341,18 +341,21 @@ class TrainingQuizDurationTest extends TestCase
         $this->assertSame('09:28:00', $this->training->fresh()->pretest_closes_at->format('H:i:s'));
     }
 
-    public function test_timed_posttest_closes_the_quiz_and_its_evaluation_form(): void
+    public function test_timed_posttest_closes_the_quiz_but_not_the_evaluation_form(): void
     {
+        // Form evaluasi dibuka pemateri sendiri (tanpa batas waktu), terpisah dari posttest.
         $this->training->update(['has_evaluation' => true]);
+        $this->actingAs($this->admin)->post(route('training.toggle-evaluation-access', $this->training), ['open' => '1'])->assertSessionHas('success');
         $this->open('posttest');
 
         $this->get('/training/portal/token_durasi/status')->assertJson([
             'is_quiz_active' => true, 'quiz_seconds_left' => 600, 'quiz_closes_at' => '09:28', 'is_evaluation_open' => true,
         ]);
 
+        // Waktu posttest habis: kuisnya tertutup, form evaluasi tetap mengikuti pengaturannya sendiri.
         $this->travel(10)->minutes();
         $this->get('/training/portal/token_durasi/status')->assertJson([
-            'is_quiz_active' => false, 'quiz_seconds_left' => null, 'is_evaluation_open' => false,
+            'is_quiz_active' => false, 'quiz_seconds_left' => null, 'is_evaluation_open' => true,
         ]);
         $this->get('/training/portal/token_durasi')->assertOk()->assertSee('Waktu pengerjaan kuis sudah habis.');
         $this->get('/training/portal/token_durasi/quiz')->assertRedirect('/training/portal/token_durasi');

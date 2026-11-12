@@ -22,9 +22,10 @@ class Training extends Model
 
     /**
      * Yang punya jam buka dan jam tutup sendiri lewat mekanisme "fase" (isPhaseActive(), openPhase(), dst.): pretest,
-     * posttest, dan presensi. Presensi bukan kuis, tapi dibuka, dijadwalkan, dan ditutup dengan cara yang sama.
+     * posttest, presensi, dan form evaluasi. Presensi dan evaluasi bukan kuis, tapi dibuka, dijadwalkan, dan ditutup
+     * pemateri dengan cara yang sama. Tidak ada yang terbuka otomatis: semuanya mengikuti pengaturan pemateri.
      */
-    public const TIMED_STEPS = [self::PHASE_PRETEST, self::PHASE_POSTTEST, self::STEP_ATTENDANCE];
+    public const TIMED_STEPS = [self::PHASE_PRETEST, self::PHASE_POSTTEST, self::STEP_ATTENDANCE, self::STEP_EVALUATION];
 
     public const STEP_PRETEST = 'pretest';
 
@@ -86,6 +87,7 @@ class Training extends Model
             'attendance_closes_at' => 'datetime',
             'has_attendance' => 'boolean',
             'portal_steps' => 'array',
+            'is_evaluation_active' => 'boolean',
             'evaluation_opens_at' => 'datetime',
             'evaluation_closes_at' => 'datetime',
             'require_attendance_proof' => 'boolean',
@@ -230,8 +232,8 @@ class Training extends Model
 
     /**
      * Evaluasi diurutkan sebelum posttest: selama form evaluasi terbuka, peserta harus mengisinya dulu sebelum
-     * mengerjakan posttest. Jam form evaluasi tetap berdiri sendiri (status pelatihan atau jam yang diatur pemateri),
-     * jadi waktu mengisinya tidak memotong waktu posttest.
+     * mengerjakan posttest. Form evaluasi dibuka pemateri sendiri, terpisah dari posttest, jadi waktu mengisinya tidak
+     * memotong waktu posttest bila dibuka lebih dulu.
      */
     public function evaluationFollowsPosttest(): bool
     {
@@ -282,6 +284,7 @@ class Training extends Model
         return (bool) match ($phase) {
             self::PHASE_PRETEST => $this->has_pretest,
             self::STEP_ATTENDANCE => $this->has_attendance,
+            self::STEP_EVALUATION => $this->has_evaluation,
             default => $this->has_posttest,
         };
     }
@@ -364,8 +367,8 @@ class Training extends Model
     {
         return match ($phase) {
             self::PHASE_PRETEST => $this->pretest_duration_minutes,
-            // Presensi tidak punya batas waktu bawaan; pemateri mengisinya saat membuka.
-            self::STEP_ATTENDANCE => null,
+            // Presensi dan form evaluasi tidak punya batas waktu bawaan; pemateri mengisinya saat membuka.
+            self::STEP_ATTENDANCE, self::STEP_EVALUATION => null,
             default => $this->quiz_duration_minutes,
         };
     }
@@ -437,6 +440,7 @@ class Training extends Model
         return match ($phase) {
             self::PHASE_PRETEST => 'is_pretest_active',
             self::STEP_ATTENDANCE => 'is_attendance_active',
+            self::STEP_EVALUATION => 'is_evaluation_active',
             default => 'is_quiz_active',
         };
     }
@@ -446,6 +450,7 @@ class Training extends Model
         return match ($phase) {
             self::PHASE_PRETEST => 'pretest_opens_at',
             self::STEP_ATTENDANCE => 'attendance_opens_at',
+            self::STEP_EVALUATION => 'evaluation_opens_at',
             default => 'quiz_opens_at',
         };
     }
@@ -455,6 +460,7 @@ class Training extends Model
         return match ($phase) {
             self::PHASE_PRETEST => 'pretest_closes_at',
             self::STEP_ATTENDANCE => 'attendance_closes_at',
+            self::STEP_EVALUATION => 'evaluation_closes_at',
             default => 'quiz_closes_at',
         };
     }
@@ -480,6 +486,7 @@ class Training extends Model
         return match ($phase) {
             self::PHASE_PRETEST => 'Pretest',
             self::STEP_ATTENDANCE => 'Presensi',
+            self::STEP_EVALUATION => 'Form Evaluasi',
             default => 'Posttest',
         };
     }
@@ -558,6 +565,14 @@ class Training extends Model
                 $training->attendance_opens_at = null;
                 $training->attendance_closes_at = null;
             }
+
+            // Sama untuk form evaluasi yang ditutup atau dimatikan.
+            if (($training->isDirty('is_evaluation_active') && ! $training->is_evaluation_active)
+                || ($training->isDirty('has_evaluation') && ! $training->has_evaluation)) {
+                $training->is_evaluation_active = false;
+                $training->evaluation_opens_at = null;
+                $training->evaluation_closes_at = null;
+            }
         });
 
         static::saved(function (Training $training): void {
@@ -598,7 +613,7 @@ class Training extends Model
     }
 
     /**
-     * Form evaluasi bisa diisi sekarang: jamnya sedang terbuka dan formnya punya pertanyaan.
+     * Form evaluasi bisa diisi sekarang: sedang dibuka pemateri dan formnya punya pertanyaan.
      */
     public function isEvaluationOpen(): bool
     {
@@ -606,29 +621,13 @@ class Training extends Model
     }
 
     /**
-     * Saatnya evaluasi diisi, terlepas dari ada/tidaknya form: mengikuti jam buka/tutup yang diatur pemateri bila
-     * ada, atau terbuka selama sesi berlangsung atau sudah selesai. Jam ini berdiri sendiri, termasuk saat evaluasi
-     * diurutkan sebelum posttest, supaya peserta mengisinya sebelum waktu posttest berjalan. Tanpa jadwal sendiri,
-     * evaluasi yang diurutkan sebelum posttest juga terbuka selama posttest dibuka, supaya tidak terlewat bila status
-     * pelatihan belum diubah ke Berlangsung.
+     * Form evaluasi sedang dibuka, terlepas dari ada/tidaknya pertanyaan: dibuka pemateri, jam bukanya (bila
+     * dijadwalkan) sudah tiba, dan jam tutupnya (bila berbatas waktu) belum lewat. Tidak mengikuti status pelatihan
+     * maupun posttest; sebelum pemateri membukanya, form tertutup.
      */
     public function evaluationWindowOpen(): bool
     {
-        if ($this->hasEvaluationSchedule()) {
-            return ! $this->evaluation_opens_at->isFuture()
-                && ($this->evaluation_closes_at === null || $this->evaluation_closes_at->isFuture());
-        }
-
-        return in_array($this->status, [TrainingStatus::Ongoing, TrainingStatus::Completed], true)
-            || ($this->evaluationFollowsPosttest() && $this->isPhaseActive(self::PHASE_POSTTEST));
-    }
-
-    /**
-     * Pemateri mengatur sendiri jam form evaluasi.
-     */
-    public function hasEvaluationSchedule(): bool
-    {
-        return $this->evaluation_opens_at !== null;
+        return $this->isPhaseActive(self::STEP_EVALUATION);
     }
 
     /**
@@ -636,28 +635,28 @@ class Training extends Model
      */
     public function evaluationOpensAt(): ?Carbon
     {
-        return $this->hasEvaluationSchedule() && $this->evaluation_opens_at->isFuture() ? $this->evaluation_opens_at : null;
+        return $this->phaseOpensAt(self::STEP_EVALUATION);
     }
 
     /**
-     * Jam form evaluasi tutup sendiri; null bila tanpa jadwal, tanpa batas waktu, atau sudah tertutup.
+     * Jam form evaluasi tutup sendiri; null bila tertutup atau tanpa batas waktu.
      */
     public function evaluationClosesAt(): ?Carbon
     {
-        return $this->hasEvaluationSchedule() && $this->evaluation_closes_at?->isFuture() ? $this->evaluation_closes_at : null;
+        return $this->phaseClosesAt(self::STEP_EVALUATION);
     }
 
     /**
-     * Jam tutup form evaluasi yang diatur pemateri sudah lewat.
+     * Form evaluasi pernah dibuka dengan batas waktu dan waktunya sudah habis.
      */
     public function evaluationTimedOut(): bool
     {
-        return $this->hasEvaluationSchedule() && $this->evaluation_closes_at !== null && ! $this->evaluation_closes_at->isFuture();
+        return $this->phaseTimedOut(self::STEP_EVALUATION);
     }
 
     /**
      * Kiriman form evaluasi masih diterima: form sedang terbuka, atau jam tutupnya baru saja lewat (peserta yang
-     * sedang mengetik saat waktu habis tidak kehilangan isiannya).
+     * sedang mengetik saat waktu habis tidak kehilangan isiannya). Form yang dikunci manual langsung tertutup.
      */
     public function acceptsEvaluationSubmission(): bool
     {

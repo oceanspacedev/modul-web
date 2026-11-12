@@ -119,6 +119,17 @@
                         'intro' => 'Jam buka dan jam tutup berlaku sama untuk semua peserta. Setelah jam tutup lewat, presensi tertutup sendiri dan peserta yang belum mengisi tercatat Belum Absen.',
                     ],
                 ],
+                'evaluation' => [
+                    'label' => 'Evaluasi',
+                    'hint' => 'buka form evaluasi saat peserta boleh mengisinya.',
+                    'done' => $training->isPhaseActive('evaluation') || $training->phaseOpensAt('evaluation') || ($evaluation['count'] ?? 0) > 0,
+                    // Dialog waktu yang sama dengan tombol Buka Evaluasi di Kontrol Sesi.
+                    'action' => 'Buka Evaluasi', 'modal' => 'phaseTimeModal', 'modalData' => [
+                        'url' => route('training.toggle-evaluation-access', $training), 'phase' => 'evaluation', 'open' => '1',
+                        'title' => 'Buka Evaluasi', 'submit' => 'Buka Evaluasi',
+                        'intro' => 'Jam buka dan jam tutup berlaku sama untuk semua peserta. Setelah jam tutup lewat, form evaluasi tidak bisa diisi lagi.',
+                    ],
+                ],
                 'posttest' => [
                     'label' => $training->has_pretest ? 'Posttest' : 'Kuis',
                     'hint' => $training->has_pretest ? 'buka posttest setelah materi selesai.' : 'buka kuis setelah materi selesai.',
@@ -148,7 +159,7 @@
                     'done' => ! $training->needsSetup(),
                     'action' => 'Atur', 'url' => route('training.setup', $training),
                 ],
-                // Langkah saat sesi (pretest, presensi, posttest) mengikuti urutan langkah peserta pelatihan ini.
+                // Langkah saat sesi (pretest, presensi, evaluasi, posttest) mengikuti urutan langkah peserta pelatihan ini.
                 ...collect($training->portalSteps())->map(fn (string $step) => $sessionSteps[$step] ?? null)->filter()->values()->all(),
                 [
                     'label' => 'Rekap',
@@ -593,8 +604,8 @@
                             @endforeach
                         </ol>
                         <p class="small mb-0" id="portalStepsEvaluationNote"
-                            data-before="Form evaluasi di atas posttest: peserta wajib mengisinya sebelum mengerjakan posttest. Form punya jam sendiri (selama sesi berlangsung, atau jam yang Anda atur di baris Form Evaluasi), jadi buka sebelum posttest supaya waktu posttest tidak terpotong."
-                            data-after="Form evaluasi di bawah posttest: peserta bisa langsung mengerjakan posttest. Form terbuka selama sesi berlangsung atau sudah selesai, atau pada jam yang Anda atur di baris Form Evaluasi."></p>
+                            data-before="Form evaluasi di atas posttest: selama form terbuka, peserta wajib mengisinya sebelum mengerjakan posttest. Buka form lewat baris Form Evaluasi sebelum posttest, supaya waktu posttest tidak terpotong."
+                            data-after="Form evaluasi di bawah posttest: peserta bisa langsung mengerjakan posttest. Form dibuka sendiri lewat baris Form Evaluasi."></p>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>

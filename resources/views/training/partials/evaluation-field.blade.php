@@ -25,7 +25,8 @@
             </div>
         </div>
         <p class="text-muted small mb-0 mt-2">
-            Peserta menilai pemateri dan pelatihan sebelum mengerjakan posttest. Form dimulai dari pertanyaan bawaan
+            Peserta menilai pemateri dan pelatihan sebelum mengerjakan posttest. Form tertutup sampai Anda membukanya lewat
+            <b>Buka Evaluasi</b> di Kontrol Sesi (sekarang atau terjadwal). Form dimulai dari pertanyaan bawaan
             ({{ count(\App\Support\TrainingEvaluationForm::defaultQuestions()) }} pertanyaan) dan bisa diubah per pelatihan lewat
             <b>Kelola pertanyaan</b>{{ $evaluationTraining?->exists ? '' : ' setelah pelatihan disimpan' }}.
             Nama, jabatan, divisi, tanggal, dan materi tidak perlu ditanyakan karena sudah ada di data peserta dan jadwal.
