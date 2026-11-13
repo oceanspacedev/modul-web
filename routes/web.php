@@ -24,7 +24,7 @@ use App\Http\Middleware\EnsureLearningModuleContext;
 use Illuminate\Support\Facades\Route;
 
 // # AUTHENTICATION
-Route::get('/', [AuthController::class, 'showLogin'])->name('login');
+Route::get('/', [AuthController::class, 'showLogin'])->middleware('guest')->name('login');
 Route::get('/login', fn () => to_route('login', request()->only('redirect')));
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');

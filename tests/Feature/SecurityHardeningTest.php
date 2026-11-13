@@ -177,6 +177,19 @@ class SecurityHardeningTest extends TestCase
             ->assertRedirect(url('/video'));
     }
 
+    public function test_signed_in_user_opening_the_login_page_goes_to_the_dashboard(): void
+    {
+        $this->actingAs($this->staff())->get('/')->assertRedirect('/dashboard');
+        $this->get('/login')->assertRedirect('/');
+    }
+
+    public function test_signed_in_user_without_dashboard_access_opening_the_login_page_goes_to_my_trainings(): void
+    {
+        Role::findByName(User::ROLE_STAFF, 'web')->revokePermissionTo('view-dashboard');
+
+        $this->actingAs($this->staff())->get('/')->assertRedirect('/my-trainings');
+    }
+
     public function test_password_login_is_throttled_after_repeated_failures(): void
     {
         User::factory()->create(['username' => 'throttled_user']);

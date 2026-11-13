@@ -35,9 +35,13 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         // Unauthenticated browser requests go to the login page; authenticated
-        // users hitting a "guest" route are sent home.
+        // users hitting a "guest" route (the login page) are sent home. "/" is the
+        // login page itself, so home is the dashboard, or "Pelatihan Saya" for roles
+        // without dashboard access (the dashboard would bounce them back here).
         $middleware->redirectGuestsTo(fn () => route('login'));
-        $middleware->redirectUsersTo('/');
+        $middleware->redirectUsersTo(fn (Request $request) => $request->user()?->can('view-dashboard')
+            ? route('dashboard')
+            : route('training.my-trainings'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
