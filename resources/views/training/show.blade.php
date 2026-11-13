@@ -682,6 +682,43 @@
             </div>
         </div>
 
+        <!-- MODAL IMPORT PESERTA DARI EXCEL -->
+        <div class="modal fade" id="importParticipantsModal" tabindex="-1" role="dialog" aria-labelledby="importParticipantsModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <form action="{{ route('training.participants.import', $training) }}" method="POST" enctype="multipart/form-data" class="modal-content">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="importParticipantsModalTitle">Import Peserta dari Excel</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Tutup"><span aria-hidden="true">&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <a href="{{ route('training.participants.template', $training) }}" class="btn btn-default btn-block mb-3">
+                            <i class="fas fa-download"></i> Unduh Template Excel (.xlsx)
+                        </a>
+                        <div class="form-group">
+                            <label for="importParticipantsFile">File Spreadsheet (.xlsx, .xls, .csv)</label>
+                            <input type="file" name="file" id="importParticipantsFile" class="form-control" accept=".xlsx,.xls,.csv" required>
+                        </div>
+                        <div class="custom-control custom-checkbox mb-3">
+                            <input type="checkbox" class="custom-control-input" id="importParticipantsSendWa" name="send_wa" value="1">
+                            <label class="custom-control-label font-weight-normal" for="importParticipantsSendWa">Kirim undangan WhatsApp ke peserta yang baru ditambahkan</label>
+                        </div>
+                        <ul class="small text-muted pl-3 mb-0">
+                            <li>Kolom dibaca dari judulnya di baris pertama; hanya sheet pertama yang dibaca. Kolom lain (mis. RSC, Detail Cabang) diabaikan.</li>
+                            <li><b>No HP wajib</b> di setiap baris, karena undangan dan link portal dikirim lewat WhatsApp.</li>
+                            <li>Peserta dicocokkan ke master User lewat <b>Employee ID</b>, lalu username, lalu No HP. Karyawan yang belum ada di master User tidak dibuat; tambahkan dulu lewat Pengaturan &gt; User atau sinkronisasi DnD.</li>
+                            <li>Nama, Job Position, Divisi, dan No HP di master User ikut diperbarui bila Anda berwenang atas user itu. No HP adalah login WhatsApp, jadi hanya admin yang berwenang yang dapat mengubahnya.</li>
+                            <li>Peserta yang sudah terdaftar tidak didobel. Baris yang ditolak dan catatannya dikabarkan lewat Notifikasi.</li>
+                        </ul>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Import Peserta</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- TABEL REKAP PESERTA & NILAI -->
         <div class="card" id="peserta">
             <div class="card-header">
@@ -693,6 +730,9 @@
                     <a href="{{ route('training.edit', $training) }}#peserta" class="btn btn-default btn-sm">
                         <i class="fas fa-user-plus"></i> Tambah / Ubah Peserta
                     </a>
+                    <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#importParticipantsModal">
+                        <i class="fas fa-file-excel"></i> Import Excel
+                    </button>
                     @if($training->isOnline())
                         <button type="button" class="btn btn-default btn-sm" id="btnToggleManualOffCamMode">
                             <i class="fas fa-user-edit"></i> Input Off Cam Manual
@@ -927,6 +967,15 @@
                                                 </button>
                                             </form>
                                         @endif
+
+                                        <div class="dropdown-divider"></div>
+                                        <form action="{{ route('training.participants.remove', [$training, $part]) }}" method="POST" class="d-inline" onsubmit="return confirm(@js('Keluarkan '.$userName.' dari pelatihan ini? Link portalnya tidak berlaku lagi, dan hasil kuis, presensi, serta evaluasinya ikut dihapus.'))">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="dropdown-item text-danger">
+                                                Keluarkan dari Pelatihan
+                                            </button>
+                                        </form>
                                     </div>
                                 </div>
 

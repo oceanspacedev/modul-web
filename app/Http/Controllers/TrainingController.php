@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Enums\TrainingStatus;
+use App\Exports\TrainingParticipantTemplate;
 use App\Http\Requests\StoreTrainingRequest;
 use App\Http\Requests\UpdateTrainingRequest;
 use App\Jobs\AiTask;
 use App\Jobs\GenerateExportFile;
+use App\Jobs\ProcessTrainingParticipantImport;
 use App\Jobs\ScanZoomOffCam;
 use App\Jobs\SendTrainingInvitation;
 use App\Models\Divisi;
@@ -32,6 +34,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 #[Authorize('viewAny', Training::class, only: ['index'])]
 #[Authorize('create', Training::class, only: ['create', 'store'])]
@@ -347,7 +350,7 @@ class TrainingController extends Controller
 
             $removedParticipantIds = array_diff($existingParticipantIds, $newParticipantIds);
             if ($removedParticipantIds !== []) {
-                $training->participants()->whereIn('user_id', $removedParticipantIds)->delete();
+                $training->participants()->whereIn('user_id', $removedParticipantIds)->get()->each->remove();
             }
         });
 
@@ -712,6 +715,42 @@ class TrainingController extends Controller
         return back()->with([
             'success' => "{$queued} pesan WhatsApp dimasukkan ke antrean dan dikirim di latar belakang. Status tiap peserta akan diperbarui otomatis.",
         ]);
+    }
+
+    /**
+     * Import peserta dari Excel di belakang layar. Data user yang cocok di master User ikut dimutakhirkan sesuai hak
+     * akses pengimpor; hasilnya dikirim lewat notifikasi.
+     */
+    public function importParticipants(Request $request, Training $training): RedirectResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
+            'send_wa' => ['nullable', 'boolean'],
+        ]);
+
+        $file = $request->file('file');
+        $path = $file->storeAs('imports', Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
+
+        ProcessTrainingParticipantImport::dispatch($request->user()->id, $training->id, $path, $request->boolean('send_wa'));
+
+        return to_route('training.show', $training)->withFragment('peserta')->with('info', ProcessTrainingParticipantImport::QUEUED_MESSAGE);
+    }
+
+    public function participantTemplate(Training $training): BinaryFileResponse
+    {
+        return Excel::download(new TrainingParticipantTemplate, 'template_peserta_'.Str::slug($training->title).'.xlsx');
+    }
+
+    /**
+     * Keluarkan peserta (mis. takeout) dari pelatihan, beserta hasil kuis, evaluasi, dan presensinya.
+     */
+    public function removeParticipant(Training $training, TrainingParticipant $participant): RedirectResponse
+    {
+        $name = $participant->user->nama_lengkap ?? 'Peserta';
+        $participant->remove();
+
+        return to_route('training.show', $training)->withFragment('peserta')
+            ->with('success', "{$name} dikeluarkan dari pelatihan. Link portal, hasil kuis, presensi, dan evaluasinya ikut dihapus.");
     }
 
     /**
@@ -1132,10 +1171,6 @@ class TrainingController extends Controller
 
     private function addParticipant(Training $training, int $userId): TrainingParticipant
     {
-        return $training->participants()->create([
-            'user_id' => $userId,
-            'token' => Str::random(40).'_'.time(),
-            'attendance_status' => 'pending',
-        ]);
+        return TrainingParticipant::createFor($training, $userId);
     }
 }

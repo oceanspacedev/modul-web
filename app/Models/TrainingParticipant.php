@@ -6,6 +6,8 @@ use App\Enums\TrainingStatus;
 use App\Support\StorageUrl;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class TrainingParticipant extends Model
 {
@@ -27,6 +29,31 @@ class TrainingParticipant extends Model
             'is_off_cam' => 'boolean',
             'off_cam_count' => 'integer',
         ];
+    }
+
+    /**
+     * Daftarkan user sebagai peserta baru dengan token link portal sendiri.
+     */
+    public static function createFor(Training $training, int $userId): self
+    {
+        return $training->participants()->create([
+            'user_id' => $userId,
+            'token' => Str::random(40).'_'.time(),
+            'attendance_status' => 'pending',
+        ]);
+    }
+
+    /**
+     * Keluarkan peserta dari pelatihan beserta hasil pretest/posttest dan evaluasinya. Link portalnya ikut tidak
+     * berlaku, dan peserta tidak lagi ikut rekap nilai maupun pengingat WhatsApp.
+     */
+    public function remove(): void
+    {
+        DB::transaction(function (): void {
+            TrainingQuizResult::where('training_participant_id', $this->id)->delete();
+            TrainingEvaluation::where('training_participant_id', $this->id)->delete();
+            $this->delete();
+        });
     }
 
     public function training()
