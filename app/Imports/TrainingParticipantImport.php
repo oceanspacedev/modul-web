@@ -66,7 +66,11 @@ class TrainingParticipantImport implements ToCollection, WithHeadingRow
 
     public function collection(Collection $rows): void
     {
-        $headings = array_keys($rows->first()?->toArray() ?? []);
+        if ($rows->isEmpty()) {
+            throw new Exception('File tidak berisi data peserta. Isi minimal satu baris peserta di bawah judul kolom.');
+        }
+
+        $headings = array_keys($rows->first()->toArray());
 
         if (array_intersect(self::PHONE_COLUMNS, $headings) === []) {
             throw new Exception('Kolom No. HP tidak ditemukan. Tambahkan kolom "No HP" berisi nomor WhatsApp peserta (wajib, dipakai untuk undangan dan link portal), atau gunakan template import peserta.');
@@ -83,8 +87,12 @@ class TrainingParticipantImport implements ToCollection, WithHeadingRow
 
             try {
                 DB::transaction(fn () => $this->importRow($row, $rowNumber));
-            } catch (Throwable $e) {
+            } catch (ImportRowRejected $e) {
                 $this->errors[] = "Baris {$rowNumber}: {$e->getMessage()}";
+            } catch (Throwable $e) {
+                // Pesan teknis (mis. SQL) tidak ditampilkan ke pengimpor; rinciannya masuk log.
+                report($e);
+                $this->errors[] = "Baris {$rowNumber}: gagal disimpan karena kesalahan sistem. Periksa isi barisnya (mis. teks terlalu panjang) lalu coba lagi.";
             }
         }
     }
@@ -138,18 +146,17 @@ class TrainingParticipantImport implements ToCollection, WithHeadingRow
         $label = $user->nama_lengkap.($user->employee_id ? " ({$user->employee_id})" : '');
 
         if ($user->trashed()) {
-            throw new Exception("{$label} sudah dinonaktifkan di master User. Pulihkan dulu di Pengaturan > User bila memang masih aktif");
+            throw new ImportRowRejected("{$label} sudah dinonaktifkan di master User. Pulihkan dulu di Pengaturan > User bila memang masih aktif");
         }
 
         if (isset($this->seenUsers[$user->id])) {
-            throw new Exception("{$label} sudah ada di baris {$this->seenUsers[$user->id]} file yang sama");
+            throw new ImportRowRejected("{$label} sudah ada di baris {$this->seenUsers[$user->id]} file yang sama");
         }
-        $this->seenUsers[$user->id] = $rowNumber;
 
-        $notes = $this->updateUser($user, $row, $phone);
+        [$notes, $updated] = $this->updateUser($user, $row, $phone);
 
         if (blank($user->no_hp)) {
-            throw new Exception("{$label} tidak punya No. HP di master User, jadi tidak bisa menerima undangan WhatsApp. ".implode(' ', $notes));
+            throw new ImportRowRejected("{$label} tidak punya No. HP di master User, jadi tidak bisa menerima undangan WhatsApp. ".implode(' ', $notes));
         }
 
         $participant = $this->training->participants()->where('user_id', $user->id)->first();
@@ -161,6 +168,12 @@ class TrainingParticipantImport implements ToCollection, WithHeadingRow
             $this->addedCount++;
         }
 
+        // Dicatat setelah barisnya benar-benar tersimpan: baris yang ditolak tidak ikut dihitung dan tidak membuat
+        // baris berikutnya untuk user yang sama dianggap dobel.
+        $this->seenUsers[$user->id] = $rowNumber;
+        if ($updated) {
+            $this->updatedUserCount++;
+        }
         if ($notes !== []) {
             $this->notes[] = "Baris {$rowNumber} ({$label}, tetap menjadi peserta): ".implode(' ', $notes);
         }
@@ -192,8 +205,9 @@ class TrainingParticipantImport implements ToCollection, WithHeadingRow
             );
         }
 
+        // User aktif didahulukan: nomor yang juga tersimpan di user nonaktif tidak membuat barisnya dianggap ganda.
         return $this->single(
-            User::withTrashed()->where('no_hp', $phone),
+            User::query()->where('no_hp', $phone)->exists() ? User::query()->where('no_hp', $phone) : User::withTrashed()->where('no_hp', $phone),
             "No. HP {$phone} tidak ditemukan di master User. Isi kolom Employee ID supaya peserta bisa dicocokkan",
             "No. HP {$phone} dipakai lebih dari satu user. Isi kolom Employee ID supaya peserta bisa dicocokkan",
         );
@@ -207,17 +221,18 @@ class TrainingParticipantImport implements ToCollection, WithHeadingRow
         $users = $query->limit(2)->get();
 
         return match ($users->count()) {
-            0 => throw new Exception($missing),
+            0 => throw new ImportRowRejected($missing),
             1 => $users->first(),
-            default => throw new Exception($ambiguous),
+            default => throw new ImportRowRejected($ambiguous),
         };
     }
 
     /**
-     * Samakan data master user dengan file. Mengembalikan catatan untuk data yang berbeda tetapi tidak diubah.
+     * Samakan data master user dengan file. Mengembalikan catatan untuk data yang berbeda tetapi tidak diubah, dan
+     * apakah ada data user yang diubah.
      *
      * @param  array<string, mixed>  $row
-     * @return list<string>
+     * @return array{0: list<string>, 1: bool}
      */
     private function updateUser(User $user, array $row, string $phone): array
     {
@@ -232,7 +247,9 @@ class TrainingParticipantImport implements ToCollection, WithHeadingRow
         $positionName = Str::squish($this->text($this->value($row, self::POSITION_COLUMNS)));
         if ($positionName !== '') {
             $position = Position::query()->whereRaw('LOWER(name) = ?', [Str::lower($positionName)])->first();
-            if (! $position) {
+            if (! $position && ! Gate::forUser($this->actor)->allows('manage-master-data')) {
+                $notes[] = "Posisi \"{$positionName}\" tidak ada di master Posisi dan Anda tidak berhak menambah master data, posisi user tidak diubah.";
+            } elseif (! $position) {
                 $changes['position_id'] = $positionName;
             } elseif ((int) $position->id !== (int) $user->position_id) {
                 $changes['position_id'] = $position;
@@ -255,10 +272,11 @@ class TrainingParticipantImport implements ToCollection, WithHeadingRow
 
         $phoneChanged = $phone !== $user->no_hp;
         if ($phoneChanged) {
-            $owner = User::query()->where('no_hp', $phone)->whereKeyNot($user->id)->first();
+            // Termasuk user nonaktif, sama seperti form User: nomornya kembali dipakai login bila user itu dipulihkan.
+            $owner = User::withTrashed()->where('no_hp', $phone)->whereKeyNot($user->id)->first();
 
             if ($owner) {
-                $notes[] = "No. HP {$phone} sudah dipakai {$owner->nama_lengkap}, No. HP user tidak diubah.";
+                $notes[] = "No. HP {$phone} sudah dipakai {$owner->nama_lengkap}".($owner->trashed() ? ' (nonaktif)' : '').', No. HP user tidak diubah.';
                 $phoneChanged = false;
             } elseif (! Gate::forUser($this->actor)->allows('changePhone', $user)) {
                 $notes[] = "No. HP di file ({$phone}) berbeda dengan master User ("
@@ -285,10 +303,9 @@ class TrainingParticipantImport implements ToCollection, WithHeadingRow
 
         if ($changes !== []) {
             $user->update($changes);
-            $this->updatedUserCount++;
         }
 
-        return $notes;
+        return [$notes, $changes !== []];
     }
 
     private function phone(mixed $value): string
@@ -296,11 +313,11 @@ class TrainingParticipantImport implements ToCollection, WithHeadingRow
         $value = $this->text($value);
 
         if ($value === '') {
-            throw new Exception('No. HP wajib diisi karena undangan dan link portal dikirim lewat WhatsApp');
+            throw new ImportRowRejected('No. HP wajib diisi karena undangan dan link portal dikirim lewat WhatsApp');
         }
 
         return WhatsAppNumber::toLocal($value)
-            ?? throw new Exception("No. HP \"{$value}\" bukan nomor WhatsApp Indonesia yang valid");
+            ?? throw new ImportRowRejected("No. HP \"{$value}\" bukan nomor WhatsApp Indonesia yang valid");
     }
 
     /**
@@ -312,7 +329,8 @@ class TrainingParticipantImport implements ToCollection, WithHeadingRow
             return '';
         }
 
-        return trim(is_float($value) ? sprintf('%.0f', $value) : (string) $value);
+        // Hanya angka bulat yang ditulis tanpa desimal; ID seperti 2019.01 tidak boleh dibulatkan menjadi 2019.
+        return trim(is_float($value) && floor($value) === $value ? sprintf('%.0f', $value) : (string) $value);
     }
 
     /**

@@ -160,6 +160,7 @@ Route::middleware('auth')->group(function () {
                 Route::get('participants/template', 'participantTemplate')->name('participants.template');
                 Route::delete('participants/{participant}', 'removeParticipant')->name('participants.remove');
                 Route::post('send-wa/{participant}', 'sendSingleWa')->name('send-single-wa');
+                Route::post('send-wa-manual/{participant}', 'sendManualWa')->name('send-manual-wa');
                 Route::post('reset-quiz/{participant}', 'resetParticipantQuiz')->name('reset-quiz');
                 Route::post('reset-attendance/{participant}', 'resetParticipantAttendance')->name('reset-attendance');
                 Route::post('reset-evaluation/{participant}', 'resetParticipantEvaluation')->name('reset-evaluation');

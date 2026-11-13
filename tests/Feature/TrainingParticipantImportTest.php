@@ -227,6 +227,87 @@ class TrainingParticipantImportTest extends TestCase
         $this->assertStringContainsString('sudah dipakai PEMILIK NOMOR', $this->sentNotification($this->admin)->errors[0]);
     }
 
+    public function test_phone_of_an_archived_user_is_not_copied_and_does_not_block_phone_matching(): void
+    {
+        $archived = User::factory()->staff()->create(['nama_lengkap' => 'SUDAH KELUAR', 'no_hp' => '081299990001']);
+        $archived->delete();
+        $budi = User::factory()->staff()->create(['employee_id' => 'E-1', 'no_hp' => '081100000001']);
+        $sari = User::factory()->staff()->create(['no_hp' => '081299990001']);
+
+        $this->import([
+            ['Employee ID', 'No HP'],
+            ['E-1', '081299990001'],
+            // Tanpa Employee ID: nomor yang juga tersimpan di user nonaktif tetap cocok ke user aktifnya.
+            ['', '081299990001'],
+        ]);
+
+        $this->assertSame('081100000001', $budi->fresh()->no_hp);
+        $this->assertSame(collect([$budi->id, $sari->id])->sort()->values()->all(), $this->participantIds());
+    }
+
+    public function test_a_rejected_row_does_not_block_a_later_row_for_the_same_user_or_inflate_the_counts(): void
+    {
+        User::factory()->staff()->create(['nama_lengkap' => 'PEMILIK NOMOR', 'no_hp' => '081299990001']);
+        $kevin = User::factory()->staff()->create(['employee_id' => 'E-1', 'nama_lengkap' => 'KEVIN']);
+
+        $this->import([
+            ['Employee ID', 'Full Name', 'No HP'],
+            // Nomornya milik orang lain dan Kevin belum punya nomor: ditolak, perubahan namanya ikut dibatalkan.
+            ['E-1', 'KEVIN SALAH', '081299990001'],
+            ['E-1', 'KEVIN', '081299990002'],
+        ]);
+
+        $this->assertSame([$kevin->id], $this->participantIds());
+        $this->assertSame('KEVIN', $kevin->fresh()->nama_lengkap);
+        $this->assertSame('081299990002', $kevin->fresh()->no_hp);
+
+        $notification = $this->sentNotification($this->admin);
+        $this->assertStringContainsString('1 ditambahkan, 0 sudah terdaftar, 1 data user diperbarui', $notification->message);
+        $this->assertCount(1, $notification->errors);
+        $this->assertStringContainsString('Baris 2: KEVIN (E-1) tidak punya No. HP di master User', $notification->errors[0]);
+    }
+
+    public function test_a_file_with_only_the_heading_row_says_it_has_no_participants(): void
+    {
+        $this->import([['Employee ID', 'Full Name', 'No HP']]);
+
+        $notification = $this->sentNotification($this->admin);
+        $this->assertSame(BackgroundTaskFinished::STATUS_FAILED, $notification->status);
+        $this->assertStringContainsString('File tidak berisi data peserta', $notification->message);
+    }
+
+    public function test_decimal_looking_employee_ids_are_not_rounded_to_another_employee(): void
+    {
+        $other = User::factory()->staff()->create(['employee_id' => '2019', 'no_hp' => '081100000001']);
+        $budi = User::factory()->staff()->create(['employee_id' => '2019.5', 'no_hp' => '081100000002']);
+
+        $this->import([
+            ['Employee ID', 'No HP'],
+            [2019.5, '081100000002'],
+        ]);
+
+        $this->assertSame([$budi->id], $this->participantIds());
+        $this->assertModelExists($other);
+    }
+
+    public function test_new_positions_are_only_created_by_importers_who_manage_master_data(): void
+    {
+        $manager = User::factory()->staff()->trainer()->create();
+        $manager->givePermissionTo('manage-users');
+        $budi = User::factory()->staff()->create(['employee_id' => 'E-1', 'nama_lengkap' => 'BUDI', 'no_hp' => '081100000001', 'approval_id' => $manager->id]);
+
+        $this->import([
+            ['Employee ID', 'Full Name', 'No HP', 'Job Position'],
+            ['E-1', 'BUDI SANTOSO', '081100000001', 'POSISI KARANGAN'],
+        ], $manager);
+
+        // Atasan boleh membetulkan nama anggota timnya, tetapi tidak menambah master Posisi.
+        $this->assertSame('BUDI SANTOSO', $budi->fresh()->nama_lengkap);
+        $this->assertNull($budi->fresh()->position_id);
+        $this->assertSame(0, Position::count());
+        $this->assertStringContainsString('tidak ada di master Posisi', $this->sentNotification($manager)->errors[0]);
+    }
+
     public function test_rows_without_employee_id_are_matched_by_phone_and_new_participants_can_be_invited(): void
     {
         Queue::fake([SendTrainingInvitation::class]);
@@ -258,6 +339,9 @@ class TrainingParticipantImportTest extends TestCase
         $staying = User::factory()->staff()->create();
         $participant = TrainingParticipant::createFor($this->training, $leaving->id);
         $other = TrainingParticipant::createFor($this->training, $staying->id);
+        Storage::fake();
+        Storage::put('attendance/bukti.jpg', 'x');
+        $participant->update(['attendance_status' => 'hadir', 'attended_at' => now(), 'attendance_proof' => 'attendance/bukti.jpg']);
         TrainingQuizResult::create([
             'training_id' => $this->training->id, 'user_id' => $leaving->id, 'training_participant_id' => $participant->id,
             'phase' => Training::PHASE_POSTTEST, 'total_questions' => 1, 'correct_answers' => 1, 'score' => 100, 'submitted_at' => now(),
@@ -279,6 +363,7 @@ class TrainingParticipantImportTest extends TestCase
             ->assertSessionHas('success', 'PESERTA TAKEOUT dikeluarkan dari pelatihan. Link portal, hasil kuis, presensi, dan evaluasinya ikut dihapus.');
 
         $this->assertModelMissing($participant);
+        Storage::assertMissing('attendance/bukti.jpg');
         $this->assertSame(0, TrainingQuizResult::where('user_id', $leaving->id)->count());
         $this->assertSame(0, TrainingEvaluation::where('user_id', $leaving->id)->count());
         $this->assertModelExists($other);

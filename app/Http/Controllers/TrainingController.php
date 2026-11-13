@@ -16,6 +16,7 @@ use App\Models\Document;
 use App\Models\Training;
 use App\Models\TrainingParticipant;
 use App\Models\TrainingQuizResult;
+use App\Models\TrainingWaLog;
 use App\Models\User;
 use App\Services\WhatsAppService;
 use App\Support\QuizRules;
@@ -186,7 +187,14 @@ class TrainingController extends Controller
         // Only one page of participants is loaded and rendered, so the page stays small for any class size.
         $search = trim((string) $request->query('peserta'));
         $participants = $training->participants()
-            ->with(['user.divisi', 'quizResult', 'pretestResult', 'evaluation'])
+            ->with([
+                'user.divisi', 'quizResult', 'pretestResult', 'evaluation',
+                // Pengingat tiap 15 menit bisa menumpuk riwayat gagal, jadi hanya yang terbaru yang dimuat.
+                'waLogs' => fn ($logs) => $logs->limit(TrainingParticipant::WA_LOGS_SHOWN),
+                'waLogs.sender:id,nama_lengkap',
+            ])
+            ->withWaSummary()
+            ->when($request->query('wa') === 'gagal', fn (Builder $query) => $query->waFailed())
             ->when($search !== '', fn (Builder $query) => $query->whereHas('user', fn (Builder $user) => $user
                 ->where('nama_lengkap', 'like', "%{$search}%")
                 ->orWhere('employee_id', 'like', "%{$search}%")
@@ -204,6 +212,7 @@ class TrainingController extends Controller
             'active' => 'training',
             'training' => $training,
             'participants' => $participants,
+            'waFailedCount' => $training->participants()->waFailed()->count(),
             'zoomParticipants' => $this->zoomParticipants($training),
             'allDocuments' => $allDocuments,
             'canImportDocumentQuestions' => $canImportDocumentQuestions,
@@ -754,16 +763,37 @@ class TrainingController extends Controller
     }
 
     /**
+     * Kirim manual: catat di riwayat siapa yang membukanya, lalu buka WhatsApp ke nomor peserta dengan teks undangan
+     * yang sama seperti kiriman otomatis. Dipakai saat gateway WAGHub bermasalah.
+     */
+    public function sendManualWa(Request $request, Training $training, TrainingParticipant $participant): RedirectResponse
+    {
+        $links = WhatsAppService::manualInvitationLinks($training, $participant);
+
+        if (! $links) {
+            return to_route('training.show', $training)->withFragment('peserta')
+                ->with('error', 'No. HP '.($participant->user->nama_lengkap ?? 'peserta').' kosong atau tidak valid. Perbaiki di Pengaturan > User lalu coba lagi.');
+        }
+
+        $participant->logWa(TrainingWaLog::CHANNEL_MANUAL, true, null, $participant->user->no_hp, $request->user()->id);
+
+        // WhatsApp Web tidak bisa dibuka di HP; di sana wa.me membuka aplikasi WhatsApp.
+        $onPhone = preg_match('/Android|iPhone|iPad|Mobile/i', (string) $request->userAgent()) === 1;
+
+        return redirect()->away($links[$onPhone ? 'app' : 'web']);
+    }
+
+    /**
      * Send WA notification to a single participant
      */
-    public function sendSingleWa(Training $training, TrainingParticipant $participant): RedirectResponse
+    public function sendSingleWa(Request $request, Training $training, TrainingParticipant $participant): RedirectResponse
     {
-        $result = WhatsAppService::sendToParticipant($participant);
+        $result = WhatsAppService::sendToParticipant($participant, $request->user()->id);
 
         if ($result['status']) {
             return back()->with('success', "Pesan WhatsApp berhasil dikirim ke {$participant->user->nama_lengkap}.");
         } else {
-            return back()->with('error', "Gagal kirim WA ke {$participant->user->nama_lengkap}: {$result['message']}");
+            return back()->with('error', "Gagal kirim WA ke {$participant->user->nama_lengkap}: {$result['message']}. Gunakan tombol Kirim manual di kolom WhatsApp untuk mengirim lewat WhatsApp Web.");
         }
     }
 
