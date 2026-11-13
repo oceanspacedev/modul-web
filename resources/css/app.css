@@ -273,6 +273,12 @@ body.layout-top-nav .main-header.navbar {
 }
 
 .main-sidebar {
+    /* Lebar sidebar ciut (sidebar-mini) dari AdminLTE dan durasi animasi lebarnya. Logo dan ikon diletakkan di
+       tengah lebar ciut ini di kedua keadaan, jadi tidak perlu bergeser saat sidebar membuka/menutup. */
+    --sidebar-mini-width: 4.6rem;
+    --sidebar-transition: 0.3s ease-in-out;
+    --sidebar-logo-inset: calc((var(--sidebar-mini-width) - 1px - 28px) / 2);
+    --sidebar-icon-inset: calc((var(--sidebar-mini-width) - 1px - 20px) / 2 - 0.75rem);
     border-right: 1px solid var(--ring) !important;
     box-shadow: none !important;
 }
@@ -291,7 +297,9 @@ body.layout-top-nav .main-header.navbar {
     align-items: center;
     gap: 10px;
     height: auto !important;
-    padding: 1.15rem 1.25rem 1rem !important;
+    padding: 1.15rem 1.25rem 1rem var(--sidebar-logo-inset) !important;
+    overflow: hidden;
+    white-space: nowrap;
     border-bottom: 1px dashed var(--ring) !important;
     background: transparent !important;
 }
@@ -321,13 +329,20 @@ body.layout-top-nav .main-header.navbar {
 }
 
 .nav-sidebar .nav-header {
+    max-height: 3rem;
     padding: 1rem 0.5rem 0.5rem !important;
+    overflow: hidden;
+    white-space: nowrap;
     font-size: 0.75rem !important;
     font-weight: 500;
     color: var(--gray-500) !important;
     background: transparent !important;
+    /* Garis pemisah saat sidebar ciut (box-shadow, bukan border, supaya tinggi judul tetap sama). */
+    box-shadow: inset 0 1px 0 transparent;
     letter-spacing: 0;
     text-transform: none;
+    transition: max-height var(--sidebar-transition), padding var(--sidebar-transition),
+        margin var(--sidebar-transition), color var(--sidebar-transition), box-shadow var(--sidebar-transition);
 }
 
 .nav-sidebar > .nav-header:first-child {
@@ -345,7 +360,8 @@ body.layout-top-nav .main-header.navbar {
     align-items: center;
     width: 100% !important;
     margin: 0 !important;
-    padding: 8px !important;
+    padding: 8px 8px 8px var(--sidebar-icon-inset) !important;
+    overflow: hidden;
     border-radius: var(--radius-lg) !important;
     font-size: 0.875rem;
     font-weight: 400;
@@ -360,9 +376,13 @@ body.layout-top-nav .main-header.navbar {
     flex: 1;
     display: flex;
     align-items: center;
+    /* Satu baris: saat sidebar ciut melebar, label panjang tidak sempat terbungkus ke beberapa baris
+       (yang membuat menu di bawahnya melompat). */
+    white-space: nowrap !important;
 }
 
 .nav-sidebar .nav-link .nav-icon {
+    flex-shrink: 0;
     width: 20px !important;
     margin: 0 12px 0 0 !important;
     font-size: 0.95rem !important;
@@ -412,10 +432,15 @@ body.layout-top-nav .main-header.navbar {
 
 /* Submenu: thin guide line, no icons */
 .nav-sidebar .nav-treeview {
+    /* Batas tinggi hanya untuk animasi ciut (max-height tidak bisa beranimasi dari "none"); cukup untuk
+       ±9 submenu. Buka/tutup submenu biasa tetap memakai slideDown/slideUp AdminLTE. */
+    max-height: 20rem;
+    overflow: hidden;
     margin: 2px 0 6px 18px !important;
     padding: 0 0 0 10px !important;
     border-left: 1px solid var(--ring);
     background: transparent !important;
+    transition: max-height var(--sidebar-transition), margin var(--sidebar-transition), opacity var(--sidebar-transition);
 }
 
 .nav-sidebar .nav-treeview > .nav-item > .nav-link,
@@ -450,71 +475,121 @@ body.layout-top-nav .main-header.navbar {
     border-top: 1px dashed var(--ring);
 }
 
-/* Collapsed (sidebar-mini): ikon saja, rata tengah. Teks disembunyikan
-   dengan display:none supaya tidak lagi makan tempat dan mendorong logo
-   serta ikon keluar dari tengah. */
-.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover):not(.sidebar-focused) .brand-link {
-    justify-content: center;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+/* Collapsed (sidebar-mini, hanya >= 992px seperti AdminLTE): ikon saja.
+   Logo dan ikon tidak dipindah: posisinya di kedua keadaan sudah di tengah lebar ciut
+   (--sidebar-logo-inset / --sidebar-icon-inset), jadi tidak ada yang melompat lalu bergeser
+   selama lebar sidebar beranimasi. Teks memakai pudar bawaan AdminLTE (lebar 0 + fadeOut);
+   judul grup dan submenu yang terbuka ikut melipat dengan durasi yang sama dengan lebarnya. */
+@media (min-width: 992px) {
+    /* Sidebar ciut tidak melebar saat di-hover atau saat link di dalamnya fokus (AdminLTE 3.1 melebarkannya ke
+       250px tanpa melihat .sidebar-no-expand). Nama menu dan submenunya tampil di .sidebar-flyout (script.js). */
+    .sidebar-mini.sidebar-collapse .main-sidebar:hover,
+    .sidebar-mini.sidebar-collapse .main-sidebar.sidebar-focused,
+    .sidebar-mini.sidebar-collapse .main-sidebar:hover .brand-link,
+    .sidebar-mini.sidebar-collapse .main-sidebar.sidebar-focused .brand-link {
+        width: var(--sidebar-mini-width) !important;
+    }
+
+    /* Teks tetap tersembunyi; fadeOut dipaksa supaya hover tidak memulai ulang animasi fadeIn AdminLTE. */
+    .sidebar-mini.sidebar-collapse .main-sidebar .brand-text,
+    .sidebar-mini.sidebar-collapse .main-sidebar .nav-sidebar .nav-link p {
+        visibility: hidden !important;
+        animation-name: fadeOut !important;
+    }
+
+    /* Judul grup jadi garis pemisah tipis (AdminLTE menyembunyikannya dengan display:none). */
+    .sidebar-mini.sidebar-collapse .main-sidebar .nav-sidebar .nav-header {
+        display: block !important;
+        max-height: 1px;
+        margin: 0.5rem;
+        padding: 0 !important;
+        color: transparent !important;
+        box-shadow: inset 0 1px 0 var(--ring);
+    }
+
+    .sidebar-mini.sidebar-collapse .main-sidebar .nav-sidebar > .nav-header:first-child {
+        max-height: 0;
+        margin: 0;
+        box-shadow: none;
+    }
+
+    .sidebar-mini.sidebar-collapse .main-sidebar .nav-sidebar .nav-treeview {
+        max-height: 0;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+        opacity: 0;
+    }
+
+    /* Menu aktif tetap terlihat walau tanpa teks */
+    .sidebar-mini.sidebar-collapse .main-sidebar .nav-sidebar > .nav-item > .nav-link.active,
+    .sidebar-mini.sidebar-collapse .main-sidebar .nav-sidebar > .nav-item:has(.nav-treeview .nav-link.active) > .nav-link {
+        background: #ffffff !important;
+        box-shadow: 0 0 0 1px var(--ring), var(--shadow-xs) !important;
+    }
+
+    .sidebar-mini.sidebar-collapse .main-sidebar .nav-sidebar > .nav-item:has(.nav-treeview .nav-link.active) > .nav-link .nav-icon {
+        color: var(--gray-950) !important;
+    }
 }
 
-.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover):not(.sidebar-focused) .brand-link .brand-text {
-    display: none !important;
+/* Nama menu (dan submenunya) di samping ikon saat sidebar ciut; dipasang oleh script.js. Ditempel ke <body>
+   karena sidebar memotong isi yang keluar dari lebarnya. */
+.sidebar-flyout {
+    position: fixed;
+    z-index: 1039;
+    max-width: 16rem;
+    background: #ffffff;
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    font-size: 0.875rem;
+    color: var(--gray-950);
+    animation: sidebar-flyout-in 0.12s ease-out;
 }
 
-.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover):not(.sidebar-focused) .nav-sidebar {
-    padding-left: 0.625rem;
-    padding-right: 0.625rem;
+.sidebar-flyout[hidden] {
+    display: none;
 }
 
-.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover):not(.sidebar-focused) .nav-sidebar .nav-link {
-    justify-content: center;
-    width: 100% !important;
-    height: 40px;
-    padding: 0 !important;
+@keyframes sidebar-flyout-in {
+    from { opacity: 0; transform: translateX(-4px); }
 }
 
-.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover):not(.sidebar-focused) .nav-sidebar .nav-link p,
-.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover):not(.sidebar-focused) .nav-sidebar .nav-treeview {
-    display: none !important;
+/* Setinggi baris menu (34px) supaya sejajar dengan ikon yang di-hover. */
+.sidebar-flyout-title {
+    padding: 7px 12px;
+    line-height: 18px;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
-.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover):not(.sidebar-focused) .nav-sidebar .nav-link .nav-icon {
-    margin: 0 !important;
-    font-size: 1rem !important;
+.sidebar-flyout.has-menu .sidebar-flyout-title {
+    border-bottom: 1px solid var(--ring);
 }
 
-/* Saat sidebar ciut di-hover, AdminLTE membuat teks menu display:block
-   sehingga panah kanan menempel ke teks; kembalikan ke flex. */
-.sidebar-mini.sidebar-collapse .main-sidebar:hover .nav-sidebar .nav-link p,
-.sidebar-mini.sidebar-collapse .main-sidebar.sidebar-focused .nav-sidebar .nav-link p {
-    display: flex !important;
+.sidebar-flyout-menu {
+    padding: 4px;
 }
 
-/* Judul grup jadi garis pemisah tipis */
-.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover):not(.sidebar-focused) .nav-sidebar .nav-header {
-    height: 0;
-    margin: 0.5rem 0.5rem;
-    padding: 0 !important;
-    overflow: hidden;
-    font-size: 0 !important;
-    border-top: 1px solid var(--ring);
+.sidebar-flyout-link {
+    display: block;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    color: var(--gray-700);
+    white-space: nowrap;
 }
 
-.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover):not(.sidebar-focused) .nav-sidebar > .nav-header:first-child {
-    display: none !important;
+.sidebar-flyout-link:hover,
+.sidebar-flyout-link:focus {
+    background: var(--gray-100);
+    color: var(--gray-950);
+    text-decoration: none;
 }
 
-/* Menu aktif tetap terlihat walau tanpa teks */
-.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover):not(.sidebar-focused) .nav-sidebar > .nav-item > .nav-link.active,
-.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover):not(.sidebar-focused) .nav-sidebar > .nav-item:has(.nav-treeview .nav-link.active) > .nav-link {
-    background: #ffffff !important;
-    box-shadow: 0 0 0 1px var(--ring), var(--shadow-xs) !important;
-}
-
-.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover):not(.sidebar-focused) .nav-sidebar > .nav-item:has(.nav-treeview .nav-link.active) > .nav-link .nav-icon {
-    color: var(--gray-950) !important;
+.sidebar-flyout-link.active {
+    font-weight: 600;
+    color: var(--gray-950);
 }
 
 /* ---------- Footer ---------- */

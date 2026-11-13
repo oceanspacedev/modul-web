@@ -179,3 +179,107 @@ $(function () {
     setInterval(refresh, 60000);
     document.addEventListener("visibilitychange", refresh);
 });
+
+
+// Sidebar ciut (layar >= 992px): sidebar tidak melebar saat di-hover (lihat app.css). Nama menu yang di-hover
+// atau difokus tampil di samping ikonnya, lengkap dengan submenunya kalau ada, supaya submenu tetap bisa dibuka.
+// Pilihan ciut/lebar dari tombol menu juga diingat untuk halaman berikutnya (dipasang lagi di header.blade.php).
+$(function () {
+    var $sidebar = $(".main-sidebar");
+    if (!$sidebar.length) {
+        return;
+    }
+
+    var wide = window.matchMedia("(min-width: 992px)");
+    var $flyout = $('<div class="sidebar-flyout" role="tooltip" hidden></div>').appendTo("body");
+    var hideTimer = null;
+    var current = null;
+
+    function isCollapsed() {
+        return wide.matches && $("body").hasClass("sidebar-collapse");
+    }
+
+    function hide(delay) {
+        clearTimeout(hideTimer);
+        var run = function () {
+            $flyout.prop("hidden", true);
+            current = null;
+        };
+        if (delay) {
+            hideTimer = setTimeout(run, delay);
+        } else {
+            run();
+        }
+    }
+
+    function show(link) {
+        clearTimeout(hideTimer);
+        if (!isCollapsed()) {
+            return hide();
+        }
+        if (current === link && !$flyout.prop("hidden")) {
+            return;
+        }
+        current = link;
+
+        // Nama menu tanpa panah submenu dan badge di dalam <p>.
+        var $label = $(link).children("p").clone();
+        $label.find(".right").remove();
+        $flyout.empty().append($('<div class="sidebar-flyout-title"></div>').text($.trim($label.text())));
+
+        var $children = $(link).parent().children(".nav-treeview").find("> .nav-item > .nav-link");
+        $flyout.toggleClass("has-menu", $children.length > 0);
+        if ($children.length) {
+            var $menu = $('<div class="sidebar-flyout-menu"></div>').appendTo($flyout);
+            $children.each(function () {
+                $('<a class="sidebar-flyout-link"></a>')
+                    .attr("href", this.getAttribute("href"))
+                    .toggleClass("active", $(this).hasClass("active"))
+                    .text($.trim($(this).text()))
+                    .appendTo($menu);
+            });
+        }
+
+        // Baris judul sejajar dengan baris menu yang di-hover, tetap di dalam layar.
+        var rect = link.getBoundingClientRect();
+        $flyout.prop("hidden", false).css({ left: $sidebar[0].getBoundingClientRect().right + 8, top: 0 });
+        var top = Math.min(rect.top, window.innerHeight - $flyout.outerHeight() - 8);
+        $flyout.css("top", Math.max(8, top));
+    }
+
+    $sidebar
+        .on("mouseenter focusin", ".nav-sidebar > .nav-item > .nav-link", function () {
+            show(this);
+        })
+        .on("mouseleave focusout", ".nav-sidebar > .nav-item > .nav-link", function () {
+            hide(150);
+        });
+
+    // Jeda 150ms di atas memberi waktu kursor pindah dari ikon ke submenu di flyout.
+    $flyout
+        .on("mouseenter focusin", function () {
+            clearTimeout(hideTimer);
+        })
+        .on("mouseleave focusout", function () {
+            hide(150);
+        });
+
+    $sidebar[0].addEventListener("scroll", function () {
+        hide();
+    }, true);
+    $(window).on("resize", function () {
+        hide();
+    });
+
+    $(document).on("collapsed.lte.pushmenu shown.lte.pushmenu", function (e) {
+        hide();
+        // Di layar kecil tombol menu membuka sidebar sebagai panel, dan AdminLTE menciutkannya sendiri saat jendela
+        // diperkecil; keduanya bukan pilihan yang perlu diingat.
+        if (!wide.matches) {
+            return;
+        }
+        try {
+            localStorage.setItem("sidebar-collapsed", e.type === "collapsed" ? "1" : "0");
+        } catch (err) {}
+    });
+});
