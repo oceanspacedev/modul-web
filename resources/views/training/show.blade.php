@@ -432,7 +432,12 @@
                                         <div class="rating-bar mt-1"><span style="width: {{ round(($item['average'] ?? 0) / $scaleMax * 100) }}%"></span></div>
                                     @elseif($q->type === \App\Models\TrainingEvaluationQuestion::TYPE_CHOICE)
                                         <div class="text-sm mb-1">{{ $q->question }} <span class="text-muted text-xs">({{ $item['answered'] }} jawaban)</span></div>
-                                        @foreach($item['options'] as $option)
+                                        {{-- Daftar panjang (mis. nama toko): hanya opsi yang dipilih yang ditampilkan. --}}
+                                        @php
+                                            $options = $q->hasLongOptionList() ? array_filter($item['options'], fn ($option) => $option['count'] > 0) : $item['options'];
+                                            $unchosen = count($item['options']) - count($options);
+                                        @endphp
+                                        @foreach($options as $option)
                                             @php $share = $item['answered'] > 0 ? round($option['count'] / $item['answered'] * 100) : 0; @endphp
                                             <div class="d-flex justify-content-between align-items-baseline gap-2 text-xs text-muted">
                                                 <span>{{ $option['label'] }}{{ $option['removed'] ? ' (opsi lama)' : '' }}</span>
@@ -440,6 +445,9 @@
                                             </div>
                                             <div class="rating-bar mb-1"><span style="width: {{ $share }}%"></span></div>
                                         @endforeach
+                                        @if($unchosen > 0)
+                                            <div class="text-xs text-muted">{{ $unchosen }} pilihan lain belum dipilih.</div>
+                                        @endif
                                     @else
                                         <div class="text-sm mb-1">
                                             {{ $q->question }}

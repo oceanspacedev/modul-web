@@ -113,6 +113,14 @@
                                         <span>{{ $question->high_label }}</span>
                                     </div>
                                 @endif
+                            @elseif($question->type === \App\Models\TrainingEvaluationQuestion::TYPE_CHOICE && $question->hasLongOptionList())
+                                {{-- Daftar panjang (mis. nama toko) dipilih lewat dropdown supaya form tidak memanjang. --}}
+                                <select name="{{ $field }}" class="form-control" aria-label="{{ $question->question }}" @required($question->is_required)>
+                                    <option value="">Pilih jawaban...</option>
+                                    @foreach($question->options as $option)
+                                        <option value="{{ $option }}" @selected($old === (string) $option)>{{ $option }}</option>
+                                    @endforeach
+                                </select>
                             @elseif($question->type === \App\Models\TrainingEvaluationQuestion::TYPE_CHOICE)
                                 @foreach($question->options ?? [] as $option)
                                     <label class="option-label">

@@ -24,6 +24,12 @@ class TrainingEvaluationQuestion extends Model
         self::TYPE_CHOICE => 'Pilihan',
     ];
 
+    /** Batas jumlah opsi sebuah pertanyaan pilihan; cukup untuk daftar panjang seperti nama toko. */
+    public const MAX_OPTIONS = 500;
+
+    /** Di atas jumlah ini opsi dianggap daftar panjang: peserta memilih lewat dropdown dan tampilan lain meringkasnya. */
+    public const SHORT_LIST_MAX = 10;
+
     protected $guarded = ['id'];
 
     /**
@@ -41,6 +47,11 @@ class TrainingEvaluationQuestion extends Model
     public function isScale(): bool
     {
         return $this->type === self::TYPE_SCALE;
+    }
+
+    public function hasLongOptionList(): bool
+    {
+        return count($this->options ?? []) > self::SHORT_LIST_MAX;
     }
 
     public function typeLabel(): string
