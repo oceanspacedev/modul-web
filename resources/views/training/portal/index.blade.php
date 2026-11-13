@@ -40,6 +40,13 @@
             </div>
         @endif
 
+        @if (request('unggahan') === 'terlalu-besar')
+            <div class="alert alert-danger mb-4" role="alert">
+                <strong><i class="fas fa-exclamation-circle mr-1"></i> Foto belum terkirim:</strong>
+                ukuran fotonya terlalu besar. Pilih foto lain atau ambil screenshot, lalu kirim ulang.
+            </div>
+        @endif
+
         @if ($errors->any())
             <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
                 <strong><i class="fas fa-exclamation-circle mr-1"></i> Perhatian:</strong>
@@ -128,6 +135,70 @@
                 reader.readAsDataURL(file);
             }
         }
+
+        // Foto dari kamera ponsel bisa belasan MB. Sebelum dikirim, foto diperkecil di perangkat peserta (sisi terpanjang
+        // 1600px, JPEG) supaya unggahannya cepat di jaringan seluler dan tidak ditolak karena ukuran. Selama diproses
+        // tombol kirim dimatikan. Perangkat yang tidak mendukung mengirim foto aslinya.
+        const PROOF_MAX_BYTES = 5 * 1024 * 1024;
+        const PROOF_MAX_SIDE = 1600;
+
+        function shrinkAttendanceProof(input) {
+            const file = input.files && input.files[0];
+            if (!file) return;
+
+            const buttons = input.form ? input.form.querySelectorAll('button[type="submit"]') : [];
+            const finish = function () {
+                buttons.forEach(function (button) { button.disabled = false; });
+                const chosen = input.files && input.files[0];
+                if (chosen && chosen.size > PROOF_MAX_BYTES) {
+                    alert('Ukuran foto melebihi 5MB. Pilih foto lain atau ambil screenshot.');
+                    clearProofInput();
+                }
+            };
+
+            if (file.size <= 300 * 1024 || !/^image\//.test(file.type) || typeof DataTransfer === 'undefined') {
+                finish();
+                return;
+            }
+
+            buttons.forEach(function (button) { button.disabled = true; });
+            const url = URL.createObjectURL(file);
+            const image = new Image();
+            image.onload = function () {
+                try {
+                    const scale = Math.min(1, PROOF_MAX_SIDE / Math.max(image.naturalWidth, image.naturalHeight));
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.round(image.naturalWidth * scale);
+                    canvas.height = Math.round(image.naturalHeight * scale);
+                    canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+                    canvas.toBlob(function (blob) {
+                        URL.revokeObjectURL(url);
+                        // Hanya dipakai bila masih foto yang sama dan hasilnya memang lebih kecil.
+                        if (blob && blob.size < file.size && input.files[0] === file) {
+                            try {
+                                const transfer = new DataTransfer();
+                                transfer.items.add(new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }));
+                                input.files = transfer.files;
+                            } catch (e) { /* kirim foto aslinya */ }
+                        }
+                        finish();
+                    }, 'image/jpeg', 0.8);
+                } catch (e) {
+                    URL.revokeObjectURL(url);
+                    finish();
+                }
+            };
+            image.onerror = function () {
+                URL.revokeObjectURL(url);
+                finish();
+            };
+            image.src = url;
+        }
+
+        // Berlaku juga untuk form presensi yang dibuat ulang oleh polling.
+        document.addEventListener('change', function (event) {
+            if (event.target && event.target.id === 'attendanceProofInput') shrinkAttendanceProof(event.target);
+        });
 
         function clearProofInput() {
             const input = document.getElementById('attendanceProofInput');
@@ -479,5 +550,6 @@
             setInterval(poll, 5000);
         })();
     </script>
+    @include('training.partials.portal-submit-guard')
 </body>
 </html>

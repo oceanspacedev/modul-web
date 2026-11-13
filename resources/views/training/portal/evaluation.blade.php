@@ -161,5 +161,6 @@
             button.textContent = 'Mengirim...';
         });
     </script>
+    @include('training.partials.portal-submit-guard')
 </body>
 </html>

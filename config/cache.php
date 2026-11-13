@@ -17,6 +17,11 @@ return [
 
     'default' => env('CACHE_STORE', 'database'),
 
+    // Penyimpanan hitungan pembatas laju (throttle). Portal peserta melewati pembatas ini di setiap request; di tabel
+    // cache MySQL, tulisan yang bersamaan sesekali saling mengunci (deadlock) dan request-nya gagal 500. Server yang
+    // antreannya memakai Redis menyimpan hitungannya di Redis; selain itu ikut cache default.
+    'limiter' => env('CACHE_LIMITER_STORE', env('QUEUE_CONNECTION', 'database') === 'redis' ? 'redis' : null),
+
     /*
     |--------------------------------------------------------------------------
     | Cache Stores
