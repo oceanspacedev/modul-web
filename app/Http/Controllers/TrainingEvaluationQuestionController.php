@@ -18,7 +18,8 @@ use Illuminate\View\View;
 #[Authorize('update', 'training')]
 class TrainingEvaluationQuestionController extends Controller
 {
-    private const MAX_OPTIONS = 20;
+    /** Batas panjang isian "Pilihan jawaban" secara keseluruhan (semua baris), longgar untuk MAX_OPTIONS opsi. */
+    private const OPTIONS_TEXT_MAX = 50000;
 
     public function index(Training $training): View
     {
@@ -115,7 +116,7 @@ class TrainingEvaluationQuestionController extends Controller
             'question' => ['required', 'string', 'max:500'],
             'low_label' => ['nullable', 'string', 'max:60'],
             'high_label' => ['nullable', 'string', 'max:60'],
-            'options' => ['nullable', 'string', 'max:2000'],
+            'options' => ['nullable', 'string', 'max:'.self::OPTIONS_TEXT_MAX],
             'is_required' => ['nullable', 'boolean'],
         ], [
             'question.required' => 'Tulis pertanyaannya.',
@@ -133,9 +134,9 @@ class TrainingEvaluationQuestionController extends Controller
                 ->filter(fn (string $option) => $option !== '')
                 ->unique(strict: true)->values()->all();
 
-            if (count($options) < 2 || count($options) > self::MAX_OPTIONS) {
+            if (count($options) < 2 || count($options) > TrainingEvaluationQuestion::MAX_OPTIONS) {
                 throw ValidationException::withMessages([
-                    'options' => 'Tulis 2 sampai '.self::MAX_OPTIONS.' pilihan, satu per baris.',
+                    'options' => 'Tulis 2 sampai '.TrainingEvaluationQuestion::MAX_OPTIONS.' pilihan, satu per baris.',
                 ]);
             }
         }

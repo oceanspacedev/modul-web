@@ -112,7 +112,13 @@
                                         @if($q->isScale() && (filled($q->low_label) || filled($q->high_label)))
                                             <span class="cell-sub">1 = {{ $q->low_label ?? '-' }} &middot; 5 = {{ $q->high_label ?? '-' }}</span>
                                         @elseif($q->type === TrainingEvaluationQuestion::TYPE_CHOICE)
-                                            <span class="cell-sub">{{ implode(' · ', $q->options ?? []) }}</span>
+                                            {{-- Daftar panjang (mis. nama toko) diringkas supaya baris tabel tidak memanjang. --}}
+                                            @php
+                                                $options = $q->options ?? [];
+                                                $shown = $q->hasLongOptionList() ? array_slice($options, 0, TrainingEvaluationQuestion::SHORT_LIST_MAX) : $options;
+                                                $more = count($options) - count($shown);
+                                            @endphp
+                                            <span class="cell-sub">{{ implode(' · ', $shown) }}{{ $more > 0 ? ' · +'.$more.' pilihan lain' : '' }}</span>
                                         @endif
                                     </td>
                                     <td class="align-middle text-nowrap">{{ $q->typeLabel() }}</td>
@@ -203,7 +209,10 @@
                 <div class="form-group" data-for-type="choice">
                     <label for="eq_options">Pilihan jawaban <span class="text-danger">*</span></label>
                     <textarea class="form-control" id="eq_options" name="options" rows="4" placeholder="Satu pilihan per baris"></textarea>
-                    <small class="form-text text-muted">Peserta memilih satu. Minimal 2 pilihan.</small>
+                    <small class="form-text text-muted">
+                        Peserta memilih satu. Tulis 2 sampai {{ TrainingEvaluationQuestion::MAX_OPTIONS }} pilihan;
+                        lebih dari {{ TrainingEvaluationQuestion::SHORT_LIST_MAX }} pilihan tampil sebagai dropdown.
+                    </small>
                 </div>
                 <input type="hidden" name="is_required" value="0">
                 <div class="custom-control custom-switch">

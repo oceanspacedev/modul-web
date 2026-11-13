@@ -695,7 +695,7 @@ class TrainingEvaluationTest extends TestCase
         // Kiriman gagal diikuti sampai halaman kelola tampil lagi, seperti di browser.
         $this->actingAs($this->admin)->followingRedirects()->from($manage)->post(route('training.evaluation.store', $this->training), [
             'type' => 'choice', 'question' => 'Pilihan yang kurang opsi', 'options' => 'Satu saja', 'section' => 'Uji', 'is_required' => '1',
-        ])->assertOk()->assertSee('Tulis 2 sampai 20 pilihan')
+        ])->assertOk()->assertSee('Tulis 2 sampai 500 pilihan')
             ->assertSee('"question":"Pilihan yang kurang opsi"', false)->assertSee('"options":"Satu saja"', false)->assertSee('"action":null', false);
         $this->assertSame(10, $this->training->evaluationQuestions()->count());
 
@@ -746,6 +746,41 @@ class TrainingEvaluationTest extends TestCase
         $answers = $this->answers();
         $answers['answers'][$choice->id] = '1.0';
         $this->from(self::PORTAL.'/evaluation')->post(self::PORTAL.'/evaluation', $answers)->assertSessionHasErrors(['answers.'.$choice->id]);
+    }
+
+    public function test_choice_question_accepts_a_long_option_list_and_shows_it_compactly(): void
+    {
+        // Daftar panjang seperti nama toko: jauh di atas 20 opsi dan 2000 karakter.
+        $stores = array_map(fn (int $number) => 'Complete Selular Cabang Nomor '.$number, range(1, 120));
+        $this->actingAs($this->admin)->post(route('training.evaluation.store', $this->training), [
+            'type' => 'choice', 'question' => 'Asal toko', 'options' => implode("\r\n", $stores), 'is_required' => '1',
+        ])->assertSessionHasNoErrors();
+        $choice = $this->training->evaluationQuestions()->where('type', 'choice')->sole();
+        $this->assertSame($stores, $choice->options);
+
+        // Halaman kelola meringkas daftarnya.
+        $this->actingAs($this->admin)->get(route('training.evaluation.index', $this->training))->assertOk()
+            ->assertSee('Complete Selular Cabang Nomor 10 · +110 pilihan lain');
+
+        // Peserta memilih lewat dropdown, bukan 120 tombol radio.
+        $this->training->update(['is_quiz_active' => true, 'is_evaluation_active' => true]);
+        $form = $this->get(self::PORTAL.'/evaluation')->assertOk()->assertSee('<option value="Complete Selular Cabang Nomor 120"', false);
+        $this->assertSame(9 * 5, substr_count($form->getContent(), 'type="radio"'));
+
+        $answers = $this->answers();
+        $answers['answers'][$choice->id] = $stores[119];
+        $this->post(self::PORTAL.'/evaluation', $answers)->assertSessionHasNoErrors();
+        $this->assertSame($stores[119], TrainingEvaluation::sole()->answerTo($choice));
+
+        // Rekap hanya menampilkan toko yang dipilih.
+        $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertOk()
+            ->assertSee('Complete Selular Cabang Nomor 120')->assertDontSee('Complete Selular Cabang Nomor 119')
+            ->assertSee('119 pilihan lain belum dipilih.');
+
+        // Batasnya tetap ada.
+        $this->actingAs($this->admin)->post(route('training.evaluation.store', $this->training), [
+            'type' => 'choice', 'question' => 'Terlalu banyak', 'options' => implode("\n", range(1, 501)),
+        ])->assertSessionHasErrors(['options']);
     }
 
     public function test_text_limit_counts_a_line_break_once_like_the_browser(): void
