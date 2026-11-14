@@ -163,7 +163,7 @@ class TrainingPretestTest extends TestCase
         $this->assertSame(1, $this->training->pretestResults()->count());
 
         $this->actingAs($this->admin)->get(route('training.show', $this->training))
-            ->assertOk()->assertSee('Pretest: 100 (tertinggi dari 2x)');
+            ->assertOk()->assertSeeInOrder(['participant-detail-label">Pretest</h6>', 'tertinggi dari 2x', 'participant-detail-value">100</span>'], false);
         $this->actingAs($this->participant->user)->get('/my-trainings')->assertOk()->assertSee('Pretest 100');
     }
 

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Exports\TrainingQuestionsExport;
 use App\Exports\TrainingQuestionTemplate;
+use App\Exports\TrainingRekapExport;
 use App\Exports\TrainingRekapWorkbook;
 use App\Exports\UserExport;
 use App\Imports\FirstSheetOnly;
@@ -329,7 +330,7 @@ class ImportExportIntegrityTest extends TestCase
     public function test_exports_keep_phone_numbers_and_ids_as_text(): void
     {
         $staff = User::factory()->staff()->create(['nama_lengkap' => '=BUDI', 'employee_id' => '25.10', 'no_hp' => '081234567890']);
-        TrainingParticipant::create(['training_id' => $this->training->id, 'user_id' => $staff->id, 'token' => 'tok', 'attendance_status' => 'hadir', 'attended_at' => now()]);
+        TrainingParticipant::create(['training_id' => $this->training->id, 'user_id' => $staff->id, 'token' => 'tok', 'attendance_status' => 'hadir', 'attended_at' => now(), 'attendance_proof' => 'attendance_proofs/bukti.png']);
         $this->training->load(['trainer', 'evaluationQuestions', 'participants.user.divisi', 'participants.quizResult', 'participants.pretestResult', 'participants.evaluation']);
 
         $path = Storage::disk('local')->path('rekap.xlsx');
@@ -343,7 +344,12 @@ class ImportExportIntegrityTest extends TestCase
         $this->assertSame(['081234567890', DataType::TYPE_STRING], [$sheet->getCell("E{$row}")->getValue(), $sheet->getCell("E{$row}")->getDataType()]);
         $this->assertSame(DataType::TYPE_STRING, $sheet->getCell("C{$row}")->getDataType());
         // Belum mengerjakan ditulis "-", bukan 0.
-        $this->assertSame('-', $sheet->getCell("M{$row}")->getValue());
+        $this->assertSame(['Nilai Pretest (0-100)', '-'], [$sheet->getCell('G'.TrainingRekapExport::HEADING_ROW)->getValue(), $sheet->getCell("G{$row}")->getValue()]);
+
+        // Bukti presensi ditulis sebagai tautan pendek yang bisa diklik, bukan URL panjang.
+        $proofColumn = collect(range(1, 30))->first(fn (int $c) => $sheet->getCell([$c, TrainingRekapExport::HEADING_ROW])->getValue() === 'Bukti Screenshot');
+        $this->assertSame('Lihat bukti', $sheet->getCell([$proofColumn, $row])->getValue());
+        $this->assertStringEndsWith('attendance_proofs/bukti.png', $sheet->getCell([$proofColumn, $row])->getHyperlink()->getUrl());
 
         // Pengikat nilai khusus tidak tertinggal untuk export/import berikutnya di proses yang sama.
         $this->assertInstanceOf(DefaultValueBinder::class, Cell::getValueBinder());

@@ -25,7 +25,7 @@
 </section>
 
 <section class="content">
-    <div class="container-fluid" style="max-width: 1000px;">
+    <div class="container-fluid">
         @include('learning_module.partials.alerts')
 
         @if($progress->needsPretest())

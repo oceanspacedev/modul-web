@@ -33,7 +33,7 @@ class TrainingRekapExport implements FromArray, WithCustomValueBinder, WithEvent
     /** Lebar kolom menurut judulnya; judul lain memakai DEFAULT_WIDTH. */
     private const WIDTHS = [
         'No' => 5, 'ID Karyawan' => 14, 'Nama Peserta' => 28, 'Divisi' => 20, 'No WhatsApp' => 16,
-        'Status Kehadiran' => 15, 'Waktu Absen' => 16, 'Bukti Screenshot' => 40,
+        'Status Kehadiran' => 15, 'Waktu Absen' => 16, 'Bukti Screenshot' => 18,
     ];
 
     private const DEFAULT_WIDTH = 18;
@@ -165,6 +165,24 @@ class TrainingRekapExport implements FromArray, WithCustomValueBinder, WithEvent
                         if (in_array($heading, ['No', 'Status Kehadiran'], true) || str_starts_with($heading, 'Nilai ') || str_starts_with($heading, 'Rata-rata ')) {
                             $col = Coordinate::stringFromColumnIndex($index + 1);
                             $sheet->getStyle($col.$dStart.':'.$col.$lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                        }
+                    }
+                }
+
+                // ── Bukti presensi: tautan pendek yang bisa diklik, bukan URL panjang ──
+                $proofIndex = array_search('Bukti Screenshot', $headings, true);
+                if ($proofIndex !== false && $totalRows > 0) {
+                    $col = Coordinate::stringFromColumnIndex($proofIndex + 1);
+                    $sheet->getStyle($col.$dStart.':'.$col.$lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+                    for ($row = $dStart; $row <= $lastRow; $row++) {
+                        $cell = $sheet->getCell($col.$row);
+                        $url = (string) $cell->getValue();
+
+                        if (preg_match('#^https?://#', $url) === 1) {
+                            $cell->setValue('Lihat bukti');
+                            $cell->getHyperlink()->setUrl($url);
+                            $cell->getStyle()->getFont()->setUnderline(true)->getColor()->setARGB('FF0563C1');
                         }
                     }
                 }

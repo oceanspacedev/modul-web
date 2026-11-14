@@ -1,6 +1,7 @@
 @extends('layout.main_template')
 
 @section('content')
+@php $fmtScore = fn ($score) => rtrim(rtrim(number_format((float) $score, 1, ',', '.'), '0'), ','); @endphp
 <div class="content-header">
     <div class="container-fluid">
         <x-page-header title="Dashboard" subtitle="Ringkasan seluruh modul, pelatihan, video, dan grafik analitik sistem.">
@@ -54,7 +55,7 @@
                     <div class="min-w-0">
                         <p class="stat-tile-label">Peserta Pelatihan</p>
                         <p class="stat-tile-value">{{ $data['totalParticipant'] }}</p>
-                        <p class="stat-tile-hint">Terdaftar</p>
+                        <p class="stat-tile-hint">{{ $data['uniqueParticipant'] }} orang berbeda</p>
                     </div>
                 </a>
             </div>
@@ -72,9 +73,9 @@
             <div class="col-xl-2 col-md-4 col-6 mb-3">
                 <a href="/training" class="stat-tile">
                     <div class="min-w-0">
-                        <p class="stat-tile-label">Hasil Evaluasi Kuis</p>
+                        <p class="stat-tile-label">Hasil Kuis Pelatihan</p>
                         <p class="stat-tile-value">{{ $data['totalQuizResult'] }}</p>
-                        <p class="stat-tile-hint">Rata-rata: {{ $data['quizAvgScore'] }}</p>
+                        <p class="stat-tile-hint">{{ $data['totalQuizResult'] > 0 ? 'Rata-rata nilai '.$fmtScore($data['quizAvgScore']) : 'Belum ada yang mengerjakan' }}</p>
                     </div>
                 </a>
             </div>
@@ -110,8 +111,8 @@
                                             <canvas id="chartPelatihan"></canvas>
                                         </div>
                                         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 small text-muted">
-                                            <span>Jumlah peserta terdaftar pada setiap sesi pelatihan</span>
-                                            <span class="text-dark">{{ $data['totalParticipant'] }} total peserta</span>
+                                            <span>Jumlah peserta terdaftar pada {{ count($data['chartTrainingLabels']) }} pelatihan terbaru</span>
+                                            <span class="text-dark">{{ $data['chartTrainingParticipants']->sum() }} peserta</span>
                                         </div>
                                     </div>
                                 @endif
@@ -140,7 +141,7 @@
                                                                 {{ Str::limit($t->title, 28) }}
                                                             </a>
                                                             <div class="small text-muted">
-                                                                {{ $t->participants->count() }} Peserta &bull; {{ $t->questions->count() }} Soal
+                                                                {{ $t->participants_count }} Peserta &bull; {{ $t->questions_count }} Soal
                                                             </div>
                                                         </td>
                                                         <td class="text-muted">
@@ -238,8 +239,8 @@
                 <div class="card dash-card is-compact">
                     <div class="card-header">
                         <h3 class="card-title">
-                            Distribusi Nilai Evaluasi Kuis
-                            <span class="dash-count">{{ $data['totalQuizResult'] }} peserta</span>
+                            Sebaran Nilai Kuis Pelatihan
+                            <span class="dash-count">{{ $data['totalQuizResult'] }} hasil</span>
                         </h3>
                         <div class="d-flex align-items-center gap-2">
                             <div class="nav btn-group filter-tabs" role="tablist">
@@ -254,7 +255,7 @@
                             {{-- Tab 1: Grafik Distribusi Skor --}}
                             <div class="tab-pane fade show active" id="tab-kuis-chart" role="tabpanel">
                                 @if($data['totalQuizResult'] === 0)
-                                    <x-empty-state icon="fa-clipboard-list" title="Belum ada evaluasi kuis" text="Grafik muncul setelah peserta mengerjakan kuis." />
+                                    <x-empty-state icon="fa-clipboard-list" title="Belum ada hasil kuis" text="Grafik muncul setelah peserta mengerjakan kuis pelatihan." />
                                 @else
                                     <div class="card-body">
                                         @php
@@ -282,18 +283,19 @@
                                         {{-- KPI Skor --}}
                                         <div class="row text-center mt-3 pt-3 border-top">
                                             <div class="col-4">
-                                                <p class="stat-tile-label">Rata-rata Skor</p>
-                                                <span class="dash-kpi-value">{{ $data['quizAvgScore'] }}</span>
+                                                <p class="stat-tile-label">Rata-rata</p>
+                                                <span class="dash-kpi-value">{{ $fmtScore($data['quizAvgScore']) }}</span>
                                             </div>
                                             <div class="col-4">
-                                                <p class="stat-tile-label">Skor Tertinggi</p>
-                                                <span class="dash-kpi-value">{{ $data['quizMaxScore'] }}</span>
+                                                <p class="stat-tile-label">Tertinggi</p>
+                                                <span class="dash-kpi-value">{{ $fmtScore($data['quizMaxScore']) }}</span>
                                             </div>
                                             <div class="col-4">
-                                                <p class="stat-tile-label">Skor Terendah</p>
-                                                <span class="dash-kpi-value">{{ $data['quizMinScore'] }}</span>
+                                                <p class="stat-tile-label">Terendah</p>
+                                                <span class="dash-kpi-value">{{ $fmtScore($data['quizMinScore']) }}</span>
                                             </div>
                                         </div>
+                                        <p class="small text-muted mt-3 mb-0">Nilai posttest tiap peserta (pretest bila pelatihannya tanpa posttest), skala 0–100.</p>
                                     </div>
                                 @endif
                             </div>
@@ -301,7 +303,7 @@
                             {{-- Tab 2: Tabel Riwayat Pengerjaan --}}
                             <div class="tab-pane fade" id="tab-kuis-table" role="tabpanel">
                                 @if($data['recentQuizResults']->isEmpty())
-                                    <x-empty-state icon="fa-clipboard-list" title="Belum ada evaluasi kuis" text="Riwayat pengerjaan kuis akan tampil di sini." />
+                                    <x-empty-state icon="fa-clipboard-list" title="Belum ada hasil kuis" text="Riwayat pengerjaan kuis akan tampil di sini." />
                                 @else
                                     <div class="table-responsive">
                                         <table class="table table-hover mb-0">
@@ -347,10 +349,10 @@
                 {{-- 4. Grafik Komposisi Modul & Master Data --}}
                 <div class="card dash-card is-compact">
                     <div class="card-header">
-                        <h3 class="card-title">Komposisi Konten Sistem</h3>
+                        <h3 class="card-title">Jumlah Konten</h3>
                         <div class="nav btn-group filter-tabs" role="tablist">
                             <a class="btn active" data-toggle="pill" href="#tab-komposisi-chart" role="tab">Donat</a>
-                            <a class="btn" data-toggle="pill" href="#tab-komposisi-detail" role="tab">Detail</a>
+                            <a class="btn" data-toggle="pill" href="#tab-komposisi-detail" role="tab">Master Data</a>
                         </div>
                     </div>
                     <div class="card-body p-0">
@@ -365,7 +367,6 @@
                                         <span class="d-inline-flex align-items-center"><span class="dash-legend-dot is-1"></span>Video: {{ $data['totalVideo'] }}</span>
                                         <span class="d-inline-flex align-items-center"><span class="dash-legend-dot is-2"></span>Dokumen: {{ $data['totalDocument'] }}</span>
                                         <span class="d-inline-flex align-items-center"><span class="dash-legend-dot is-3"></span>Pelatihan: {{ $data['totalTraining'] }}</span>
-                                        <span class="d-inline-flex align-items-center"><span class="dash-legend-dot is-4"></span>Divisi: {{ $data['totalDivisi'] }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -553,8 +554,7 @@ $(document).ready(function() {
                     backgroundColor: [
                         '#ff4da6', // video - primary
                         '#a1a1aa', // dokumen - zinc 400
-                        '#d4d4d8', // pelatihan - zinc 300
-                        '#e4e4e7'  // divisi - zinc 200
+                        '#d4d4d8'  // pelatihan - zinc 300
                     ],
                     borderWidth: 2,
                     borderColor: '#ffffff'

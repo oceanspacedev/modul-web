@@ -130,7 +130,7 @@ class TrainingJourneyTest extends TestCase
         // ── Selesai: ketiga tempat menampilkan hasil yang sama ────────────────────────────────────────────────
         $this->myTrainings()->assertSee('Selesai')->assertSee('Hadir')->assertSee('<strong>100</strong>', false)->assertSee('Pretest 0');
         $this->get(self::PORTAL)->assertOk()->assertSee('Kehadiran Anda Telah Terverifikasi')->assertSee('Terima kasih, evaluasi Anda sudah tersimpan');
-        $this->trainerPage()->assertSee('Rina Peserta')->assertSee('Posttest selesai')->assertSee('Pretest: 0')->assertSee('1 dari 1 mengisi');
+        $this->trainerPage()->assertSee('Rina Peserta')->assertSee('<dt>Posttest</dt>', false)->assertSeeInOrder(['participant-detail-label">Pretest</h6>', 'participant-detail-value">0</span>'], false)->assertSee('1 dari 1 mengisi');
         $this->actingAs($this->admin)->getJson(route('training.live-stats', $this->training))
             ->assertJson(['attended' => 1, 'quizSubmitted' => 1, 'avgScore' => 100, 'pretestSubmitted' => 1, 'pretestAvg' => 0]);
         // Dashboard menghitung nilai utama (posttest), bukan pretest.

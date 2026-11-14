@@ -171,7 +171,7 @@ class TrainingFlexibilityTest extends TestCase
         $this->actingAs($this->admin)->get(route('training.questions.index', $training))->assertOk()
             ->assertSee('1 soal pilihan ganda tidak punya kunci jawaban yang valid.')->assertSee('Kunci jawaban tidak valid');
         $this->actingAs($this->admin)->get(route('training.show', $training))->assertOk()
-            ->assertSee('1 soal pilihan ganda tidak punya kunci jawaban yang valid.');
+            ->assertSee('1 soal pilihan ganda punya kunci jawaban yang tidak valid.');
         $this->actingAs($this->admin)->post(route('training.toggle-quiz', $training), ['open' => '1'])->assertSessionHas('error');
         $this->assertFalse($training->fresh()->is_quiz_active);
 
@@ -213,7 +213,8 @@ class TrainingFlexibilityTest extends TestCase
         ])->assertSessionHas('success', 'Soal kuis berhasil diperbarui! Kunci jawabannya berubah dan 2 hasil kuis sudah masuk: tekan Hitung Ulang Nilai agar nilai peserta mengikuti kunci baru.');
         $this->assertSame(50.0, $posttest->fresh()->score);
         $this->actingAs($this->admin)->get(route('training.questions.index', $training))->assertOk()->assertSee('Hitung Ulang Nilai');
-        $this->actingAs($this->admin)->get(route('training.show', $training))->assertOk()->assertSee('Hitung Ulang Nilai');
+        $this->actingAs($this->admin)->get(route('training.show', $training))->assertOk()
+            ->assertSee('Hitung ulang nilai')->assertSee(route('training.regrade', $training), false);
 
         $this->actingAs(User::factory()->staff()->create())->from('/my-trainings')->post(route('training.regrade', $training))->assertSessionHas('error');
         $this->assertSame(50.0, $posttest->fresh()->score);
@@ -280,7 +281,9 @@ class TrainingFlexibilityTest extends TestCase
 
         $result = TrainingQuizResult::where('phase', 'pretest')->sole();
         $this->assertSame('pending', $result->essay_status);
-        $this->actingAs($this->admin)->get(route('training.show', $training))->assertOk()->assertSee('Essay pretest perlu dinilai');
+        $this->actingAs($this->admin)->get(route('training.show', $training))->assertOk()
+            ->assertSee('Pretest Budi Peserta: esai perlu dinilai')
+            ->assertSeeInOrder(['participant-detail-label">Pretest</h6>', 'Esai perlu dinilai'], false);
         $this->actingAs($this->admin)->get(route('training.answer-sheet', [$training, $result]))->assertOk()
             ->assertSee('Penilaian Soal Essay oleh Pemateri')->assertSee('Keluar lewat tangga darurat.');
 
@@ -411,9 +414,9 @@ class TrainingFlexibilityTest extends TestCase
 
         // Pemateri: tidak ada kotak, kolom, langkah, atau aksi presensi.
         $this->actingAs($this->admin)->get(route('training.show', $training))->assertOk()
-            ->assertSee('Presensi tidak dipakai di pelatihan ini')->assertSee('Pakai Presensi')->assertSee('tanpa presensi')
-            ->assertDontSee('Kehadiran</p>', false)->assertDontSee('Bukti Foto')->assertDontSee('Atur Presensi Manual')
-            ->assertDontSee('<th>Presensi</th>', false)->assertSee('<th>Kamera</th>', false);
+            ->assertSee('Presensi tidak dipakai di pelatihan ini')->assertSee('Pakai Presensi')
+            ->assertDontSee('<dt>Kehadiran</dt>', false)->assertDontSee('Bukti Foto')->assertDontSee('Atur Presensi Manual')
+            ->assertDontSee('<th scope="col">Presensi</th>', false)->assertSee('<th scope="col">Kamera</th>', false);
         $this->actingAs($this->admin)->post(route('training.toggle-attendance', $training))->assertSessionHas('error');
         $this->assertFalse($training->fresh()->is_attendance_active);
 

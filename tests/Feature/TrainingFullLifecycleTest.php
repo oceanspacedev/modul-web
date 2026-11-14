@@ -93,8 +93,9 @@ class TrainingFullLifecycleTest extends TestCase
         $showRes->assertStatus(200);
         $showRes->assertSee('Pelatihan CRUD Test System');
         $showRes->assertSee($this->participantUser1->nama_lengkap);
-        $showRes->assertSee('Langkah menjalankan pelatihan');
-        $showRes->assertSee('siapkan soal kuis.');
+        $showRes->assertSee('Persiapan sesi belum lengkap');
+        $showRes->assertSee('Siapkan soal kuis');
+        $showRes->assertSee(route('training.setup', $training), false);
 
         // 1.5 Access Edit Page
         $editPageRes = $this->actingAs($this->admin)->get("/training/{$training->id}/edit");

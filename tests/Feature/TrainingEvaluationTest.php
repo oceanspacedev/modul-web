@@ -587,7 +587,7 @@ class TrainingEvaluationTest extends TestCase
 
         $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertOk()
             ->assertSee('Hasil Evaluasi Peserta')->assertSee('2 dari 2 mengisi')->assertSee('4.50')
-            ->assertSee('Durasinya kurang lama.')->assertSee('Evaluasi: 4.0 / 5');
+            ->assertSee('Durasinya kurang lama.')->assertSeeInOrder(['participant-detail-label">Evaluasi</h6>', 'participant-detail-value">4.0 / 5</span>'], false);
 
         $training = Training::with([
             'evaluationQuestions', 'participants.evaluation',

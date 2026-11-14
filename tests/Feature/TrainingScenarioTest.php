@@ -123,13 +123,20 @@ class TrainingScenarioTest extends TestCase
         $pretest ? $detail->assertSee('Akses Pretest') : $detail->assertDontSee('Akses Pretest');
         $posttest ? $detail->assertSee($pretest ? 'Akses Posttest' : 'Akses Kuis') : $detail->assertDontSee('Akses Posttest')->assertDontSee('Akses Kuis');
         if ($pretest || $posttest) {
-            $detail->assertSee('Soal Kuis (1)')->assertSee('Daftar Peserta &amp; Nilai', false)->assertSee('Rata-rata nilai');
+            $detail->assertSee('Soal Kuis (1)')->assertSee('Daftar Peserta &amp; Nilai', false);
         } else {
-            $detail->assertDontSee('Soal Kuis (')->assertDontSee('Kuis selesai')->assertDontSee('Rata-rata nilai')->assertDontSee('Belum mengerjakan')->assertSee('Tanpa kuis');
+            $detail->assertDontSee('Soal Kuis (')->assertDontSee('Belum mengerjakan')->assertSee('Tanpa kuis');
         }
-        if (! $pretest && ! $posttest && $evaluation) {
-            $detail->assertSee('Evaluasi terisi')->assertSee('Rata-rata evaluasi')->assertSee('Belum mengisi');
+        foreach (['Pretest' => $pretest, 'Posttest' => $posttest && $pretest, 'Kuis' => $posttest && ! $pretest] as $phase => $enabled) {
+            $label = "<dt>{$phase}</dt>";
+            if ($enabled) {
+                $detail->assertSee($label, false)->assertSee(">{$phase}</th>", false);
+            } else {
+                $detail->assertDontSee($label, false)->assertDontSee(">{$phase}</th>", false);
+            }
         }
+        $evaluation ? $detail->assertSee('<dt>Evaluasi</dt>', false) : $detail->assertDontSee('<dt>Evaluasi</dt>', false);
+        $detail->assertDontSee('Rata-rata <span class="text-nowrap">', false);
 
         // Bagian yang disembunyikan tidak boleh meninggalkan tag penutup yang merusak susunan halaman: selisih tag div
         // halaman detail harus sama dengan halaman lain yang memakai layout yang sama.
@@ -188,7 +195,7 @@ class TrainingScenarioTest extends TestCase
         // Ringkasan dan tabel peserta memakai nilai pretest, bukan posttest yang tidak ada.
         $this->actingAs($this->admin)->getJson(route('training.live-stats', $training))->assertJson(['quizSubmitted' => 1, 'avgScore' => 100]);
         $this->actingAs($this->admin)->get(route('training.show', $training))->assertOk()
-            ->assertSee('Pretest selesai')->assertSee('1 PG benar')->assertDontSee('Belum mengerjakan')->assertDontSee('Kuis selesai')
+            ->assertSee('<dt>Pretest</dt>', false)->assertSee('1 PG benar')->assertDontSee('Belum mengerjakan')->assertDontSee('<dt>Kuis</dt>', false)
             ->assertSee(route('training.answer-sheet', [$training, $result]), false)->assertSee('Reset Kuis Peserta');
         $this->actingAs($this->admin)->get(route('training.answer-sheet', [$training, $result]))->assertOk()->assertSee('Lembar Jawaban: Budi Peserta');
 
@@ -200,14 +207,27 @@ class TrainingScenarioTest extends TestCase
 
     public function test_training_with_both_phases_shows_the_pretest_next_to_the_posttest(): void
     {
-        $training = $this->training(pretest: true, posttest: true, evaluation: false);
+        $training = $this->training(pretest: true, posttest: true, evaluation: true);
         $pretest = $this->quizResult($training, 'pretest', 0);
         $posttest = $this->quizResult($training, 'posttest', 100);
+        $this->fillEvaluation($training);
 
         $this->actingAs($this->admin)->getJson(route('training.live-stats', $training))
             ->assertJson(['quizSubmitted' => 1, 'avgScore' => 100, 'pretestSubmitted' => 1, 'pretestAvg' => 0]);
         $this->actingAs($this->admin)->get(route('training.show', $training))->assertOk()
-            ->assertSee('Posttest selesai')->assertSee('Rata-rata nilai posttest')->assertSee('Pretest: 0')
+            ->assertSeeInOrder([
+                '<dt>Kehadiran</dt>',
+                '<dt>Pretest</dt>',
+                'data-training-stat="pretestSubmitted">1',
+                'Rata-rata <b data-training-stat="pretestAvg">0,0</b>',
+                '<dt>Posttest</dt>',
+                'data-training-stat="quizSubmitted">1',
+                'Rata-rata <b data-training-stat="avgScore">100,0</b>',
+                '<dt>Evaluasi</dt>',
+                '<strong>1</strong>',
+                'Rata-rata <span class="text-nowrap"><b>4,00</b> / 5</span>',
+            ], false)
+            ->assertSeeInOrder(['participant-detail-label">Pretest</h6>', 'participant-detail-value">0</span>'], false)
             ->assertSee('Lembar Jawaban Pretest')->assertSee(route('training.answer-sheet', [$training, $pretest]), false);
 
         // Lembar jawaban tersedia untuk kedua fase, dan tidak untuk hasil pelatihan lain.
@@ -233,6 +253,14 @@ class TrainingScenarioTest extends TestCase
             $columns($row, 'Posttest'),
         );
         $this->assertSame(100.0, $row['Nilai Akhir Posttest (0-100)']);
+
+        $training->update(['has_evaluation' => false, 'has_pretest' => false, 'has_attendance' => false]);
+        $this->actingAs($this->admin)->get(route('training.show', $training))->assertOk()
+            ->assertDontSee('<dt>Kehadiran</dt>', false)
+            ->assertDontSee('<dt>Pretest</dt>', false)
+            ->assertDontSee('<dt>Evaluasi</dt>', false)
+            ->assertSee('<dt>Kuis</dt>', false)
+            ->assertSee('Hasil Evaluasi Peserta');
     }
 
     public function test_recap_keeps_the_off_cam_record_when_attendance_is_not_used(): void
@@ -266,7 +294,7 @@ class TrainingScenarioTest extends TestCase
         $this->fillEvaluation($training);
         $this->assertSame(['label' => 'Selesai', 'kind' => 'done'], $this->participant($training)->nextStep());
         $this->actingAs($this->admin)->get(route('training.show', $training))->assertOk()
-            ->assertSee('Evaluasi terisi')->assertSee('Terisi')->assertDontSee('Belum mengisi');
+            ->assertSee('<dt>Evaluasi</dt>', false)->assertSee('Terisi')->assertDontSee('Belum mengisi');
     }
 
     public function test_session_only_training_needs_nothing_but_attendance(): void
@@ -316,7 +344,7 @@ class TrainingScenarioTest extends TestCase
 
         // Tidak ada tombol atau baris tautan kosong di halaman pemateri, portal peserta, dan undangan WhatsApp.
         $this->actingAs($this->admin)->get(route('training.show', $training))->assertOk()
-            ->assertSee('Tatap muka (tanpa tautan)')->assertDontSee('Online via Zoom')->assertDontSee('Buka Tautan Zoom');
+            ->assertSee('Tatap muka')->assertDontSee('Buka Zoom');
         $this->actingAs($this->admin)->get(route('training.index'))->assertOk()->assertSee('Pelatihan Tatap Muka');
         $this->actingAs($this->admin)->get(route('training.edit', $training))->assertOk();
 
