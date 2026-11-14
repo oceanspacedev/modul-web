@@ -97,10 +97,11 @@ class TrainingStepOrderTest extends TestCase
             'Langkah 4</span> Evaluasi Pelatihan', 'Langkah 5</span> Posttest',
         ], false);
 
-        // Daftar langkah pemateri ikut: presensi sebelum pretest bila diurutkan begitu.
+        // Kontrol sesi mengikuti urutan yang dipilih pemateri.
         $this->saveOrder(['session', 'attendance', 'pretest', 'evaluation', 'posttest'])->assertSessionHas('success');
         $this->actingAs($this->admin)->get(route('training.show', $this->training))->assertOk()->assertSeeInOrder([
-            'setup-step-label">Presensi', 'setup-step-label">Pretest', 'setup-step-label">Posttest', 'setup-step-label">Rekap',
+            'class="text-sm font-weight-bold">Akses Presensi', 'class="text-sm font-weight-bold">Akses Pretest',
+            'class="text-sm font-weight-bold">Akses Posttest',
         ], false);
     }
 

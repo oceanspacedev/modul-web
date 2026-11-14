@@ -64,9 +64,9 @@ class ExampleTest extends TestCase
         }
 
         // 1. Check training detail page has shortcut button and modal
-        $showResponse = $this->actingAs($user)->get('/training/'.$training->id);
+        $showResponse = $this->actingAs($user)->get(route('training.show', [$training, 'bagian' => 'materi']));
         $showResponse->assertStatus(200);
-        $showResponse->assertSee('Upload Video Materi');
+        $showResponse->assertSee('Unggah Video');
         $showResponse->assertSee('uploadTrainingVideoModal');
 
         // 2. Submit shortcut video upload

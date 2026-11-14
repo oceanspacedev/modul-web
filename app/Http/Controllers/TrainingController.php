@@ -202,7 +202,7 @@ class TrainingController extends Controller
                 ->orWhereHas('divisi', fn (Builder $divisi) => $divisi->where('name', 'like', "%{$search}%"))))
             ->orderBy('id')
             ->paginate(self::PARTICIPANTS_PER_PAGE)
-            ->withQueryString()
+            ->appends($request->only(['peserta', 'wa']))
             ->fragment('peserta');
 
         $allDocuments = Document::with('dokumentype')->orderBy('name')->get();
