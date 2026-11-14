@@ -97,6 +97,17 @@ class User extends Authenticatable
     }
 
     /**
+     * Halaman awal setelah login: dashboard, atau "Pelatihan Saya" untuk role tanpa akses dashboard
+     * (dashboard akan menolak mereka dengan 403).
+     */
+    public function homeUrl(): string
+    {
+        return $this->can('view-dashboard')
+            ? route('dashboard')
+            : route('training.my-trainings');
+    }
+
+    /**
      * Jabatan karyawan (satu role Spatie per user, seperti role_id di DnD).
      *
      * @return Attribute<Role|null, never>

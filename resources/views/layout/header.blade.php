@@ -23,6 +23,17 @@
 </head>
 
 <body class="hold-transition @auth sidebar-mini layout-fixed @else layout-top-nav @endauth">
+    @auth
+    <script>
+        // Sidebar yang diciutkan tetap ciut setelah pindah halaman. Dipasang sebelum halaman digambar (selagi
+        // hold-transition aktif) supaya tidak berkedip lebar lalu menciut. Disimpan oleh public/script.js.
+        try {
+            if (window.matchMedia('(min-width: 992px)').matches && localStorage.getItem('sidebar-collapsed') === '1') {
+                document.body.classList.add('sidebar-collapse');
+            }
+        } catch (e) {}
+    </script>
+    @endauth
 
     <!-- Site wrapper -->
     <div class="wrapper">

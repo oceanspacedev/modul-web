@@ -96,7 +96,7 @@ class AuthController extends Controller
             $request->session()->regenerate();
             $this->forgetQuizIntendedUrl($request);
 
-            return redirect()->intended('dashboard');
+            return redirect()->intended($user->homeUrl());
         }
 
         return back()->withInput($request->only('username'))->with([
@@ -257,11 +257,13 @@ class AuthController extends Controller
         // Log the user in
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
+        $this->forgetQuizIntendedUrl($request);
 
+        // Sama seperti login password: kembali ke halaman yang tadi dibuka, kalau tidak ada ke halaman awal user.
         return response()->json([
             'status' => true,
-            'message' => 'Login berhasil! Mengalihkan ke halaman dashboard...',
-            'redirect' => url('/dashboard'),
+            'message' => 'Login berhasil! Mengalihkan...',
+            'redirect' => redirect()->intended($user->homeUrl())->getTargetUrl(),
         ]);
     }
 

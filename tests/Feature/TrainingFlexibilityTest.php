@@ -468,8 +468,10 @@ class TrainingFlexibilityTest extends TestCase
         $training = $this->training(['has_pretest' => true, 'has_posttest' => false]);
         $both = Training::create([...$training->only(['trainer_id', 'start_time', 'end_time', 'zoom_link']), 'title' => 'Dua fase', 'training_date' => now()->toDateString(), 'has_pretest' => true]);
         $participant = $training->participants()->sole();
+        $both->participants()->create(['user_id' => $participant->user_id, 'token' => 'token_dua_fase']);
+        // Satu hasil per peserta dan fase: tiap pelatihan memakai baris pesertanya sendiri.
         $result = fn (Training $of, string $phase, float $score) => TrainingQuizResult::create([
-            'training_id' => $of->id, 'user_id' => $participant->user_id, 'training_participant_id' => $participant->id,
+            'training_id' => $of->id, 'user_id' => $participant->user_id, 'training_participant_id' => $of->participants()->sole()->id,
             'phase' => $phase, 'total_questions' => 1, 'correct_answers' => 1, 'score' => $score, 'mc_score' => $score,
             'essay_status' => 'none', 'attempt_count' => 1, 'submitted_at' => now(), 'answers' => [],
         ]);

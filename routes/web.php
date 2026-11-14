@@ -21,10 +21,16 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserSyncController;
 use App\Http\Controllers\VideoController;
 use App\Http\Middleware\EnsureLearningModuleContext;
+use App\Http\Middleware\LastUserActivity;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Cookie\Middleware\EncryptCookies;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 // # AUTHENTICATION
-Route::get('/', [AuthController::class, 'showLogin'])->name('login');
+Route::get('/', [AuthController::class, 'showLogin'])->middleware('guest')->name('login');
 Route::get('/login', fn () => to_route('login', request()->only('redirect')));
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
@@ -42,7 +48,16 @@ Route::prefix('training/portal/{token}')
     ->middleware('throttle:portal')
     ->group(function () {
         Route::get('/', 'showPortal')->name('');
-        Route::get('status', 'getStatus')->name('.status');
+        // Dipanggil tiap 5 detik oleh setiap peserta dan hanya membaca: tanpa sesi dan cookie, supaya tidak ada tulisan
+        // ke penyimpanan sesi di setiap panggilan.
+        Route::get('status', 'getStatus')->name('.status')->withoutMiddleware([
+            EncryptCookies::class,
+            AddQueuedCookiesToResponse::class,
+            StartSession::class,
+            ShareErrorsFromSession::class,
+            PreventRequestForgery::class,
+            LastUserActivity::class,
+        ]);
         Route::post('attendance', 'submitAttendance')->name('.attendance');
         Route::get('quiz', 'showQuiz')->name('.quiz');
         Route::post('quiz', 'submitQuiz')->name('.quiz.submit');

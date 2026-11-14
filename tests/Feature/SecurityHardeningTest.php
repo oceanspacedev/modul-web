@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\TrainingStatus;
 use App\Jobs\SendTrainingInvitation;
 use App\Models\Document;
+use App\Models\LoginOtp;
 use App\Models\Role;
 use App\Models\Training;
 use App\Models\TrainingParticipant;
@@ -175,6 +176,52 @@ class SecurityHardeningTest extends TestCase
 
         $this->post('/login', ['username' => 'internal_user', 'password' => 'password'])
             ->assertRedirect(url('/video'));
+    }
+
+    public function test_signed_in_user_opening_the_login_page_goes_to_the_dashboard(): void
+    {
+        $this->actingAs($this->staff())->get('/')->assertRedirect('/dashboard');
+        $this->get('/login')->assertRedirect('/');
+    }
+
+    public function test_signed_in_user_without_dashboard_access_opening_the_login_page_goes_to_my_trainings(): void
+    {
+        Role::findByName(User::ROLE_STAFF, 'web')->revokePermissionTo('view-dashboard');
+
+        $this->actingAs($this->staff())->get('/')->assertRedirect('/my-trainings');
+    }
+
+    public function test_password_login_without_dashboard_access_goes_to_my_trainings(): void
+    {
+        Role::findByName(User::ROLE_STAFF, 'web')->revokePermissionTo('view-dashboard');
+        $this->staff(['username' => 'no_dashboard_user']);
+
+        $this->post('/login', ['username' => 'no_dashboard_user', 'password' => 'password'])
+            ->assertRedirect(route('training.my-trainings'));
+    }
+
+    public function test_otp_login_goes_to_the_users_home_page(): void
+    {
+        Role::findByName(User::ROLE_STAFF, 'web')->revokePermissionTo('view-dashboard');
+        $user = $this->staff(['username' => 'otp_home_user', 'no_hp' => '081200000002']);
+        LoginOtp::create(['user_id' => $user->id, 'phone' => $user->no_hp, 'otp_code' => '123456', 'expires_at' => now()->addMinutes(5)]);
+
+        $this->postJson('/login/otp/verify', ['username' => 'otp_home_user', 'otp' => '123456'])
+            ->assertOk()
+            ->assertJsonPath('redirect', route('training.my-trainings'));
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_otp_login_returns_to_the_page_opened_before_login(): void
+    {
+        $user = $this->staff(['username' => 'otp_intended_user', 'no_hp' => '081200000003']);
+        LoginOtp::create(['user_id' => $user->id, 'phone' => $user->no_hp, 'otp_code' => '654321', 'expires_at' => now()->addMinutes(5)]);
+
+        $this->get('/?redirect='.urlencode(url('/video')))->assertOk();
+
+        $this->postJson('/login/otp/verify', ['username' => 'otp_intended_user', 'otp' => '654321'])
+            ->assertOk()
+            ->assertJsonPath('redirect', url('/video'));
     }
 
     public function test_password_login_is_throttled_after_repeated_failures(): void

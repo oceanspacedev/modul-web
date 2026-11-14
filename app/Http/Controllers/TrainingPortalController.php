@@ -9,6 +9,8 @@ use App\Models\TrainingQuizResult;
 use App\Support\TrainingEvaluationForm;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -228,6 +230,8 @@ class TrainingPortalController extends Controller
             'showsAnswers' => $training->showsAnswers($phase),
             'secondsLeft' => $training->phaseSecondsLeft($phase),
             'closesAt' => $training->phaseClosesAt($phase),
+            // Nomor percobaan halaman ini; ikut terkirim supaya kiriman ganda (klik dua kali, koneksi lambat) dikenali.
+            'attemptNumber' => $previous ? ($previous->attempt_count ?? 1) + 1 : 1,
         ]);
     }
 
@@ -257,29 +261,12 @@ class TrainingPortalController extends Controller
      */
     public function submitQuiz(Request $request, $token, string $phase = Training::PHASE_POSTTEST)
     {
-        $participant = $this->findParticipant($token, ['training.questions', 'quizResult', 'pretestResult']);
+        $participant = $this->findParticipant($token, ['training.questions']);
         $training = $participant->training;
         $urls = $this->phaseUrls($token, $phase);
 
         if (! $training->hasPhase($phase)) {
             abort(404);
-        }
-
-        // Prevent resubmission once the allowed attempts are used up
-        $previous = $participant->resultFor($phase);
-        if ($previous && $training->quizAttemptsLeft($previous, $phase) === 0) {
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Anda sudah menyelesaikan kuis ini dan tidak dapat mengerjakan ulang.',
-                    'redirect_url' => $urls['result'],
-                ], 403);
-            }
-
-            return redirect($urls['result'])->with(
-                'warning',
-                'Anda sudah menyelesaikan kuis ini dan tidak dapat mengerjakan ulang.'
-            );
         }
 
         $questions = $training->questionsFor($phase);
@@ -346,25 +333,78 @@ class TrainingPortalController extends Controller
             'submitted_at' => now(),
         ];
 
-        // One result per participant. A retake only replaces it when it scores higher, so the highest score counts.
+        // Satu hasil per peserta dan fase. Baris peserta dikunci selama menyimpan, jadi dua kiriman yang datang
+        // bersamaan (klik dua kali, kirim otomatis saat waktu habis berbarengan dengan klik) diproses bergantian dan
+        // tidak pernah membuat dua baris hasil.
+        $attemptNumber = $request->filled('attempt_number') ? $request->integer('attempt_number') : null;
         $keptPreviousScore = null;
-        if ($previous) {
-            $attemptCount = ($previous->attempt_count ?? 1) + 1;
-            if ($mcScore > (float) $previous->score) {
-                $previous->update([...$attemptData, 'attempt_count' => $attemptCount]);
-            } else {
-                $previous->update(['attempt_count' => $attemptCount]);
-                $keptPreviousScore = (float) $previous->score;
+
+        $outcome = DB::transaction(function () use ($participant, $training, $phase, $attemptData, $mcScore, $attemptNumber, &$keptPreviousScore) {
+            TrainingParticipant::whereKey($participant->id)->lockForUpdate()->first();
+
+            $previous = TrainingQuizResult::where('training_participant_id', $participant->id)
+                ->where('phase', $phase)
+                ->latest('id')
+                ->first();
+
+            // Percobaan ini sudah tercatat: kiriman kedua dari halaman yang sama tidak memakai jatah percobaan.
+            if ($previous && $attemptNumber !== null && ($previous->attempt_count ?? 1) >= $attemptNumber) {
+                return 'duplicate';
             }
-        } else {
-            TrainingQuizResult::create([
-                ...$attemptData,
-                'training_id' => $training->id,
-                'user_id' => $participant->user_id,
-                'training_participant_id' => $participant->id,
-                'phase' => $phase,
-                'attempt_count' => 1,
-            ]);
+
+            if ($previous && $training->quizAttemptsLeft($previous, $phase) === 0) {
+                return 'exhausted';
+            }
+
+            // A retake only replaces the result when it scores higher, so the highest score counts.
+            if ($previous) {
+                $attemptCount = ($previous->attempt_count ?? 1) + 1;
+                if ($mcScore > (float) $previous->score) {
+                    $previous->update([...$attemptData, 'attempt_count' => $attemptCount]);
+                } else {
+                    $previous->update(['attempt_count' => $attemptCount]);
+                    $keptPreviousScore = (float) $previous->score;
+                }
+            } else {
+                TrainingQuizResult::create([
+                    ...$attemptData,
+                    'training_id' => $training->id,
+                    'user_id' => $participant->user_id,
+                    'training_participant_id' => $participant->id,
+                    'phase' => $phase,
+                    'attempt_count' => 1,
+                ]);
+            }
+
+            return 'saved';
+        });
+
+        if ($outcome === 'exhausted') {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda sudah menyelesaikan kuis ini dan tidak dapat mengerjakan ulang.',
+                    'redirect_url' => $urls['result'],
+                ], 403);
+            }
+
+            return redirect($urls['result'])->with(
+                'warning',
+                'Anda sudah menyelesaikan kuis ini dan tidak dapat mengerjakan ulang.'
+            );
+        }
+
+        if ($outcome === 'duplicate') {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'score' => (float) $participant->fresh()->resultFor($phase)?->score,
+                    'leaderboard' => $this->leaderboard($training, $phase),
+                    'redirect_url' => $urls['result'],
+                ]);
+            }
+
+            return redirect($urls['result'])->with('success', 'Jawaban kuis Anda sudah tersimpan di sistem.');
         }
 
         if ($request->ajax() || $request->wantsJson()) {
@@ -372,26 +412,10 @@ class TrainingPortalController extends Controller
                 session()->flash('warning', "Nilai percobaan ini {$mcScore}. Nilai tertinggi Anda ({$keptPreviousScore}) tetap dipakai.");
             }
 
-            $updatedLeaderboard = TrainingQuizResult::with('user')
-                ->where('training_id', $training->id)
-                ->where('phase', $phase)
-                ->orderByDesc('score')
-                ->orderBy('submitted_at')
-                ->take(10)
-                ->get()
-                ->map(function ($r, $idx) {
-                    return [
-                        'rank' => $idx + 1,
-                        'user_id' => $r->user_id,
-                        'name' => $r->user ? $r->user->nama_lengkap : 'Peserta',
-                        'score' => (float) $r->score,
-                    ];
-                });
-
             return response()->json([
                 'success' => true,
                 'score' => $mcScore,
-                'leaderboard' => $updatedLeaderboard,
+                'leaderboard' => $this->leaderboard($training, $phase),
                 'redirect_url' => $urls['result'],
             ]);
         }
@@ -409,6 +433,28 @@ class TrainingPortalController extends Controller
         }
 
         return redirect($urls['result'])->with($flashType, $flashMsg);
+    }
+
+    /**
+     * Sepuluh nilai tertinggi sebuah fase, untuk podium mode game.
+     *
+     * @return Collection<int, array{rank: int, user_id: int, name: string, score: float}>
+     */
+    private function leaderboard(Training $training, string $phase)
+    {
+        return TrainingQuizResult::with('user')
+            ->where('training_id', $training->id)
+            ->where('phase', $phase)
+            ->orderByDesc('score')
+            ->orderBy('submitted_at')
+            ->take(10)
+            ->get()
+            ->map(fn ($result, $index) => [
+                'rank' => $index + 1,
+                'user_id' => $result->user_id,
+                'name' => $result->user ? $result->user->nama_lengkap : 'Peserta',
+                'score' => (float) $result->score,
+            ]);
     }
 
     /**

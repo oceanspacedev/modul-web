@@ -16,7 +16,7 @@ class LoginWithWhatsAppTest extends TestCase
 
     public function test_user_can_login_with_username(): void
     {
-        $user = User::factory()->create([
+        $user = User::factory()->staff()->create([
             'username' => 'test_user_unique',
             'no_hp' => '081299990001',
             'password' => Hash::make('password123'),
@@ -33,7 +33,7 @@ class LoginWithWhatsAppTest extends TestCase
 
     public function test_user_can_login_with_whatsapp_number(): void
     {
-        $user = User::factory()->create([
+        $user = User::factory()->staff()->create([
             'username' => 'test_wa_user',
             'no_hp' => '081299990002',
             'password' => Hash::make('password123'),
@@ -50,7 +50,7 @@ class LoginWithWhatsAppTest extends TestCase
 
     public function test_user_can_login_with_whatsapp_number_prefix_62(): void
     {
-        $user = User::factory()->create([
+        $user = User::factory()->staff()->create([
             'username' => 'test_wa_user_62',
             'no_hp' => '081299990003',
             'password' => Hash::make('password123'),
@@ -67,7 +67,7 @@ class LoginWithWhatsAppTest extends TestCase
 
     public function test_user_can_login_with_whatsapp_number_prefix_plus_62_and_dashes(): void
     {
-        $user = User::factory()->create([
+        $user = User::factory()->staff()->create([
             'username' => 'test_wa_user_formatted',
             'no_hp' => '081299990004',
             'password' => Hash::make('password123'),
@@ -84,7 +84,7 @@ class LoginWithWhatsAppTest extends TestCase
 
     public function test_login_fails_with_wrong_password(): void
     {
-        User::factory()->create([
+        User::factory()->staff()->create([
             'username' => 'test_fail_user',
             'no_hp' => '081299990005',
             'password' => Hash::make('password123'),
@@ -101,7 +101,7 @@ class LoginWithWhatsAppTest extends TestCase
 
     public function test_user_can_request_whatsapp_otp(): void
     {
-        $user = User::factory()->create([
+        $user = User::factory()->staff()->create([
             'username' => 'test_otp_user',
             'no_hp' => '081299990010',
             'password' => Hash::make('password123'),
@@ -124,7 +124,7 @@ class LoginWithWhatsAppTest extends TestCase
 
     public function test_user_can_verify_whatsapp_otp_and_login(): void
     {
-        $user = User::factory()->create([
+        $user = User::factory()->staff()->create([
             'username' => 'test_otp_verify_user',
             'no_hp' => '081299990011',
             'password' => Hash::make('password123'),
@@ -163,7 +163,7 @@ class LoginWithWhatsAppTest extends TestCase
 
     public function test_otp_request_fails_if_user_has_no_whatsapp(): void
     {
-        User::factory()->create([
+        User::factory()->staff()->create([
             'username' => 'no_wa_user',
             'no_hp' => null,
             'password' => Hash::make('password123'),

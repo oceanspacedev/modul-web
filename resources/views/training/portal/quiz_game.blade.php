@@ -97,7 +97,12 @@
         {{-- Layar 3: hasil --}}
         <div class="game-card" id="finishScreen" style="display: none;">
             <h2 class="game-title" id="finishTitle">Kuis selesai</h2>
-            <p class="game-lead" id="finishSubtitle">Seluruh jawaban Anda sudah tersimpan ke sistem evaluasi</p>
+            <p class="game-lead" id="finishSubtitle">Menyimpan jawaban Anda...</p>
+            <div class="alert alert-danger text-left" id="saveFailedBox" hidden>
+                Jawaban Anda <strong>belum tersimpan</strong> karena koneksi terputus. Jangan tutup halaman ini; periksa
+                koneksi internet Anda, lalu tekan tombol di bawah.
+                <div class="mt-2"><button type="button" class="btn btn-danger btn-sm" id="btnRetrySave">Kirim ulang jawaban</button></div>
+            </div>
 
             {{-- DOM podium tetap ada untuk pengujian; peringkat tidak ditampilkan ke peserta. --}}
             <div style="display: none !important;">
@@ -152,6 +157,7 @@
     <!-- Hidden form for saving results to server -->
     <form action="{{ $phaseUrls['quiz'] }}" method="POST" id="hiddenSubmitForm" style="display: none;">
         @csrf
+        <input type="hidden" name="attempt_number" value="{{ $attemptNumber }}">
         <div id="hiddenAnswersContainer"></div>
     </form>
 
@@ -727,19 +733,27 @@
                     }
                 }
 
-                // Background submission
+                // Kirim di latar belakang. Kegagalan sementara (koneksi putus, server sibuk) dicoba lagi; server mengenali
+                // kiriman ulang dari nomor percobaannya, jadi mengulang tidak memakai jatah percobaan.
                 const submitForm = document.getElementById('hiddenSubmitForm');
-                if (submitForm) {
-                    const formData = new FormData(submitForm);
+                const subtitle = document.getElementById('finishSubtitle');
+                const failedBox = document.getElementById('saveFailedBox');
+                const RETRY_DELAYS = [2000, 4000, 8000];
+
+                function saveResults(attempt) {
+                    if (failedBox) failedBox.hidden = true;
+                    if (subtitle) subtitle.textContent = 'Menyimpan jawaban Anda...';
+
                     fetch(@json($phaseUrls['quiz']), {
                         method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    }).then(response => response.json())
-                    .then(data => {
-                        console.log('Quiz results recorded', data);
+                        body: new FormData(submitForm),
+                        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                    }).then(response => {
+                        // 403 = jatah percobaan sudah habis: hasil sebelumnya yang dipakai, tidak perlu diulang.
+                        if (!response.ok && response.status !== 403) throw new Error('HTTP ' + response.status);
+                        return response.json();
+                    }).then(data => {
+                        if (subtitle) subtitle.textContent = 'Seluruh jawaban Anda sudah tersimpan ke sistem evaluasi';
                         if (!SHOW_ANSWERS && data && data.score !== undefined) {
                             const finalAcadElem = document.getElementById('finalAcademicScore');
                             if (finalAcadElem) finalAcadElem.textContent = `${Math.round(data.score)}`;
@@ -749,7 +763,19 @@
                         }
                     }).catch(err => {
                         console.error('Submission error:', err);
+                        if (attempt < RETRY_DELAYS.length) {
+                            setTimeout(() => saveResults(attempt + 1), RETRY_DELAYS[attempt]);
+                            return;
+                        }
+                        if (subtitle) subtitle.textContent = 'Jawaban belum tersimpan';
+                        if (failedBox) failedBox.hidden = false;
                     });
+                }
+
+                if (submitForm) {
+                    const retryButton = document.getElementById('btnRetrySave');
+                    if (retryButton) retryButton.onclick = () => saveResults(0);
+                    saveResults(0);
                 }
             } catch(e) {
                 console.error('Error submitting quiz answers:', e);

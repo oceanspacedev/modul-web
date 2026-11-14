@@ -43,6 +43,7 @@
 
         <form action="{{ $phaseUrls['quiz'] }}" method="POST" id="formQuiz">
             @csrf
+            <input type="hidden" name="attempt_number" value="{{ $attemptNumber }}">
             <input type="hidden" name="is_time_up" id="isTimeUp" value="0">
 
             <!-- Anti-Cheat Hidden Data -->
@@ -308,5 +309,6 @@
         });
     })();
     </script>
+    @include('training.partials.portal-submit-guard')
 </body>
 </html>
