@@ -19,7 +19,7 @@
 </section>
 
 <section class="content">
-    <div class="container-fluid" style="max-width: 1000px;">
+    <div class="container-fluid">
         @include('learning_module.partials.video-player', [
             'video' => $video,
             'completeUrl' => $module->url('items.complete', ['item' => $item]),

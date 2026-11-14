@@ -4998,3 +4998,9 @@ body.page-center {
         white-space: normal !important;
     }
 }
+
+/* Halaman selebar layar: pemutar video dibatasi supaya tetap muat setinggi layar. */
+.material-player {
+    max-width: calc((100vh - 14rem) * 16 / 9);
+    min-width: min(100%, 20rem);
+}

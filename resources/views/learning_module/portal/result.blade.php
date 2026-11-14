@@ -29,7 +29,7 @@
 </section>
 
 <section class="content">
-    <div class="container-fluid" style="max-width: 900px;">
+    <div class="container-fluid">
         @include('learning_module.partials.alerts')
 
         <div class="card">

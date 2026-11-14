@@ -6,7 +6,7 @@
 --}}
 @php $youtubeId = $video->youtubeId(); @endphp
 
-<div class="card overflow-hidden mb-3">
+<div class="card overflow-hidden mb-3 material-player">
     <div class="embed-responsive embed-responsive-16by9 bg-black">
         @if($video->isFile())
             <video id="materialVideo" class="embed-responsive-item" controls playsinline preload="metadata" poster="{{ $video->thumbnail_url ?? '' }}">
