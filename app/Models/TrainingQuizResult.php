@@ -40,7 +40,8 @@ class TrainingQuizResult extends Model
      */
     public function scopeMainPhase($query): void
     {
-        $query->where(fn ($main) => $main
+        // Hasil milik pelatihan yang sudah dihapus tidak ikut: pelatihannya sudah tidak tampil di mana pun.
+        $query->whereHas('training')->where(fn ($main) => $main
             ->where('phase', Training::PHASE_POSTTEST)
             ->orWhere(fn ($pretest) => $pretest
                 ->where('phase', Training::PHASE_PRETEST)

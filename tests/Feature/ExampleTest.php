@@ -35,11 +35,11 @@ class ExampleTest extends TestCase
         $response->assertSee('Video Materi');
         $response->assertSee('Peserta Pelatihan');
         $response->assertSee('Dokumen Modul');
-        $response->assertSee('Hasil Evaluasi Kuis');
+        $response->assertSee('Hasil Kuis Pelatihan');
         $response->assertDontSee('Kuis Modul');
         $response->assertDontSee('Presensi Karyawan');
         $response->assertSee('chartPelatihan');
-        $response->assertSee('Distribusi Nilai Evaluasi Kuis');
+        $response->assertSee('Sebaran Nilai Kuis Pelatihan');
         $response->assertSee('chartVideoViews');
         $response->assertSee('chartContentComposition');
         $response->assertSee('Chart.bundle.min.js');

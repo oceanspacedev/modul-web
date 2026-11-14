@@ -31,14 +31,17 @@ class DashboardController extends Controller
         $totalVideo = Video::count();
         $totalTraining = Training::count();
         $ongoingTraining = Training::where('status', TrainingStatus::Ongoing)->count();
-        $totalParticipant = TrainingParticipant::count();
+        // Hanya peserta pelatihan yang masih ada; pelatihan yang dihapus tidak ikut dihitung.
+        $participants = TrainingParticipant::whereHas('training');
+        $totalParticipant = (clone $participants)->count();
+        $uniqueParticipant = (clone $participants)->distinct()->count('user_id');
         $totalQuizResult = TrainingQuizResult::mainPhase()->count();
         $totalDivisi = Divisi::count();
         $totalPosition = Position::count();
         $totalDokumenType = DokumenType::count();
 
         // Recent trainings
-        $recentTrainings = Training::with('trainer')
+        $recentTrainings = Training::with('trainer')->withCount(['participants', 'questions'])
             ->orderBy('training_date', 'desc')
             ->take(5)
             ->get();
@@ -96,8 +99,8 @@ class DashboardController extends Controller
         })->values();
 
         // Chart 4: Module & Content Distribution
-        $chartContentLabels = ['Video Materi', 'Dokumen Modul', 'Pelatihan', 'Divisi'];
-        $chartContentValues = [$totalVideo, $totalDocument, $totalTraining, $totalDivisi];
+        $chartContentLabels = ['Video Materi', 'Dokumen Modul', 'Pelatihan'];
+        $chartContentValues = [$totalVideo, $totalDocument, $totalTraining];
 
         return view('dashboard.index', [
             'title' => 'Dashboard',
@@ -109,6 +112,7 @@ class DashboardController extends Controller
                 'totalTraining' => $totalTraining,
                 'ongoingTraining' => $ongoingTraining,
                 'totalParticipant' => $totalParticipant,
+                'uniqueParticipant' => $uniqueParticipant,
                 'totalQuizResult' => $totalQuizResult,
                 'totalDivisi' => $totalDivisi,
                 'totalPosition' => $totalPosition,
