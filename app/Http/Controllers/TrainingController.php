@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Enums\TrainingStatus;
+use App\Exports\TrainingParticipantTemplate;
 use App\Http\Requests\StoreTrainingRequest;
 use App\Http\Requests\UpdateTrainingRequest;
 use App\Jobs\AiTask;
 use App\Jobs\GenerateExportFile;
+use App\Jobs\ProcessTrainingParticipantImport;
 use App\Jobs\ScanZoomOffCam;
 use App\Jobs\SendTrainingInvitation;
 use App\Models\Divisi;
@@ -14,6 +16,7 @@ use App\Models\Document;
 use App\Models\Training;
 use App\Models\TrainingParticipant;
 use App\Models\TrainingQuizResult;
+use App\Models\TrainingWaLog;
 use App\Models\User;
 use App\Services\WhatsAppService;
 use App\Support\QuizRules;
@@ -32,6 +35,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 #[Authorize('viewAny', Training::class, only: ['index'])]
 #[Authorize('create', Training::class, only: ['create', 'store'])]
@@ -183,7 +187,14 @@ class TrainingController extends Controller
         // Only one page of participants is loaded and rendered, so the page stays small for any class size.
         $search = trim((string) $request->query('peserta'));
         $participants = $training->participants()
-            ->with(['user.divisi', 'quizResult', 'pretestResult', 'evaluation'])
+            ->with([
+                'user.divisi', 'quizResult', 'pretestResult', 'evaluation',
+                // Pengingat tiap 15 menit bisa menumpuk riwayat gagal, jadi hanya yang terbaru yang dimuat.
+                'waLogs' => fn ($logs) => $logs->limit(TrainingParticipant::WA_LOGS_SHOWN),
+                'waLogs.sender:id,nama_lengkap',
+            ])
+            ->withWaSummary()
+            ->when($request->query('wa') === 'gagal', fn (Builder $query) => $query->waFailed())
             ->when($search !== '', fn (Builder $query) => $query->whereHas('user', fn (Builder $user) => $user
                 ->where('nama_lengkap', 'like', "%{$search}%")
                 ->orWhere('employee_id', 'like', "%{$search}%")
@@ -201,6 +212,7 @@ class TrainingController extends Controller
             'active' => 'training',
             'training' => $training,
             'participants' => $participants,
+            'waFailedCount' => $training->participants()->waFailed()->count(),
             'zoomParticipants' => $this->zoomParticipants($training),
             'allDocuments' => $allDocuments,
             'canImportDocumentQuestions' => $canImportDocumentQuestions,
@@ -347,7 +359,7 @@ class TrainingController extends Controller
 
             $removedParticipantIds = array_diff($existingParticipantIds, $newParticipantIds);
             if ($removedParticipantIds !== []) {
-                $training->participants()->whereIn('user_id', $removedParticipantIds)->delete();
+                $training->participants()->whereIn('user_id', $removedParticipantIds)->get()->each->remove();
             }
         });
 
@@ -715,16 +727,73 @@ class TrainingController extends Controller
     }
 
     /**
+     * Import peserta dari Excel di belakang layar. Data user yang cocok di master User ikut dimutakhirkan sesuai hak
+     * akses pengimpor; hasilnya dikirim lewat notifikasi.
+     */
+    public function importParticipants(Request $request, Training $training): RedirectResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
+            'send_wa' => ['nullable', 'boolean'],
+        ]);
+
+        $file = $request->file('file');
+        $path = $file->storeAs('imports', Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
+
+        ProcessTrainingParticipantImport::dispatch($request->user()->id, $training->id, $path, $request->boolean('send_wa'));
+
+        return to_route('training.show', $training)->withFragment('peserta')->with('info', ProcessTrainingParticipantImport::QUEUED_MESSAGE);
+    }
+
+    public function participantTemplate(Training $training): BinaryFileResponse
+    {
+        return Excel::download(new TrainingParticipantTemplate, 'template_peserta_'.Str::slug($training->title).'.xlsx');
+    }
+
+    /**
+     * Keluarkan peserta (mis. takeout) dari pelatihan, beserta hasil kuis, evaluasi, dan presensinya.
+     */
+    public function removeParticipant(Training $training, TrainingParticipant $participant): RedirectResponse
+    {
+        $name = $participant->user->nama_lengkap ?? 'Peserta';
+        $participant->remove();
+
+        return to_route('training.show', $training)->withFragment('peserta')
+            ->with('success', "{$name} dikeluarkan dari pelatihan. Link portal, hasil kuis, presensi, dan evaluasinya ikut dihapus.");
+    }
+
+    /**
+     * Kirim manual: catat di riwayat siapa yang membukanya, lalu buka WhatsApp ke nomor peserta dengan teks undangan
+     * yang sama seperti kiriman otomatis. Dipakai saat gateway WAGHub bermasalah.
+     */
+    public function sendManualWa(Request $request, Training $training, TrainingParticipant $participant): RedirectResponse
+    {
+        $links = WhatsAppService::manualInvitationLinks($training, $participant);
+
+        if (! $links) {
+            return to_route('training.show', $training)->withFragment('peserta')
+                ->with('error', 'No. HP '.($participant->user->nama_lengkap ?? 'peserta').' kosong atau tidak valid. Perbaiki di Pengaturan > User lalu coba lagi.');
+        }
+
+        $participant->logWa(TrainingWaLog::CHANNEL_MANUAL, true, null, $participant->user->no_hp, $request->user()->id);
+
+        // WhatsApp Web tidak bisa dibuka di HP; di sana wa.me membuka aplikasi WhatsApp.
+        $onPhone = preg_match('/Android|iPhone|iPad|Mobile/i', (string) $request->userAgent()) === 1;
+
+        return redirect()->away($links[$onPhone ? 'app' : 'web']);
+    }
+
+    /**
      * Send WA notification to a single participant
      */
-    public function sendSingleWa(Training $training, TrainingParticipant $participant): RedirectResponse
+    public function sendSingleWa(Request $request, Training $training, TrainingParticipant $participant): RedirectResponse
     {
-        $result = WhatsAppService::sendToParticipant($participant);
+        $result = WhatsAppService::sendToParticipant($participant, $request->user()->id);
 
         if ($result['status']) {
             return back()->with('success', "Pesan WhatsApp berhasil dikirim ke {$participant->user->nama_lengkap}.");
         } else {
-            return back()->with('error', "Gagal kirim WA ke {$participant->user->nama_lengkap}: {$result['message']}");
+            return back()->with('error', "Gagal kirim WA ke {$participant->user->nama_lengkap}: {$result['message']}. Gunakan tombol Kirim manual di kolom WhatsApp untuk mengirim lewat WhatsApp Web.");
         }
     }
 
@@ -1132,10 +1201,6 @@ class TrainingController extends Controller
 
     private function addParticipant(Training $training, int $userId): TrainingParticipant
     {
-        return $training->participants()->create([
-            'user_id' => $userId,
-            'token' => Str::random(40).'_'.time(),
-            'attendance_status' => 'pending',
-        ]);
+        return TrainingParticipant::createFor($training, $userId);
     }
 }

@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Training;
 use App\Models\TrainingParticipant;
+use App\Models\TrainingWaLog;
+use App\Support\WhatsAppNumber;
 use Carbon\Carbon;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Arr;
@@ -154,6 +156,28 @@ class WhatsAppService
     }
 
     /**
+     * Tautan kirim manual lewat WhatsApp Web ke nomor peserta, berisi teks undangan yang sama dengan kiriman otomatis
+     * WAGHub. Dipakai pemateri saat gateway bermasalah. null bila nomor peserta kosong atau tidak valid.
+     *
+     * @return array{web: string, app: string}|null
+     */
+    public static function manualInvitationLinks(Training $training, TrainingParticipant $participant): ?array
+    {
+        $number = WhatsAppNumber::normalize($participant->user?->no_hp);
+        if (! WhatsAppNumber::isValid($number)) {
+            return null;
+        }
+
+        $text = rawurlencode(self::buildInvitationMessage($training, $participant));
+
+        return [
+            'web' => "https://web.whatsapp.com/send?phone={$number}&text={$text}",
+            // Di HP WhatsApp Web tidak bisa dibuka; wa.me membuka aplikasi WhatsApp.
+            'app' => "https://wa.me/{$number}?text={$text}",
+        ];
+    }
+
+    /**
      * What the participant does on the portal for this training, e.g. "melakukan konfirmasi kehadiran dan pengerjaan
      * kuis evaluasi". Only what the training actually has is mentioned (attendance, pretest, posttest, evaluation).
      */
@@ -179,7 +203,26 @@ class WhatsAppService
     /**
      * Send WhatsApp message to single participant via WAGHub API
      */
-    public static function sendToParticipant(TrainingParticipant $participant): array
+    public static function sendToParticipant(TrainingParticipant $participant, ?int $sentBy = null): array
+    {
+        $result = self::attemptToParticipant($participant);
+
+        // Setiap percobaan otomatis masuk riwayat, supaya terlihat berapa kali dan kapan undangan berhasil atau gagal.
+        $participant->logWa(
+            TrainingWaLog::CHANNEL_AUTO,
+            $result['status'],
+            $result['status'] ? ($result['simulated'] ?? false ? 'Simulasi: token WAGHub belum diisi, pesan hanya dicatat di log' : null) : $result['message'],
+            self::formatPhoneNumber($participant->user->no_hp ?? ''),
+            $sentBy,
+        );
+
+        return $result;
+    }
+
+    /**
+     * @return array{status: bool, message: string, simulated?: bool}
+     */
+    private static function attemptToParticipant(TrainingParticipant $participant): array
     {
         $user = $participant->user;
         $phone = self::formatPhoneNumber($user->no_hp ?? '');
@@ -213,7 +256,7 @@ class WhatsAppService
                 'wa_status' => 'Terkirim (Simulasi / Log)',
             ]);
 
-            return ['status' => true, 'message' => 'Simulasi sukses (token belum diisi)'];
+            return ['status' => true, 'message' => 'Simulasi sukses (token belum diisi)', 'simulated' => true];
         }
 
         try {

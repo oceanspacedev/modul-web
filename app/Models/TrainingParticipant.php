@@ -4,8 +4,13 @@ namespace App\Models;
 
 use App\Enums\TrainingStatus;
 use App\Support\StorageUrl;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class TrainingParticipant extends Model
 {
@@ -27,6 +32,150 @@ class TrainingParticipant extends Model
             'is_off_cam' => 'boolean',
             'off_cam_count' => 'integer',
         ];
+    }
+
+    /**
+     * Daftarkan user sebagai peserta baru dengan token link portal sendiri.
+     */
+    public static function createFor(Training $training, int $userId): self
+    {
+        return $training->participants()->create([
+            'user_id' => $userId,
+            'token' => Str::random(40).'_'.time(),
+            'attendance_status' => 'pending',
+        ]);
+    }
+
+    /**
+     * Keluarkan peserta dari pelatihan beserta hasil pretest/posttest dan evaluasinya. Link portalnya ikut tidak
+     * berlaku, dan peserta tidak lagi ikut rekap nilai maupun pengingat WhatsApp.
+     */
+    public function remove(): void
+    {
+        $proof = $this->attendance_proof;
+
+        DB::transaction(function (): void {
+            TrainingQuizResult::where('training_participant_id', $this->id)->delete();
+            TrainingEvaluation::where('training_participant_id', $this->id)->delete();
+            TrainingWaLog::where('training_participant_id', $this->id)->delete();
+            $this->delete();
+        });
+
+        // Foto bukti presensi ikut dihapus setelah barisnya benar-benar terhapus.
+        if ($proof && Storage::exists($proof)) {
+            Storage::delete($proof);
+        }
+    }
+
+    /**
+     * Riwayat undangan WhatsApp, terbaru dulu.
+     */
+    public function waLogs()
+    {
+        return $this->hasMany(TrainingWaLog::class, 'training_participant_id')->latest('created_at')->latest('id');
+    }
+
+    /**
+     * Catat satu percobaan undangan WhatsApp ke riwayat peserta.
+     */
+    public function logWa(string $channel, bool $success, ?string $detail = null, ?string $phone = null, ?int $sentBy = null): TrainingWaLog
+    {
+        return $this->waLogs()->create([
+            'channel' => $channel,
+            'success' => $success,
+            'detail' => $detail === null ? null : Str::limit($detail, 250, ''),
+            'phone' => $phone,
+            'sent_by' => $sentBy,
+            'created_at' => now(),
+        ]);
+    }
+
+    /**
+     * Hitungan riwayat undangan per peserta untuk daftar peserta, dihitung database supaya tetap benar walaupun
+     * riwayat yang dimuat ke halaman dibatasi.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeWithWaSummary($query): void
+    {
+        $auto = fn (bool $success) => fn ($logs) => $logs->where('channel', TrainingWaLog::CHANNEL_AUTO)->where('success', $success);
+
+        $query
+            ->withCount([
+                'waLogs as wa_auto_success_count' => $auto(true),
+                'waLogs as wa_auto_failed_count' => $auto(false),
+                'waLogs as wa_manual_count' => fn ($logs) => $logs->where('channel', TrainingWaLog::CHANNEL_MANUAL),
+            ])
+            ->withMax(['waLogs as wa_last_auto_success_at' => $auto(true)], 'created_at')
+            ->withMax(['waLogs as wa_last_auto_failed_at' => $auto(false)], 'created_at');
+    }
+
+    /**
+     * Ringkasan riwayat undangan: berapa kali kiriman otomatis berhasil/gagal dan kapan terakhirnya, serta berapa
+     * kali kirim manual dibuka. Butuh scope withWaSummary.
+     *
+     * @return array{autoSuccess: int, autoFailed: int, manual: int, lastAutoSuccess: ?Carbon, lastAutoFailed: ?Carbon}
+     */
+    public function waSummary(): array
+    {
+        return [
+            'autoSuccess' => (int) $this->wa_auto_success_count,
+            'autoFailed' => (int) $this->wa_auto_failed_count,
+            'manual' => (int) $this->wa_manual_count,
+            'lastAutoSuccess' => $this->wa_last_auto_success_at ? Carbon::parse($this->wa_last_auto_success_at) : null,
+            'lastAutoFailed' => $this->wa_last_auto_failed_at ? Carbon::parse($this->wa_last_auto_failed_at) : null,
+        ];
+    }
+
+    /** Riwayat terbaru yang dimuat per peserta di halaman detail; hitungannya tetap dari seluruh riwayat. */
+    public const WA_LOGS_SHOWN = 30;
+
+    /** Status WhatsApp yang menandai pengiriman otomatis (WAGHub) gagal. */
+    public const WA_FAILED_PREFIXES = ['Gagal', 'Error'];
+
+    /**
+     * Peserta yang undangan WhatsApp otomatisnya gagal terkirim.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeWaFailed($query): void
+    {
+        $query->where(function ($failed): void {
+            foreach (self::WA_FAILED_PREFIXES as $prefix) {
+                $failed->orWhere('wa_status', 'like', $prefix.'%');
+            }
+        });
+    }
+
+    public function waFailed(): bool
+    {
+        return Str::startsWith((string) $this->wa_status, self::WA_FAILED_PREFIXES);
+    }
+
+    /**
+     * Status undangan WhatsApp untuk daftar peserta. Status terakhir didahulukan: kiriman ulang yang gagal tampil
+     * gagal walaupun kiriman sebelumnya pernah terkirim.
+     *
+     * @return array{label: string, kind: 'success'|'danger'|'warning'|'idle', detail: string|null}
+     */
+    public function waState(): array
+    {
+        $sentAt = $this->wa_sent_at?->timezone(config('app.timezone'))->isoFormat('D MMM, HH:mm');
+
+        return match (true) {
+            $this->waFailed() => [
+                'label' => 'Gagal kirim',
+                'kind' => 'danger',
+                'detail' => trim(Str::after((string) $this->wa_status, ':')).($sentAt ? " (terakhir terkirim {$sentAt})" : ''),
+            ],
+            $this->wa_status === 'Dalam antrean' => ['label' => 'Dalam antrean', 'kind' => 'warning', 'detail' => 'Sedang dikirim oleh WAGHub di latar belakang.'],
+            $this->wa_sent_at !== null => [
+                'label' => "Terkirim {$sentAt}",
+                'kind' => 'success',
+                'detail' => str_contains((string) $this->wa_status, 'Simulasi') ? 'Simulasi: token WAGHub belum diisi, pesan hanya dicatat di log.' : null,
+            ],
+            default => ['label' => 'Belum dikirim', 'kind' => 'idle', 'detail' => null],
+        };
     }
 
     public function training()
