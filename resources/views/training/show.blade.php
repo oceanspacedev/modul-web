@@ -682,6 +682,43 @@
             </div>
         </div>
 
+        <!-- MODAL IMPORT PESERTA DARI EXCEL -->
+        <div class="modal fade" id="importParticipantsModal" tabindex="-1" role="dialog" aria-labelledby="importParticipantsModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <form action="{{ route('training.participants.import', $training) }}" method="POST" enctype="multipart/form-data" class="modal-content">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="importParticipantsModalTitle">Import Peserta dari Excel</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Tutup"><span aria-hidden="true">&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <a href="{{ route('training.participants.template', $training) }}" class="btn btn-default btn-block mb-3">
+                            <i class="fas fa-download"></i> Unduh Template Excel (.xlsx)
+                        </a>
+                        <div class="form-group">
+                            <label for="importParticipantsFile">File Spreadsheet (.xlsx, .xls, .csv)</label>
+                            <input type="file" name="file" id="importParticipantsFile" class="form-control" accept=".xlsx,.xls,.csv" required>
+                        </div>
+                        <div class="custom-control custom-checkbox mb-3">
+                            <input type="checkbox" class="custom-control-input" id="importParticipantsSendWa" name="send_wa" value="1">
+                            <label class="custom-control-label font-weight-normal" for="importParticipantsSendWa">Kirim undangan WhatsApp ke peserta yang baru ditambahkan</label>
+                        </div>
+                        <ul class="small text-muted pl-3 mb-0">
+                            <li>Kolom dibaca dari judulnya di baris pertama; hanya sheet pertama yang dibaca. Kolom lain (mis. RSC, Detail Cabang) diabaikan.</li>
+                            <li><b>No HP wajib</b> di setiap baris, karena undangan dan link portal dikirim lewat WhatsApp.</li>
+                            <li>Peserta dicocokkan ke master User lewat <b>Employee ID</b>, lalu username, lalu No HP. Karyawan yang belum ada di master User tidak dibuat; tambahkan dulu lewat Pengaturan &gt; User atau sinkronisasi DnD.</li>
+                            <li>Nama, Job Position, Divisi, dan No HP di master User ikut diperbarui bila Anda berwenang atas user itu. No HP adalah login WhatsApp, jadi hanya admin yang berwenang yang dapat mengubahnya.</li>
+                            <li>Peserta yang sudah terdaftar tidak didobel. Baris yang ditolak dan catatannya dikabarkan lewat Notifikasi.</li>
+                        </ul>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Import Peserta</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- TABEL REKAP PESERTA & NILAI -->
         <div class="card" id="peserta">
             <div class="card-header">
@@ -693,6 +730,9 @@
                     <a href="{{ route('training.edit', $training) }}#peserta" class="btn btn-default btn-sm">
                         <i class="fas fa-user-plus"></i> Tambah / Ubah Peserta
                     </a>
+                    <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#importParticipantsModal">
+                        <i class="fas fa-file-excel"></i> Import Excel
+                    </button>
                     @if($training->isOnline())
                         <button type="button" class="btn btn-default btn-sm" id="btnToggleManualOffCamMode">
                             <i class="fas fa-user-edit"></i> Input Off Cam Manual
@@ -700,8 +740,12 @@
                     @endif
                     {{-- Pencarian dijalankan server: tabel hanya memuat satu halaman peserta. --}}
                     <form action="{{ route('training.show', $training) }}#peserta" method="GET" class="m-0" role="search" style="width: 220px; max-width: 100%;">
+                        {{-- Pencarian tetap di dalam daftar "gagal saja" bila filter itu sedang aktif. --}}
+                        @if(request('wa') === 'gagal')
+                            <input type="hidden" name="wa" value="gagal">
+                        @endif
                         <x-search-field name="peserta" placeholder="Cari peserta..."
-                            :clear-url="route('training.show', $training).'#peserta'" />
+                            :clear-url="route('training.show', request('wa') === 'gagal' ? [$training, 'wa' => 'gagal'] : $training).'#peserta'" />
                     </form>
                 </div>
             </div>
@@ -719,6 +763,21 @@
                     <i class="fas fa-check"></i> Selesai Mode Manual
                 </button>
             </div>
+
+            @if($waFailedCount > 0)
+                <div class="alert alert-warning mx-3 mt-3 mb-0 d-flex align-items-start flex-wrap gap-2" role="status">
+                    <i class="fab fa-whatsapp mr-1 mt-1"></i>
+                    <div class="flex-grow-1">
+                        <strong>{{ $waFailedCount }} peserta gagal menerima undangan WhatsApp otomatis.</strong>
+                        <span class="d-block text-sm">Alasan gagal dan riwayat tiap kiriman tampil di kolom WhatsApp. Gunakan tombol <strong>Kirim manual</strong> untuk membuka WhatsApp Web ke nomor peserta dengan teks undangan yang sama, atau kirim ulang lewat menu aksi setelah gateway pulih.</span>
+                    </div>
+                    @if(request('wa') === 'gagal')
+                        <a href="{{ route('training.show', $training) }}#peserta" class="btn btn-default btn-sm text-nowrap">Tampilkan semua peserta</a>
+                    @else
+                        <a href="{{ route('training.show', [$training, 'wa' => 'gagal']) }}#peserta" class="btn btn-default btn-sm text-nowrap">Tampilkan yang gagal saja</a>
+                    @endif
+                </div>
+            @endif
 
             <div class="card-body table-responsive p-0" style="min-height: 260px;">
                 <table class="table table-hover mb-0" id="participantsTable">
@@ -754,6 +813,9 @@
                             $userEmail = optional($user)->email ?? '-';
                             $userIdKaryawan = optional($user)->employee_id ?? '-';
                             $userNoWa = optional($user)->no_hp ?? '-';
+                            $waState = $part->waState();
+                            $waLinks = \App\Services\WhatsAppService::manualInvitationLinks($training, $part);
+                            $waSummary = $part->waSummary();
                             // Kolom kuis memuat fase utama; pretest tampil sebagai baris kecil hanya bila ada posttest juga.
                             $quiz = $mainPhase ? $part->resultFor($mainPhase) : null;
                             $pretest = $mainPhase === 'posttest' && $training->has_pretest ? $part->pretestResult : null;
@@ -768,7 +830,86 @@
                             </td>
                             <td class="align-middle text-nowrap">
                                 <span class="d-block">{{ $userNoWa }}</span>
-                                <span class="cell-sub">{{ $part->wa_sent_at ? 'WA terkirim' : 'Belum dikirim' }}</span>
+                                <span class="status-dot is-{{ $waState['kind'] }} text-sm" @if($waState['detail']) title="{{ $waState['detail'] }}" @endif>{{ $waState['label'] }}</span>
+                                @if($part->waFailed())
+                                    <span class="cell-sub text-truncate" style="max-width: 200px;" title="{{ $waState['detail'] }}">{{ $waState['detail'] }}</span>
+                                @endif
+                                @if($part->waLogs->isNotEmpty())
+                                    {{-- Berapa kali kiriman otomatis berhasil/gagal dan berapa kali kirim manual dibuka. --}}
+                                    <span class="cell-sub">
+                                        Otomatis: {{ $waSummary['autoSuccess'] }}x berhasil, {{ $waSummary['autoFailed'] }}x gagal
+                                        @if($waSummary['manual'] > 0)
+                                            &middot; Manual: {{ $waSummary['manual'] }}x
+                                        @endif
+                                        &middot; <a href="javascript:void(0)" data-toggle="modal" data-target="#waLogModal_{{ $part->id }}">Riwayat</a>
+                                    </span>
+                                @endif
+                                @if($part->waFailed() && $waLinks)
+                                    <form action="{{ route('training.send-manual-wa', [$training, $part]) }}" method="POST" target="_blank" class="m-0 mt-1">
+                                        @csrf
+                                        <button type="submit" class="btn btn-default btn-xs">
+                                            <i class="fab fa-whatsapp"></i> Kirim manual
+                                        </button>
+                                    </form>
+                                @endif
+
+                                @if($part->waLogs->isNotEmpty())
+                                <!-- MODAL RIWAYAT UNDANGAN WHATSAPP -->
+                                <div class="modal fade text-left" id="waLogModal_{{ $part->id }}" tabindex="-1" role="dialog" aria-hidden="true">
+                                    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Riwayat Undangan WhatsApp: {{ $userName }}</h5>
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup"><span aria-hidden="true">&times;</span></button>
+                                            </div>
+                                            <div class="modal-body text-wrap">
+                                                <p class="mb-2">
+                                                    Otomatis (WAGHub): <strong>{{ $waSummary['autoSuccess'] }}x berhasil</strong>@if($waSummary['lastAutoSuccess']), terakhir {{ $waSummary['lastAutoSuccess']->isoFormat('D MMM Y, HH:mm') }}@endif
+                                                    &middot; <strong>{{ $waSummary['autoFailed'] }}x gagal</strong>@if($waSummary['lastAutoFailed']), terakhir {{ $waSummary['lastAutoFailed']->isoFormat('D MMM Y, HH:mm') }}@endif
+                                                    &middot; Manual dibuka: <strong>{{ $waSummary['manual'] }}x</strong>
+                                                </p>
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm mb-0">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Waktu</th>
+                                                                <th>Cara</th>
+                                                                <th>Hasil</th>
+                                                                <th>Nomor</th>
+                                                                <th>Keterangan</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach($part->waLogs as $waLog)
+                                                                <tr>
+                                                                    <td class="text-nowrap">{{ $waLog->created_at->isoFormat('D MMM Y, HH:mm:ss') }}</td>
+                                                                    <td class="text-nowrap">{{ $waLog->isManual() ? 'Manual' : 'Otomatis' }}</td>
+                                                                    <td class="text-nowrap">
+                                                                        <span class="status-dot is-{{ $waLog->isManual() ? 'warning' : ($waLog->success ? 'success' : 'danger') }}">{{ $waLog->resultLabel() }}</span>
+                                                                    </td>
+                                                                    <td class="text-nowrap">{{ $waLog->phone ?? '-' }}</td>
+                                                                    <td>
+                                                                        {{ $waLog->detail }}
+                                                                        @if($waLog->sender)
+                                                                            <span class="text-muted">{{ $waLog->detail ? '·' : '' }} oleh {{ $waLog->sender->nama_lengkap }}</span>
+                                                                        @elseif(! $waLog->isManual() && ! $waLog->detail)
+                                                                            <span class="text-muted">Broadcast / pengingat</span>
+                                                                        @endif
+                                                                    </td>
+                                                                </tr>
+                                                            @endforeach
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                @if($waSummary['autoSuccess'] + $waSummary['autoFailed'] + $waSummary['manual'] > $part->waLogs->count())
+                                                    <p class="text-muted text-sm mt-3 mb-0">Menampilkan {{ $part->waLogs->count() }} riwayat terbaru.</p>
+                                                @endif
+                                                <p class="text-muted text-sm mt-3 mb-0">"Dibuka manual" berarti pemateri membuka WhatsApp dengan teks undangan; sistem tidak bisa memastikan pesannya benar-benar dikirim.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endif
                             </td>
                             @if($training->has_attendance || $training->isOnline())
                             <td class="align-middle text-nowrap">
@@ -892,6 +1033,16 @@
                                                 Kirim Notifikasi WA
                                             </button>
                                         </form>
+                                        @if($waLinks)
+                                            <form action="{{ route('training.send-manual-wa', [$training, $part]) }}" method="POST" target="_blank" class="d-inline">
+                                                @csrf
+                                                <button type="submit" class="dropdown-item">
+                                                    Kirim Manual via WhatsApp Web
+                                                </button>
+                                            </form>
+                                        @else
+                                            <span class="dropdown-item text-muted" title="Nomor WhatsApp peserta kosong atau tidak valid. Perbaiki di Pengaturan &gt; User.">Kirim Manual (No. HP tidak valid)</span>
+                                        @endif
 
                                         @if($training->has_attendance)
                                         <a class="dropdown-item" href="#" data-toggle="modal" data-target="#editAttendanceModal_{{ $part->id }}">
@@ -927,6 +1078,15 @@
                                                 </button>
                                             </form>
                                         @endif
+
+                                        <div class="dropdown-divider"></div>
+                                        <form action="{{ route('training.participants.remove', [$training, $part]) }}" method="POST" class="d-inline" onsubmit="return confirm(@js('Keluarkan '.$userName.' dari pelatihan ini? Link portalnya tidak berlaku lagi, dan hasil kuis, presensi, serta evaluasinya ikut dihapus.'))">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="dropdown-item text-danger">
+                                                Keluarkan dari Pelatihan
+                                            </button>
+                                        </form>
                                     </div>
                                 </div>
 
@@ -1038,6 +1198,10 @@
                             <td colspan="8">
                                 @if(filled(request('peserta')))
                                     <x-empty-state icon="fa-search" title="Peserta tidak ditemukan" text="Coba kata kunci lain: nama, ID karyawan, No. HP, atau divisi." />
+                                @elseif(request('wa') === 'gagal')
+                                    <x-empty-state icon="fa-check" title="Tidak ada undangan WhatsApp yang gagal" text="Semua kiriman otomatis terakhir berhasil atau belum dikirim.">
+                                        <a href="{{ route('training.show', $training) }}#peserta" class="btn btn-default btn-sm">Tampilkan semua peserta</a>
+                                    </x-empty-state>
                                 @else
                                     <x-empty-state icon="fa-users" title="Belum ada peserta" text="Daftarkan peserta agar mereka bisa presensi dan mengerjakan kuis pelatihan ini.">
                                         <a href="{{ route('training.edit', $training) }}#peserta" class="btn btn-primary btn-sm">Tambah Peserta</a>

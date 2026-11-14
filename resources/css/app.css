@@ -2260,6 +2260,8 @@ select.form-control-sm + .select2-container--default .select2-selection--single 
 .status-dot.is-success::before { background: var(--success-600); }
 .status-dot.is-danger { color: var(--danger-700); }
 .status-dot.is-danger::before { background: var(--danger-600); }
+.status-dot.is-warning { color: var(--warning-700); }
+.status-dot.is-warning::before { background: var(--warning-600); }
 
 .score-value {
     display: block;
