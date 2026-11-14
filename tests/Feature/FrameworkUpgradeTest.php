@@ -138,7 +138,7 @@ class FrameworkUpgradeTest extends TestCase
 
     public function test_web_login_accepts_a_matching_csrf_token(): void
     {
-        $user = User::factory()->create(['password' => Hash::make('test-password')]);
+        $user = User::factory()->staff()->create(['password' => Hash::make('test-password')]);
         $token = Str::random(40);
         $this->app->instance('env', 'production');
 

@@ -45,9 +45,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // login page itself, so home is the dashboard, or "Pelatihan Saya" for roles
         // without dashboard access (the dashboard would bounce them back here).
         $middleware->redirectGuestsTo(fn () => route('login'));
-        $middleware->redirectUsersTo(fn (Request $request) => $request->user()?->can('view-dashboard')
-            ? route('dashboard')
-            : route('training.my-trainings'));
+        $middleware->redirectUsersTo(fn (Request $request) => $request->user()?->homeUrl() ?? route('login'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
