@@ -32,7 +32,7 @@ class TrainingPortalStabilityTest extends TestCase
         $staff = User::factory()->staff()->create(['nama_lengkap' => 'Dewi Peserta']);
         $this->training = Training::create([
             'title' => 'Uji Stabilitas Portal', 'trainer_id' => $admin->id, 'training_date' => now()->toDateString(),
-            'start_time' => '09:00', 'end_time' => '10:30', 'zoom_link' => 'https://zoom.us/test', 'setup_completed_at' => now(),
+            'start_time' => '09:00', 'end_time' => '10:30', 'meeting_link' => 'https://zoom.us/test', 'setup_completed_at' => now(),
             'is_quiz_active' => true, 'is_attendance_active' => true,
         ]);
         $this->question = TrainingQuestion::create([

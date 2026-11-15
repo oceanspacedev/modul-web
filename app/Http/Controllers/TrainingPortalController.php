@@ -115,7 +115,7 @@ class TrainingPortalController extends Controller
 
         $messages = [
             'attendance_proof.required' => $training->isOnline()
-                ? 'Wajib mengunggah screenshot bukti Anda mengikuti pelatihan / Zoom untuk konfirmasi kehadiran.'
+                ? 'Wajib mengunggah screenshot bukti Anda mengikuti pertemuan untuk konfirmasi kehadiran.'
                 : 'Wajib mengunggah foto bukti kehadiran Anda di lokasi pelatihan.',
             'attendance_proof.image' => 'File bukti kehadiran harus berupa gambar (JPG, PNG, atau WEBP).',
             'attendance_proof.max' => 'Ukuran file bukti kehadiran maksimal 5MB.',

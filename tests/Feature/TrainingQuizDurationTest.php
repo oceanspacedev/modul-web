@@ -30,7 +30,7 @@ class TrainingQuizDurationTest extends TestCase
         $this->admin = User::where('username', 'admin')->sole();
         $this->training = Training::create([
             'title' => 'Pelatihan Berbatas Waktu', 'trainer_id' => $this->admin->id, 'training_date' => now()->toDateString(),
-            'start_time' => '09:00', 'end_time' => '10:00', 'zoom_link' => 'https://zoom.us/test',
+            'start_time' => '09:00', 'end_time' => '10:00', 'meeting_link' => 'https://zoom.us/test',
             'has_pretest' => true, 'pretest_duration_minutes' => 10, 'quiz_duration_minutes' => 10,
         ]);
         $this->question = TrainingQuestion::create([

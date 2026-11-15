@@ -45,7 +45,7 @@ class TrainingQuizNoRetakeTest extends TestCase
             'training_date' => now()->toDateString(),
             'start_time' => '09:00',
             'end_time' => '11:00',
-            'zoom_link' => 'https://zoom.us/test',
+            'meeting_link' => 'https://zoom.us/test',
             'is_quiz_active' => true,
             'is_attendance_active' => true,
             'quiz_mode' => 'formal',

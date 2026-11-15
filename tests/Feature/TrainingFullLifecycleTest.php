@@ -78,7 +78,7 @@ class TrainingFullLifecycleTest extends TestCase
             'training_date' => now()->addDays(2)->toDateString(),
             'start_time' => '13:00',
             'end_time' => '15:00',
-            'zoom_link' => 'https://zoom.us/j/1234567890',
+            'meeting_link' => 'https://zoom.us/j/1234567890',
             'participants' => [$this->participantUser1->id, $this->participantUser2->id],
         ]);
 
@@ -110,7 +110,7 @@ class TrainingFullLifecycleTest extends TestCase
             'training_date' => now()->addDays(3)->toDateString(),
             'start_time' => '14:00',
             'end_time' => '16:00',
-            'zoom_link' => 'https://zoom.us/j/9876543210',
+            'meeting_link' => 'https://zoom.us/j/9876543210',
             'status' => 'ongoing',
             'participants' => [$this->participantUser1->id], // Remove user 2, keep user 1
         ]);
@@ -179,7 +179,7 @@ class TrainingFullLifecycleTest extends TestCase
             'training_date' => now()->toDateString(),
             'start_time' => '08:00',
             'end_time' => '10:00',
-            'zoom_link' => 'https://zoom.us/test',
+            'meeting_link' => 'https://zoom.us/test',
             'status' => 'scheduled',
         ]);
 
@@ -297,7 +297,7 @@ KUNCI: Menjadi unit kerja yang transparan, akuntabel, dan adaptif.';
             'training_date' => now()->toDateString(),
             'start_time' => '09:00',
             'end_time' => '11:00',
-            'zoom_link' => 'https://zoom.us/test',
+            'meeting_link' => 'https://zoom.us/test',
             'status' => 'ongoing',
             'is_quiz_active' => false, // Start inactive
             'is_attendance_active' => true,
@@ -471,7 +471,7 @@ KUNCI: Menjadi unit kerja yang transparan, akuntabel, dan adaptif.';
             'training_date' => now()->toDateString(),
             'start_time' => '10:00',
             'end_time' => '12:00',
-            'zoom_link' => 'https://zoom.us/test',
+            'meeting_link' => 'https://zoom.us/test',
             'status' => 'ongoing',
         ]);
 
@@ -498,7 +498,7 @@ KUNCI: Menjadi unit kerja yang transparan, akuntabel, dan adaptif.';
             'training_date' => now()->toDateString(),
             'start_time' => '10:00',
             'end_time' => '12:00',
-            'zoom_link' => 'https://zoom.us/test',
+            'meeting_link' => 'https://zoom.us/test',
             'status' => 'ongoing',
             'is_quiz_active' => true,
         ]);

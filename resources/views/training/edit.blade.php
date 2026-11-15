@@ -72,12 +72,7 @@
                                 </div>
                             </div>
 
-                            <div class="form-group">
-                                <label for="zoom_link">Link Meeting <span class="text-muted font-weight-normal">(opsional)</span></label>
-                                <input type="url" id="zoom_link" name="zoom_link" class="form-control"
-                                       value="{{ old('zoom_link', $training->zoom_link) }}" placeholder="https://zoom.us/j/...">
-                                <small class="form-text text-muted">Kosongkan untuk pelatihan tatap muka.</small>
-                            </div>
+                            @include('training.partials.meeting-fields')
 
                             <div class="form-group mb-0">
                                 <label for="description">Deskripsi</label>

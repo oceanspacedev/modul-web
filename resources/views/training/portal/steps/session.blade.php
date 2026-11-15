@@ -33,12 +33,12 @@
 
     @if($training->status === App\Enums\TrainingStatus::Cancelled)
         <div class="alert alert-danger mb-0">
-            <i class="fas fa-ban mr-1"></i> Pelatihan ini dibatalkan.{{ $training->zoom_link ? ' Tautan Zoom tidak lagi tersedia.' : '' }}
+            <i class="fas fa-ban mr-1" aria-hidden="true"></i> Pelatihan ini dibatalkan.{{ $training->meeting_link ? ' Tautan pertemuan tidak lagi tersedia.' : '' }}
         </div>
-    @elseif($training->zoom_link)
+    @elseif($training->meeting_link)
         <div>
-            <a href="{{ $training->zoom_link }}" target="_blank" rel="noopener" class="btn btn-primary btn-block">
-                <i class="fas fa-video mr-1"></i> Buka Tautan Zoom
+            <a href="{{ $training->meeting_link }}" target="_blank" rel="noopener" class="btn btn-primary btn-block">
+                <i class="fas fa-video mr-1" aria-hidden="true"></i> Buka Tautan {{ $training->meetingPlatformLabel() }}
             </a>
         </div>
     @else

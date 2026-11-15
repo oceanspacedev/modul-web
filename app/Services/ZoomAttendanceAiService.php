@@ -27,21 +27,22 @@ class ZoomAttendanceAiService
     }
 
     /**
-     * Analyze Zoom screenshots for off-cam participants
+     * Analyze meeting screenshots (Zoom, Google Meet, Teams) for off-cam participants
      *
      * @param  array  $images  Array of file paths or base64 data URIs
      * @param  array  $registeredParticipants  List of registered participants: [['id' => 1, 'name' => 'John', 'id_karyawan' => '123'], ...]
+     * @param  string  $platform  Platform label shown to the model, e.g. "Google Meet"
      *
      * @throws Exception
      */
-    public function detectOffCamParticipants(array $images, array $registeredParticipants): array
+    public function detectOffCamParticipants(array $images, array $registeredParticipants, string $platform = 'Meeting'): array
     {
         if (! $this->isConfigured()) {
             throw new Exception('GEMINI_API_KEY belum dikonfigurasi di file .env!');
         }
 
         if (empty($images)) {
-            throw new Exception('Tidak ada file screenshot Zoom yang diunggah.');
+            throw new Exception('Tidak ada file screenshot meeting yang diunggah.');
         }
 
         $parts = [];
@@ -59,7 +60,7 @@ class ZoomAttendanceAiService
         }
 
         // Build prompt instruction with participant list
-        $promptText = $this->buildPromptText($registeredParticipants, count($parts));
+        $promptText = $this->buildPromptText($registeredParticipants, count($parts), $platform);
         $parts[] = [
             'text' => $promptText,
         ];
@@ -121,18 +122,18 @@ class ZoomAttendanceAiService
     /**
      * Build Gemini prompt
      */
-    protected function buildPromptText(array $participants, int $imageCount): string
+    protected function buildPromptText(array $participants, int $imageCount, string $platform = 'Meeting'): string
     {
         $participantsJson = json_encode($participants, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
-        $prompt = "Anda adalah sistem AI inspektur presensi pelatihan daring yang bertugas mendeteksi peserta yang MEMATIKAN KAMERA (OFF CAM) pada screenshot tampilan galeri (Gallery View) Zoom meeting.\n\n";
+        $prompt = "Anda adalah sistem AI inspektur presensi pelatihan daring yang bertugas mendeteksi peserta yang MEMATIKAN KAMERA (OFF CAM) pada screenshot tampilan galeri (Gallery View) {$platform}.\n\n";
         $prompt .= "Konteks:\n";
-        $prompt .= "- Dilampirkan {$imageCount} gambar screenshot Zoom meeting.\n";
+        $prompt .= "- Dilampirkan {$imageCount} gambar screenshot {$platform}.\n";
         $prompt .= "- Di bawah ini adalah DAFTAR PESERTA RESMI PELATIHAN (Database):\n";
         $prompt .= "```json\n{$participantsJson}\n```\n\n";
 
         $prompt .= "TUGAS & INSTRUKSI ANALISIS:\n";
-        $prompt .= "1. Periksa setiap kotak video (tile) partisipan pada seluruh screenshot Zoom yang dilampirkan.\n";
+        $prompt .= "1. Periksa setiap kotak video (tile) partisipan pada seluruh screenshot {$platform} yang dilampirkan.\n";
         $prompt .= "2. Klasifikasikan status kamera peserta:\n";
         $prompt .= "   - ON CAM: Menampilkan video nyata wajah/tubuh/ruangan aktif. (JANGAN masukkan ini ke dalam daftar hasil!)\n";
         $prompt .= "   - OFF CAM: Mematikan kamera, ditandai dengan:\n";
@@ -141,19 +142,19 @@ class ZoomAttendanceAiService
         $prompt .= "     * Menampilkan logo/lingkaran inisial huruf nama (misal inisial bulat 'BS', 'MR', dll).\n";
         $prompt .= "     * Ikon kamera disilang merah (jika ada).\n\n";
 
-        $prompt .= "3. BACA NAMA AKUN DI ZOOM:\n";
+        $prompt .= "3. BACA NAMA AKUN DI MEETING:\n";
         $prompt .= "   - Baca teks nama tampilan (Display Name) yang tertera pada kotak yang OFF CAM tersebut.\n\n";
 
         $prompt .= "4. PENCOCOKAN NAMA CERDAS (FUZZY MATCHING):\n";
-        $prompt .= "   - Bandingkan nama di kotak Zoom tersebut dengan DAFTAR PESERTA RESMI PELATIHAN di atas.\n";
+        $prompt .= "   - Bandingkan nama di kotak {$platform} tersebut dengan DAFTAR PESERTA RESMI PELATIHAN di atas.\n";
         $prompt .= "   - Toleran terhadap:\n";
         $prompt .= "     * Singkatan nama (contoh: 'M. Rizky' cocok ke 'Muhammad Rizky Pratama').\n";
         $prompt .= "     * Nama panggilan atau suku kata depan/belakang.\n";
         $prompt .= "     * Awalan nomor urut atau kelas (contoh: '01_Budi', 'Kls A - Siti').\n";
-        $prompt .= "     * Label tambahan Zoom seperti '(Me)', '(Host)', '(Co-host)'.\n";
+        $prompt .= "     * Label tambahan platform seperti '(Me)', '(You)', '(Anda)', '(Host)', '(Co-host)', '(Penyelenggara)'.\n";
         $prompt .= "   - Tentukan `similarity_score` (angka 0 sampai 100):\n";
         $prompt .= "     * Jika skor >= 65, masukkan `matched_participant_id` sesuai ID peserta di daftar, dan cantumkan `matched_official_name`.\n";
-        $prompt .= "     * Jika nama di Zoom SAMA SEKALI TIDAK COCOK dengan peserta mana pun di database (misal tamu, akun admin/trainer, dsb), set `matched_participant_id` ke null, `matched_official_name` ke null, dan `similarity_score` di bawah 50.\n\n";
+        $prompt .= "     * Jika nama di {$platform} SAMA SEKALI TIDAK COCOK dengan peserta mana pun di database (misal tamu, akun admin/trainer, dsb), set `matched_participant_id` ke null, `matched_official_name` ke null, dan `similarity_score` di bawah 50.\n\n";
 
         $prompt .= "5. ATURAN PENTING:\n";
         $prompt .= "   - HANYA LAPORKAN YANG OFF CAM. Jangan masukkan peserta yang jelas-jelas ON CAM (kamera aktif)!\n";
@@ -165,7 +166,7 @@ class ZoomAttendanceAiService
         $prompt .= '  "total_off_cam_detected": 0,'."\n";
         $prompt .= '  "detected_off_cam": ['."\n";
         $prompt .= "    {\n";
-        $prompt .= '      "zoom_name": "Teks nama persis yang terbaca di Zoom",'."\n";
+        $prompt .= '      "zoom_name": "Teks nama persis yang terbaca di '.$platform.'",'."\n";
         $prompt .= '      "matched_participant_id": 12,'."\n";
         $prompt .= '      "matched_official_name": "Nama Resmi di Database",'."\n";
         $prompt .= '      "similarity_score": 95,'."\n";

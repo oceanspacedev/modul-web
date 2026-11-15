@@ -28,7 +28,7 @@ class TrainingSetupWizardTest extends TestCase
             'training_date' => now()->toDateString(),
             'start_time' => '09:00',
             'end_time' => '10:00',
-            'zoom_link' => 'https://zoom.us/test',
+            'meeting_link' => 'https://zoom.us/test',
             'participants' => [User::factory()->staff()->create()->id],
         ])->assertRedirect();
 

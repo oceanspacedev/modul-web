@@ -20,6 +20,7 @@
     $mainPhase = $training->mainPhase();
     $mainPhaseLabel = $training->mainPhaseLabel();
     $hasAttendanceColumn = $training->has_attendance || $training->isOnline();
+    $meetingLabel = $training->meetingPlatformLabel() ?? 'Meeting';
     $participantColumnCount = 2 + (int) $hasAttendanceColumn + (int) $training->has_pretest + (int) $training->has_posttest + (int) $training->has_evaluation;
     $quizStats = [];
     if ($training->has_pretest && $training->has_posttest) {
@@ -60,8 +61,8 @@
                     @if($training->trainer)
                         <span>Pemateri <strong>{{ $training->trainer->nama_lengkap }}</strong>@if($training->trainer->divisi) · {{ $training->trainer->divisi->name }}@endif</span>
                     @endif
-                    @if($training->zoom_link)
-                        <a href="{{ $training->zoom_link }}" target="_blank" rel="noopener">Buka Zoom <i class="fas fa-external-link-alt" aria-hidden="true"></i></a>
+                    @if($training->meeting_link)
+                        <a href="{{ $training->meeting_link }}" target="_blank" rel="noopener">Buka {{ $training->meetingPlatformLabel() }} <i class="fas fa-external-link-alt" aria-hidden="true"></i></a>
                     @else
                         <span>Tatap muka</span>
                     @endif
@@ -303,6 +304,11 @@
                     <span class="training-section-count" id="statTotal">({{ $stats['total'] }} orang)</span>
                 </h2>
                 <div class="training-panel-actions">
+                    @if($showMeetingActivity)
+                        <a href="{{ route('training.meeting.show', $training) }}" class="btn btn-default btn-sm">
+                            <i class="fas fa-video mr-1" aria-hidden="true"></i> Aktivitas {{ $meetingLabel }}
+                        </a>
+                    @endif
                     <a href="{{ route('training.edit', $training) }}#peserta" class="btn btn-primary btn-sm">Tambah peserta</a>
                     <div class="dropdown">
                         <button class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false">
@@ -921,10 +927,10 @@
             <div class="modal-header">
                 <div>
                     <h5 class="modal-title" id="scanZoomModalLabel">
-                        <i class="fas fa-camera-retro text-muted mr-1"></i> Pindai Presensi Zoom: Deteksi Off Cam
+                        <i class="fas fa-camera-retro text-muted mr-1"></i> Pindai Presensi {{ $meetingLabel }}: Deteksi Off Cam
                     </h5>
                     <small class="text-muted">
-                        Menganalisis screenshot Zoom (hingga 40 gambar) dengan Vision AI untuk mendeteksi peserta yang mematikan kamera dan mencocokkan nama secara otomatis.
+                        Menganalisis screenshot {{ $meetingLabel }} (hingga 40 gambar) dengan Vision AI untuk mendeteksi peserta yang mematikan kamera dan mencocokkan nama secara otomatis.
                     </small>
                 </div>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
@@ -996,7 +1002,7 @@
                         <span class="sr-only">Loading...</span>
                     </div>
                     <h5 class="section-title mb-2" id="zoomLoadingTitle">
-                        Menganalisis Screenshot Zoom...
+                        Menganalisis Screenshot {{ $meetingLabel }}...
                     </h5>
                     <p class="text-muted text-sm mb-3" id="zoomLoadingSub">
                         Memproses gambar dan mendeteksi kotak video peserta...
@@ -1058,7 +1064,7 @@
                                     <tr>
                                         <th class="text-center" style="width: 45px;">Pilih</th>
                                         <th class="text-center" style="width: 40px;">No</th>
-                                        <th style="min-width: 170px;">Nama di Zoom</th>
+                                        <th style="min-width: 170px;">Nama di {{ $meetingLabel }}</th>
                                         <th style="min-width: 250px;">Peserta Terdaftar (Database)</th>
                                         <th class="text-center" style="width: 140px;">Kemiripan AI</th>
                                         <th>Alasan / Bukti Visual</th>
@@ -1084,7 +1090,7 @@
 
                 {{-- TAHAP 4: SEMUA ON CAM --}}
                 <div id="zoomStepAllOnCam" class="d-none">
-                    <x-empty-state icon="fa-check-circle" title="Semua peserta terdeteksi On Cam" text="Tidak ditemukan peserta yang mematikan kamera pada seluruh screenshot Zoom yang diunggah. Semua peserta tampak aktif menyalakan kamera.">
+                    <x-empty-state icon="fa-check-circle" title="Semua peserta terdeteksi On Cam" text="Tidak ditemukan peserta yang mematikan kamera pada seluruh screenshot {{ $meetingLabel }} yang diunggah. Semua peserta tampak aktif menyalakan kamera.">
                         <button type="button" class="btn btn-default" data-dismiss="modal">
                             Tutup
                         </button>
@@ -1114,7 +1120,7 @@
                     <strong class="d-block" id="quickParticipantName">-</strong>
                 </div>
                 <div class="form-group mb-3">
-                    <label class="mb-1">Nama di Zoom / Catatan Sesi</label>
+                    <label class="mb-1">Nama di {{ $meetingLabel }} / Catatan Sesi</label>
                     <input type="text" id="quickZoomName" class="form-control form-control-sm" placeholder="Contoh: M. Rizky (Off Cam sesi 1)">
                     <small class="text-muted text-xs">Kosongkan jika ingin otomatis memakai nama peserta.</small>
                 </div>
@@ -1439,6 +1445,7 @@ if (typeof $ !== 'undefined') {
     const TRAINING_ID = {{ $training->id }};
     const CSRF_TOKEN = '{{ csrf_token() }}';
     const OFFICIAL_PARTICIPANTS = @json($zoomParticipants);
+    const MEETING_LABEL = @json($meetingLabel);
 
     // DOM Elements
     const dropArea = document.getElementById('zoomDropArea');
@@ -1760,11 +1767,11 @@ if (typeof $ !== 'undefined') {
 
             // Rotating status text
             const loadingMessages = [
-                'Mengirim ' + selectedFiles.length + ' screenshot Zoom ke Google Gemini Vision...',
-                'AI sedang membaca kotak-kotak galeri Zoom...',
+                'Mengirim ' + selectedFiles.length + ' screenshot ' + MEETING_LABEL + ' ke Google Gemini Vision...',
+                'AI sedang membaca kotak-kotak galeri ' + MEETING_LABEL + '...',
                 'Mendeteksi peserta yang mematikan kamera (layar hitam, inisial, avatar)...',
                 'Membaca teks nama di setiap kotak yang Off Cam...',
-                'Mencocokkan nama akun Zoom dengan daftar resmi peserta pelatihan...',
+                'Mencocokkan nama akun ' + MEETING_LABEL + ' dengan daftar resmi peserta pelatihan...',
                 'Menghitung skor kemiripan dan menyusun hasil verifikasi...'
             ];
             let msgIdx = 0;
@@ -1787,8 +1794,8 @@ if (typeof $ !== 'undefined') {
                 for (let b = 0; b < batches.length; b++) {
                     if (titleEl) {
                         titleEl.textContent = batches.length > 1
-                            ? `Menganalisis Screenshot Zoom... (batch ${b + 1}/${batches.length})`
-                            : 'Menganalisis Screenshot Zoom...';
+                            ? `Menganalisis Screenshot ${MEETING_LABEL}... (batch ${b + 1}/${batches.length})`
+                            : `Menganalisis Screenshot ${MEETING_LABEL}...`;
                     }
 
                     try {
@@ -1803,7 +1810,7 @@ if (typeof $ !== 'undefined') {
 
                 clearInterval(loadingInterval);
                 stepLoading.classList.add('d-none');
-                if (titleEl) titleEl.textContent = 'Menganalisis Screenshot Zoom...';
+                if (titleEl) titleEl.textContent = `Menganalisis Screenshot ${MEETING_LABEL}...`;
 
                 const offCamList = mergeOffCamResults(collected);
 
@@ -1988,7 +1995,7 @@ if (typeof $ !== 'undefined') {
                 ${rowNo}
             </td>
             <td class="align-middle">
-                <input type="text" class="form-control form-control-sm zoom-name-input" value="${escapeHtml(item.zoom_name || '')}" placeholder="Nama di Zoom...">
+                <input type="text" class="form-control form-control-sm zoom-name-input" value="${escapeHtml(item.zoom_name || '')}" placeholder="Nama di {{ $meetingLabel }}...">
             </td>
             <td class="align-middle">
                 <select class="form-control form-control-sm participant-select">
@@ -2145,7 +2152,7 @@ if (typeof $ !== 'undefined') {
                 itemsToSave.push({
                     participant_id: participantId,
                     zoom_name: zoomName || '-',
-                    reason: reason || 'Terdeteksi Off Cam di Zoom'
+                    reason: reason || `Terdeteksi Off Cam di ${MEETING_LABEL}`
                 });
             });
 

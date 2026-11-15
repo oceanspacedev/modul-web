@@ -30,7 +30,7 @@ class TrainingWhatsAppManualTest extends TestCase
             'training_date' => now()->addDay()->toDateString(),
             'start_time' => '09:00',
             'end_time' => '11:00',
-            'zoom_link' => 'https://zoom.us/j/123',
+            'meeting_link' => 'https://zoom.us/j/123',
         ]);
     }
 

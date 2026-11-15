@@ -48,7 +48,7 @@ class TrainingQuizModeTest extends TestCase
             'training_date' => now()->toDateString(),
             'start_time' => '10:00',
             'end_time' => '12:00',
-            'zoom_link' => 'https://zoom.us/test',
+            'meeting_link' => 'https://zoom.us/test',
             'quiz_mode' => 'game',
             'participants' => [$this->participantUser->id],
         ]);

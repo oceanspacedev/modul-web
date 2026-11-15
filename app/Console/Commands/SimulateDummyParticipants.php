@@ -45,7 +45,7 @@ class SimulateDummyParticipants extends Command
                 'training_date' => now()->toDateString(),
                 'start_time' => '09:00:00',
                 'end_time' => '11:00:00',
-                'zoom_link' => 'https://us05web.zoom.us/j/84088287809?pwd=demo',
+                'meeting_link' => 'https://us05web.zoom.us/j/84088287809?pwd=demo',
                 'status' => 'ongoing',
                 'is_quiz_active' => true,
             ]);

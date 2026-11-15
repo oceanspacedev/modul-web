@@ -50,7 +50,7 @@ class TrainingQuizComprehensiveTest extends TestCase
             'training_date' => now()->toDateString(),
             'start_time' => '09:00:00',
             'end_time' => '11:00:00',
-            'zoom_link' => 'https://zoom.us/test',
+            'meeting_link' => 'https://zoom.us/test',
             'status' => 'scheduled',
             'is_quiz_active' => false,
         ]);
@@ -250,7 +250,7 @@ KUNCI: Pemaparan mengenai alur kerja sistem dan verifikasi kehadiran.';
             'training_date' => now()->toDateString(),
             'start_time' => '09:00:00',
             'end_time' => '11:00:00',
-            'zoom_link' => 'https://zoom.us/test',
+            'meeting_link' => 'https://zoom.us/test',
             'status' => 'scheduled',
         ]);
 

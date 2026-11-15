@@ -234,7 +234,7 @@ class MemoryBudgetTest extends TestCase
                 'training_date' => now()->subDays($t)->toDateString(),
                 'start_time' => '09:00',
                 'end_time' => '11:00',
-                'zoom_link' => 'https://zoom.us/j/123456789',
+                'meeting_link' => 'https://zoom.us/j/123456789',
                 'status' => 'ongoing',
                 'is_quiz_active' => true,
                 'is_attendance_active' => true,

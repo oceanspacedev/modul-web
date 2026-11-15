@@ -68,7 +68,7 @@ class TrainingUserPickerTest extends TestCase
             'training_date' => now()->addDay()->toDateString(),
             'start_time' => '09:00',
             'end_time' => '11:00',
-            'zoom_link' => 'https://zoom.us/j/123',
+            'meeting_link' => 'https://zoom.us/j/123',
         ]);
         $user = $this->createUserViaForm($admin);
 
@@ -88,7 +88,7 @@ class TrainingUserPickerTest extends TestCase
             'training_date' => now()->addDay()->toDateString(),
             'start_time' => '09:00',
             'end_time' => '11:00',
-            'zoom_link' => 'https://zoom.us/j/123',
+            'meeting_link' => 'https://zoom.us/j/123',
         ]);
         $member = User::factory()->staff()->create(['no_hp' => '081234567890']);
         $training->participants()->create(['user_id' => $member->id, 'token' => 'tok-member', 'attendance_status' => 'pending']);

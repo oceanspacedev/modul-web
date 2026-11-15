@@ -147,7 +147,7 @@ class WhatsAppService
         $msg .= "Hari/Tanggal: {$dateFormatted}\n";
         $msg .= "Waktu: {$timeFormatted}\n";
         // Pelatihan tatap muka tidak punya tautan meeting.
-        $msg .= $training->zoom_link ? "Link Zoom/Meeting: {$training->zoom_link}\n\n" : "\n";
+        $msg .= $training->meeting_link ? "Tautan {$training->meetingPlatformLabel()}: {$training->meeting_link}\n\n" : "\n";
         $msg .= 'Untuk '.self::portalActivities($training).", silakan buka tautan berikut:\n";
         $msg .= "{$portalUrl}\n\n";
         $msg .= 'Mohon hadir tepat waktu. Terima kasih atas perhatian dan kerja samanya.';

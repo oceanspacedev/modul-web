@@ -57,7 +57,7 @@ class SecurityHardeningTest extends TestCase
             'training_date' => now()->toDateString(),
             'start_time' => '09:00',
             'end_time' => '10:00',
-            'zoom_link' => 'https://zoom.us/j/1',
+            'meeting_link' => 'https://zoom.us/j/1',
             'status' => TrainingStatus::Scheduled,
         ]);
     }

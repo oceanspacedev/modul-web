@@ -30,7 +30,7 @@ class TrainingPretestTest extends TestCase
         $this->admin = User::where('username', 'admin')->sole();
         $this->training = Training::create([
             'title' => 'Pelatihan Pretest', 'trainer_id' => $this->admin->id, 'training_date' => now()->toDateString(),
-            'start_time' => '09:00', 'end_time' => '10:00', 'zoom_link' => 'https://zoom.us/test',
+            'start_time' => '09:00', 'end_time' => '10:00', 'meeting_link' => 'https://zoom.us/test',
             'has_pretest' => true, 'pretest_max_attempts' => 2, 'pretest_shows_answers' => false,
         ]);
         $this->question = TrainingQuestion::create([
@@ -55,7 +55,7 @@ class TrainingPretestTest extends TestCase
 
         $this->actingAs($this->admin)->post('/training', [
             'title' => 'Pelatihan Baru', 'trainer_id' => $this->admin->id, 'training_date' => now()->toDateString(),
-            'start_time' => '09:00', 'end_time' => '10:00', 'zoom_link' => 'https://zoom.us/test',
+            'start_time' => '09:00', 'end_time' => '10:00', 'meeting_link' => 'https://zoom.us/test',
             'participants' => [User::factory()->staff()->create()->id],
             'quiz' => [
                 'pretest' => '1', 'pretest_max_attempts' => '2', 'pretest_shows_answers' => '0',
@@ -79,7 +79,7 @@ class TrainingPretestTest extends TestCase
     {
         $this->actingAs($this->admin)->post('/training', [
             'title' => 'Tanpa Kuis', 'trainer_id' => $this->admin->id, 'training_date' => now()->toDateString(),
-            'start_time' => '09:00', 'end_time' => '10:00', 'zoom_link' => 'https://zoom.us/test',
+            'start_time' => '09:00', 'end_time' => '10:00', 'meeting_link' => 'https://zoom.us/test',
             'participants' => [User::factory()->staff()->create()->id],
             'quiz' => ['pretest' => '0', 'posttest' => '0'],
         ])->assertRedirect(route('training.setup', Training::where('title', 'Tanpa Kuis')->sole()));
