@@ -7,6 +7,7 @@ use App\Models\Training;
 use App\Models\TrainingMeetingChatMessage;
 use App\Models\TrainingMeetingEvent;
 use App\Models\TrainingMeetingMonitor;
+use App\Support\Meetings\MeetingCameraReport;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -113,6 +114,20 @@ class TrainingMeetingController extends Controller
         SyncMeetingAttendance::dispatch($request->user()->getKey(), $training->getKey());
 
         return to_route('training.meeting.show', $training)->with('info', SyncMeetingAttendance::QUEUED_MESSAGE);
+    }
+
+    /**
+     * Rekap kamera peserta menurut monitoring meeting, untuk diverifikasi di tabel rekap kamera halaman detail
+     * pelatihan sebelum disimpan.
+     */
+    public function camera(Training $training): JsonResponse
+    {
+        Gate::authorize('update', $training);
+        abort_unless($training->isOnline(), 404);
+
+        return response()->json([
+            'camera_participants' => MeetingCameraReport::forTraining($training),
+        ]);
     }
 
     /** @return array{?string, string, list<string>} */

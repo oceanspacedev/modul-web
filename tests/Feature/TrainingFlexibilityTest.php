@@ -493,12 +493,12 @@ class TrainingFlexibilityTest extends TestCase
     {
         $online = $this->training(['is_attendance_active' => true, 'require_attendance_proof' => true]);
         $this->actingAs($this->admin)->get(route('training.show', $online))->assertOk()
-            ->assertSee('fa-video-slash"></i> Scan Off Cam', false)->assertSee('id="btnToggleManualOffCamMode"', false);
+            ->assertSee('fa-video"></i> Rekap Kamera', false)->assertSee('Isi Sendiri');
         $this->get(self::PORTAL)->assertOk()->assertSee('Unggah Screenshot Bukti Zoom / Pelatihan');
 
         $online->update(['meeting_link' => null]);
         $this->actingAs($this->admin)->get(route('training.show', $online))->assertOk()
-            ->assertDontSee('fa-video-slash"></i> Scan Off Cam', false)->assertDontSee('id="btnToggleManualOffCamMode"', false)
+            ->assertDontSee('fa-video"></i> Rekap Kamera', false)
             ->assertSee('Wajib upload foto kehadiran');
         $this->get(self::PORTAL)->assertOk()
             ->assertSee('Unggah Foto Bukti Kehadiran')->assertSee('Wajib Foto')->assertDontSee('Zoom');

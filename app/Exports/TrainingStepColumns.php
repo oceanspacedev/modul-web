@@ -105,7 +105,7 @@ class TrainingStepColumns
         }
 
         if ($step === Training::STEP_ATTENDANCE) {
-            $offCam = $participant->is_off_cam ? ' (Off Cam '.($participant->off_cam_count ?: 1).'x)' : '';
+            $camera = $participant->camera_status ? ' ('.$participant->camera_status->label().')' : '';
             $status = match ($participant->attendance_status) {
                 'hadir' => 'Hadir',
                 'tidak_hadir' => 'Tidak Hadir',
@@ -113,7 +113,7 @@ class TrainingStepColumns
             };
 
             return $detailed ? [
-                $status.$offCam,
+                $status.$camera,
                 $participant->attended_at?->format('d-m-Y H:i') ?? '-',
                 // File dibuka lama setelah export, jadi tautannya ditandatangani selama yang diizinkan S3.
                 $participant->attendance_proof ? StorageUrl::for($participant->attendance_proof, StorageUrl::MAX_TTL_MINUTES) : '-',

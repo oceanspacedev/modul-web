@@ -201,9 +201,8 @@ Route::middleware('auth')->group(function () {
                 Route::post('detach-document/{document}', 'detachDocument')->name('detach-document');
                 Route::post('scan-zoom-ai', 'scanZoomAi')->name('scan-zoom-ai');
                 Route::get('scan-zoom-ai/{token}', 'zoomScanStatus')->name('scan-zoom-ai.status');
-                Route::post('save-zoom-off-cam', 'saveZoomOffCam')->name('save-zoom-off-cam');
-                Route::post('reset-zoom-off-cam/{participant}', 'resetZoomOffCam')->name('reset-zoom-off-cam');
-                Route::post('update-offcam-count/{participant}', 'updateOffCamCount')->name('update-offcam-count');
+                Route::post('camera-status', 'saveCameraStatus')->name('camera-status.save');
+                Route::post('camera-status/{participant}', 'updateCameraStatus')->name('camera-status.update');
             });
 
             Route::prefix('meeting')->name('meeting.')->group(function () {
@@ -218,6 +217,8 @@ Route::middleware('auth')->group(function () {
                 Route::get('chat', [TrainingMeetingController::class, 'chat'])->name('chat.index')
                     ->middleware('cache.headers:no_store;private');
                 Route::post('chat', [TrainingMeetingChatController::class, 'store'])->name('chat');
+                Route::get('camera', [TrainingMeetingController::class, 'camera'])->name('camera')
+                    ->middleware('cache.headers:no_store;private');
                 Route::controller(TrainingMeetingMonitorController::class)->prefix('monitors')->name('monitors.')->group(function () {
                     Route::post('/', 'start')->name('start');
                     Route::post('{monitor}/sync', 'sync')->whereUuid('monitor')->name('sync');

@@ -324,9 +324,8 @@
                             @if($training->isOnline())
                                 <div class="dropdown-divider"></div>
                                 <button type="button" class="dropdown-item" data-toggle="modal" data-target="#scanZoomModal">
-                                    <i class="fas fa-video-slash"></i> Scan Off Cam
+                                    <i class="fas fa-video"></i> Rekap Kamera
                                 </button>
-                                <button type="button" class="dropdown-item" id="btnToggleManualOffCamMode">Input Off Cam manual</button>
                             @endif
                         </div>
                     </div>
@@ -391,13 +390,7 @@
                 @endif
             </div>
 
-            <div id="bannerManualOffCamMode" class="training-notice training-notice-warning training-roster-notice d-none">
-                <div>
-                    <strong>Mode Off Cam aktif</strong>
-                    <span class="d-block">Pilih peserta dan gunakan + atau − untuk mengubah hitungan.</span>
-                </div>
-                <button type="button" class="btn btn-default btn-sm" id="btnExitManualOffCamMode">Selesai mencatat</button>
-            </div>
+            <p id="cameraSaveNotice" class="training-notice training-notice-success training-roster-notice d-none" role="status"></p>
 
             @if($waFailedCount > 0)
                 <p class="training-notice training-notice-warning training-roster-notice" role="status">
@@ -546,9 +539,9 @@
                                             <span class="status-dot">Belum absen</span>
                                         @endif
                                     @endif
-                                    <span class="offcam-badge-box" id="offcamBadge_{{ $part->id }}">
-                                        @if($part->is_off_cam && ($part->off_cam_count ?? 1) > 0)
-                                            <span class="training-offcam">Off Cam {{ $part->off_cam_count ?: 1 }}×</span>
+                                    <span class="camera-badge-box" id="cameraBadge_{{ $part->id }}">
+                                        @if($part->camera_status)
+                                            <span class="training-camera is-{{ $part->camera_status->value }}"><i class="fas fa-video mr-1" aria-hidden="true"></i>{{ $part->cameraSummary() }}</span>
                                         @elseif(! $training->has_attendance)
                                             <span class="text-muted">—</span>
                                         @endif
@@ -673,27 +666,6 @@
                                             </button>
                                         </form>
                                     </div>
-                                </div>
-
-                                <!-- TOMBOL TANDAI OFF CAM (STEPPER COUNTER 1-KLIK) -->
-                                <div class="quick-offcam-action-wrapper d-none" id="offcamActionWrapper_{{ $part->id }}">
-                                    @if(!$part->is_off_cam || ($part->off_cam_count ?? 0) <= 0)
-                                        <button type="button" class="btn btn-default btn-xs text-danger text-nowrap btn-offcam-step" data-id="{{ $part->id }}" data-action="increment" data-name="{{ $userName }}" title="Tandai peserta ini Off Cam">
-                                            <i class="fas fa-video-slash"></i> Tandai Off Cam
-                                        </button>
-                                    @else
-                                        <div class="btn-group btn-group-sm" role="group">
-                                            <button type="button" class="btn btn-default btn-offcam-step" data-id="{{ $part->id }}" data-action="decrement" data-name="{{ $userName }}" title="Kurangi frekuensi (-1)">
-                                                <i class="fas fa-minus"></i>
-                                            </button>
-                                            <span class="btn btn-default text-danger text-nowrap" style="pointer-events: none;">
-                                                <i class="fas fa-video-slash"></i> <span id="offcamCountText_{{ $part->id }}">{{ $part->off_cam_count ?: 1 }}x</span> Off
-                                            </span>
-                                            <button type="button" class="btn btn-default btn-offcam-step" data-id="{{ $part->id }}" data-action="increment" data-name="{{ $userName }}" title="Tambah frekuensi (+1)">
-                                                <i class="fas fa-plus"></i>
-                                            </button>
-                                        </div>
-                                    @endif
                                 </div>
 
                                 {{-- Modal per peserta tetap di dalam sel ini: di luar <td> browser memindahkannya keluar tabel dan memisahkan <form> dari isinya. --}}
@@ -919,19 +891,16 @@
     </div>
 </div>
 
-{{-- MODAL SCAN PRESENSI ZOOM (DETEKSI OFF CAM) --}}
+{{-- MODAL REKAP KAMERA PESERTA --}}
 <div class="modal fade" id="scanZoomModal" tabindex="-1" role="dialog" aria-labelledby="scanZoomModalLabel" aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
         <div class="modal-content">
-            {{-- MODAL HEADER --}}
             <div class="modal-header">
                 <div>
                     <h5 class="modal-title" id="scanZoomModalLabel">
-                        <i class="fas fa-camera-retro text-muted mr-1"></i> Pindai Presensi {{ $meetingLabel }}: Deteksi Off Cam
+                        <i class="fas fa-video text-muted mr-1"></i> Rekap Kamera Peserta
                     </h5>
-                    <small class="text-muted">
-                        Menganalisis screenshot {{ $meetingLabel }} (hingga 40 gambar) dengan Vision AI untuk mendeteksi peserta yang mematikan kamera dan mencocokkan nama secara otomatis.
-                    </small>
+                    <small class="text-muted">Pilih sumber data. Hasilnya bisa diperiksa dan diubah sebelum disimpan.</small>
                 </div>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
                     <span aria-hidden="true">&times;</span>
@@ -939,44 +908,57 @@
             </div>
 
             <div class="modal-body">
-                {{-- TAHAP 1: UPLOAD & KOMPRESI (CLIENT-SIDE SOLUSI 1) --}}
+                {{-- PILIH SUMBER DATA --}}
                 <div id="zoomStepUpload">
-                    <div class="card mb-0">
-                        <div class="card-body">
-                            <label for="zoomFileInput" class="zoom-drop-area d-block text-center p-4 m-0 w-100" id="zoomDropArea">
-                                <span class="stat-tile-icon mb-3"><i class="fas fa-cloud-upload-alt"></i></span>
-                                <span class="section-title d-block mb-1">
-                                    Klik untuk Memilih atau Tarik Screenshot / File Word ke Sini
-                                </span>
-                                <p class="text-muted text-sm mb-2">
-                                    Hingga <strong>40 gambar</strong> (JPG, PNG, WEBP) atau file Word <strong>.docx</strong> berisi screenshot.
-                                </p>
-                                <span class="badge badge-secondary mb-2">
-                                    <i class="fas fa-bolt"></i> Solusi 1: Kompresi Otomatis di Browser (~200KB/file, proses super cepat & hemat kuota)
-                                </span>
-                                <div class="mt-2">
-                                    <span class="btn btn-default btn-sm">
-                                        <i class="fas fa-folder-open"></i> Pilih Screenshot / File Word
+                    <p class="section-title mb-2">Pilih sumber data</p>
+                    <p class="text-xs text-muted d-none" id="cameraMergeHint">Data baru digabung ke tabel yang sedang diperiksa.</p>
+                    @php($cameraMonitorStep = $hasMeetingCameraData || $canMonitorCamera)
+                    @if($cameraMonitorStep)
+                        <div class="card mb-3">
+                            <div class="card-body d-flex justify-content-between align-items-center flex-wrap" style="gap: 12px;">
+                                <div class="flex-grow-1" style="min-width: 240px; flex-basis: 0;">
+                                    <span class="section-title d-block mb-1">Dari monitoring {{ $meetingLabel }}
+                                        @if($hasMeetingCameraData)<span class="badge bg-success ml-1">Disarankan</span>@endif
                                     </span>
+                                    @if($hasMeetingCameraData)
+                                        <span class="text-muted text-sm">Status kamera yang terekam selama monitoring: berapa lama kamera tiap peserta menyala selama ikut meeting.</span>
+                                    @else
+                                        <span class="text-muted text-sm">Belum ada status kamera yang terekam. Jalankan monitoring dari halaman <a href="{{ route('training.meeting.show', $training) }}">Aktivitas {{ $meetingLabel }}</a> selama pelatihan berlangsung, lalu ambil datanya di sini.</span>
+                                    @endif
                                 </div>
+                                <button type="button" class="btn btn-primary btn-sm text-nowrap" id="btnLoadMonitorCamera">
+                                    <i class="fas fa-satellite-dish mr-1"></i> Pakai Data Monitoring
+                                </button>
+                            </div>
+                            <div class="alert alert-info mx-3 mb-3 d-none" id="zoomMonitorInfo" role="status"></div>
+                        </div>
+                    @endif
+
+                    @if($canScanCameraWithAi)
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <span class="section-title d-block mb-1">Dari screenshot (AI)</span>
+                                <span class="text-muted text-sm d-block mb-3">Screenshot tampilan galeri atau panel daftar peserta {{ $meetingLabel }} dari beberapa random check (mis. menit ke-1, ke-5, dan seterusnya). Setiap screenshot dihitung satu pengecekan; AI membaca status kamera setiap peserta dan mencocokkan namanya.</span>
+                            <label for="zoomFileInput" class="zoom-drop-area d-block text-center p-3 m-0 w-100" id="zoomDropArea">
+                                <span class="stat-tile-icon mb-2"><i class="fas fa-cloud-upload-alt"></i></span>
+                                <span class="d-block font-weight-bold mb-1">Klik untuk memilih, atau tarik screenshot / file Word ke sini</span>
+                                <span class="text-muted text-sm d-block mb-2">
+                                    Hingga 40 gambar (JPG, PNG, WEBP) atau file Word .docx berisi screenshot. Gambar dikecilkan otomatis sebelum dikirim.
+                                </span>
+                                <span class="btn btn-default btn-sm">
+                                    <i class="fas fa-folder-open"></i> Pilih Screenshot / File Word
+                                </span>
                             </label>
                             <input type="file" id="zoomFileInput" multiple accept="image/png,image/jpeg,image/webp,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display: none;">
 
-                            <div class="mt-3 text-center p-2 rounded bg-light border">
-                                <span class="text-muted text-sm">Tidak punya screenshot? Ingin mendata langsung?</span>
-                                <button type="button" class="btn btn-link btn-sm p-0 ml-1" id="btnDirectManualInput">
-                                    <i class="fas fa-edit"></i> Catat Peserta Off Cam Secara Manual &rarr;
-                                </button>
-                            </div>
-
                             {{-- ALERT ERROR --}}
-                            <div class="alert alert-danger mt-3 d-none" id="zoomUploadAlert"></div>
+                            <div class="alert alert-danger mt-3 mb-0 d-none" id="zoomUploadAlert" role="alert"></div>
 
                             {{-- PREVIEW DAFTAR SCREENSHOT --}}
-                            <div class="mt-4 d-none" id="zoomPreviewSection">
+                            <div class="mt-3 d-none" id="zoomPreviewSection">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <strong class="text-sm">
-                                        Screenshot Terpilih (<span id="zoomFileCount">0</span>/40):
+                                        Screenshot terpilih (<span id="zoomFileCount">0</span>/40)
                                     </strong>
                                     <button type="button" class="btn btn-default btn-xs text-danger" id="btnClearFiles">
                                         <i class="fas fa-trash-alt"></i> Hapus Semua
@@ -984,16 +966,31 @@
                                 </div>
                                 <div class="row" id="zoomThumbGrid" style="row-gap: 12px;"></div>
                             </div>
+
+                            <div class="d-flex justify-content-end mt-3">
+                                <button type="button" class="btn btn-primary btn-sm" id="btnStartScan" disabled>
+                                    <i class="fas fa-magic mr-1"></i> Mulai Pindai dengan AI
+                                </button>
+                            </div>
+                            </div>
                         </div>
-                        <div class="card-footer d-flex justify-content-between align-items-center">
-                            <button type="button" class="btn btn-default" data-dismiss="modal">
-                                Batal
-                            </button>
-                            <button type="button" class="btn btn-primary" id="btnStartScan" disabled>
-                                <i class="fas fa-magic mr-1"></i> Mulai Pindai dengan AI
+                    @endif
+
+                    <div class="card mb-3">
+                        <div class="card-body d-flex justify-content-between align-items-center flex-wrap" style="gap: 12px;">
+                            <div class="flex-grow-1" style="min-width: 240px; flex-basis: 0;">
+                                <span class="section-title d-block mb-1">Isi sendiri</span>
+                                <span class="text-muted text-sm">Pilih status kamera tiap peserta langsung dari daftar semua peserta.</span>
+                            </div>
+                            <button type="button" class="btn btn-default btn-sm text-nowrap" id="btnDirectManualInput">
+                                <i class="fas fa-edit mr-1"></i> Isi Sendiri
                             </button>
                         </div>
                     </div>
+
+                    @unless($canScanCameraWithAi)
+                        <p class="text-xs text-muted mb-0">Pindai screenshot dengan AI belum tersedia. Hubungi admin untuk mengaktifkannya.@if($hasAdministratorAccess) (Atur GEMINI_API_KEY di server.)@endif</p>
+                    @endunless
                 </div>
 
                 {{-- TAHAP 2: PROSES LOADING --}}
@@ -1015,127 +1012,72 @@
                     </div>
                 </div>
 
-                {{-- TAHAP 3: REVIEW & VERIFIKASI MANUAL PENGAWAS --}}
+                {{-- PERIKSA & SIMPAN --}}
                 <div id="zoomStepReview" class="d-none">
-                    <div class="alert alert-warning d-flex align-items-start mb-3">
-                        <i class="fas fa-user-clock mr-3 mt-1"></i>
-                        <div>
-                            <strong class="d-block mb-1">
-                                Verifikasi Hasil Pindaian AI (<span id="countReviewOffCam">0</span> Peserta Off Cam Terdeteksi)
-                            </strong>
-                            <span class="text-sm">
-                                Hanya peserta yang <strong>mematikan kamera (Off Cam)</strong> yang dicatat. Periksa dan sesuaikan data di bawah sebelum disimpan.
-                            </span>
-                        </div>
-                    </div>
+                    <p class="text-xs text-muted mb-2 d-none" id="cameraResumeNote">Melanjutkan rekap yang belum disimpan. <a href="#" id="btnResetCameraReview">Mulai ulang</a></p>
+                    <h6 class="section-title mb-1" id="reviewSourceTitle">Isi Status Kamera</h6>
+                    <p class="text-xs text-muted mb-2" id="cameraRuleText"></p>
+                    <input type="search" id="cameraReviewSearch" class="form-control form-control-sm mb-2" placeholder="Cari nama atau ID peserta…" aria-label="Cari peserta">
 
-                    {{-- ACTION BAR KONTROL --}}
                     <div class="card mb-3">
-                        <div class="card-body py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <div class="d-flex align-items-center flex-wrap gap-3">
-                                <div class="custom-control custom-checkbox">
-                                    <input type="checkbox" class="custom-control-input" id="checkSelectAll" checked>
-                                    <label class="custom-control-label text-sm" for="checkSelectAll">
-                                        Pilih Semua (<span id="textSelectedCount">0</span> terpilih)
-                                    </label>
-                                </div>
-                                <div class="border-left pl-3">
-                                    <div class="custom-control custom-checkbox">
-                                        <input type="checkbox" class="custom-control-input" id="checkMarkTidakHadir">
-                                        <label class="custom-control-label text-muted text-sm" for="checkMarkTidakHadir">
-                                            Ubah juga status kehadiran menjadi <strong>"Tidak Hadir"</strong>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div>
-                                <button type="button" class="btn btn-default btn-sm" id="btnAddManualRow">
-                                    <i class="fas fa-plus"></i> Tambah Peserta Manual
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- TABEL VERIFIKASI OFF CAM --}}
-                    <div class="card mb-3">
-                        <div class="card-body table-responsive p-0" style="max-height: 420px;">
-                            <table class="table table-hover mb-0 text-sm" id="zoomReviewTable">
+                        <div class="card-body p-0 camera-review-scroll">
+                            <table class="table mb-0 text-sm" id="zoomReviewTable">
                                 <thead>
                                     <tr>
-                                        <th class="text-center" style="width: 45px;">Pilih</th>
-                                        <th class="text-center" style="width: 40px;">No</th>
-                                        <th style="min-width: 170px;">Nama di {{ $meetingLabel }}</th>
-                                        <th style="min-width: 250px;">Peserta Terdaftar (Database)</th>
-                                        <th class="text-center" style="width: 140px;">Kemiripan AI</th>
-                                        <th>Alasan / Bukti Visual</th>
-                                        <th class="text-center" style="width: 60px;">Aksi</th>
+                                        <th>Peserta</th>
+                                        <th class="text-nowrap" style="width: 1%;">Status Kamera</th>
                                     </tr>
                                 </thead>
-                                <tbody id="zoomReviewTbody">
+                                <tbody id="camGroupCheck">
+                                    <tr class="camera-group-row d-none"><th colspan="2" class="text-xs"></th></tr>
+                                </tbody>
+                                <tbody id="camGroupData">
+                                    <tr class="camera-group-row d-none"><th colspan="2" class="text-xs"></th></tr>
+                                </tbody>
+                                <tbody id="camGroupEmpty">
+                                    <tr class="camera-group-row d-none">
+                                        <th colspan="2" class="text-xs">
+                                            <span class="camera-group-title"></span>
+                                            <span class="camera-bulk d-none">
+                                                <span class="ml-2">Isi semua yang kosong:</span>
+                                                <button type="button" class="btn btn-default btn-xs ml-1" data-bulk-status="on_cam">On Cam</button>
+                                                <button type="button" class="btn btn-default btn-xs ml-1" data-bulk-status="partial">Tidak Full On Cam</button>
+                                                <button type="button" class="btn btn-default btn-xs ml-1" data-bulk-status="off_cam">Full Off Cam</button>
+                                                <span class="d-block text-muted font-weight-normal mt-1">Peserta yang sudah punya rekap sebelumnya tidak diubah.</span>
+                                            </span>
+                                        </th>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
 
-                    {{-- FOOTER REVIEW --}}
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3 pt-2">
-                        <button type="button" class="btn btn-default" id="btnBackToUpload">
-                            <i class="fas fa-arrow-left"></i> Scan Ulang / Ganti Screenshot
-                        </button>
-                        <button type="button" class="btn btn-primary" id="btnConfirmSave">
-                            <i class="fas fa-check-circle mr-1"></i> Konfirmasi & Simpan Catatan Off Cam
-                        </button>
+                    <div class="border-top pt-3 camera-review-footer">
+                        <div id="cameraSaveSummary" class="text-sm mb-2" aria-live="polite"></div>
+                        @if($training->has_attendance)
+                            <div class="custom-control custom-checkbox mb-2 d-none" id="markTidakHadirWrap">
+                                <input type="checkbox" class="custom-control-input" id="checkMarkTidakHadir">
+                                <label class="custom-control-label text-sm" for="checkMarkTidakHadir" id="markTidakHadirLabel"></label>
+                            </div>
+                        @endif
+                        <div class="alert alert-danger d-none" id="cameraSaveAlert" role="alert"></div>
+                        <div class="d-flex justify-content-between flex-wrap" style="gap: 8px;">
+                            <button type="button" class="btn btn-default" id="btnBackToUpload">
+                                <i class="fas fa-plus mr-1"></i> Ganti atau tambah sumber data
+                            </button>
+                            <button type="button" class="btn btn-primary" id="btnConfirmSave" disabled></button>
+                        </div>
                     </div>
                 </div>
 
-                {{-- TAHAP 4: SEMUA ON CAM --}}
-                <div id="zoomStepAllOnCam" class="d-none">
-                    <x-empty-state icon="fa-check-circle" title="Semua peserta terdeteksi On Cam" text="Tidak ditemukan peserta yang mematikan kamera pada seluruh screenshot {{ $meetingLabel }} yang diunggah. Semua peserta tampak aktif menyalakan kamera.">
-                        <button type="button" class="btn btn-default" data-dismiss="modal">
-                            Tutup
+                {{-- TIDAK ADA PESERTA TERBACA --}}
+                <div id="zoomStepNoneRead" class="d-none">
+                    <x-empty-state icon="fa-user-slash" title="Tidak ada peserta yang terbaca" text="AI tidak menemukan kotak atau daftar peserta pada screenshot {{ $meetingLabel }} yang diunggah. Pastikan screenshot menampilkan tampilan galeri atau panel daftar peserta.">
+                        <button type="button" class="btn btn-default" id="btnNoneReadBack">
+                            <i class="fas fa-arrow-left"></i> Kembali Pilih Sumber Data
                         </button>
                     </x-empty-state>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- MODAL QUICK OFF CAM UNTUK SATU PESERTA --}}
-<div class="modal fade text-left" id="singleQuickOffCamModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    Tandai Off Cam (Manual)
-                </h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="quickParticipantId">
-                <div class="mb-3">
-                    <span class="text-muted text-xs d-block">Nama Peserta</span>
-                    <strong class="d-block" id="quickParticipantName">-</strong>
-                </div>
-                <div class="form-group mb-3">
-                    <label class="mb-1">Nama di {{ $meetingLabel }} / Catatan Sesi</label>
-                    <input type="text" id="quickZoomName" class="form-control form-control-sm" placeholder="Contoh: M. Rizky (Off Cam sesi 1)">
-                    <small class="text-muted text-xs">Kosongkan jika ingin otomatis memakai nama peserta.</small>
-                </div>
-                <div class="custom-control custom-checkbox mb-0">
-                    <input type="checkbox" class="custom-control-input" id="quickMarkTidakHadir">
-                    <label class="custom-control-label text-sm text-muted" for="quickMarkTidakHadir">
-                        Ubah status kehadiran menjadi <strong>"Tidak Hadir"</strong>
-                    </label>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
-                <button type="button" class="btn btn-primary" id="btnSaveQuickOffCam">
-                    Simpan Off Cam
-                </button>
             </div>
         </div>
     </div>
@@ -1439,7 +1381,7 @@ if (typeof $ !== 'undefined') {
 }
 
 // ===============================================================
-// ZOOM ATTENDANCE AI SCANNER (OFF-CAM DETECTOR) - CLIENT JS
+// REKAP KAMERA PESERTA (MONITORING, PINDAIAN AI, MANUAL) - CLIENT JS
 // ===============================================================
 (function () {
     const TRAINING_ID = {{ $training->id }};
@@ -1460,16 +1402,16 @@ if (typeof $ !== 'undefined') {
     const stepUpload = document.getElementById('zoomStepUpload');
     const stepLoading = document.getElementById('zoomStepLoading');
     const stepReview = document.getElementById('zoomStepReview');
-    const stepAllOnCam = document.getElementById('zoomStepAllOnCam');
+    const stepNoneRead = document.getElementById('zoomStepNoneRead');
 
-    const reviewTbody = document.getElementById('zoomReviewTbody');
-    const countReviewOffCam = document.getElementById('countReviewOffCam');
-    const textSelectedCount = document.getElementById('textSelectedCount');
-    const checkSelectAll = document.getElementById('checkSelectAll');
+    const reviewTable = document.getElementById('zoomReviewTable');
+    const groupCheck = document.getElementById('camGroupCheck');
+    const groupData = document.getElementById('camGroupData');
+    const groupEmpty = document.getElementById('camGroupEmpty');
     const checkMarkTidakHadir = document.getElementById('checkMarkTidakHadir');
-    const btnAddManualRow = document.getElementById('btnAddManualRow');
     const btnBackToUpload = document.getElementById('btnBackToUpload');
     const btnConfirmSave = document.getElementById('btnConfirmSave');
+    const HAS_MONITOR_DATA = @json($hasMeetingCameraData);
 
     const MAX_SCREENSHOTS = 40;
     const SCAN_BATCH_SIZE = 10; // the server accepts at most 10 images per request
@@ -1478,8 +1420,49 @@ if (typeof $ !== 'undefined') {
     const SCAN_STATUS_URL = @json(route('training.scan-zoom-ai.status', [$training, '__TOKEN__']));
     const SCAN_POLL_MS = 3000;
     const SCAN_MAX_WAIT_MS = 15 * 60 * 1000; // same as the queue job timeout
-    const SAVE_OFF_CAM_URL = @json(route('training.save-zoom-off-cam', $training));
-    const UPDATE_OFF_CAM_COUNT_URL = @json(route('training.update-offcam-count', [$training, '__PARTICIPANT__']));
+    const SAVE_CAMERA_URL = @json(route('training.camera-status.save', $training));
+    const MONITOR_CAMERA_URL = @json(route('training.meeting.camera', $training));
+    const CAMERA_LABELS = @json($cameraStatusLabels);
+
+    // Sama dengan App\Enums\CameraStatus: lebih dari separuh pengecekan menyala = On Cam, tidak pernah = Full Off Cam.
+    function cameraStatusFromChecks(on, total) {
+        if (!(total > 0)) return null;
+        if (on <= 0) return 'off_cam';
+        return on * 2 > total ? 'on_cam' : 'partial';
+    }
+
+    function cameraPercent(on, total) {
+        const status = cameraStatusFromChecks(on, total);
+        if (!status) return null;
+        const percent = Math.round(on * 100 / total);
+        if (status === 'off_cam') return 0;
+        if (status === 'partial') return Math.min(50, Math.max(1, percent));
+        return on >= total ? 100 : Math.min(99, Math.max(51, percent));
+    }
+    const reviewSourceTitle = document.getElementById('reviewSourceTitle');
+    const cameraRuleText = document.getElementById('cameraRuleText');
+    const REVIEW_TITLES = {
+        ai: 'Periksa Hasil Pindaian Screenshot',
+        monitor: 'Periksa Hasil Monitoring ' + MEETING_LABEL,
+        manual: 'Isi Status Kamera',
+        combined: 'Periksa Rekap Kamera Gabungan',
+    };
+    const RULE_TEXTS = {
+        monitor: 'On Cam: kamera menyala lebih dari separuh waktu di meeting. Tidak Full On Cam: pernah menyala, tetapi separuh waktu atau kurang. Full Off Cam: tidak pernah menyala.',
+        ai: 'On Cam: kamera menyala di lebih dari separuh screenshot. Tidak Full On Cam: pernah menyala, tetapi di separuh screenshot atau kurang. Full Off Cam: tidak pernah menyala.',
+        manual: 'On Cam: kamera lebih sering menyala (lebih dari separuh). Tidak Full On Cam: pernah menyala, tetapi separuh atau kurang. Full Off Cam: tidak pernah menyala.',
+    };
+
+    let reviewSources = new Set();
+
+    function setReviewSource(source) {
+        reviewSources.add(source);
+        const sources = Array.from(reviewSources).filter(src => src !== 'manual');
+        const key = sources.length > 1 ? 'combined' : (sources[0] || 'manual');
+        if (reviewSourceTitle) reviewSourceTitle.textContent = REVIEW_TITLES[key];
+        if (cameraRuleText) cameraRuleText.textContent = RULE_TEXTS[key] || RULE_TEXTS.manual;
+        updateGroups();
+    }
 
     let selectedFiles = []; // array of { file, base64, origSize, compSize }
     let loadingInterval = null;
@@ -1723,7 +1706,7 @@ if (typeof $ !== 'undefined') {
                         </button>
                     </div>
                     <div class="p-2 text-xs">
-                        <span class="d-block text-truncate font-weight-bold" title="${item.name}">${item.name}</span>
+                        <span class="d-block text-truncate font-weight-bold" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</span>
                         <div class="d-flex justify-content-between align-items-center text-muted mt-1">
                             <span><del>${formatBytes(item.origSize)}</del> &rarr; <strong>${formatBytes(item.compSize)}</strong></span>
                             <span class="badge badge-success">-${savingsPercent > 0 ? savingsPercent : 0}%</span>
@@ -1763,14 +1746,14 @@ if (typeof $ !== 'undefined') {
             stepUpload.classList.add('d-none');
             stepLoading.classList.remove('d-none');
             stepReview.classList.add('d-none');
-            stepAllOnCam.classList.add('d-none');
+            stepNoneRead.classList.add('d-none');
 
             // Rotating status text
             const loadingMessages = [
                 'Mengirim ' + selectedFiles.length + ' screenshot ' + MEETING_LABEL + ' ke Google Gemini Vision...',
                 'AI sedang membaca kotak-kotak galeri ' + MEETING_LABEL + '...',
-                'Mendeteksi peserta yang mematikan kamera (layar hitam, inisial, avatar)...',
-                'Membaca teks nama di setiap kotak yang Off Cam...',
+                'Membaca status kamera setiap peserta (video, layar hitam, inisial, avatar)...',
+                'Membaca teks nama di setiap kotak peserta...',
                 'Mencocokkan nama akun ' + MEETING_LABEL + ' dengan daftar resmi peserta pelatihan...',
                 'Menghitung skor kemiripan dan menyusun hasil verifikasi...'
             ];
@@ -1791,6 +1774,7 @@ if (typeof $ !== 'undefined') {
                 const collected = [];
                 let failure = null;
 
+                let scannedCount = 0;
                 for (let b = 0; b < batches.length; b++) {
                     if (titleEl) {
                         titleEl.textContent = batches.length > 1
@@ -1800,6 +1784,7 @@ if (typeof $ !== 'undefined') {
 
                     try {
                         collected.push(...await scanImages(batches[b]));
+                        scannedCount += batches[b].length;
                     } catch (err) {
                         console.error(err);
                         failure = err.message || 'Terjadi kendala saat memproses screenshot dengan AI.';
@@ -1812,25 +1797,33 @@ if (typeof $ !== 'undefined') {
                 stepLoading.classList.add('d-none');
                 if (titleEl) titleEl.textContent = `Menganalisis Screenshot ${MEETING_LABEL}...`;
 
-                const offCamList = mergeOffCamResults(collected);
+                // Screenshots already counted leave the list, so adding more and scanning again never counts them twice.
+                selectedFiles.splice(0, scannedCount);
+                renderThumbnails();
+
+                const cameraList = mergeCameraResults(collected);
 
                 // Nothing usable came back: return to the upload step with the error
-                if (failure && offCamList.length === 0) {
+                if (failure && cameraList.length === 0) {
                     stepUpload.classList.remove('d-none');
                     uploadAlert.textContent = failure;
                     uploadAlert.classList.remove('d-none');
                     return;
                 }
 
-                if (offCamList.length === 0) {
-                    stepAllOnCam.classList.remove('d-none');
+                if (cameraList.length === 0 && hasReviewData()) {
+                    showReview();
+                    if (!failure) showReviewAlert('AI tidak menemukan peserta pada screenshot ini. Tabel yang sedang diperiksa tidak berubah.', 'info');
+                } else if (cameraList.length === 0) {
+                    stepNoneRead.classList.remove('d-none');
                 } else {
-                    renderReviewTable(offCamList);
-                    stepReview.classList.remove('d-none');
+                    setReviewSource('ai');
+                    cameraList.forEach(item => applySourceItem(item, 'ai'));
+                    showReview();
                 }
 
                 if (failure) {
-                    alert(failure + '\n\nHasil dari batch sebelumnya tetap ditampilkan.');
+                    showReviewAlert(failure + ' Hasil dari batch sebelumnya tetap ditampilkan.');
                 }
             })();
         });
@@ -1910,7 +1903,7 @@ if (typeof $ !== 'undefined') {
             }
 
             if (data.status === 'done') {
-                return (data.data && data.data.off_cam_participants) || [];
+                return (data.data && data.data.camera_participants) || [];
             }
             if (data.status === 'failed') {
                 throw new Error(data.message || 'Scan screenshot gagal diproses. Coba lagi.');
@@ -1924,135 +1917,49 @@ if (typeof $ !== 'undefined') {
         if (status === 413) return 'Ukuran screenshot terlalu besar untuk server (HTTP 413). Minta admin server menaikkan batas upload.';
         if (status === 419) return 'Sesi sudah habis (HTTP 419). Muat ulang halaman lalu coba lagi.';
         if (status === 401 || status === 403) return `Akses ditolak (HTTP ${status}). Muat ulang halaman dan pastikan masih login.`;
-        if (status === 404) return 'Alamat pemindai tidak ditemukan (HTTP 404).';
+        if (status === 404) return 'Alamat tidak ditemukan (HTTP 404). Muat ulang halaman lalu coba lagi.';
         if (status === 502 || status === 503 || status === 504) return `Server terlalu lama merespons (HTTP ${status}). Coba lagi dengan lebih sedikit screenshot.`;
         return `Server mengembalikan error (HTTP ${status}). Coba lagi.`;
     }
 
-    // Combine results from several batches: one row per matched participant (highest score wins),
-    // unmatched Zoom names are de-duplicated by name.
-    function mergeOffCamResults(list) {
+    // Combine results from several batches (different screenshots): one row per matched participant or unmatched
+    // meeting name, with the screenshot checks added up and the status counted again.
+    function mergeCameraResults(list) {
         const byKey = new Map();
         list.forEach(item => {
             const key = item.participant_id
                 ? 'p:' + item.participant_id
                 : 'z:' + String(item.zoom_name || '').trim().toLowerCase();
             const existing = byKey.get(key);
-            if (!existing || (item.similarity_score || 0) > (existing.similarity_score || 0)) {
-                byKey.set(key, item);
+            if (!existing) {
+                byKey.set(key, Object.assign({}, item));
+                return;
+            }
+            addChecks(existing, item);
+            if ((item.similarity_score || 0) > (existing.similarity_score || 0)) {
+                existing.similarity_score = item.similarity_score;
             }
         });
         return Array.from(byKey.values());
     }
 
-    // Render Review Table
-    function renderReviewTable(detectedList) {
-        if (!reviewTbody) return;
-        reviewTbody.innerHTML = '';
-        countReviewOffCam.textContent = detectedList.length;
-
-        detectedList.forEach((item, idx) => {
-            const tr = createReviewRow(idx + 1, item);
-            reviewTbody.appendChild(tr);
-        });
-
-        updateSelectedCount();
+    // Same wording as ZoomAttendanceAiService::screenshotEvidence()
+    function screenshotEvidence(on, checks) {
+        if (on <= 0) return `Kamera mati di semua ${checks} screenshot`;
+        if (on >= checks) return `Kamera menyala di semua ${checks} screenshot`;
+        return `Kamera menyala di ${on} dari ${checks} screenshot`;
     }
 
-    // Create a row for the review table
-    function createReviewRow(rowNo, item) {
-        const tr = document.createElement('tr');
-        tr.className = 'review-item-row align-middle';
-
-        // Check if item is matched to a participant
-        const isMatched = !!item.participant_id;
-        const isChecked = isMatched;
-
-        // Build select options
-        let optionsHtml = '<option value="">-- Bukan Peserta Pelatihan (Abaikan) --</option>';
-        OFFICIAL_PARTICIPANTS.forEach(p => {
-            const selected = (p.id == item.participant_id) ? 'selected' : '';
-            optionsHtml += `<option value="${p.id}" ${selected}>${p.name} (${p.id_karyawan}) - ${p.divisi}</option>`;
-        });
-
-        // Similarity badge styling
-        const score = item.similarity_score || 0;
-        let scoreBadgeClass = 'badge-secondary';
-        let scoreLabel = 'Rendah';
-        if (score >= 80) {
-            scoreBadgeClass = 'badge-success';
-            scoreLabel = 'Sangat Mirip';
-        } else if (score >= 65) {
-            scoreBadgeClass = 'badge-warning';
-            scoreLabel = 'Mirip';
-        }
-
-        tr.innerHTML = `
-            <td class="text-center align-middle">
-                <input type="checkbox" class="row-checkbox" ${isChecked ? 'checked' : ''} style="cursor: pointer;">
-            </td>
-            <td class="text-center align-middle text-muted row-number">
-                ${rowNo}
-            </td>
-            <td class="align-middle">
-                <input type="text" class="form-control form-control-sm zoom-name-input" value="${escapeHtml(item.zoom_name || '')}" placeholder="Nama di {{ $meetingLabel }}...">
-            </td>
-            <td class="align-middle">
-                <select class="form-control form-control-sm participant-select">
-                    ${optionsHtml}
-                </select>
-            </td>
-            <td class="text-center align-middle">
-                <span class="badge ${scoreBadgeClass} similarity-badge" title="${escapeHtml(item.match_reason || '')}">
-                    ${score}% &bull; ${scoreLabel}
-                </span>
-            </td>
-            <td class="align-middle text-xs text-muted">
-                <div class="evidence-text text-dark">${escapeHtml(item.visual_evidence || 'Layar mati/avatar')}</div>
-                <div class="reason-text text-muted">${escapeHtml(item.match_reason || '-')}</div>
-            </td>
-            <td class="text-center align-middle">
-                <button type="button" class="btn btn-default btn-xs text-danger btn-delete-row" title="Hapus baris">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
-            </td>
-        `;
-
-        // Event: when participant select changes
-        const selectEl = tr.querySelector('.participant-select');
-        const checkEl = tr.querySelector('.row-checkbox');
-        const badgeEl = tr.querySelector('.similarity-badge');
-
-        selectEl.addEventListener('change', () => {
-            selectEl.classList.remove('is-invalid');
-            if (selectEl.value) {
-                checkEl.checked = true;
-                if (!item.participant_id || selectEl.value != item.participant_id) {
-                    badgeEl.className = 'badge badge-primary similarity-badge';
-                    badgeEl.innerHTML = '100% &bull; Manual';
-                }
-            } else {
-                checkEl.checked = false;
-            }
-            updateSelectedCount();
-        });
-
-        checkEl.addEventListener('change', () => {
-            if (!checkEl.checked) selectEl.classList.remove('is-invalid');
-            updateSelectedCount();
-        });
-
-        tr.querySelector('.btn-delete-row').addEventListener('click', () => {
-            tr.remove();
-            renumberReviewRows();
-            updateSelectedCount();
-        });
-
-        return tr;
+    function addChecks(target, item) {
+        target.checks = (+target.checks || 0) + (+item.checks || 0);
+        target.on_cam_checks = (+target.on_cam_checks || 0) + (+item.on_cam_checks || 0);
+        target.camera_status = cameraStatusFromChecks(target.on_cam_checks, target.checks);
+        target.camera_on_percent = cameraPercent(target.on_cam_checks, target.checks);
+        target.visual_evidence = screenshotEvidence(target.on_cam_checks, target.checks);
     }
 
     function escapeHtml(text) {
-        if (!text) return '';
+        if (text === null || text === undefined) return '';
         return String(text)
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
@@ -2061,332 +1968,631 @@ if (typeof $ !== 'undefined') {
             .replace(/'/g, '&#039;');
     }
 
-    // Renumber rows after delete
-    function renumberReviewRows() {
-        if (!reviewTbody) return;
-        const rows = reviewTbody.querySelectorAll('.review-item-row');
-        rows.forEach((r, i) => {
-            const numEl = r.querySelector('.row-number');
-            if (numEl) numEl.textContent = i + 1;
-        });
-        countReviewOffCam.textContent = rows.length;
+    function labelWithPercent(status, percent) {
+        return CAMERA_LABELS[status] + (percent !== '' && percent !== null && percent !== undefined ? ` ${percent}%` : '');
     }
 
-    // Update selected count indicator
-    function updateSelectedCount() {
-        if (!reviewTbody) return;
-        const checkedBoxes = reviewTbody.querySelectorAll('.row-checkbox:checked');
-        const totalRows = reviewTbody.querySelectorAll('.review-item-row').length;
-        textSelectedCount.textContent = checkedBoxes.length;
+    // ---------------------------------------------------------------
+    // Tabel periksa: satu baris untuk setiap peserta terdaftar
+    // ---------------------------------------------------------------
+    const participantsById = new Map(OFFICIAL_PARTICIPANTS.map(p => [String(p.id), p]));
+    const SOURCE_LABELS = { monitor: 'Monitoring', ai: 'Screenshot' };
+    const pendingQueues = new WeakMap(); // participant row -> doubtful matches waiting for "Ya, benar" / "Bukan"
+    const unmatchedItems = new WeakMap(); // unknown-name row -> { item, source }
+    let rowsBuilt = false;
+    let monitorAutoLoaded = false;
 
-        if (checkSelectAll) {
-            checkSelectAll.checked = (totalRows > 0 && checkedBoxes.length === totalRows);
+    function participantRows() {
+        return Array.from(reviewTable.querySelectorAll('tr.camera-row'));
+    }
+
+    function rowFor(participantId) {
+        return reviewTable.querySelector(`tr.camera-row[data-participant-id="${CSS.escape(String(participantId))}"]`);
+    }
+
+    function clearGroups() {
+        [groupCheck, groupData, groupEmpty].forEach(group => {
+            group.querySelectorAll('tr:not(.camera-group-row)').forEach(tr => tr.remove());
+        });
+    }
+
+    function buildParticipantRows() {
+        clearGroups();
+        OFFICIAL_PARTICIPANTS.slice()
+            .sort((a, b) => String(a.name).localeCompare(String(b.name), 'id'))
+            .forEach(p => groupEmpty.appendChild(createParticipantRow(p)));
+        rowsBuilt = true;
+        updateGroups();
+    }
+
+    // A saved recap starts selected, so the trainer only changes the exceptions; untouched rows are not saved again.
+    function createParticipantRow(p) {
+        const tr = document.createElement('tr');
+        tr.className = 'camera-row';
+        const prior = p.camera_status || '';
+        const priorPercent = prior && p.camera_on_percent !== null && p.camera_on_percent !== undefined ? String(p.camera_on_percent) : '';
+        Object.assign(tr.dataset, {
+            participantId: p.id, status: prior, percent: priorPercent, prior, priorPercent,
+            computed: '', computedPercent: '', source: '', conflict: '', zoomName: '', confirmedNames: '',
+            checks: '', onChecks: '', edited: '', pending: '', evidence: '',
+            search: `${p.name} ${p.id_karyawan}`.toLowerCase(),
+        });
+
+        tr.innerHTML = `
+            <td class="align-middle">
+                <div class="font-weight-bold">${escapeHtml(p.name)} <span class="text-xs text-muted font-weight-normal">${escapeHtml(p.id_karyawan)}</span></div>
+                <div class="text-xs text-muted camera-row-evidence"></div>
+                <div class="camera-row-confirm d-none"></div>
+            </td>
+            <td class="align-middle">
+                <div class="btn-group btn-group-toggle segmented camera-status-picker" role="radiogroup" aria-label="Status kamera ${escapeHtml(p.name)}">
+                    <button type="button" class="btn" role="radio" aria-checked="false" data-status="on_cam" title="On Cam">On Cam</button>
+                    <button type="button" class="btn" role="radio" aria-checked="false" data-status="partial" title="Tidak Full On Cam">Tidak Full</button>
+                    <button type="button" class="btn" role="radio" aria-checked="false" data-status="off_cam" title="Full Off Cam">Full Off</button>
+                </div>
+                <div class="text-xs camera-row-note"></div>
+            </td>
+        `;
+        renderRow(tr);
+        return tr;
+    }
+
+    function isUntouchedPrior(tr) {
+        return !!tr.dataset.prior && tr.dataset.status === tr.dataset.prior && !tr.dataset.evidence && tr.dataset.edited !== '1';
+    }
+
+    // Line 2 under the name, the picker state and the notes under the picker
+    function renderRow(tr) {
+        const p = participantsById.get(tr.dataset.participantId);
+        const evidenceEl = tr.querySelector('.camera-row-evidence');
+        let evidence = 'Belum ada data';
+        if (tr.dataset.evidence) {
+            const differs = tr.dataset.zoomName && p && tr.dataset.zoomName.trim().toLowerCase() !== String(p.name).trim().toLowerCase();
+            evidence = (differs ? `di ${MEETING_LABEL}: "${tr.dataset.zoomName}" · ` : '') + tr.dataset.evidence;
+        } else if (tr.dataset.prior) {
+            evidence = 'Rekap tersimpan: ' + labelWithPercent(tr.dataset.prior, tr.dataset.priorPercent);
         }
+        evidenceEl.textContent = evidence;
+        evidenceEl.title = evidence;
 
-        if (btnConfirmSave) {
-            btnConfirmSave.disabled = (checkedBoxes.length === 0);
+        tr.querySelectorAll('.camera-status-picker [data-status]').forEach(btn => {
+            const active = btn.dataset.status === tr.dataset.status;
+            btn.classList.toggle('active', active);
+            btn.setAttribute('aria-checked', active ? 'true' : 'false');
+        });
+
+        const notes = [];
+        if (tr.dataset.edited === '1') {
+            notes.push(tr.dataset.computed
+                ? `<span class="text-muted">Diubah manual (hitungan: ${escapeHtml(labelWithPercent(tr.dataset.computed, tr.dataset.computedPercent))})</span>`
+                : '<span class="text-muted">Dipilih manual</span>');
         }
-    }
-
-    // Master checkbox toggle
-    if (checkSelectAll) {
-        checkSelectAll.addEventListener('change', e => {
-            const isChecked = e.target.checked;
-            reviewTbody.querySelectorAll('.row-checkbox').forEach(cb => {
-                cb.checked = isChecked;
-            });
-            updateSelectedCount();
-        });
-    }
-
-    // Add manual row button
-    if (btnAddManualRow) {
-        btnAddManualRow.addEventListener('click', () => {
-            const currentTotal = reviewTbody.querySelectorAll('.review-item-row').length;
-            const newTr = createReviewRow(currentTotal + 1, {
-                zoom_name: 'Input Manual',
-                participant_id: null,
-                similarity_score: 100,
-                match_reason: 'Ditambahkan manual oleh pengawas',
-                visual_evidence: 'Pengamatan pengawas',
-                confidence: 'high'
-            });
-            reviewTbody.appendChild(newTr);
-            renumberReviewRows();
-            updateSelectedCount();
-            newTr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        });
-    }
-
-    // Back to upload step
-    if (btnBackToUpload) {
-        btnBackToUpload.addEventListener('click', () => {
-            stepReview.classList.add('d-none');
-            stepUpload.classList.remove('d-none');
-        });
-    }
-
-    // Confirm and Save action
-    if (btnConfirmSave) {
-        btnConfirmSave.addEventListener('click', () => {
-            const rows = reviewTbody.querySelectorAll('.review-item-row');
-            const itemsToSave = [];
-            const unmatchedSelects = [];
-
-            rows.forEach(r => {
-                const isChecked = r.querySelector('.row-checkbox').checked;
-                const selectEl = r.querySelector('.participant-select');
-                const participantId = selectEl.value;
-                const zoomName = r.querySelector('.zoom-name-input').value;
-                const reason = r.querySelector('.reason-text').textContent;
-
-                selectEl.classList.remove('is-invalid');
-                if (!isChecked) return;
-
-                if (!participantId) {
-                    selectEl.classList.add('is-invalid');
-                    unmatchedSelects.push(selectEl);
-                    return;
-                }
-
-                itemsToSave.push({
-                    participant_id: participantId,
-                    zoom_name: zoomName || '-',
-                    reason: reason || `Terdeteksi Off Cam di ${MEETING_LABEL}`
-                });
-            });
-
-            // Checked rows that are not linked to a participant cannot be saved: say so instead of skipping them
-            if (unmatchedSelects.length > 0) {
-                const n = unmatchedSelects.length;
-                alert(itemsToSave.length === 0 && n === rows.length
-                    ? `Semua ${n} nama belum dipasangkan ke peserta pelatihan ini.\n\nPilih nama pesertanya di kolom "Peserta Terdaftar" (kotak merah). Kalau orangnya memang bukan peserta pelatihan ini, hapus centangnya.`
-                    : `${n} baris yang dicentang belum dipasangkan ke peserta.\n\nPilih nama pesertanya di kolom "Peserta Terdaftar" (kotak merah), atau hapus centangnya.`);
-                unmatchedSelects[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                unmatchedSelects[0].focus();
-                return;
-            }
-
-            if (itemsToSave.length === 0) {
-                alert('Belum ada baris yang dicentang.');
-                return;
-            }
-
-            const markTidakHadir = checkMarkTidakHadir ? checkMarkTidakHadir.checked : false;
-
-            btnConfirmSave.disabled = true;
-            btnConfirmSave.innerHTML = '<span class="spinner-border spinner-border-sm mr-1"></span> Menyimpan data presensi...';
-
-            fetch(SAVE_OFF_CAM_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': CSRF_TOKEN,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                    off_cam_items: itemsToSave,
-                    mark_as_tidak_hadir: markTidakHadir
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    alert(data.message || 'Catatan Off Cam berhasil disimpan!');
-                    window.location.reload();
-                } else {
-                    alert('Gagal menyimpan: ' + (data.message || 'Terjadi kesalahan.'));
-                    btnConfirmSave.disabled = false;
-                    btnConfirmSave.innerHTML = '<i class="fas fa-check-circle mr-1"></i> Konfirmasi & Simpan Catatan Off Cam';
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                alert('Gagal terhubung ke server saat menyimpan.');
-                btnConfirmSave.disabled = false;
-                btnConfirmSave.innerHTML = '<i class="fas fa-check-circle mr-1"></i> Konfirmasi & Simpan Catatan Off Cam';
-            });
-        });
-    }
-
-    // Direct manual input mode function
-    function openManualInputMode() {
-        stepUpload.classList.add('d-none');
-        stepLoading.classList.add('d-none');
-        stepAllOnCam.classList.add('d-none');
-        stepReview.classList.remove('d-none');
-
-        // If table is currently empty, add an initial manual row
-        if (reviewTbody.querySelectorAll('.review-item-row').length === 0) {
-            const newTr = createReviewRow(1, {
-                zoom_name: '',
-                participant_id: null,
-                similarity_score: 100,
-                match_reason: 'Dicatat manual oleh pengawas',
-                visual_evidence: 'Pengamatan langsung pengawas',
-                confidence: 'high'
-            });
-            reviewTbody.appendChild(newTr);
-            renumberReviewRows();
-            updateSelectedCount();
+        if (tr.dataset.conflict) {
+            notes.push(`<span class="text-warning">${escapeHtml(tr.dataset.conflict)}</span>`);
         }
+        if (tr.dataset.prior && tr.dataset.status !== tr.dataset.prior && (tr.dataset.status || tr.dataset.evidence)) {
+            notes.push(`<span class="text-warning">Rekap tersimpan: ${escapeHtml(CAMERA_LABELS[tr.dataset.prior])}${tr.dataset.status ? '' : ' (tetap, tidak diubah)'}</span>`);
+        }
+        tr.querySelector('.camera-row-note').innerHTML = notes.join('<br>');
     }
 
-    const btnDirectManualInput = document.getElementById('btnDirectManualInput');
-    if (btnDirectManualInput) {
-        btnDirectManualInput.addEventListener('click', openManualInputMode);
-    }
-
-    const btnOpenManualTable = document.getElementById('btnOpenManualTable');
-    if (btnOpenManualTable) {
-        btnOpenManualTable.addEventListener('click', () => {
-            if (typeof $ !== 'undefined') {
-                $('#scanZoomModal').modal('show');
-            }
-            openManualInputMode();
-        });
-    }
-
-    // ===============================================================
-    // MODE CEPAT INPUT OFF CAM MANUAL (1-KLIK DI TABEL PESERTA)
-    // ===============================================================
-    let isManualOffCamModeActive = false;
-    // Diingat per pelatihan supaya mode tetap aktif saat pindah halaman daftar peserta.
-    const MANUAL_OFF_CAM_KEY = 'training.manualOffCam.' + TRAINING_ID;
-
-    function setManualOffCamMode(active) {
-        isManualOffCamModeActive = active;
-        try {
-            active ? sessionStorage.setItem(MANUAL_OFF_CAM_KEY, '1') : sessionStorage.removeItem(MANUAL_OFF_CAM_KEY);
-        } catch (e) {}
-        const defaultWrappers = document.querySelectorAll('.default-action-wrapper');
-        const quickWrappers = document.querySelectorAll('.quick-offcam-action-wrapper');
-        const banner = document.getElementById('bannerManualOffCamMode');
-        const btnToggle = document.getElementById('btnToggleManualOffCamMode');
-        const thAction = document.getElementById('thActionHeader');
-
-        if (active) {
-            defaultWrappers.forEach(el => el.classList.add('d-none'));
-            quickWrappers.forEach(el => el.classList.remove('d-none'));
-            if (banner) {
-                banner.classList.remove('d-none');
-                banner.classList.add('d-flex');
-            }
-            if (btnToggle) {
-                btnToggle.textContent = 'Selesai mencatat Off Cam';
-            }
-            if (thAction) {
-                thAction.textContent = 'Catat Off Cam';
-            }
+    // A status clicked by hand is kept even when more data comes in later
+    function setRowStatus(tr, status) {
+        tr.dataset.status = status;
+        if (status && tr.dataset.computed && status === tr.dataset.computed) {
+            tr.dataset.edited = '';
+            tr.dataset.percent = tr.dataset.computedPercent;
+        } else if (status && !tr.dataset.computed && status === tr.dataset.prior && !tr.dataset.evidence) {
+            tr.dataset.edited = '';
+            tr.dataset.percent = tr.dataset.priorPercent;
         } else {
-            defaultWrappers.forEach(el => el.classList.remove('d-none'));
-            quickWrappers.forEach(el => el.classList.add('d-none'));
-            if (banner) {
-                banner.classList.add('d-none');
-                banner.classList.remove('d-flex');
+            tr.dataset.edited = status ? '1' : '';
+            tr.dataset.percent = '';
+        }
+        renderRow(tr);
+    }
+
+    function addZoomNames(tr, zoomName) {
+        const names = tr.dataset.zoomName ? tr.dataset.zoomName.split(' / ') : [];
+        String(zoomName || '').split(' / ').map(n => n.trim()).filter(Boolean).forEach(n => {
+            if (!names.includes(n)) names.push(n);
+        });
+        tr.dataset.zoomName = names.join(' / ');
+    }
+
+    function confirmedNames(tr) {
+        return tr.dataset.confirmedNames ? tr.dataset.confirmedNames.split('\n') : [];
+    }
+
+    function confirmName(tr, zoomName) {
+        const names = confirmedNames(tr);
+        const key = String(zoomName || '').trim().toLowerCase();
+        if (key && !names.includes(key)) names.push(key);
+        tr.dataset.confirmedNames = names.join('\n');
+    }
+
+    // Put one participant's counted result from a source into their row. Screenshot batches add up; the same source
+    // loaded again replaces itself; a different source never silently replaces the result already shown.
+    function fillRow(tr, item, source) {
+        addZoomNames(tr, item.zoom_name);
+
+        if (tr.dataset.edited === '1') {
+            const label = labelWithPercent(item.camera_status, item.camera_on_percent);
+            tr.dataset.conflict = `${SOURCE_LABELS[source] || 'Data baru'}: ${label} (status manual tetap dipakai)`;
+            renderRow(tr);
+            return;
+        }
+
+        if (tr.dataset.computed && tr.dataset.source && tr.dataset.source !== source) {
+            tr.dataset.conflict = item.camera_status !== tr.dataset.computed
+                ? `${SOURCE_LABELS[source]}: ${labelWithPercent(item.camera_status, item.camera_on_percent)}. Klik statusnya bila ini yang benar.`
+                : '';
+            renderRow(tr);
+            return;
+        }
+
+        let result = item;
+        if (source === 'ai' && tr.dataset.source === 'ai' && tr.dataset.checks && item.checks) {
+            result = { checks: +tr.dataset.checks, on_cam_checks: +tr.dataset.onChecks };
+            addChecks(result, item);
+        }
+        tr.dataset.source = source;
+        tr.dataset.computed = result.camera_status || '';
+        tr.dataset.computedPercent = result.camera_on_percent ?? '';
+        tr.dataset.status = tr.dataset.computed;
+        tr.dataset.percent = tr.dataset.computedPercent;
+        tr.dataset.checks = result.checks || '';
+        tr.dataset.onChecks = result.on_cam_checks || '';
+        tr.dataset.evidence = result.visual_evidence || '';
+        renderRow(tr);
+    }
+
+    function placeRow(tr) {
+        if (tr.dataset.pending === '1') groupCheck.appendChild(tr);
+        else if (tr.dataset.evidence) groupData.appendChild(tr);
+        else groupEmpty.appendChild(tr);
+    }
+
+    // Doubtful matches do not touch the row until the trainer confirms them
+    function showNextPrompt(tr) {
+        const queue = pendingQueues.get(tr) || [];
+        const confirm = tr.querySelector('.camera-row-confirm');
+        if (queue.length === 0) {
+            tr.dataset.pending = '';
+            tr.classList.remove('table-warning');
+            confirm.classList.add('d-none');
+            confirm.innerHTML = '';
+        } else {
+            const { item } = queue[0];
+            tr.dataset.pending = '1';
+            tr.classList.add('table-warning');
+            confirm.innerHTML = `<span class="text-xs">Di ${escapeHtml(MEETING_LABEL)} tertulis "${escapeHtml(item.zoom_name)}" (mirip ${escapeHtml(item.similarity_score)}%): ${escapeHtml(item.visual_evidence || '')}. Benar orang ini?</span>
+                <button type="button" class="btn btn-primary btn-xs ml-1 js-confirm-match">Ya, benar</button>
+                <button type="button" class="btn btn-default btn-xs js-reject-match">Bukan</button>`;
+            confirm.classList.remove('d-none');
+        }
+        placeRow(tr);
+    }
+
+    function applySourceItem(item, source) {
+        const tr = item.participant_id ? rowFor(item.participant_id) : null;
+        if (!tr) {
+            addUnmatchedRow(Object.assign({}, item, { participant_id: null }), source);
+            return;
+        }
+
+        const score = item.similarity_score ?? 100;
+        const name = String(item.zoom_name || '').trim().toLowerCase();
+        if (score < 80 && !confirmedNames(tr).includes(name)) {
+            const queue = pendingQueues.get(tr) || [];
+            queue.push({ item, source });
+            pendingQueues.set(tr, queue);
+            showNextPrompt(tr);
+            return;
+        }
+
+        confirmName(tr, item.zoom_name);
+        fillRow(tr, item, source);
+        placeRow(tr);
+    }
+
+    function addUnmatchedRow(item, source) {
+        const name = String(item.zoom_name || '').trim();
+        if (!name) return;
+        const existing = Array.from(groupCheck.querySelectorAll('tr.camera-unmatched-row'))
+            .find(r => r.dataset.zoomName.toLowerCase() === name.toLowerCase());
+        if (existing) {
+            const stored = unmatchedItems.get(existing);
+            if (stored.source === 'ai' && source === 'ai' && stored.item.checks && item.checks) {
+                addChecks(stored.item, item);
+                existing.querySelector('.camera-row-evidence').textContent = stored.item.visual_evidence || '';
             }
-            if (btnToggle) {
-                btnToggle.textContent = 'Input Off Cam manual';
-            }
-            if (thAction) {
-                thAction.textContent = 'Aksi';
-            }
+            return;
+        }
+
+        const tr = document.createElement('tr');
+        tr.className = 'camera-unmatched-row table-warning';
+        tr.dataset.zoomName = name;
+        tr.dataset.search = name.toLowerCase();
+        unmatchedItems.set(tr, { item: Object.assign({}, item), source });
+        tr.innerHTML = `
+            <td class="align-middle">
+                <div class="font-weight-bold">"${escapeHtml(name)}" tidak ada di daftar peserta</div>
+                <div class="text-xs text-muted camera-row-evidence">${escapeHtml(item.visual_evidence || '')}</div>
+            </td>
+            <td class="align-middle">
+                <select class="form-control form-control-sm camera-pair-select" aria-label="Pasangkan ${escapeHtml(name)}">
+                    <option value="">Pasangkan ke peserta…</option>
+                </select>
+                <button type="button" class="btn btn-link btn-xs text-muted px-0 js-ignore-name">Abaikan nama ini</button>
+            </td>
+        `;
+        groupCheck.appendChild(tr);
+    }
+
+    // Options are built when the select is opened: only participants that have no data yet
+    function fillPairOptions(select) {
+        const current = select.value;
+        const free = Array.from(groupEmpty.querySelectorAll('tr.camera-row'))
+            .map(tr => participantsById.get(tr.dataset.participantId))
+            .filter(Boolean)
+            .sort((a, b) => String(a.name).localeCompare(String(b.name), 'id'));
+        select.innerHTML = '<option value="">Pasangkan ke peserta…</option>'
+            + free.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)} (${escapeHtml(p.id_karyawan)})</option>`).join('');
+        select.value = current;
+    }
+
+    // Group headers, counts and the bulk control
+    function updateGroups() {
+        const visibleRows = group => Array.from(group.querySelectorAll('tr:not(.camera-group-row)')).filter(tr => !tr.classList.contains('d-none'));
+        const allRows = group => group.querySelectorAll('tr:not(.camera-group-row)').length;
+        const onlyManual = Array.from(reviewSources).every(src => src === 'manual');
+
+        const checkHeader = groupCheck.querySelector('.camera-group-row');
+        checkHeader.querySelector('th').textContent = `Perlu dicek (${allRows(groupCheck)}): nama di ${MEETING_LABEL} tidak cocok persis dengan peserta terdaftar. Yang belum dicek tidak ikut disimpan.`;
+        checkHeader.classList.toggle('d-none', visibleRows(groupCheck).length === 0);
+
+        const dataHeader = groupData.querySelector('.camera-group-row');
+        dataHeader.querySelector('th').textContent = `Ada data (${allRows(groupData)})`;
+        dataHeader.classList.toggle('d-none', visibleRows(groupData).length === 0);
+
+        const emptyHeader = groupEmpty.querySelector('.camera-group-row');
+        emptyHeader.querySelector('.camera-group-title').textContent = onlyManual
+            ? `Semua peserta (${allRows(groupEmpty)})`
+            : `Belum ada data dari sumber ini (${allRows(groupEmpty)})`;
+        emptyHeader.classList.toggle('d-none', visibleRows(groupEmpty).length === 0);
+        const bulkTargets = visibleRows(groupEmpty).filter(tr => !tr.dataset.status && !tr.dataset.prior);
+        emptyHeader.querySelector('.camera-bulk').classList.toggle('d-none', bulkTargets.length === 0);
+
+        updateCameraSummary();
+    }
+
+    function savableRows() {
+        return participantRows().filter(tr => tr.dataset.status && !isUntouchedPrior(tr));
+    }
+
+    function updateCameraSummary() {
+        const rows = savableRows();
+        const count = status => rows.filter(tr => tr.dataset.status === status).length;
+        const on = count('on_cam'), partial = count('partial'), off = count('off_cam');
+        const empty = participantRows().filter(tr => !tr.dataset.status && !tr.dataset.prior).length;
+        const unchanged = participantRows().filter(isUntouchedPrior).length;
+        const check = groupCheck.querySelectorAll('tr:not(.camera-group-row)').length;
+        const replaced = rows.filter(tr => tr.dataset.prior && tr.dataset.prior !== tr.dataset.status).length;
+        const offRows = rows.filter(tr => tr.dataset.status === 'off_cam');
+        const hadir = offRows.filter(tr => (participantsById.get(tr.dataset.participantId) || {}).attendance_status === 'hadir').length;
+
+        const summary = document.getElementById('cameraSaveSummary');
+        const extra = [];
+        if (empty) extra.push(`${empty} peserta belum diisi (tidak disimpan)`);
+        if (unchanged) extra.push(`${unchanged} rekap tersimpan tidak berubah`);
+        if (check) extra.push(`<span class="text-warning">${check} nama perlu dicek</span>`);
+        if (replaced) extra.push(`${replaced} mengganti rekap sebelumnya`);
+        summary.innerHTML = (rows.length
+            ? `Akan disimpan: <strong>${rows.length} peserta</strong> — ${on} On Cam · ${partial} Tidak Full On Cam · ${off} Full Off Cam`
+            : 'Belum ada status kamera yang dipilih.')
+            + (extra.length ? `<span class="d-block text-xs text-muted">${extra.join(' · ')}</span>` : '');
+
+        if (!btnConfirmSave.dataset.saving) {
+            btnConfirmSave.innerHTML = `<i class="fas fa-check-circle mr-1"></i> Simpan Rekap Kamera (${rows.length} peserta)`;
+            btnConfirmSave.disabled = rows.length === 0;
+        }
+
+        const wrap = document.getElementById('markTidakHadirWrap');
+        if (wrap) {
+            wrap.classList.toggle('d-none', off === 0);
+            if (off === 0 && checkMarkTidakHadir) checkMarkTidakHadir.checked = false;
+            document.getElementById('markTidakHadirLabel').innerHTML = `Tandai juga ${off} peserta Full Off Cam sebagai Tidak Hadir di presensi`
+                + (hadir ? `<span class="d-block text-danger text-xs">${hadir} di antaranya sudah mengisi presensi Hadir dan akan diganti.</span>` : '');
         }
     }
 
-    try {
-        if (sessionStorage.getItem(MANUAL_OFF_CAM_KEY) === '1') setManualOffCamMode(true);
-    } catch (e) {}
+    // Status picker, match confirmation, pairing and ignore: one delegated handler
+    reviewTable.addEventListener('click', e => {
+        const statusBtn = e.target.closest('.camera-status-picker [data-status]');
+        if (statusBtn) {
+            const tr = statusBtn.closest('tr.camera-row');
+            setRowStatus(tr, tr.dataset.status === statusBtn.dataset.status ? '' : statusBtn.dataset.status);
+            updateGroups();
+            return;
+        }
 
-    document.addEventListener('click', function (e) {
-        if (e.target.closest('#btnToggleManualOffCamMode')) {
-            e.preventDefault();
-            setManualOffCamMode(!isManualOffCamModeActive);
-        } else if (e.target.closest('#btnExitManualOffCamMode')) {
-            e.preventDefault();
-            setManualOffCamMode(false);
+        const bulkBtn = e.target.closest('[data-bulk-status]');
+        if (bulkBtn) {
+            Array.from(groupEmpty.querySelectorAll('tr.camera-row'))
+                .filter(tr => !tr.classList.contains('d-none') && !tr.dataset.status && !tr.dataset.prior)
+                .forEach(tr => setRowStatus(tr, bulkBtn.dataset.bulkStatus));
+            updateGroups();
+            return;
+        }
+
+        const confirmBtn = e.target.closest('.js-confirm-match');
+        const rejectBtn = e.target.closest('.js-reject-match');
+        if (confirmBtn || rejectBtn) {
+            const tr = (confirmBtn || rejectBtn).closest('tr.camera-row');
+            const queue = pendingQueues.get(tr) || [];
+            const next = queue.shift();
+            if (next && confirmBtn) {
+                confirmName(tr, next.item.zoom_name);
+                fillRow(tr, next.item, next.source);
+            } else if (next) {
+                addUnmatchedRow(Object.assign({}, next.item, { participant_id: null }), next.source);
+            }
+            showNextPrompt(tr);
+            updateGroups();
+            return;
+        }
+
+        const ignoreBtn = e.target.closest('.js-ignore-name');
+        if (ignoreBtn) {
+            ignoreBtn.closest('tr').remove();
+            updateGroups();
         }
     });
 
-    // 1-Click Stepper Listener on Participants Table
-    const participantsTable = document.getElementById('participantsTable');
-    if (participantsTable) {
-        participantsTable.addEventListener('click', function (e) {
-            const btn = e.target.closest('.btn-offcam-step');
-            if (!btn) return;
+    reviewTable.addEventListener('focusin', e => {
+        if (e.target.matches('.camera-pair-select')) fillPairOptions(e.target);
+    });
+    reviewTable.addEventListener('mousedown', e => {
+        if (e.target.matches('.camera-pair-select')) fillPairOptions(e.target);
+    });
 
-            const partId = btn.getAttribute('data-id');
-            const partName = btn.getAttribute('data-name') || 'Peserta';
-            const action = btn.getAttribute('data-action') || 'increment';
+    reviewTable.addEventListener('change', e => {
+        const select = e.target.closest('.camera-pair-select');
+        if (!select || !select.value) return;
+        const unmatched = select.closest('tr');
+        const stored = unmatchedItems.get(unmatched);
+        const tr = rowFor(select.value);
+        if (!stored || !tr) return;
+        unmatched.remove();
+        confirmName(tr, stored.item.zoom_name);
+        fillRow(tr, stored.item, stored.source);
+        placeRow(tr);
+        updateGroups();
+    });
 
-            if (!partId) return;
+    // Search by name, ID or meeting name
+    const searchInput = document.getElementById('cameraReviewSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            const q = searchInput.value.trim().toLowerCase();
+            reviewTable.querySelectorAll('tr.camera-row, tr.camera-unmatched-row').forEach(tr => {
+                const text = tr.dataset.search + ' ' + (tr.dataset.zoomName || '').toLowerCase();
+                tr.classList.toggle('d-none', q !== '' && !text.includes(q));
+            });
+            updateGroups();
+        });
+    }
 
-            const wrapper = document.getElementById(`offcamActionWrapper_${partId}`);
-            if (btn.disabled) return;
-            btn.disabled = true;
+    function hasReviewData() {
+        return groupCheck.querySelector('tr:not(.camera-group-row)') !== null
+            || groupData.querySelector('tr:not(.camera-group-row)') !== null
+            || participantRows().some(tr => tr.dataset.status && !isUntouchedPrior(tr));
+    }
 
-            fetch(UPDATE_OFF_CAM_COUNT_URL.replace('__PARTICIPANT__', encodeURIComponent(partId)), {
+    function resetCameraReview() {
+        reviewSources = new Set();
+        if (searchInput) searchInput.value = '';
+        if (checkMarkTidakHadir) checkMarkTidakHadir.checked = false;
+        hideReviewAlert();
+        buildParticipantRows();
+    }
+
+    function showStep(step) {
+        [stepUpload, stepLoading, stepReview, stepNoneRead].forEach(el => el.classList.toggle('d-none', el !== step));
+    }
+
+    function showReview() {
+        showStep(stepReview);
+        updateGroups();
+    }
+
+    function showPicker() {
+        document.getElementById('cameraMergeHint').classList.toggle('d-none', !hasReviewData());
+        showStep(stepUpload);
+    }
+
+    const reviewAlert = document.getElementById('cameraSaveAlert');
+    function showReviewAlert(message, kind = 'danger') {
+        reviewAlert.className = `alert alert-${kind}`;
+        reviewAlert.textContent = message;
+    }
+    function hideReviewAlert() {
+        reviewAlert.className = 'alert alert-danger d-none';
+        reviewAlert.textContent = '';
+    }
+
+    // Opening the modal: continue an unsaved review, otherwise load monitoring data straight away when there is
+    // some, otherwise let the trainer pick a source.
+    if (typeof $ !== 'undefined') {
+        $('#scanZoomModal').on('show.bs.modal', function (e) {
+            if (e.target !== this || !stepLoading.classList.contains('d-none')) return;
+            if (!rowsBuilt) buildParticipantRows();
+            if (checkMarkTidakHadir) checkMarkTidakHadir.checked = false;
+            const info = document.getElementById('zoomMonitorInfo');
+            if (info) info.classList.add('d-none');
+            document.getElementById('cameraResumeNote').classList.add('d-none');
+
+            if (hasReviewData()) {
+                document.getElementById('cameraResumeNote').classList.remove('d-none');
+                showReview();
+            } else if (HAS_MONITOR_DATA && !monitorAutoLoaded) {
+                monitorAutoLoaded = true;
+                loadMonitoring(true);
+            } else {
+                showPicker();
+            }
+        });
+    }
+
+    const btnResetCameraReview = document.getElementById('btnResetCameraReview');
+    if (btnResetCameraReview) {
+        btnResetCameraReview.addEventListener('click', e => {
+            e.preventDefault();
+            resetCameraReview();
+            document.getElementById('cameraResumeNote').classList.add('d-none');
+            showPicker();
+        });
+    }
+
+    if (btnBackToUpload) btnBackToUpload.addEventListener('click', () => { hideReviewAlert(); showPicker(); });
+
+    const btnNoneReadBack = document.getElementById('btnNoneReadBack');
+    if (btnNoneReadBack) btnNoneReadBack.addEventListener('click', showPicker);
+
+    // Save: no alert() and no page reload; the participant list is updated in place
+    const saveNotice = document.getElementById('cameraSaveNotice');
+    if (btnConfirmSave) {
+        btnConfirmSave.addEventListener('click', () => {
+            const rows = savableRows();
+            if (rows.length === 0) return;
+            const items = rows.map(tr => ({
+                participant_id: +tr.dataset.participantId,
+                zoom_name: tr.dataset.zoomName ? tr.dataset.zoomName.slice(0, 255) : null,
+                camera_status: tr.dataset.status,
+                camera_on_percent: tr.dataset.percent === '' ? null : +tr.dataset.percent,
+            }));
+            const markTidakHadir = !!(checkMarkTidakHadir && checkMarkTidakHadir.checked);
+
+            hideReviewAlert();
+            btnConfirmSave.dataset.saving = '1';
+            btnConfirmSave.disabled = true;
+            btnConfirmSave.innerHTML = '<span class="spinner-border spinner-border-sm mr-1"></span> Menyimpan…';
+            const done = () => { delete btnConfirmSave.dataset.saving; updateCameraSummary(); };
+
+            fetch(SAVE_CAMERA_URL, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': CSRF_TOKEN,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ action: action })
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN, 'Accept': 'application/json' },
+                body: JSON.stringify({ items, mark_off_cam_as_tidak_hadir: markTidakHadir }),
             })
-            .then(res => res.json())
-            .then(data => {
-                btn.disabled = false;
-                if (data.success) {
-                    const count = data.off_cam_count || 0;
-
-                    // Update action stepper UI in participant row
-                    if (wrapper) {
-                        if (count <= 0) {
-                            wrapper.innerHTML = `
-                                <button type="button" class="btn btn-default btn-xs text-danger text-nowrap btn-offcam-step" data-id="${partId}" data-action="increment" data-name="${partName}" title="Tandai peserta ini Off Cam">
-                                    <i class="fas fa-video-slash"></i> Tandai Off Cam
-                                </button>
-                            `;
-                        } else {
-                            wrapper.innerHTML = `
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <button type="button" class="btn btn-default btn-offcam-step" data-id="${partId}" data-action="decrement" data-name="${partName}" title="Kurangi frekuensi (-1)">
-                                        <i class="fas fa-minus"></i>
-                                    </button>
-                                    <span class="btn btn-default text-danger text-nowrap" style="pointer-events: none;">
-                                        <i class="fas fa-video-slash"></i> <span id="offcamCountText_${partId}">${count}x</span> Off
-                                    </span>
-                                    <button type="button" class="btn btn-default btn-offcam-step" data-id="${partId}" data-action="increment" data-name="${partName}" title="Tambah frekuensi (+1)">
-                                        <i class="fas fa-plus"></i>
-                                    </button>
-                                </div>
-                            `;
-                        }
-                    }
-
-                    // Update badge di kolom Presensi
-                    const badgeBox = document.getElementById(`offcamBadge_${partId}`);
-                    if (badgeBox) {
-                        if (count > 0) {
-                            badgeBox.innerHTML = `
-                                <span class="training-offcam">Off Cam ${count}×</span>
-                            `;
-                        } else {
-                            badgeBox.textContent = @js($training->has_attendance ? '' : '—');
-                        }
-                    }
-                } else {
-                    alert('Gagal mengupdate frekuensi Off Cam: ' + (data.message || 'Terjadi kesalahan'));
+            .then(res => res.json().catch(() => ({})).then(data => ({ res, data })))
+            .then(({ res, data }) => {
+                done();
+                if (!res.ok || !data.success) {
+                    const message = res.status === 422 && data.message ? data.message : (data.message || describeHttpError(res.status));
+                    showReviewAlert(`Gagal menyimpan: ${message} Isian Anda tidak hilang.`);
+                    return;
                 }
+
+                let markedAbsent = 0;
+                items.forEach(item => {
+                    const p = participantsById.get(String(item.participant_id));
+                    if (p) {
+                        p.camera_status = item.camera_status;
+                        p.camera_on_percent = item.camera_on_percent;
+                    }
+                    const absent = markTidakHadir && item.camera_status === 'off_cam';
+                    if (absent) {
+                        markedAbsent++;
+                        if (p) p.attendance_status = 'tidak_hadir';
+                    }
+                    const badge = document.getElementById(`cameraBadge_${item.participant_id}`);
+                    if (!badge) return;
+                    badge.innerHTML = `<span class="training-camera is-${item.camera_status}"><i class="fas fa-video mr-1" aria-hidden="true"></i>${escapeHtml(CAMERA_LABELS[item.camera_status])}${item.camera_on_percent !== null ? ` (${item.camera_on_percent}% on cam)` : ''}</span>`;
+                    const dot = absent ? badge.closest('td').querySelector('.status-dot') : null;
+                    if (dot) {
+                        dot.className = 'status-dot is-danger';
+                        dot.textContent = 'Tidak hadir';
+                    }
+                });
+
+                const count = status => items.filter(i => i.camera_status === status).length;
+                saveNotice.textContent = `Rekap kamera tersimpan untuk ${items.length} peserta: ${count('on_cam')} On Cam, ${count('partial')} Tidak Full On Cam, ${count('off_cam')} Full Off Cam.`
+                    + (markedAbsent ? ` ${markedAbsent} peserta ditandai Tidak Hadir` + (data.replaced_hadir ? ` (${data.replaced_hadir} sebelumnya tercatat Hadir).` : '.') : '');
+                saveNotice.classList.remove('d-none');
+
+                if (typeof $ !== 'undefined') $('#scanZoomModal').modal('hide');
+                resetCameraReview();
+                saveNotice.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             })
             .catch(err => {
                 console.error(err);
-                btn.disabled = false;
-                alert('Gagal menghubungi server.');
+                done();
+                showReviewAlert('Gagal menyimpan karena koneksi terputus. Periksa koneksi lalu klik Simpan lagi; isian Anda tidak hilang.');
             });
         });
     }
+
+    // Isi sendiri: every participant is already a row, so just open the table
+    const btnDirectManualInput = document.getElementById('btnDirectManualInput');
+    if (btnDirectManualInput) {
+        btnDirectManualInput.addEventListener('click', () => {
+            setReviewSource('manual');
+            showReview();
+            if (searchInput) searchInput.focus({ preventScroll: true });
+        });
+    }
+
+    // Data monitoring meeting (Zoom SDK / laporan platform)
+    const btnLoadMonitorCamera = document.getElementById('btnLoadMonitorCamera');
+    const monitorInfo = document.getElementById('zoomMonitorInfo');
+
+    async function loadMonitoring(auto) {
+        const idleLabel = '<i class="fas fa-satellite-dish mr-1"></i> Pakai Data Monitoring';
+        if (monitorInfo) monitorInfo.classList.add('d-none');
+        if (auto) {
+            document.getElementById('zoomLoadingTitle').textContent = `Mengambil data monitoring ${MEETING_LABEL}…`;
+            document.getElementById('zoomLoadingSub').textContent = '';
+            showStep(stepLoading);
+        } else if (btnLoadMonitorCamera) {
+            btnLoadMonitorCamera.disabled = true;
+            btnLoadMonitorCamera.innerHTML = '<span class="spinner-border spinner-border-sm mr-1"></span> Mengambil data...';
+        }
+
+        try {
+            const res = await fetch(MONITOR_CAMERA_URL, { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) throw new Error(describeHttpError(res.status));
+            const list = (await res.json()).camera_participants || [];
+
+            if (list.length === 0) {
+                showPicker();
+                if (monitorInfo) {
+                    monitorInfo.className = 'alert alert-info mx-3 mb-3';
+                    monitorInfo.textContent = `Monitoring ${MEETING_LABEL} belum merekam status kamera peserta.`;
+                }
+                return;
+            }
+
+            setReviewSource('monitor');
+            list.forEach(item => applySourceItem(item, 'monitor'));
+            showReview();
+        } catch (err) {
+            console.error(err);
+            showPicker();
+            if (monitorInfo) {
+                monitorInfo.className = 'alert alert-danger mx-3 mb-3';
+                monitorInfo.textContent = err.message || 'Data monitoring tidak bisa diambil. Coba lagi.';
+            }
+        } finally {
+            document.getElementById('zoomLoadingTitle').textContent = `Menganalisis Screenshot ${MEETING_LABEL}...`;
+            if (btnLoadMonitorCamera) {
+                btnLoadMonitorCamera.disabled = false;
+                btnLoadMonitorCamera.innerHTML = idleLabel;
+            }
+        }
+    }
+
+    if (btnLoadMonitorCamera) btnLoadMonitorCamera.addEventListener('click', () => loadMonitoring(false));
 })();
 </script>
 @endsection

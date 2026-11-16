@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\CameraStatus;
 use App\Enums\TrainingStatus;
 use App\Support\StorageUrl;
 use Illuminate\Database\Eloquent\Builder;
@@ -28,10 +29,20 @@ class TrainingParticipant extends Model
         return [
             'attended_at' => 'datetime',
             'wa_sent_at' => 'datetime',
-            'off_cam_at' => 'datetime',
-            'is_off_cam' => 'boolean',
-            'off_cam_count' => 'integer',
+            'camera_recorded_at' => 'datetime',
+            'camera_status' => CameraStatus::class,
+            'camera_on_percent' => 'integer',
         ];
+    }
+
+    /** Rekap kamera untuk tampilan dan export, mis. "Tidak Full On Cam (40% on cam)"; null bila belum direkap. */
+    public function cameraSummary(): ?string
+    {
+        if ($this->camera_status === null) {
+            return null;
+        }
+
+        return $this->camera_status->label().($this->camera_on_percent !== null ? ' ('.$this->camera_on_percent.'% on cam)' : '');
     }
 
     /**

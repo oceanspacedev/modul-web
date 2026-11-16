@@ -4787,10 +4787,70 @@ body.page-center {
     text-underline-offset: 3px;
 }
 
-.training-offcam {
+.training-camera {
     display: block;
     color: var(--gray-600);
     font-size: 12px;
+}
+
+.training-camera.is-partial { color: var(--warning-700); }
+.training-camera.is-off_cam { color: var(--danger-700); }
+
+.training-notice-success {
+    background: var(--success-50);
+    color: var(--success-700);
+}
+
+/* Rekap kamera: tabel periksa satu baris per peserta, status dipilih satu klik */
+.camera-review-scroll {
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+#zoomReviewTable .camera-group-row th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--gray-50);
+    font-weight: 600;
+    white-space: normal;
+}
+
+#zoomReviewTable .camera-row-evidence {
+    max-width: 460px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.camera-status-picker .btn.active[data-status="on_cam"] { color: var(--success-700) !important; }
+.camera-status-picker .btn.active[data-status="partial"] { color: var(--warning-700) !important; }
+.camera-status-picker .btn.active[data-status="off_cam"] { color: var(--danger-700) !important; }
+
+tr.camera-row[data-status=""] .camera-status-picker {
+    box-shadow: inset 0 0 0 1px var(--gray-300);
+}
+
+.camera-pair-select { min-width: 200px; }
+
+/* Ringkasan dan tombol simpan selalu terlihat di bawah panel */
+.camera-review-footer {
+    position: sticky;
+    bottom: -1.25rem;
+    z-index: 2;
+    margin: 0 -1.5rem -1.25rem;
+    padding: 12px 1.5rem 1.25rem;
+    background: #fff;
+}
+
+@media (max-width: 575.98px) {
+    #zoomReviewTable thead { display: none; }
+    #zoomReviewTable td { display: block; width: 100% !important; border-top: 0; }
+    #zoomReviewTable tr.camera-row td:first-child,
+    #zoomReviewTable tr.camera-unmatched-row td:first-child { border-top: 1px solid var(--ring); padding-bottom: 4px; }
+    #zoomReviewTable .camera-row-evidence { max-width: none; white-space: normal; }
+    .camera-status-picker { display: flex !important; width: 100%; }
+    .camera-status-picker .btn { flex: 1; justify-content: center; }
 }
 
 .training-mobile-label {
