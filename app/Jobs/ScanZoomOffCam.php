@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
 /**
- * Memindai screenshot Zoom dengan Gemini untuk mencari peserta yang off-cam. Gemini bisa butuh beberapa menit, jadi
+ * Memindai screenshot meeting dengan Gemini untuk merekap status kamera peserta. Gemini bisa butuh beberapa menit, jadi
  * dikerjakan worker AI; halaman detail pelatihan mengambil hasilnya lewat polling (zoomScanStatus).
  *
  * Screenshot disimpan controller ke disk "local" (folder zoom-scans/{token}) supaya payload job tetap kecil, lalu
@@ -77,7 +77,7 @@ class ScanZoomOffCam extends AiTask
         }
 
         return [
-            'data' => (new ZoomAttendanceAiService)->detectOffCamParticipants($files, $participants, $training->meetingPlatformLabel() ?? 'Meeting'),
+            'data' => (new ZoomAttendanceAiService)->detectCameraStatus($files, $participants, $training->meetingPlatformLabel() ?? 'Meeting'),
             'registered_participants' => $participants,
         ];
     }

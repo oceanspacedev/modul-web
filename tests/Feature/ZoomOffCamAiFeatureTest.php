@@ -2,13 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Enums\CameraStatus;
 use App\Jobs\AiTask;
 use App\Jobs\ScanZoomOffCam;
 use App\Models\Divisi;
 use App\Models\Training;
 use App\Models\TrainingParticipant;
 use App\Models\User;
-use App\Services\ZoomAttendanceAiService;
+use App\Support\Meetings\MeetingNameMatcher;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
@@ -87,102 +88,54 @@ class ZoomOffCamAiFeatureTest extends TestCase
         ]);
     }
 
-    /**
-     * Test saving verified off-cam participants by supervisor
-     */
-    public function test_save_verified_zoom_off_cam_successfully()
+    public function test_trainer_picks_a_camera_status_from_the_participant_list()
     {
-        $payload = [
-            'off_cam_items' => [
-                [
-                    'participant_id' => $this->participant1->id,
-                    'zoom_name' => 'M. Rizky',
-                    'reason' => 'Layar hitam polos',
-                ],
-            ],
-            'mark_as_tidak_hadir' => false,
-        ];
+        $url = route('training.camera-status.update', [$this->training, $this->participant1]);
 
-        $response = $this->actingAs($this->admin)
-            ->postJson("/training/{$this->training->id}/save-zoom-off-cam", $payload);
-
-        $response->assertStatus(200);
-        $response->assertJson([
-            'success' => true,
-            'updated_count' => 1,
-        ]);
+        $this->actingAs($this->admin)->postJson($url, ['camera_status' => 'partial'])
+            ->assertOk()
+            ->assertJson(['success' => true, 'camera_status' => 'partial', 'label' => 'Tidak Full On Cam']);
 
         $this->participant1->refresh();
-        $this->assertTrue($this->participant1->is_off_cam);
-        $this->assertEquals('M. Rizky', $this->participant1->meeting_display_name);
-        $this->assertNotNull($this->participant1->off_cam_at);
-        $this->assertStringContainsString('Off Cam Zoom (M. Rizky)', $this->participant1->attendance_notes);
-        // Kehadiran tetap hadir karena mark_as_tidak_hadir false
-        $this->assertEquals('hadir', $this->participant1->attendance_status);
-    }
+        $this->assertSame(CameraStatus::Partial, $this->participant1->camera_status);
+        $this->assertNull($this->participant1->camera_on_percent);
+        $this->assertNotNull($this->participant1->camera_recorded_at);
+        $this->assertSame('hadir', $this->participant1->attendance_status);
 
-    /**
-     * Test save with option mark as tidak hadir
-     */
-    public function test_save_verified_zoom_off_cam_with_mark_as_tidak_hadir()
-    {
-        $payload = [
-            'off_cam_items' => [
-                [
-                    'participant_id' => $this->participant2->id,
-                    'zoom_name' => '02_Budi Santoso',
-                    'reason' => 'Foto profil inisial',
-                ],
-            ],
-            'mark_as_tidak_hadir' => true,
-        ];
-
-        $response = $this->actingAs($this->admin)
-            ->postJson("/training/{$this->training->id}/save-zoom-off-cam", $payload);
-
-        $response->assertStatus(200);
-
-        $this->participant2->refresh();
-        $this->assertTrue($this->participant2->is_off_cam);
-        $this->assertEquals('tidak_hadir', $this->participant2->attendance_status);
-        $this->assertStringContainsString('Off Cam Zoom', $this->participant2->attendance_notes);
-    }
-
-    /**
-     * Test resetting/cancelling off-cam status for a participant
-     */
-    public function test_reset_zoom_off_cam_clears_status_cleanly()
-    {
-        // First mark participant as off cam
-        $this->participant1->update([
-            'is_off_cam' => true,
-            'meeting_display_name' => 'M. Rizky',
-            'off_cam_at' => now(),
-            'attendance_notes' => 'Catatan awal; Off Cam Zoom (M. Rizky)',
-        ]);
-
-        $response = $this->actingAs($this->admin)
-            ->postJson("/training/{$this->training->id}/reset-zoom-off-cam/{$this->participant1->id}");
-
-        $response->assertStatus(200);
-        $response->assertJson(['success' => true]);
-
+        // Mengosongkan pilihan menghapus rekapnya.
+        $this->postJson($url, ['camera_status' => null])->assertOk()->assertJson(['camera_status' => null]);
         $this->participant1->refresh();
-        $this->assertFalse($this->participant1->is_off_cam);
-        $this->assertNull($this->participant1->meeting_display_name);
-        $this->assertNull($this->participant1->off_cam_at);
-        // Note Off Cam harus terhapus, catatan awal tetap ada
-        $this->assertStringNotContainsString('Off Cam Zoom', (string) $this->participant1->attendance_notes);
-        $this->assertStringContainsString('Catatan awal', (string) $this->participant1->attendance_notes);
+        $this->assertNull($this->participant1->camera_status);
+        $this->assertNull($this->participant1->camera_recorded_at);
+
+        $this->postJson($url, ['camera_status' => 'sometimes'])->assertJsonValidationErrors('camera_status');
     }
 
     /**
-     * Test ZoomAttendanceAiService local fuzzy matching logic
+     * The recap rule: on cam in more than half of the checks = On Cam, half or fewer = Tidak Full On Cam, never = Full
+     * Off Cam.
      */
-    public function test_zoom_service_local_fuzzy_matching()
+    public function test_camera_status_follows_the_share_of_checks_with_the_camera_on()
     {
-        $service = new ZoomAttendanceAiService('dummy-key');
+        $this->assertSame(CameraStatus::OnCam, CameraStatus::fromChecks(9, 10));
+        $this->assertSame(CameraStatus::OnCam, CameraStatus::fromChecks(6, 10));
+        $this->assertSame(CameraStatus::Partial, CameraStatus::fromChecks(5, 10));
+        $this->assertSame(CameraStatus::Partial, CameraStatus::fromChecks(1, 10));
+        $this->assertSame(CameraStatus::OffCam, CameraStatus::fromChecks(0, 10));
+        $this->assertNull(CameraStatus::fromChecks(0, 0));
 
+        $this->assertSame(51, CameraStatus::percent(5040, 10000));
+        $this->assertSame(50, CameraStatus::percent(5, 10));
+        $this->assertSame(1, CameraStatus::percent(1, 1000));
+        $this->assertSame(99, CameraStatus::percent(999, 1000));
+        $this->assertSame(100, CameraStatus::percent(10, 10));
+    }
+
+    /**
+     * Meeting display names are matched to registered participants despite abbreviations and platform labels.
+     */
+    public function test_meeting_name_matcher_fuzzy_matching()
+    {
         $participantsList = [
             [
                 'id' => 10,
@@ -196,96 +149,35 @@ class ZoomOffCamAiFeatureTest extends TestCase
             ],
         ];
 
-        // Reflection to test protected localFuzzyMatch
-        $reflection = new \ReflectionClass($service);
-        $method = $reflection->getMethod('localFuzzyMatch');
-        $method->setAccessible(true);
+        $match = fn (string $name) => MeetingNameMatcher::match($name, $participantsList);
 
         // Case 1: Singkatan nama depan "M. Rizky"
-        $match1 = $method->invoke($service, 'M. Rizky', $participantsList);
+        $match1 = $match('M. Rizky');
         $this->assertNotNull($match1);
         $this->assertEquals(10, $match1['id']);
         $this->assertGreaterThanOrEqual(65, $match1['score']);
 
         // Case 2: Label tambahan Zoom "(Me)"
-        $match2 = $method->invoke($service, 'Siti Nurhaliza (Me)', $participantsList);
+        $match2 = $match('Siti Nurhaliza (Me)');
         $this->assertNotNull($match2);
         $this->assertEquals(20, $match2['id']);
 
         // Case 3: Nama asing tidak dikenal (tamu luar / host)
-        $match3 = $method->invoke($service, 'Guest User 99', $participantsList);
+        $match3 = $match('Guest User 99');
         $this->assertNull($match3);
-    }
 
-    /**
-     * Test stepper counter increment and decrement for off-cam frequency
-     */
-    public function test_update_off_cam_count_stepper()
-    {
-        // 1. Increment first time (0 -> 1)
-        $res1 = $this->actingAs($this->admin)
-            ->postJson("/training/{$this->training->id}/update-offcam-count/{$this->participant1->id}", [
-                'action' => 'increment',
-            ]);
-        $res1->assertStatus(200);
-        $res1->assertJson([
-            'success' => true,
-            'is_off_cam' => true,
-            'off_cam_count' => 1,
-        ]);
+        // Case 4: Nama resmi utuh (minimal dua kata) dengan tambahan kode toko / jabatan
+        $this->assertSame(10, $match('C1_ Muhammad Rizky Pratama')['id']);
+        $this->assertSame(30, MeetingNameMatcher::match('YAYAT RUHIYATNA CS GEBANG', [['id' => 30, 'name' => 'Yayat Ruhiyatna'], ...$participantsList])['id']);
 
-        $this->participant1->refresh();
-        $this->assertTrue($this->participant1->is_off_cam);
-        $this->assertEquals(1, $this->participant1->off_cam_count);
-        $this->assertStringContainsString('Off Cam Zoom (1x)', $this->participant1->attendance_notes);
+        // Case 5: Nama resmi satu kata tidak otomatis cocok dengan nama lain yang diawali kata itu
+        $this->assertNull(MeetingNameMatcher::match('Budi Santoso', [['id' => 40, 'name' => 'Budi']]));
 
-        // 2. Increment second time (1 -> 2)
-        $res2 = $this->actingAs($this->admin)
-            ->postJson("/training/{$this->training->id}/update-offcam-count/{$this->participant1->id}", [
-                'action' => 'increment',
-            ]);
-        $res2->assertStatus(200);
-        $res2->assertJson([
-            'success' => true,
-            'is_off_cam' => true,
-            'off_cam_count' => 2,
-        ]);
+        // Case 6: Nama resmi yang lebih lengkap menang saat skornya sama
+        $this->assertSame(2, MeetingNameMatcher::match('Ahmad Fauzi TINTP', [['id' => 1, 'name' => 'Ahmad Rizal'], ['id' => 3, 'name' => 'Ahmad'], ['id' => 2, 'name' => 'Ahmad Fauzi']])['id']);
 
-        $this->participant1->refresh();
-        $this->assertEquals(2, $this->participant1->off_cam_count);
-        $this->assertStringContainsString('Off Cam Zoom (2x)', $this->participant1->attendance_notes);
-
-        // 3. Decrement once (2 -> 1)
-        $res3 = $this->actingAs($this->admin)
-            ->postJson("/training/{$this->training->id}/update-offcam-count/{$this->participant1->id}", [
-                'action' => 'decrement',
-            ]);
-        $res3->assertStatus(200);
-        $res3->assertJson([
-            'success' => true,
-            'is_off_cam' => true,
-            'off_cam_count' => 1,
-        ]);
-
-        $this->participant1->refresh();
-        $this->assertEquals(1, $this->participant1->off_cam_count);
-
-        // 4. Decrement to zero (1 -> 0)
-        $res4 = $this->actingAs($this->admin)
-            ->postJson("/training/{$this->training->id}/update-offcam-count/{$this->participant1->id}", [
-                'action' => 'decrement',
-            ]);
-        $res4->assertStatus(200);
-        $res4->assertJson([
-            'success' => true,
-            'is_off_cam' => false,
-            'off_cam_count' => 0,
-        ]);
-
-        $this->participant1->refresh();
-        $this->assertFalse($this->participant1->is_off_cam);
-        $this->assertEquals(0, $this->participant1->off_cam_count);
-        $this->assertStringNotContainsString('Off Cam Zoom', (string) $this->participant1->attendance_notes);
+        // Case 7: Kata resmi dua huruf tetap dicocokkan lewat awalan
+        $this->assertSame(50, MeetingNameMatcher::match('Abdul Rahman', [['id' => 50, 'name' => 'Ab Rahman']])['id']);
     }
 
     private function screenshot(string $content = 'fake-jpeg-bytes'): string
@@ -324,12 +216,23 @@ class ZoomOffCamAiFeatureTest extends TestCase
         Storage::fake('local');
         Http::fake([
             'generativelanguage.googleapis.com/*' => Http::response([
-                'candidates' => [['content' => ['parts' => [['text' => json_encode(['detected_off_cam' => [[
-                    'zoom_name' => 'M. Rizky',
-                    'matched_participant_id' => $this->participant1->id,
-                    'similarity_score' => 95,
-                    'visual_evidence' => 'Layar hitam',
-                ]]])]]]]],
+                'candidates' => [['content' => ['parts' => [['text' => json_encode(['screenshots' => [
+                    ['screenshot_index' => 1, 'participants' => [
+                        ['zoom_name' => 'M. Rizky', 'camera_on' => true, 'matched_participant_id' => $this->participant1->id, 'similarity_score' => 95],
+                        ['zoom_name' => '02_Budi', 'camera_on' => false],
+                        ['zoom_name' => 'Tamu Luar', 'camera_on' => false, 'matched_participant_id' => 999999],
+                    ]],
+                    ['screenshot_index' => 2, 'participants' => [
+                        ['zoom_name' => 'M. Rizky', 'camera_on' => false, 'matched_participant_id' => $this->participant1->id, 'similarity_score' => 95],
+                        ['zoom_name' => 'Budi Santoso', 'camera_on' => false, 'matched_participant_id' => $this->participant2->id, 'similarity_score' => 100],
+                    ]],
+                    ['screenshot_index' => 3, 'participants' => [
+                        // Gallery tile and participant-list row of the same person: one check, camera on.
+                        ['zoom_name' => 'M. Rizky', 'camera_on' => true, 'matched_participant_id' => $this->participant1->id],
+                        ['zoom_name' => 'M. Rizky', 'camera_on' => false, 'matched_participant_id' => $this->participant1->id],
+                        ['zoom_name' => 'Budi Santoso', 'camera_on' => true, 'matched_participant_id' => $this->participant2->id],
+                    ]],
+                ]])]]]]],
             ]),
         ]);
 
@@ -342,12 +245,35 @@ class ZoomOffCamAiFeatureTest extends TestCase
             ->assertOk()
             ->assertJson([
                 'status' => 'done',
-                'data' => ['total_off_cam' => 1, 'off_cam_participants' => [[
-                    'zoom_name' => 'M. Rizky',
-                    'participant_id' => $this->participant1->id,
-                    'official_name' => 'Muhammad Rizky Pratama',
-                    'is_registered' => true,
-                ]]],
+                'data' => ['total_screens_analyzed' => 3, 'camera_participants' => [
+                    [
+                        'zoom_name' => 'M. Rizky',
+                        'participant_id' => $this->participant1->id,
+                        'official_name' => 'Muhammad Rizky Pratama',
+                        'is_registered' => true,
+                        'checks' => 3,
+                        'on_cam_checks' => 2,
+                        'camera_status' => 'on_cam',
+                        'camera_on_percent' => 67,
+                        'visual_evidence' => 'Kamera menyala di 2 dari 3 screenshot',
+                    ],
+                    [
+                        // Matched by name here when the AI gave no participant ID.
+                        'zoom_name' => '02_Budi / Budi Santoso',
+                        'participant_id' => $this->participant2->id,
+                        'checks' => 3,
+                        'on_cam_checks' => 1,
+                        'camera_status' => 'partial',
+                        'camera_on_percent' => 33,
+                    ],
+                    [
+                        'zoom_name' => 'Tamu Luar',
+                        'participant_id' => null,
+                        'is_registered' => false,
+                        'checks' => 1,
+                        'camera_status' => 'off_cam',
+                    ],
+                ]],
             ])
             ->assertJsonCount(2, 'registered_participants');
 
@@ -364,7 +290,7 @@ class ZoomOffCamAiFeatureTest extends TestCase
         Storage::fake('local');
         Http::fake([
             'generativelanguage.googleapis.com/*' => Http::response([
-                'candidates' => [['content' => ['parts' => [['text' => json_encode(['detected_off_cam' => []])]]]]],
+                'candidates' => [['content' => ['parts' => [['text' => json_encode(['screenshots' => []])]]]]],
             ]),
         ]);
         $this->training->update(['meeting_platform' => 'google_meet', 'meeting_link' => 'https://meet.google.com/abc-defg-hij']);

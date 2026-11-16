@@ -263,21 +263,21 @@ class TrainingScenarioTest extends TestCase
             ->assertSee('Hasil Evaluasi Peserta');
     }
 
-    public function test_recap_keeps_the_off_cam_record_when_attendance_is_not_used(): void
+    public function test_recap_keeps_the_camera_status_when_attendance_is_not_used(): void
     {
         $training = $this->training(pretest: false, posttest: true, evaluation: false);
-        $training->participants()->sole()->update(['is_off_cam' => true, 'off_cam_count' => 2]);
+        $training->participants()->sole()->update(['camera_status' => 'partial', 'camera_on_percent' => 40]);
 
         // Dengan presensi: menempel di Status Kehadiran, tanpa kolom tersendiri.
         $row = $this->rekapRow($training->fresh());
-        $this->assertSame('Belum Absen (Off Cam 2x)', $row['Status Kehadiran']);
-        $this->assertArrayNotHasKey('Off Cam', $row);
+        $this->assertSame('Belum Absen (Tidak Full On Cam)', $row['Status Kehadiran']);
+        $this->assertArrayNotHasKey('Status Kamera', $row);
 
-        // Tanpa presensi kolom kehadiran hilang, jadi catatan Off Cam pelatihan daring mendapat kolom sendiri.
+        // Tanpa presensi kolom kehadiran hilang, jadi rekap kamera pelatihan daring mendapat kolom sendiri.
         $training->update(['has_attendance' => false]);
         $row = $this->rekapRow($training->fresh());
         $this->assertArrayNotHasKey('Status Kehadiran', $row);
-        $this->assertSame('2x', $row['Off Cam']);
+        $this->assertSame('Tidak Full On Cam (40% on cam)', $row['Status Kamera']);
     }
 
     public function test_non_zoom_meetings_keep_off_cam_tools_without_zoom_monitoring(): void
@@ -292,8 +292,9 @@ class TrainingScenarioTest extends TestCase
 
             $this->actingAs($this->admin)->get(route('training.show', $training))
                 ->assertOk()->assertSee('Buka '.$label)
-                ->assertDontSee('Aktivitas Zoom')->assertSee('id="btnToggleManualOffCamMode"', false)
-                ->assertSee('Pindai Presensi '.$label.': Deteksi Off Cam');
+                ->assertDontSee('Aktivitas Zoom')->assertSee('id="btnDirectManualInput"', false)
+                ->assertDontSee('Ambil dari monitoring '.$label)
+                ->assertSee('Pindai screenshot dengan AI')->assertDontSee('id="btnLoadMonitorCamera"', false);
             $this->get('/training/portal/token_skenario')
                 ->assertOk()->assertSee('Buka Tautan '.$label)->assertSee($link);
             $this->assertStringContainsString('Tautan '.$label.': '.$link, WhatsAppService::buildInvitationMessage($training, $this->participant($training)));

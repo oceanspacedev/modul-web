@@ -59,16 +59,16 @@ class TrainingRekapExport implements FromArray, WithCustomValueBinder, WithEvent
     {
         return [
             ...self::BASE_HEADINGS,
-            ...($this->hasOffCamColumn() ? ['Off Cam'] : []),
+            ...($this->hasCameraColumn() ? ['Status Kamera'] : []),
             ...array_merge([], ...array_map(fn (string $step) => TrainingStepColumns::headings($step, detailed: true, essay: TrainingStepColumns::hasEssay($this->training, $step)), TrainingStepColumns::stepsOf($this->training))),
         ];
     }
 
     /**
-     * Off Cam biasanya menempel di kolom Status Kehadiran. Pelatihan daring tanpa presensi tidak punya kolom itu,
-     * jadi catatan Off Cam-nya mendapat kolom sendiri.
+     * Status kamera biasanya menempel di kolom Status Kehadiran. Pelatihan daring tanpa presensi tidak punya kolom itu,
+     * jadi rekap kameranya mendapat kolom sendiri.
      */
-    private function hasOffCamColumn(): bool
+    private function hasCameraColumn(): bool
     {
         return ! $this->training->has_attendance && $this->training->isOnline();
     }
@@ -99,7 +99,7 @@ class TrainingRekapExport implements FromArray, WithCustomValueBinder, WithEvent
                 $user->nama_lengkap ?? '-',
                 $user->divisi->name ?? '-',
                 $user->no_hp ?? '-',
-                ...($this->hasOffCamColumn() ? [$participant->is_off_cam ? ($participant->off_cam_count ?: 1).'x' : '-'] : []),
+                ...($this->hasCameraColumn() ? [$participant->cameraSummary() ?? '-'] : []),
                 ...array_merge([], ...array_map(fn (string $step) => TrainingStepColumns::cells($step, $training, $participant, detailed: true, essay: $essay[$step]), $steps)),
             ];
         }
