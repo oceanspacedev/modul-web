@@ -33,7 +33,7 @@
                     </form>
                 @elseif($meetingAccount)
                     <p class="mb-2">Akun penyelenggara <strong>{{ $meetingAccount->name }}</strong></p>
-                    <p class="text-muted">Masuk sebelum peserta dan biarkan halaman ini terbuka selama pelatihan. Informasikan kepada peserta bahwa jam masuk, jam keluar, dan status kamera dicatat.</p>
+                    <p class="text-muted">Masuk sebelum peserta dan biarkan halaman ini terbuka selama pelatihan. Informasikan kepada peserta bahwa jam masuk, jam keluar, status kamera, dan chat ke semua peserta dicatat.</p>
                     <form data-meeting-join method="POST" class="form-inline align-items-end">
                         <div class="form-group d-block mr-sm-2 mb-2">
                             <label for="meeting-passcode" class="d-block font-weight-normal mb-1">Passcode rapat</label>
@@ -79,6 +79,9 @@
         <section class="card" id="meeting-chat" aria-labelledby="meeting-chat-title">
             <div class="card-body">
                 <h2 class="h5" id="meeting-chat-title">Chat publik</h2>
+                @if($meetingAccount && $provider->supportsMonitoring())
+                    <p class="text-muted">Chat ke semua peserta tercatat otomatis selama monitoring berjalan. Impor file TXT hanya untuk sesi yang tidak dimonitor, karena chat yang sudah tercatat akan muncul dua kali.</p>
+                @endif
                 @if($meetingAccount && $provider->supportsChatImport())
                     <form action="{{ route('training.meeting.chat', $training) }}" method="POST" enctype="multipart/form-data" class="mb-3">
                         @csrf
@@ -88,25 +91,9 @@
                         <button type="submit" class="btn btn-default btn-sm">Impor Chat</button>
                     </form>
                 @endif
-                @if($messages->isEmpty())
-                    <p class="text-muted mb-0">Belum ada chat publik yang diimpor.</p>
-                @else
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead><tr><th scope="col">Waktu di file</th><th scope="col">Pengirim</th><th scope="col">Pesan</th></tr></thead>
-                            <tbody>
-                                @foreach($messages as $message)
-                                    <tr>
-                                        <td class="text-nowrap">{{ $message->sent_time }}</td>
-                                        <td>{{ $message->sender }}</td>
-                                        <td style="white-space: pre-wrap; overflow-wrap: anywhere">{{ $message->message }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                    {{ $messages->links('pagination::bootstrap-4') }}
-                @endif
+                <div id="meeting-chat-content" data-url="{{ route('training.meeting.chat.index', [$training, 'meeting' => $meetingCode, ...request()->only(['chat'])]) }}">
+                    @include('training.detail.meeting-chat')
+                </div>
             </div>
         </section>
     </div>
@@ -118,8 +105,21 @@
     <script>
         (() => {
             const content = document.querySelector('#meeting-activity-content');
+            const chat = document.querySelector('#meeting-chat-content');
             let update;
-            document.querySelector('[data-meeting-monitor]').addEventListener('meeting-monitor:synced', () => {
+            let chatUpdate;
+            document.querySelector('[data-meeting-monitor]').addEventListener('meeting-monitor:synced', (event) => {
+                if (event.detail?.chats) {
+                    clearTimeout(chatUpdate);
+                    chatUpdate = setTimeout(async () => {
+                        try {
+                            const response = await fetch(chat.dataset.url);
+                            if (response.ok && !response.redirected) chat.innerHTML = await response.text();
+                        } catch {
+                            // Chat akan muncul saat halaman dimuat ulang.
+                        }
+                    }, 300);
+                }
                 clearTimeout(update);
                 update = setTimeout(async () => {
                     try {

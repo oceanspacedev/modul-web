@@ -215,6 +215,8 @@ Route::middleware('auth')->group(function () {
                     ->middleware('throttle:12,1');
                 Route::post('attendance-sync', [TrainingMeetingController::class, 'syncAttendance'])->name('attendance-sync')
                     ->middleware('throttle:6,1');
+                Route::get('chat', [TrainingMeetingController::class, 'chat'])->name('chat.index')
+                    ->middleware('cache.headers:no_store;private');
                 Route::post('chat', [TrainingMeetingChatController::class, 'store'])->name('chat');
                 Route::controller(TrainingMeetingMonitorController::class)->prefix('monitors')->name('monitors.')->group(function () {
                     Route::post('/', 'start')->name('start');

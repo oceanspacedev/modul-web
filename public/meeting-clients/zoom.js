@@ -100,6 +100,7 @@
             participants,
             missing: new Set(),
             events: [],
+            chats: [],
         };
         run.window = window;
         run.windows.push(window);
@@ -152,6 +153,41 @@
         }
 
         updateLiveCount(window);
+    }
+
+    // Keep chat sent to everyone. A message addressed to a user (receiver ID above 0) is private, and the
+    // observer's own messages are not participant activity.
+    function captureChat(run, payload) {
+        if (!run.connected || !run.joined || run.stopped) return;
+        if (!run.window) startWindow(run);
+        const window = run.window;
+        if (!window) return;
+
+        try {
+            const receiverId = payload?.receiver?.userId;
+            if (Number.isSafeInteger(receiverId) && receiverId > 0) return;
+            if (payload?.sender?.userId === run.client.getCurrentUser()?.userId) return;
+        } catch {
+            return;
+        }
+
+        const text = (Array.isArray(payload?.message) ? payload.message.join('\n') : String(payload?.message ?? '')).trim();
+        if (!text) return;
+
+        // Zoom sends milliseconds; accept seconds too in case a release changes the unit.
+        let sentAt = Number(payload?.timestamp);
+        if (Number.isFinite(sentAt) && sentAt > 0 && sentAt < 1e12) sentAt *= 1000;
+        if (!Number.isFinite(sentAt) || sentAt <= 0 || sentAt > Date.now() + 60000) sentAt = Date.now();
+
+        const id = typeof payload?.id === 'string' && payload.id && payload.id.length <= 128 ? payload.id : crypto.randomUUID();
+        if (window.chats.some((chat) => chat.id === id)) return;
+
+        window.chats.push({
+            id,
+            sent_at: new Date(sentAt).toISOString(),
+            sender: String(payload?.sender?.name ?? '').trim().slice(0, 255) || 'Peserta Zoom',
+            message: text.slice(0, 4000),
+        });
     }
 
     // Zoom events can arrive before the roster changes, or not at all. Compare the whole roster on
@@ -251,6 +287,7 @@
         run.sending = true;
         let stage = null;
         let batchSize = 0;
+        let chatBatchSize = 0;
 
         try {
             if (run.connected && !run.window) startWindow(run);
@@ -269,17 +306,22 @@
                     window.lastSync = Date.now();
                 }
 
-                if (window.events.length || Date.now() - window.lastSync >= heartbeatInterval) {
+                if (window.events.length || window.chats.length || Date.now() - window.lastSync >= heartbeatInterval) {
                     const events = window.events.slice(0, maxBatchSize);
+                    const chats = window.chats.slice(0, maxBatchSize);
                     stage = 'sync';
                     batchSize = events.length;
-                    await post(root.dataset.syncUrl.replace('__MONITOR__', window.id), { events });
+                    chatBatchSize = chats.length;
+                    await post(root.dataset.syncUrl.replace('__MONITOR__', window.id), { events, chats });
                     window.events.splice(0, events.length);
+                    window.chats.splice(0, chats.length);
                     window.lastSync = Date.now();
-                    if (events.length) root.dispatchEvent(new CustomEvent('meeting-monitor:synced'));
+                    if (events.length || chats.length) {
+                        root.dispatchEvent(new CustomEvent('meeting-monitor:synced', { detail: { chats: chats.length > 0 } }));
+                    }
                 }
 
-                if (window.endedAt && !window.events.length) {
+                if (window.endedAt && !window.events.length && !window.chats.length) {
                     stage = 'end';
                     await post(root.dataset.endUrl.replace('__MONITOR__', window.id), {
                         observed_at: window.endedAt,
@@ -321,6 +363,7 @@
                 const window = run.windows[0];
                 if (stage === 'sync') {
                     window.events.splice(0, batchSize);
+                    window.chats.splice(0, chatBatchSize);
                     window.lastSync = Date.now();
                 } else {
                     run.windows.shift();
@@ -421,6 +464,7 @@
                 'user-added': (payload) => capture(run, 'join', payload),
                 'user-removed': (payload) => capture(run, 'leave', payload),
                 'user-updated': (payload) => capture(run, 'camera', payload),
+                'chat-on-message': (payload) => captureChat(run, payload),
             };
             for (const [name, callback] of Object.entries(run.listeners)) {
                 run.client.on(name, callback);

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\MeetingAccount;
 use App\Models\Training;
+use App\Models\TrainingMeetingChatMessage;
 use App\Models\TrainingMeetingEvent;
 use App\Models\TrainingMeetingMonitor;
 use App\Models\TrainingParticipant;
@@ -58,6 +59,42 @@ class TrainingMeetingMonitorTest extends TestCase
 
         $training->update(['meeting_monitoring_enabled' => false]);
         $this->get(route('training.meeting.activity', $training))->assertOk()->assertSee('Nama dari Zoom');
+    }
+
+    public function test_live_monitor_saves_public_zoom_chat_once_and_lists_it(): void
+    {
+        $admin = User::where('username', 'admin')->firstOrFail();
+        $training = $this->training($admin);
+        $id = (string) Str::uuid();
+        $sync = route('training.meeting.monitors.sync', [$training, $id]);
+        $this->actingAs($admin);
+        $this->postJson(route('training.meeting.monitors.start', $training), ['id' => $id, ...$this->join($training)])
+            ->assertOk();
+
+        $chat = [
+            'id' => 'zoom-msg-1',
+            'sent_at' => now()->subMinutes(5)->utc()->toISOString(),
+            'sender' => 'Machpudin Apud',
+            'message' => "Bagaimana kalau stok di sistem berbeda?\nMohon dijelaskan",
+        ];
+        $this->postJson($sync, ['events' => [], 'chats' => [$chat]])->assertNoContent();
+        // A retried batch, even with changed text, keeps the first copy.
+        $this->postJson($sync, ['events' => [], 'chats' => [[...$chat, 'message' => 'Pengiriman ulang']]])
+            ->assertNoContent();
+        $this->postJson($sync, ['events' => [], 'chats' => [[...$chat, 'id' => 'zoom-msg-2', 'sent_at' => now()->addMinutes(10)->utc()->toISOString()]]])
+            ->assertUnprocessable()->assertJsonValidationErrors('chats.0.sent_at');
+
+        $message = TrainingMeetingChatMessage::sole();
+        $this->assertSame('Machpudin Apud', $message->sender);
+        $this->assertSame("Bagaimana kalau stok di sistem berbeda?\nMohon dijelaskan", $message->message);
+        $this->assertSame('zoom', $message->provider);
+        $this->assertSame('123456789', $message->meeting_code);
+        $this->assertSame(now()->subMinutes(5)->format('Y-m-d H:i'), substr($message->sent_time, 0, 16));
+
+        $this->get(route('training.meeting.chat.index', $training))
+            ->assertOk()->assertSee('Machpudin Apud')->assertSee('Bagaimana kalau stok di sistem berbeda?');
+        $this->get(route('training.meeting.show', $training))
+            ->assertOk()->assertSee('Machpudin Apud')->assertSee('Chat ke semua peserta tercatat otomatis');
     }
 
     public function test_expired_monitor_is_not_resumed_or_accessible_by_another_trainer(): void
