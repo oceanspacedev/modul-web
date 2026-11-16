@@ -7,6 +7,7 @@ use App\Models\Training;
 use App\Models\TrainingMeetingChatMessage;
 use App\Models\TrainingMeetingEvent;
 use App\Models\TrainingMeetingMonitor;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,14 +45,19 @@ class TrainingMeetingController extends Controller
                 $meetingCode,
                 $account === null ? null : $training->meetingMonitorRevision($account),
             ),
-            'messages' => TrainingMeetingChatMessage::query()
-                ->where('training_id', $training->id)
-                ->where('meeting_code', $meetingCode)
-                ->orderBy('id')
-                ->paginate(30, pageName: 'chat')
-                ->withQueryString()
-                ->appends('meeting', $meetingCode)
-                ->fragment('meeting-chat'),
+            'messages' => $this->chatMessages($training, $meetingCode),
+        ]);
+    }
+
+    /** Daftar chat publik saja, dimuat ulang halaman monitoring setiap ada chat baru yang tersimpan. */
+    public function chat(Request $request, Training $training): View
+    {
+        Gate::authorize('update', $training);
+
+        [, $meetingCode] = $this->selectMeeting($request, $training);
+
+        return view('training.detail.meeting-chat', [
+            'messages' => $this->chatMessages($training, $meetingCode),
         ]);
     }
 
@@ -132,6 +138,19 @@ class TrainingMeetingController extends Controller
         abort_unless(is_string($selected) && in_array($selected, $options, true), 404);
 
         return [$current, $selected, $options];
+    }
+
+    private function chatMessages(Training $training, string $meetingCode): LengthAwarePaginator
+    {
+        return TrainingMeetingChatMessage::query()
+            ->where('training_id', $training->id)
+            ->where('meeting_code', $meetingCode)
+            ->orderBy('id')
+            ->paginate(30, pageName: 'chat')
+            ->withPath(route('training.meeting.show', $training))
+            ->withQueryString()
+            ->appends('meeting', $meetingCode)
+            ->fragment('meeting-chat');
     }
 
     private function activityData(Request $request, Training $training, string $meetingCode, ?string $monitorRevision): array

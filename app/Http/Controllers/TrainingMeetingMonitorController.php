@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Training;
+use App\Models\TrainingMeetingChatMessage;
 use App\Models\TrainingMeetingEvent;
 use App\Models\TrainingMeetingMonitor;
 use Illuminate\Http\JsonResponse;
@@ -20,6 +21,9 @@ class TrainingMeetingMonitorController extends Controller
     private const ISO_TIME = 'regex:/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D';
 
     private const CLOCK_TOLERANCE_SECONDS = 120;
+
+    // Zoom can deliver chat sent before the observer joined, so chat times may precede the session.
+    private const CHAT_HISTORY_HOURS = 24;
 
     public function start(Request $request, Training $training): JsonResponse
     {
@@ -98,6 +102,12 @@ class TrainingMeetingMonitorController extends Controller
             'events.*.participant_key' => ['required', 'string', 'max:128'],
             'events.*.name' => ['required', 'string', 'max:255'],
             'events.*.camera_on' => ['nullable', 'boolean'],
+            'chats' => ['sometimes', 'array', 'list', 'max:100'],
+            'chats.*' => ['array:id,sent_at,sender,message'],
+            'chats.*.id' => ['required', 'string', 'max:128', 'distinct'],
+            'chats.*.sent_at' => ['required', 'date', self::ISO_TIME],
+            'chats.*.sender' => ['required', 'string', 'max:255'],
+            'chats.*.message' => ['required', 'string', 'max:4000'],
         ]);
 
         return DB::transaction(function () use ($request, $training, $monitor, $validated) {
@@ -139,8 +149,32 @@ class TrainingMeetingMonitorController extends Controller
                 ];
             }
 
+            // Public chat the observer received. The Zoom message ID keeps a retried batch from adding it twice.
+            $chatEarliest = $session->started_at->copy()->subHours(self::CHAT_HISTORY_HOURS);
+            $chats = [];
+            foreach ($validated['chats'] ?? [] as $index => $chat) {
+                $sentAt = $this->parseTime($chat['sent_at']);
+                if ($sentAt->lessThan($chatEarliest) || $sentAt->greaterThan($latest)) {
+                    throw ValidationException::withMessages([
+                        "chats.$index.sent_at" => 'Waktu chat berada di luar sesi monitoring.',
+                    ]);
+                }
+
+                $chats[] = [
+                    'training_id' => $training->getKey(),
+                    'provider' => $session->provider,
+                    'meeting_code' => $session->meeting_code,
+                    'sent_time' => $sentAt->format('Y-m-d H:i:s'),
+                    'sender' => $chat['sender'],
+                    'message' => $chat['message'],
+                    'fingerprint' => hash('sha256', 'live:'.$chat['id']),
+                    'created_at' => $now,
+                ];
+            }
+
             // A retried batch must leave the original observation intact.
             TrainingMeetingEvent::upsert($rows, ['monitor_id', 'event_id'], ['event_id']);
+            TrainingMeetingChatMessage::insertOrIgnore($chats);
             $session->update(['last_seen_at' => $now]);
 
             return response()->noContent();
