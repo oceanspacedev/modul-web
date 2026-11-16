@@ -48,7 +48,7 @@ class TrainingEvaluationTest extends TestCase
         $this->staff = User::factory()->staff()->create(['nama_lengkap' => 'Sari Peserta']);
         $this->training = Training::create([
             'title' => 'Ketentuan Sanksi Administrasi', 'trainer_id' => $this->admin->id, 'training_date' => '2026-11-12',
-            'start_time' => '09:00', 'end_time' => '10:00', 'zoom_link' => 'https://zoom.us/test',
+            'start_time' => '09:00', 'end_time' => '10:00', 'meeting_link' => 'https://zoom.us/test',
             'has_evaluation' => true,
         ]);
         $this->question = TrainingQuestion::create([
@@ -106,7 +106,7 @@ class TrainingEvaluationTest extends TestCase
 
         $payload = [
             'title' => 'Pelatihan Baru', 'trainer_id' => $this->admin->id, 'training_date' => now()->toDateString(),
-            'start_time' => '09:00', 'end_time' => '10:00', 'zoom_link' => 'https://zoom.us/test',
+            'start_time' => '09:00', 'end_time' => '10:00', 'meeting_link' => 'https://zoom.us/test',
             'participants' => [$this->staff->id],
         ];
 
@@ -454,7 +454,7 @@ class TrainingEvaluationTest extends TestCase
     {
         $other = Training::create([
             'title' => 'Pelatihan Lain', 'trainer_id' => $this->admin->id, 'training_date' => now()->toDateString(),
-            'start_time' => '09:00', 'end_time' => '10:00', 'zoom_link' => 'https://zoom.us/test', 'has_evaluation' => true,
+            'start_time' => '09:00', 'end_time' => '10:00', 'meeting_link' => 'https://zoom.us/test', 'has_evaluation' => true,
         ]);
         $foreign = $other->evaluationQuestions()->first();
 
@@ -568,7 +568,7 @@ class TrainingEvaluationTest extends TestCase
         // Peserta dari pelatihan lain tidak bisa di-reset lewat pelatihan ini.
         $elsewhere = Training::create([
             'title' => 'Pelatihan Lain', 'trainer_id' => $this->admin->id, 'training_date' => '2026-11-12',
-            'start_time' => '09:00', 'end_time' => '10:00', 'zoom_link' => 'https://zoom.us/test',
+            'start_time' => '09:00', 'end_time' => '10:00', 'meeting_link' => 'https://zoom.us/test',
         ]);
         $this->actingAs($this->admin)->post(route('training.reset-evaluation', [$elsewhere, $other]))->assertNotFound();
         $this->assertSame(1, TrainingEvaluation::count());

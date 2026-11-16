@@ -32,7 +32,7 @@ class TrainingStepOrderTest extends TestCase
         $this->admin = User::where('username', 'admin')->sole();
         $this->training = Training::create([
             'title' => 'Sosialisasi SOP', 'trainer_id' => $this->admin->id, 'training_date' => now()->toDateString(),
-            'start_time' => '11:10', 'end_time' => '11:30', 'zoom_link' => 'https://zoom.us/test',
+            'start_time' => '11:10', 'end_time' => '11:30', 'meeting_link' => 'https://zoom.us/test',
             'status' => TrainingStatus::Ongoing, 'setup_completed_at' => now(),
             'has_pretest' => true, 'has_evaluation' => true,
         ]);

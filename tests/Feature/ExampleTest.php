@@ -58,7 +58,7 @@ class ExampleTest extends TestCase
                 'training_date' => now()->toDateString(),
                 'start_time' => '09:00:00',
                 'end_time' => '11:00:00',
-                'zoom_link' => 'https://zoom.us/j/123456789',
+                'meeting_link' => 'https://zoom.us/j/123456789',
                 'status' => 'completed',
             ]);
         }

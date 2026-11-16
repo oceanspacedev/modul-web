@@ -20,7 +20,7 @@ class TrainingLiveStatsTest extends TestCase
             'training_date' => now()->toDateString(),
             'start_time' => '09:00',
             'end_time' => '11:00',
-            'zoom_link' => 'https://zoom.us/test-live-stats',
+            'meeting_link' => 'https://zoom.us/test-live-stats',
             'status' => 'ongoing',
         ]);
     }

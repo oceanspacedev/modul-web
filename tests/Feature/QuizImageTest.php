@@ -36,7 +36,7 @@ class QuizImageTest extends TestCase
             'training_date' => now()->toDateString(),
             'start_time' => '08:00',
             'end_time' => '10:00',
-            'zoom_link' => 'https://zoom.us/test',
+            'meeting_link' => 'https://zoom.us/test',
             'status' => 'scheduled',
         ]);
     }

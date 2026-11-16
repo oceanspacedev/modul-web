@@ -73,14 +73,15 @@
             $awaitsEvaluation = $training->requiresEvaluationBeforePosttest($participant);
             $evaluationFollowsPosttest = $training->evaluationFollowsPosttest();
             $quizActive = $training->isPhaseActive('posttest');
-            // Teks bukti presensi: tangkapan layar Zoom untuk pelatihan daring, foto di lokasi untuk tatap muka.
+            // Teks bukti presensi: tangkapan layar untuk pelatihan daring, foto di lokasi untuk tatap muka.
+            $meetingLabel = $training->meetingPlatformLabel();
             $proofText = $training->isOnline() ? [
-                'shown' => 'Bukti Screenshot Pelatihan / Zoom',
+                'shown' => 'Bukti Screenshot Pelatihan / '.$meetingLabel,
                 'requiredTitle' => 'Wajib Screenshot',
-                'required' => 'Anda diwajibkan mengunggah foto / tangkapan layar saat bergabung dalam sesi Zoom / pelatihan.',
-                'upload' => 'Unggah Screenshot Bukti Zoom / Pelatihan',
-                'pick' => 'Pilih screenshot bukti zoom...',
-                'hint' => 'Pastikan tampilan Zoom / nama Anda tampak.',
+                'required' => 'Anda diwajibkan mengunggah foto atau tangkapan layar saat mengikuti sesi pelatihan.',
+                'upload' => 'Unggah Screenshot Bukti '.$meetingLabel.' / Pelatihan',
+                'pick' => 'Pilih screenshot bukti pelatihan...',
+                'hint' => 'Pastikan tampilan pertemuan dan nama Anda terlihat.',
                 'replace' => 'Ganti Screenshot',
             ] : [
                 'shown' => 'Foto Bukti Kehadiran',

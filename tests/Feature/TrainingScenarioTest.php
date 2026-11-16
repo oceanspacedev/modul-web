@@ -34,7 +34,7 @@ class TrainingScenarioTest extends TestCase
     {
         $training = Training::create([
             'title' => 'Pelatihan Skenario', 'trainer_id' => $this->admin->id, 'training_date' => now()->toDateString(),
-            'start_time' => '09:00', 'end_time' => '10:00', 'zoom_link' => 'https://zoom.us/test',
+            'start_time' => '09:00', 'end_time' => '10:00', 'meeting_link' => 'https://zoom.us/test',
             'status' => TrainingStatus::Ongoing, 'setup_completed_at' => now(),
             'has_pretest' => $pretest, 'has_posttest' => $posttest, 'has_evaluation' => $evaluation,
         ]);
@@ -280,6 +280,26 @@ class TrainingScenarioTest extends TestCase
         $this->assertSame('2x', $row['Off Cam']);
     }
 
+    public function test_non_zoom_meetings_keep_off_cam_tools_without_zoom_monitoring(): void
+    {
+        $training = $this->training(pretest: false, posttest: false, evaluation: false);
+
+        foreach ([
+            [null, 'https://meet.google.com/abc-defg-hij', 'Google Meet'],
+            ['teams', 'https://teams.microsoft.com/meet/123', 'Microsoft Teams'],
+        ] as [$platform, $link, $label]) {
+            $training->update(['meeting_platform' => $platform, 'meeting_link' => $link]);
+
+            $this->actingAs($this->admin)->get(route('training.show', $training))
+                ->assertOk()->assertSee('Buka '.$label)
+                ->assertDontSee('Aktivitas Zoom')->assertSee('id="btnToggleManualOffCamMode"', false)
+                ->assertSee('Pindai Presensi '.$label.': Deteksi Off Cam');
+            $this->get('/training/portal/token_skenario')
+                ->assertOk()->assertSee('Buka Tautan '.$label)->assertSee($link);
+            $this->assertStringContainsString('Tautan '.$label.': '.$link, WhatsAppService::buildInvitationMessage($training, $this->participant($training)));
+        }
+    }
+
     public function test_evaluation_only_training_guides_the_participant_to_the_form(): void
     {
         $training = $this->training(pretest: false, posttest: false, evaluation: true);
@@ -330,17 +350,17 @@ class TrainingScenarioTest extends TestCase
 
     public function test_face_to_face_training_needs_no_meeting_link(): void
     {
-        $this->actingAs($this->admin)->get(route('training.create'))->assertOk()->assertSee('Kosongkan untuk pelatihan tatap muka.');
+        $this->actingAs($this->admin)->get(route('training.create'))->assertOk()->assertSee('Platform pelatihan')->assertSee('Tatap muka');
 
         $this->actingAs($this->admin)->post('/training', [
             'title' => 'Pelatihan Tatap Muka', 'trainer_id' => $this->admin->id, 'training_date' => now()->toDateString(),
-            'start_time' => '09:00', 'end_time' => '10:00', 'zoom_link' => '',
+            'start_time' => '09:00', 'end_time' => '10:00', 'meeting_link' => '',
             'participants' => [User::factory()->staff()->create()->id],
             'quiz' => ['pretest' => '0', 'posttest' => '0'],
         ])->assertSessionHasNoErrors();
 
         $training = Training::where('title', 'Pelatihan Tatap Muka')->sole();
-        $this->assertNull($training->zoom_link);
+        $this->assertNull($training->meeting_link);
 
         // Tidak ada tombol atau baris tautan kosong di halaman pemateri, portal peserta, dan undangan WhatsApp.
         $this->actingAs($this->admin)->get(route('training.show', $training))->assertOk()
@@ -361,8 +381,8 @@ class TrainingScenarioTest extends TestCase
             'start_time' => '09:00', 'end_time' => '10:00', 'status' => $training->status->value,
             'participants' => [$participant->user_id],
         ];
-        $this->actingAs($this->admin)->put(route('training.update', $training), [...$payload, 'zoom_link' => 'https://zoom.us/j/123'])->assertSessionHasNoErrors();
-        $this->assertSame('https://zoom.us/j/123', $training->fresh()->zoom_link);
+        $this->actingAs($this->admin)->put(route('training.update', $training), [...$payload, 'meeting_link' => 'https://zoom.us/j/123'])->assertSessionHasNoErrors();
+        $this->assertSame('https://zoom.us/j/123', $training->fresh()->meeting_link);
         $this->get("/training/portal/{$participant->token}")->assertOk()->assertSee('Buka Tautan Zoom');
     }
 

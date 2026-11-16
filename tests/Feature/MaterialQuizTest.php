@@ -230,7 +230,7 @@ class MaterialQuizTest extends TestCase
         // Portal peserta pelatihan (link WhatsApp) juga lewat halaman kuis, bukan file langsung.
         $training = Training::create([
             'title' => 'Pelatihan K3', 'trainer_id' => $this->admin->id, 'training_date' => now()->toDateString(),
-            'start_time' => '09:00', 'end_time' => '10:00', 'zoom_link' => 'https://zoom.us/test',
+            'start_time' => '09:00', 'end_time' => '10:00', 'meeting_link' => 'https://zoom.us/test',
         ]);
         $training->documents()->attach($document);
         $participant = TrainingParticipant::create(['training_id' => $training->id, 'user_id' => $this->staff->id, 'token' => 'token_doc_quiz']);

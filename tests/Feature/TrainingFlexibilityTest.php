@@ -40,7 +40,7 @@ class TrainingFlexibilityTest extends TestCase
     {
         $training = Training::create([
             'title' => 'Pelatihan Bebas', 'trainer_id' => $this->admin->id, 'training_date' => now()->toDateString(),
-            'start_time' => '09:00', 'end_time' => '10:00', 'zoom_link' => 'https://zoom.us/test',
+            'start_time' => '09:00', 'end_time' => '10:00', 'meeting_link' => 'https://zoom.us/test',
             'status' => TrainingStatus::Ongoing, 'setup_completed_at' => now(),
             ...$attributes,
         ]);
@@ -136,7 +136,7 @@ class TrainingFlexibilityTest extends TestCase
         $this->assertSame('posttest', TrainingQuestion::create(['training_id' => $training->id, 'type' => 'essay', 'question' => 'Impor essay'])->used_in);
 
         // Pelatihan satu fase tidak menawarkan pilihan ini.
-        $single = Training::create([...$training->only(['trainer_id', 'start_time', 'end_time', 'zoom_link']), 'title' => 'Satu fase', 'training_date' => now()->toDateString()]);
+        $single = Training::create([...$training->only(['trainer_id', 'start_time', 'end_time', 'meeting_link']), 'title' => 'Satu fase', 'training_date' => now()->toDateString()]);
         $this->actingAs($this->admin)->get(route('training.questions.index', $single))->assertOk()->assertDontSee('Dipakai di');
     }
 
@@ -469,7 +469,7 @@ class TrainingFlexibilityTest extends TestCase
     public function test_dashboard_counts_the_score_of_a_pretest_only_training(): void
     {
         $training = $this->training(['has_pretest' => true, 'has_posttest' => false]);
-        $both = Training::create([...$training->only(['trainer_id', 'start_time', 'end_time', 'zoom_link']), 'title' => 'Dua fase', 'training_date' => now()->toDateString(), 'has_pretest' => true]);
+        $both = Training::create([...$training->only(['trainer_id', 'start_time', 'end_time', 'meeting_link']), 'title' => 'Dua fase', 'training_date' => now()->toDateString(), 'has_pretest' => true]);
         $participant = $training->participants()->sole();
         $both->participants()->create(['user_id' => $participant->user_id, 'token' => 'token_dua_fase']);
         // Satu hasil per peserta dan fase: tiap pelatihan memakai baris pesertanya sendiri.
@@ -496,7 +496,7 @@ class TrainingFlexibilityTest extends TestCase
             ->assertSee('fa-video-slash"></i> Scan Off Cam', false)->assertSee('id="btnToggleManualOffCamMode"', false);
         $this->get(self::PORTAL)->assertOk()->assertSee('Unggah Screenshot Bukti Zoom / Pelatihan');
 
-        $online->update(['zoom_link' => null]);
+        $online->update(['meeting_link' => null]);
         $this->actingAs($this->admin)->get(route('training.show', $online))->assertOk()
             ->assertDontSee('fa-video-slash"></i> Scan Off Cam', false)->assertDontSee('id="btnToggleManualOffCamMode"', false)
             ->assertSee('Wajib upload foto kehadiran');

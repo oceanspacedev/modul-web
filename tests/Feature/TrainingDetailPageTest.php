@@ -30,7 +30,7 @@ class TrainingDetailPageTest extends TestCase
             'training_date' => now()->toDateString(),
             'start_time' => '09:00:00',
             'end_time' => '11:00:00',
-            'zoom_link' => 'https://zoom.us/test',
+            'meeting_link' => 'https://zoom.us/test',
             'status' => 'ongoing',
         ]);
     }
@@ -142,7 +142,7 @@ class TrainingDetailPageTest extends TestCase
             ->assertSee("/training/{$this->training->id}/grade-essay/{$result->id}", false)
             ->assertSee('name="_token"', false);
 
-        $other = Training::create([...$this->training->only(['trainer_id', 'start_time', 'end_time', 'zoom_link', 'status']), 'title' => 'Lain', 'training_date' => now()->toDateString()]);
+        $other = Training::create([...$this->training->only(['trainer_id', 'start_time', 'end_time', 'meeting_link', 'status']), 'title' => 'Lain', 'training_date' => now()->toDateString()]);
         $this->actingAs($this->admin)->get(route('training.answer-sheet', [$other, $result]))->assertNotFound();
 
         $staff = User::factory()->staff()->create();

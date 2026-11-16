@@ -47,7 +47,7 @@ class TrainingAttendanceFeatureTest extends TestCase
             'training_date' => now()->toDateString(),
             'start_time' => '09:00',
             'end_time' => '11:00',
-            'zoom_link' => 'https://zoom.us/test-zoom',
+            'meeting_link' => 'https://zoom.us/test-zoom',
             'status' => 'scheduled',
             'is_quiz_active' => false,
             'is_attendance_active' => false,
@@ -218,7 +218,7 @@ class TrainingAttendanceFeatureTest extends TestCase
         $this->assertEquals('pending', $this->participant->fresh()->attendance_status);
     }
 
-    public function test_portal_hides_zoom_link_when_training_is_cancelled()
+    public function test_portal_hides_meeting_link_when_training_is_cancelled()
     {
         $this->get("/training/portal/{$this->participant->token}")
             ->assertOk()

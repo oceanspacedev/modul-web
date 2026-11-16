@@ -13,7 +13,10 @@ use App\Jobs\ScanZoomOffCam;
 use App\Jobs\SendTrainingInvitation;
 use App\Models\Divisi;
 use App\Models\Document;
+use App\Models\MeetingAccount;
 use App\Models\Training;
+use App\Models\TrainingMeetingChatMessage;
+use App\Models\TrainingMeetingMonitor;
 use App\Models\TrainingParticipant;
 use App\Models\TrainingQuizResult;
 use App\Models\TrainingWaLog;
@@ -92,6 +95,7 @@ class TrainingController extends Controller
             'divisis' => $divisis,
             'divisiNames' => $divisis->pluck('name', 'id'),
             'documents' => $documents,
+            'meetingAccounts' => $this->meetingAccounts(),
         ]);
     }
 
@@ -206,6 +210,9 @@ class TrainingController extends Controller
             ->fragment('peserta');
 
         $allDocuments = Document::with('dokumentype')->orderBy('name')->get();
+        $showMeetingActivity = ($training->hasMeetingMonitoring() && $training->meetingCode() !== null)
+            || TrainingMeetingMonitor::where('training_id', $training->id)->exists()
+            || TrainingMeetingChatMessage::where('training_id', $training->id)->exists();
 
         return view('training.show', [
             'title' => 'Detail Pelatihan: '.$training->title,
@@ -214,6 +221,7 @@ class TrainingController extends Controller
             'participants' => $participants,
             'waFailedCount' => $training->participants()->waFailed()->count(),
             'zoomParticipants' => $this->zoomParticipants($training),
+            'showMeetingActivity' => $showMeetingActivity,
             'allDocuments' => $allDocuments,
             'canImportDocumentQuestions' => $canImportDocumentQuestions,
             'stats' => $this->stats($training),
@@ -322,7 +330,17 @@ class TrainingController extends Controller
             'documents' => $documents,
             'selectedParticipants' => $selectedParticipants,
             'selectedDocuments' => $selectedDocuments,
+            'meetingAccounts' => $this->meetingAccounts($training),
         ]);
+    }
+
+    private function meetingAccounts(?Training $training = null): Collection
+    {
+        return MeetingAccount::query()
+            ->where('user_id', auth()->id())
+            ->when($training?->meeting_account_id, fn ($query, $accountId) => $query->orWhere('id', $accountId))
+            ->orderBy('name')
+            ->get(['id', 'name', 'user_id', 'provider']);
     }
 
     /**
@@ -330,23 +348,24 @@ class TrainingController extends Controller
      */
     public function update(UpdateTrainingRequest $request, Training $training): RedirectResponse
     {
-        $data = [
-            ...$request->trainingData(),
-            'quiz_mode' => $request->validated('quiz_mode') ?? $training->quiz_mode ?? 'formal',
-            ...$request->quizRules(),
-        ];
+        DB::transaction(function () use ($request, $training) {
+            $training = Training::lockForUpdate()->findOrFail($training->id);
+            $data = [
+                ...$request->trainingData($training),
+                'quiz_mode' => $request->validated('quiz_mode') ?? $training->quiz_mode ?? 'formal',
+                ...$request->quizRules(),
+            ];
 
-        if ($request->has('is_attendance_active')) {
-            $data = [...$data, ...$training->attendanceSwitchAttributes($request->boolean('is_attendance_active'))];
-        }
-        if ($request->has('require_attendance_proof')) {
-            $data['require_attendance_proof'] = $request->boolean('require_attendance_proof');
-        }
-        if ($request->has('has_evaluation')) {
-            $data['has_evaluation'] = $request->boolean('has_evaluation');
-        }
+            if ($request->has('is_attendance_active')) {
+                $data = [...$data, ...$training->attendanceSwitchAttributes($request->boolean('is_attendance_active'))];
+            }
+            if ($request->has('require_attendance_proof')) {
+                $data['require_attendance_proof'] = $request->boolean('require_attendance_proof');
+            }
+            if ($request->has('has_evaluation')) {
+                $data['has_evaluation'] = $request->boolean('has_evaluation');
+            }
 
-        DB::transaction(function () use ($request, $training, $data) {
             $training->update($data);
             $training->documents()->sync($request->validated('documents') ?? []);
 
@@ -970,6 +989,8 @@ class TrainingController extends Controller
      */
     public function scanZoomAi(Request $request, Training $training): JsonResponse
     {
+        abort_unless($training->isOnline(), 404);
+
         $request->validate([
             'images' => 'required|array|min:1|max:10',
             'images.*' => 'required|string', // base64 strings compressed client-side
@@ -995,6 +1016,8 @@ class TrainingController extends Controller
      */
     public function zoomScanStatus(Training $training, string $token): JsonResponse
     {
+        abort_unless($training->isOnline(), 404);
+
         $result = AiTask::status($token);
 
         if (! $result) {
@@ -1009,7 +1032,7 @@ class TrainingController extends Controller
      */
     public function saveZoomOffCam(Request $request, Training $training): JsonResponse
     {
-
+        abort_unless($training->isOnline(), 404);
         $request->validate([
             'off_cam_items' => 'required|array',
             'off_cam_items.*.participant_id' => 'required|exists:training_participants,id',
@@ -1043,8 +1066,8 @@ class TrainingController extends Controller
             $updateData = [
                 'is_off_cam' => true,
                 'off_cam_count' => $itemCount,
-                'zoom_display_name' => $zoomName,
-                'zoom_off_cam_at' => now(),
+                'meeting_display_name' => $zoomName,
+                'off_cam_at' => now(),
                 'attendance_notes' => $newNote,
             ];
 
@@ -1068,6 +1091,7 @@ class TrainingController extends Controller
      */
     public function resetZoomOffCam(Request $request, Training $training, TrainingParticipant $participant): JsonResponse|RedirectResponse
     {
+        abort_unless($training->isOnline(), 404);
 
         // Remove off-cam note if present
         $cleanNote = preg_replace('/;?\s*Off Cam Zoom [^;]+/', '', $participant->attendance_notes ?? '');
@@ -1076,8 +1100,8 @@ class TrainingController extends Controller
         $participant->update([
             'is_off_cam' => false,
             'off_cam_count' => 0,
-            'zoom_display_name' => null,
-            'zoom_off_cam_at' => null,
+            'meeting_display_name' => null,
+            'off_cam_at' => null,
             'attendance_notes' => $cleanNote ?: null,
         ]);
 
@@ -1100,7 +1124,7 @@ class TrainingController extends Controller
      */
     public function updateOffCamCount(Request $request, Training $training, TrainingParticipant $participant): JsonResponse
     {
-
+        abort_unless($training->isOnline(), 404);
         $action = $request->input('action', 'increment');
         $currentCount = (int) ($participant->off_cam_count ?? ($participant->is_off_cam ? 1 : 0));
 
@@ -1123,8 +1147,8 @@ class TrainingController extends Controller
             $participant->update([
                 'is_off_cam' => true,
                 'off_cam_count' => $newCount,
-                'zoom_display_name' => $participant->zoom_display_name ?: $participantName,
-                'zoom_off_cam_at' => $participant->zoom_off_cam_at ?: now(),
+                'meeting_display_name' => $participant->meeting_display_name ?: $participantName,
+                'off_cam_at' => $participant->off_cam_at ?: now(),
                 'attendance_notes' => $newNote,
             ]);
         } else {
@@ -1134,8 +1158,8 @@ class TrainingController extends Controller
             $participant->update([
                 'is_off_cam' => false,
                 'off_cam_count' => 0,
-                'zoom_display_name' => null,
-                'zoom_off_cam_at' => null,
+                'meeting_display_name' => null,
+                'off_cam_at' => null,
                 'attendance_notes' => $cleanNote ?: null,
             ]);
         }

@@ -77,7 +77,7 @@ class TrainingDummySeeder extends Seeder
             'training_date' => now()->addDays(3)->format('Y-m-d'),
             'start_time' => '09:00:00',
             'end_time' => '11:00:00',
-            'zoom_link' => 'https://zoom.us/j/dummy123456',
+            'meeting_link' => 'https://zoom.us/j/dummy123456',
             'status' => 'scheduled',
             'is_quiz_active' => false,
             'is_attendance_active' => false,

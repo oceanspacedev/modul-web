@@ -5,6 +5,7 @@
     <div class="container-fluid">
         <x-page-header title="Jadwal Pelatihan" subtitle="Daftar sesi pelatihan beserta pemateri, jadwal, dan pesertanya." eyebrow="Pelatihan / Jadwal Pelatihan">
             <x-slot:actions>
+                <a href="{{ route('training.meeting-accounts.index') }}" class="btn btn-default">Akun Meeting</a>
                 <a href="/training/create" class="btn btn-primary">
                     <i class="fas fa-plus"></i> Tambah Pelatihan
                 </a>
@@ -73,9 +74,9 @@
                                 <span class="text-muted small">{{ substr($t->start_time, 0, 5) }} - {{ substr($t->end_time, 0, 5) }} WIB</span>
                             </td>
                             <td>
-                                @if($t->zoom_link)
-                                    <a href="{{ $t->zoom_link }}" target="_blank" class="btn btn-default btn-xs">
-                                        <i class="fas fa-video"></i> Buka Zoom
+                                @if($t->meeting_link)
+                                    <a href="{{ $t->meeting_link }}" target="_blank" rel="noopener" class="btn btn-default btn-xs">
+                                        <i class="fas fa-video" aria-hidden="true"></i> Buka {{ $t->meetingPlatformLabel() }}
                                     </a>
                                 @else
                                     <span class="text-muted small">-</span>

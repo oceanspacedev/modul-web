@@ -26,7 +26,7 @@ class ParticipantGuidanceTest extends TestCase
         $this->staff = User::factory()->staff()->create();
         $this->training = Training::create([
             'title' => 'Pelatihan K3', 'trainer_id' => $admin->id, 'training_date' => now()->toDateString(),
-            'start_time' => '09:00', 'end_time' => '10:00', 'zoom_link' => 'https://zoom.us/test',
+            'start_time' => '09:00', 'end_time' => '10:00', 'meeting_link' => 'https://zoom.us/test',
         ]);
         $this->participant = TrainingParticipant::create([
             'training_id' => $this->training->id, 'user_id' => $this->staff->id, 'token' => 'token_guidance', 'attendance_status' => 'pending',

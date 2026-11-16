@@ -28,7 +28,7 @@ class TrainingParticipant extends Model
         return [
             'attended_at' => 'datetime',
             'wa_sent_at' => 'datetime',
-            'zoom_off_cam_at' => 'datetime',
+            'off_cam_at' => 'datetime',
             'is_off_cam' => 'boolean',
             'off_cam_count' => 'integer',
         ];

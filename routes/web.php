@@ -9,12 +9,16 @@ use App\Http\Controllers\DokumenTypeController;
 use App\Http\Controllers\LearningModuleController;
 use App\Http\Controllers\LearningModulePortalController;
 use App\Http\Controllers\LearningModuleQuestionController;
+use App\Http\Controllers\MeetingAccountController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ScoreRecapController;
 use App\Http\Controllers\TrainingController;
 use App\Http\Controllers\TrainingEvaluationQuestionController;
+use App\Http\Controllers\TrainingMeetingChatController;
+use App\Http\Controllers\TrainingMeetingController;
+use App\Http\Controllers\TrainingMeetingMonitorController;
 use App\Http\Controllers\TrainingPortalController;
 use App\Http\Controllers\TrainingQuestionController;
 use App\Http\Controllers\UserController;
@@ -146,6 +150,13 @@ Route::middleware('auth')->group(function () {
     });
 
     // # TRAINING MANAGEMENT (authorized by TrainingPolicy)
+    Route::controller(MeetingAccountController::class)->prefix('training/meeting-accounts')->name('training.meeting-accounts.')->group(function () {
+        Route::get('/', 'index')->name('index')->middleware('cache.headers:no_store;private');
+        Route::post('/', 'store')->name('store');
+        Route::patch('{meetingAccount}', 'update')->whereNumber('meetingAccount')->name('update');
+        Route::delete('{meetingAccount}', 'destroy')->whereNumber('meetingAccount')->name('destroy');
+    });
+
     // no_store: tombol Back tidak menampilkan salinan lama form, jadi user yang baru dibuat ikut terdaftar.
     Route::resource('training', TrainingController::class)->whereNumber('training')
         ->middlewareFor(['create', 'edit'], 'cache.headers:no_store;private');
@@ -193,6 +204,25 @@ Route::middleware('auth')->group(function () {
                 Route::post('save-zoom-off-cam', 'saveZoomOffCam')->name('save-zoom-off-cam');
                 Route::post('reset-zoom-off-cam/{participant}', 'resetZoomOffCam')->name('reset-zoom-off-cam');
                 Route::post('update-offcam-count/{participant}', 'updateOffCamCount')->name('update-offcam-count');
+            });
+
+            Route::prefix('meeting')->name('meeting.')->group(function () {
+                Route::get('/', [TrainingMeetingController::class, 'show'])->name('show')
+                    ->middleware('cache.headers:no_store;private');
+                Route::get('activity', [TrainingMeetingController::class, 'activity'])->name('activity')
+                    ->middleware('cache.headers:no_store;private');
+                Route::post('join', [TrainingMeetingController::class, 'join'])->name('join')
+                    ->middleware('throttle:12,1');
+                Route::post('attendance-sync', [TrainingMeetingController::class, 'syncAttendance'])->name('attendance-sync')
+                    ->middleware('throttle:6,1');
+                Route::get('chat', [TrainingMeetingController::class, 'chat'])->name('chat.index')
+                    ->middleware('cache.headers:no_store;private');
+                Route::post('chat', [TrainingMeetingChatController::class, 'store'])->name('chat');
+                Route::controller(TrainingMeetingMonitorController::class)->prefix('monitors')->name('monitors.')->group(function () {
+                    Route::post('/', 'start')->name('start');
+                    Route::post('{monitor}/sync', 'sync')->whereUuid('monitor')->name('sync');
+                    Route::post('{monitor}/end', 'end')->whereUuid('monitor')->name('end');
+                });
             });
 
             // # TRAINING EVALUATION FORM QUESTIONS

@@ -36,7 +36,7 @@ class TrainingJourneyTest extends TestCase
         $this->staff = User::factory()->staff()->create(['nama_lengkap' => 'Rina Peserta']);
         $this->training = Training::create([
             'title' => 'Sosialisasi SOP Gudang', 'trainer_id' => $this->admin->id, 'training_date' => now()->toDateString(),
-            'start_time' => '09:00', 'end_time' => '10:30', 'zoom_link' => 'https://zoom.us/test', 'setup_completed_at' => now(),
+            'start_time' => '09:00', 'end_time' => '10:30', 'meeting_link' => 'https://zoom.us/test', 'setup_completed_at' => now(),
             'has_pretest' => true, 'has_posttest' => true, 'has_evaluation' => true,
         ]);
         $this->question = TrainingQuestion::create([

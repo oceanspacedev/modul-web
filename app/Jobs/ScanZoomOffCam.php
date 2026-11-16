@@ -73,11 +73,11 @@ class ScanZoomOffCam extends AiTask
             ->all();
 
         if ($files === []) {
-            throw new RuntimeException('Screenshot Zoom tidak ditemukan di server. Silakan unggah ulang.');
+            throw new RuntimeException('Screenshot meeting tidak ditemukan di server. Silakan unggah ulang.');
         }
 
         return [
-            'data' => (new ZoomAttendanceAiService)->detectOffCamParticipants($files, $participants),
+            'data' => (new ZoomAttendanceAiService)->detectOffCamParticipants($files, $participants, $training->meetingPlatformLabel() ?? 'Meeting'),
             'registered_participants' => $participants,
         ];
     }

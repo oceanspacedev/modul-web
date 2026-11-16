@@ -1,0 +1,9 @@
+@php($zoomSdk = '6.10.0')
+<script defer src="https://source.zoom.us/{{ $zoomSdk }}/lib/vendor/react.min.js"></script>
+<script defer src="https://source.zoom.us/{{ $zoomSdk }}/lib/vendor/react-dom.min.js"></script>
+<script defer src="https://source.zoom.us/{{ $zoomSdk }}/lib/vendor/redux.min.js"></script>
+<script defer src="https://source.zoom.us/{{ $zoomSdk }}/lib/vendor/redux-thunk.min.js"></script>
+<script defer src="https://source.zoom.us/{{ $zoomSdk }}/lib/vendor/react-redux.min.js"></script>
+<script defer src="https://source.zoom.us/{{ $zoomSdk }}/lib/vendor/lodash.min.js"></script>
+<script defer src="https://source.zoom.us/zoom-meeting-embedded-{{ $zoomSdk }}.min.js"></script>
+<script defer src="{{ asset('meeting-clients/zoom.js') }}"></script>

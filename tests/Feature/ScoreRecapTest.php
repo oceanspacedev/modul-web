@@ -52,7 +52,7 @@ class ScoreRecapTest extends TestCase
     {
         $training = Training::create([
             'title' => $title, 'trainer_id' => $this->admin->id, 'training_date' => $date->toDateString(),
-            'start_time' => '09:00:00', 'end_time' => '11:00:00', 'zoom_link' => 'https://zoom.us/test', 'status' => 'completed',
+            'start_time' => '09:00:00', 'end_time' => '11:00:00', 'meeting_link' => 'https://zoom.us/test', 'status' => 'completed',
         ]);
 
         foreach ([$this->budi, $this->siti] as $user) {

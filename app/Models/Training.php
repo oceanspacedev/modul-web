@@ -3,12 +3,16 @@
 namespace App\Models;
 
 use App\Enums\TrainingStatus;
+use App\Support\Meetings\MeetingProvider;
+use App\Support\Meetings\MeetingProviders;
 use App\Support\QuizRules;
 use App\Support\TrainingEvaluationForm;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 class Training extends Model
 {
@@ -69,6 +73,7 @@ class Training extends Model
         'quiz_max_attempts' => 1,
         'pretest_shows_answers' => false,
         'pretest_max_attempts' => 1,
+        'meeting_monitoring_enabled' => false,
     ];
 
     /**
@@ -86,6 +91,7 @@ class Training extends Model
             'attendance_opens_at' => 'datetime',
             'attendance_closes_at' => 'datetime',
             'has_attendance' => 'boolean',
+            'meeting_monitoring_enabled' => 'boolean',
             'portal_steps' => 'array',
             'is_evaluation_active' => 'boolean',
             'evaluation_opens_at' => 'datetime',
@@ -559,6 +565,11 @@ class Training extends Model
         // Presensi yang baru ditutup (atau tidak lagi dipakai) tidak menyimpan jadwal. Hanya saat kolomnya memang
         // berubah, supaya model yang dimuat sebagian kolomnya tidak ikut tertutup.
         static::saving(function (Training $training): void {
+            // Sesi monitoring lama tidak dapat dilanjutkan setelah pengaturan meeting berubah.
+            if ($training->isDirty(['meeting_link', 'meeting_platform', 'meeting_monitoring_enabled', 'meeting_account_id'])) {
+                $training->meeting_monitoring_revision = (string) Str::uuid();
+            }
+
             if (($training->isDirty('is_attendance_active') && ! $training->is_attendance_active)
                 || ($training->isDirty('has_attendance') && ! $training->has_attendance)) {
                 $training->is_attendance_active = false;
@@ -719,11 +730,63 @@ class Training extends Model
     }
 
     /**
-     * Pelatihan daring punya tautan meeting; tanpa tautan berarti tatap muka, jadi fitur khusus Zoom tidak tampil.
+     * Pelatihan daring punya tautan meeting; tanpa tautan berarti tatap muka.
      */
     public function isOnline(): bool
     {
-        return filled($this->zoom_link);
+        return filled($this->meeting_link);
+    }
+
+    public function meetingPlatform(): ?string
+    {
+        return $this->isOnline()
+            ? ($this->meeting_platform ?? MeetingProviders::fromLink($this->meeting_link)?->key())
+            : null;
+    }
+
+    public function meetingProvider(): ?MeetingProvider
+    {
+        return MeetingProviders::find($this->meetingPlatform());
+    }
+
+    public function meetingPlatformLabel(): ?string
+    {
+        $provider = $this->meetingProvider();
+
+        return $provider?->key() === 'other' ? 'Meeting' : $provider?->label();
+    }
+
+    /** Kode rapat pada tautan saat ini, bila platformnya mengenali tautan tersebut. */
+    public function meetingCode(): ?string
+    {
+        return $this->meetingProvider()?->meetingCode($this->meeting_link);
+    }
+
+    /** Pencatatan aktivitas dinyalakan, platformnya punya integrasi, dan akun penyelenggaranya sudah dipilih. */
+    public function hasMeetingMonitoring(): bool
+    {
+        return $this->meeting_monitoring_enabled
+            && $this->meeting_account_id !== null
+            && (bool) $this->meetingProvider()?->hasIntegration();
+    }
+
+    /** Petugas dapat memantau rapat langsung dari browser (bukan menarik data setelahnya). */
+    public function hasLiveMeetingMonitoring(): bool
+    {
+        return $this->hasMeetingMonitoring() && $this->meetingProvider()->supportsMonitoring();
+    }
+
+    /**
+     * Sidik konfigurasi pemantauan: berubah saat pengaturan meeting pelatihan atau kredensial akunnya berubah.
+     * Browser memakainya untuk menandai konfigurasi yang dipakai bergabung, tanpa menerima kredensial.
+     */
+    public function meetingMonitorRevision(MeetingAccount $account): string
+    {
+        return hash('sha256', serialize([
+            $this->meeting_monitoring_revision,
+            $account->getKey(),
+            $account->getRawOriginal('credentials'),
+        ]));
     }
 
     /**
@@ -747,6 +810,11 @@ class Training extends Model
     public function trainer()
     {
         return $this->belongsTo(User::class, 'trainer_id');
+    }
+
+    public function meetingAccount(): BelongsTo
+    {
+        return $this->belongsTo(MeetingAccount::class, 'meeting_account_id');
     }
 
     public function participants()

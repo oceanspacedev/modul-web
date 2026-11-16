@@ -64,7 +64,7 @@ class ZoomOffCamAiFeatureTest extends TestCase
             'training_date' => now()->toDateString(),
             'start_time' => '09:00',
             'end_time' => '11:00',
-            'zoom_link' => 'https://zoom.us/j/123456789',
+            'meeting_link' => 'https://zoom.us/j/123456789',
             'status' => 'ongoing',
             'is_quiz_active' => false,
             'is_attendance_active' => true,
@@ -114,8 +114,8 @@ class ZoomOffCamAiFeatureTest extends TestCase
 
         $this->participant1->refresh();
         $this->assertTrue($this->participant1->is_off_cam);
-        $this->assertEquals('M. Rizky', $this->participant1->zoom_display_name);
-        $this->assertNotNull($this->participant1->zoom_off_cam_at);
+        $this->assertEquals('M. Rizky', $this->participant1->meeting_display_name);
+        $this->assertNotNull($this->participant1->off_cam_at);
         $this->assertStringContainsString('Off Cam Zoom (M. Rizky)', $this->participant1->attendance_notes);
         // Kehadiran tetap hadir karena mark_as_tidak_hadir false
         $this->assertEquals('hadir', $this->participant1->attendance_status);
@@ -156,8 +156,8 @@ class ZoomOffCamAiFeatureTest extends TestCase
         // First mark participant as off cam
         $this->participant1->update([
             'is_off_cam' => true,
-            'zoom_display_name' => 'M. Rizky',
-            'zoom_off_cam_at' => now(),
+            'meeting_display_name' => 'M. Rizky',
+            'off_cam_at' => now(),
             'attendance_notes' => 'Catatan awal; Off Cam Zoom (M. Rizky)',
         ]);
 
@@ -169,8 +169,8 @@ class ZoomOffCamAiFeatureTest extends TestCase
 
         $this->participant1->refresh();
         $this->assertFalse($this->participant1->is_off_cam);
-        $this->assertNull($this->participant1->zoom_display_name);
-        $this->assertNull($this->participant1->zoom_off_cam_at);
+        $this->assertNull($this->participant1->meeting_display_name);
+        $this->assertNull($this->participant1->off_cam_at);
         // Note Off Cam harus terhapus, catatan awal tetap ada
         $this->assertStringNotContainsString('Off Cam Zoom', (string) $this->participant1->attendance_notes);
         $this->assertStringContainsString('Catatan awal', (string) $this->participant1->attendance_notes);
@@ -356,6 +356,34 @@ class ZoomOffCamAiFeatureTest extends TestCase
             'data' => base64_encode('fake-jpeg-bytes'),
         ]);
         $this->assertSame([], Storage::disk('local')->allFiles(ScanZoomOffCam::DIRECTORY));
+    }
+
+    public function test_google_meet_training_can_be_scanned_with_a_meet_specific_prompt()
+    {
+        config(['services.gemini.api_key' => 'test-key']);
+        Storage::fake('local');
+        Http::fake([
+            'generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [['content' => ['parts' => [['text' => json_encode(['detected_off_cam' => []])]]]]],
+            ]),
+        ]);
+        $this->training->update(['meeting_platform' => 'google_meet', 'meeting_link' => 'https://meet.google.com/abc-defg-hij']);
+
+        $token = $this->actingAs($this->admin)
+            ->postJson(route('training.scan-zoom-ai', $this->training), ['images' => [$this->screenshot()]])
+            ->assertOk()
+            ->json('token');
+
+        $this->getJson(route('training.scan-zoom-ai.status', [$this->training, $token]))
+            ->assertOk()->assertJson(['status' => 'done']);
+        Http::assertSent(function (Request $request) {
+            $prompt = collect($request['contents'][0]['parts'])->pluck('text')->filter()->implode("\n");
+
+            return str_contains($prompt, 'Gallery View) Google Meet') && ! str_contains($prompt, 'Zoom');
+        });
+
+        $this->training->update(['meeting_platform' => null, 'meeting_link' => null]);
+        $this->postJson(route('training.scan-zoom-ai', $this->training), ['images' => [$this->screenshot()]])->assertNotFound();
     }
 
     public function test_zoom_scan_rejects_invalid_screenshots_and_missing_api_key()
