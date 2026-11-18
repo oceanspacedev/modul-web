@@ -24,7 +24,7 @@
                             <hr>
                             <div class="form-group mb-0">
                                 <label for="stage">Tahap <span class="badge badge-info">{{ $document->documentRequest->code }}</span></label>
-                                <select class="custom-select" id="stage" name="stage">
+                                <select class="custom-select" id="stage" name="stage" data-final="{{ $document->category?->finalStage() }}">
                                     @foreach ($document->stageNames() as $stage)
                                         <option value="{{ $stage }}" @selected(old('stage', $document->stage) === $stage)>{{ $loop->iteration }}. {{ $stage }}</option>
                                     @endforeach

@@ -5,6 +5,7 @@
     $isLeader = $user->can('manage-od-report');
     $r = $documentRequest;
     $stageNames = $r->category->stageNames();
+    $finalStage = $r->category->finalStage();
 @endphp
 
 @section('content')
@@ -61,9 +62,9 @@
                                     @if ($process->sistem)<p class="small text-muted mb-2">Sistem/alat: {{ $process->sistem }}</p>@endif
                                     <div class="form-row">
                                         <div class="col-md-5 mb-2">
-                                            <select class="custom-select custom-select-sm" name="proses[{{ $process->id }}][stage]" data-stage @disabled(! $editable) aria-label="Tahap {{ $process->title }}">
+                                            <select class="custom-select custom-select-sm" name="proses[{{ $process->id }}][stage]" data-stage data-current="{{ $process->stage }}" @disabled(! $editable) aria-label="Tahap {{ $process->title }}">
                                                 @foreach ($stageNames as $stage)
-                                                    <option value="{{ $stage }}" @selected($process->stage === $stage)>{{ $loop->iteration }}. {{ $stage }}</option>
+                                                    <option value="{{ $stage }}" @selected(old("proses.{$process->id}.stage", $process->stage) === $stage)>{{ $loop->iteration }}. {{ $stage }}</option>
                                                 @endforeach
                                             </select>
                                         </div>
@@ -93,9 +94,12 @@
                                                 <a href="{{ route('od-report.documents.file', $process) }}" target="_blank"><i class="fas fa-paperclip"></i> {{ $process->file_name }}</a>
                                             @endif
                                             @if ($editable)
-                                                <input type="file" name="proses[{{ $process->id }}][file]" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-                                                    class="form-control-file form-control-sm w-auto @error("proses.{$process->id}.file") is-invalid @enderror" aria-label="File {{ $process->title }}">
-                                                <span class="text-muted">{{ $process->hasFile() ? 'Ganti file' : 'File wajib saat rilis' }}</span>
+                                                {{-- Muncul saat tahap terakhir dipilih: file dokumen yang dikirim ke pemohon. --}}
+                                                <span data-release-file hidden>
+                                                    <span class="text-muted mr-1">{{ $process->hasFile() ? 'Ganti file (opsional)' : 'File dokumen' }}</span>
+                                                    <input type="file" name="proses[{{ $process->id }}][file]" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                                                        class="d-inline-block form-control-sm w-auto @error("proses.{$process->id}.file") is-invalid @enderror" aria-label="File {{ $process->title }}">
+                                                </span>
                                             @endif
                                         </div>
                                         @error("proses.{$process->id}.file")<div class="text-danger small mt-1">{{ $message }}</div>@enderror
@@ -177,9 +181,22 @@
 
 @section('footer')
 <script>
+    // Input file hanya muncul saat dokumen dirilis (tahap terakhir dipilih).
+    const finalStage = @js($finalStage);
+    function syncFile(select) {
+        const field = select.closest('.p-3').querySelector('[data-release-file]');
+        if (field) {
+            field.hidden = !(select.value === finalStage && select.dataset.current !== finalStage);
+        }
+    }
+    document.querySelectorAll('[data-stage]').forEach(select => {
+        select.addEventListener('change', () => syncFile(select));
+        syncFile(select);
+    });
+
     document.getElementById('applyStage').addEventListener('change', function () {
         if (!this.value) return;
-        document.querySelectorAll('[data-stage]:not([disabled])').forEach(select => select.value = this.value);
+        document.querySelectorAll('[data-stage]:not([disabled])').forEach(select => { select.value = this.value; syncFile(select); });
     });
     document.querySelectorAll('[data-use-date]').forEach(button => button.addEventListener('click', () => {
         document.getElementById('jadwal_observasi').value = button.dataset.useDate;
