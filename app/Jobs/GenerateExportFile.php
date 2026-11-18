@@ -2,8 +2,11 @@
 
 namespace App\Jobs;
 
+use App\Exports\DocumentRequestExport;
 use App\Exports\LearningModuleQuestionsExport;
 use App\Exports\LearningModuleRekapExport;
+use App\Exports\OdAchievementExport;
+use App\Exports\OdWeeklyExport;
 use App\Exports\ScoreRecapExport;
 use App\Exports\TrainingEvaluationSheet;
 use App\Exports\TrainingQuestionsExport;
@@ -12,7 +15,9 @@ use App\Exports\TrainingRekapWorkbook;
 use App\Exports\UserExport;
 use App\Models\LearningModule;
 use App\Models\Training;
+use App\Models\User;
 use App\Notifications\BackgroundTaskFinished;
+use App\Support\OdWeek;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -35,6 +40,12 @@ class GenerateExportFile extends BackgroundTask
     public const LEARNING_MODULE_QUESTIONS = 'learning-module-questions-export';
 
     public const SCORES = 'score-recap-export';
+
+    public const OD_WEEKLY = 'od-weekly-export';
+
+    public const OD_ACHIEVEMENT = 'od-achievement-export';
+
+    public const DOCUMENT_REQUESTS = 'document-requests-export';
 
     public const DIRECTORY = 'exports';
 
@@ -74,6 +85,7 @@ class GenerateExportFile extends BackgroundTask
             self::TRAINING_QUESTIONS => $this->trainingQuestions(),
             self::LEARNING_MODULE_QUESTIONS => $this->learningModuleQuestions(),
             self::SCORES => $this->scores(),
+            self::OD_WEEKLY, self::OD_ACHIEVEMENT, self::DOCUMENT_REQUESTS => $this->odReport(),
             default => throw new InvalidArgumentException("Jenis export tidak dikenal: {$this->type}"),
         };
 
@@ -159,6 +171,26 @@ class GenerateExportFile extends BackgroundTask
             'soal_modul_'.Str::slug($module->title).'_'.date('Ymd_His').'.xlsx',
             'Export soal modul selesai',
         ];
+    }
+
+    /**
+     * OD Report: isinya mengikuti hak akses user yang mengekspor (Staff hanya datanya sendiri).
+     * filters: month (Y-m), member_id (opsional).
+     *
+     * @return array{0: OdWeeklyExport|OdAchievementExport|DocumentRequestExport, 1: string, 2: string}
+     */
+    private function odReport(): array
+    {
+        $viewer = User::findOrFail($this->userId);
+        $month = $this->filters['month'] ?? today()->format('Y-m');
+        $memberId = $this->filters['member_id'] ?? null;
+        $label = OdWeek::monthLabel($month);
+
+        return match ($this->type) {
+            self::OD_WEEKLY => [new OdWeeklyExport($viewer, $month, $memberId), "Weekly Report {$label}.xlsx", 'Export Weekly Report selesai'],
+            self::OD_ACHIEVEMENT => [new OdAchievementExport($viewer, $month, $memberId), 'ACHIEVEMENT BUSDEV '.mb_strtoupper($label).'.xlsx', 'Export Achievement selesai'],
+            default => [new DocumentRequestExport($viewer), 'permintaan_dokumen_'.date('Ymd_His').'.xlsx', 'Export Permintaan Dokumen selesai'],
+        };
     }
 
     /**

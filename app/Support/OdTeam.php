@@ -31,16 +31,16 @@ final class OdTeam
     }
 
     /**
-     * Teks kolom Posisi di Weekly/Monthly: nama posisi user, atau ORGANIZATION DEVELOPMENT LEADER/STAFF.
+     * Teks kolom Posisi di Weekly/Monthly: nama posisi user, atau Organization Development Leader/Staff.
      */
     public static function positionOf(User $user): string
     {
         $position = $user->relationLoaded('position') ? $user->position : $user->position()->first();
 
         if ($position && filled($position->name)) {
-            return mb_strtoupper($position->name);
+            return $position->name;
         }
 
-        return $user->can('manage-od-report') ? 'ORGANIZATION DEVELOPMENT LEADER' : 'ORGANIZATION DEVELOPMENT STAFF';
+        return $user->can('manage-od-report') ? 'Organization Development Leader' : 'Organization Development Staff';
     }
 }

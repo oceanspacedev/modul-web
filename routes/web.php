@@ -14,6 +14,7 @@ use App\Http\Controllers\MeetingAccountController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OdDailyController;
 use App\Http\Controllers\OdDocumentController;
+use App\Http\Controllers\OdExportController;
 use App\Http\Controllers\OdReportController;
 use App\Http\Controllers\OdRequestController;
 use App\Http\Controllers\OdSettingController;
@@ -124,6 +125,8 @@ Route::middleware('auth')->group(function () {
             Route::get('weekly', 'weekly')->name('weekly');
             Route::get('monthly', 'monthly')->name('monthly');
         });
+
+        Route::post('ekspor', OdExportController::class)->name('export');
 
         Route::controller(OdDailyController::class)->prefix('daily')->name('daily.')->group(function () {
             Route::get('/', 'index')->name('index');
