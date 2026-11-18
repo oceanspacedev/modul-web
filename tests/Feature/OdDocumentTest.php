@@ -58,6 +58,17 @@ class OdDocumentTest extends TestCase
             ->assertSee($mine->title)->assertSee($theirs->title);
     }
 
+    public function test_note_has_its_own_column_in_the_table(): void
+    {
+        $staff = $this->member(User::OD_STAFF);
+        $this->document($staff, ['title' => 'SOP Bercatatan', 'catatan' => 'Menunggu tanda tangan direksi']);
+        $this->document($staff, ['title' => 'SOP Tanpa Catatan']);
+
+        $this->actingAs($staff)->get(route('od-report.documents.index'))->assertOk()
+            ->assertSee('<th>Catatan</th>', false)
+            ->assertSeeInOrder(['SOP Bercatatan', 'Menunggu tanda tangan direksi']);
+    }
+
     public function test_approval_has_no_pic_and_new_document_belongs_to_whoever_adds_it(): void
     {
         $staff = $this->member(User::OD_STAFF, 'STAFF IK');

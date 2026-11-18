@@ -58,6 +58,7 @@
                             <th>Jenis</th>
                             <th>Badan Usaha</th>
                             <th>Diajukan</th>
+                            <th>Catatan</th>
                             <th style="width: 170px;">Status</th>
                             <th class="text-right">Aksi</th>
                         </tr>
@@ -76,9 +77,6 @@
                                         @if ($document->activities_count)
                                             <span class="ml-1"><i class="fas fa-tasks"></i> {{ $document->activities_count }} aktivitas</span>
                                         @endif
-                                        @if ($document->catatan)
-                                            <div>{{ $document->catatan }}</div>
-                                        @endif
                                     </div>
                                 </td>
                                 <td>{{ $document->jenis }}</td>
@@ -89,6 +87,7 @@
                                         <div class="small text-muted">Selesai {{ $document->received_at->format('d/m/Y') }}</div>
                                     @endif
                                 </td>
+                                <td class="small" style="white-space: pre-line; min-width: 180px; max-width: 280px;">{{ $document->catatan ?: '-' }}</td>
                                 <td>
                                     @if ($canEdit)
                                         <form action="{{ route('od-report.documents.status', $document) }}" method="POST" class="m-0">
@@ -119,7 +118,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6">
+                                <td colspan="7">
                                     <x-empty-state icon="fa-file-signature" title="Belum ada dokumen" text="Tambah dokumen atau ubah filter." />
                                 </td>
                             </tr>
