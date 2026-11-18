@@ -5098,6 +5098,85 @@ tr.camera-row[data-status=""] .camera-status-picker {
     }
 }
 
+/*
+ * Halaman detail pelatihan: satu skala teks untuk seluruh halaman, menggantikan ukuran rem bawaan Bootstrap/AdminLTE
+ * (10,5–12,25px) yang membuat teks di tiap bagian berbeda-beda.
+ * 13px keterangan & tombol · 14px isi · 16px judul bagian · 22px angka ringkasan · 24px judul halaman.
+ */
+html:has(.training-detail) {
+    /* Ruang scrollbar selalu disediakan: tab pendek (Materi) dan tab panjang (Peserta) tidak menggeser lebar halaman. */
+    scrollbar-gutter: stable;
+}
+
+.training-detail,
+.training-detail .table,
+.training-detail .dropdown-item,
+.training-detail .form-control,
+.training-detail .form-control-sm,
+.training-detail .training-roster-search input,
+.training-detail .text-muted,
+.training-detail .text-sm,
+.training-detail .training-person-link,
+.training-detail .status-dot,
+.training-detail .training-notice,
+.training-sections a {
+    font-size: 14px !important;
+    line-height: 20px;
+}
+
+.training-detail-header .training-back-link,
+.training-detail-header .training-session-meta,
+.training-detail .training-totals dt,
+.training-detail .training-total-meta,
+.training-detail .training-section-count,
+.training-detail .training-roster-pagesize,
+.training-detail .training-roster-pagesize label,
+.training-detail-header .badge,
+.training-detail #participantsTable > thead th,
+.training-detail .cell-sub,
+.training-detail .training-camera,
+.training-detail .training-mobile-label,
+.training-detail .training-roster-footer,
+.training-detail .training-roster-footer .small,
+.training-detail .page-link,
+.training-detail .text-xs,
+.training-detail .small,
+.training-detail small {
+    font-size: 13px !important;
+    line-height: 20px;
+}
+
+.training-detail .cell-sub {
+    display: block;
+}
+
+.training-detail-header .training-title {
+    font-size: 24px;
+    line-height: 32px;
+}
+
+.training-detail .training-section-title {
+    font-size: 16px;
+    line-height: 24px;
+}
+
+.training-detail .training-total-value strong {
+    font-size: 22px;
+    line-height: 28px;
+}
+
+/* Semua tombol sama tinggi dan ukuran teksnya; tombol di baris tabel/kontrol sesi sedikit lebih pendek. */
+.training-detail .btn,
+.training-detail-header .btn {
+    font-size: 13px !important;
+    line-height: 20px;
+    padding: 5px 12px;
+}
+
+.training-detail .btn-xs {
+    padding: 3px 10px;
+}
+
 /* Halaman selebar layar: pemutar video dibatasi supaya tetap muat setinggi layar. */
 .material-player {
     max-width: calc((100vh - 14rem) * 16 / 9);

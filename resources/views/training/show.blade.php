@@ -1250,7 +1250,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const scoreFormat = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
     function updateStat(el, value) {
-        if (el && el.textContent !== String(value)) {
+        // Spasi dari template diabaikan, supaya angka yang sama tidak dianggap berubah dan tidak berkedip.
+        if (el && el.textContent.trim() !== String(value)) {
             el.textContent = value;
             el.style.transition = 'color 0.3s';
             const orig = el.style.color;
