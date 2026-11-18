@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Kategori Dokumen" subtitle="Jenis dokumen dan tahapannya" eyebrow="Layanan">
+        <x-page-header title="Kategori Dokumen" subtitle="Jenis dokumen dan tahapannya" eyebrow="Dokumen">
             <x-slot:actions>
                 <a href="{{ route('document-request.create') }}" class="btn btn-default" target="_blank"><i class="fas fa-external-link-alt"></i> Lihat form</a>
                 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addCategory"><i class="fas fa-plus"></i> Tambah Kategori</button>

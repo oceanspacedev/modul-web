@@ -126,7 +126,7 @@
                 </li>
                 @endcanany
 
-                <li class="nav-header">Layanan</li>
+                <li class="nav-header">Dokumen</li>
                 @can('manage-od-report')
                 <li class="nav-item">
                     <a href="{{ route('document-category.index') }}" class="nav-link {{ ($active ?? '') === 'document-category' ? 'active' : '' }}">
@@ -157,7 +157,7 @@
                 @endcan
 
                 @can('access-od-report')
-                <li class="nav-header">OD Report</li>
+                <li class="nav-header">Report</li>
                 @foreach ([
                     ['od-report.dashboard', 'od-dashboard', 'fas fa-chart-pie', 'Dashboard OD'],
                     ['od-report.daily.index', 'od-daily', 'fas fa-edit', 'Daily Report'],
