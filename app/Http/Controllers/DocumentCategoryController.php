@@ -19,12 +19,16 @@ class DocumentCategoryController extends Controller
 {
     public function __construct(private DocumentCategoryService $categories) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
+        $search = trim((string) $request->query('search'));
+
         return view('document-category.index', [
             'title' => 'Kategori Dokumen',
             'active' => 'document-category',
-            'categories' => DocumentCategory::ordered()->with(['stages', 'pic'])->withCount(['documentRequests' => fn ($q) => $q->withTrashed()])->get(),
+            'categories' => DocumentCategory::ordered()
+                ->when($search !== '', fn ($query) => $query->where(fn ($q) => $q->where('code', 'like', "%{$search}%")->orWhere('name', 'like', "%{$search}%")))
+                ->with(['stages', 'pic'])->withCount(['documentRequests' => fn ($q) => $q->withTrashed()])->get(),
             'documentCounts' => OdDocument::withTrashed()->selectRaw('jenis, count(*) as total')->groupBy('jenis')->pluck('total', 'jenis'),
         ]);
     }

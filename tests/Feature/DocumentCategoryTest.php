@@ -92,7 +92,9 @@ class DocumentCategoryTest extends TestCase
         $this->actingAs($staff)->post(route('document-category.store'), ['code' => 'BA', 'name' => 'Berita Acara'])->assertRedirect();
         $this->assertDatabaseMissing('document_categories', ['code' => 'BA']);
 
-        $this->actingAs($leader)->get(route('document-category.index'))->assertOk()->assertSee('Instruksi Kerja');
+        $this->actingAs($leader)->get(route('document-category.index'))->assertOk()->assertSee('Instruksi Kerja')->assertSee('Tambah Kategori');
+        $this->actingAs($leader)->get(route('document-category.index', ['search' => 'job']))->assertOk()
+            ->assertSee('Job Description')->assertDontSee('Instruksi Kerja');
         // Menu ada di grup Layanan, hanya untuk Leader.
         $this->actingAs($leader)->get(route('document-request.mine'))->assertSee('Kategori Dokumen');
         $this->actingAs($staff)->get(route('document-request.mine'))->assertDontSee('Kategori Dokumen');

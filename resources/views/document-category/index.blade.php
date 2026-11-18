@@ -6,6 +6,7 @@
         <x-page-header title="Kategori Dokumen" subtitle="Jenis dokumen dan tahapannya" eyebrow="Layanan">
             <x-slot:actions>
                 <a href="{{ route('document-request.create') }}" class="btn btn-default" target="_blank"><i class="fas fa-external-link-alt"></i> Lihat form</a>
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addCategory"><i class="fas fa-plus"></i> Tambah Kategori</button>
             </x-slot:actions>
         </x-page-header>
     </div>
@@ -16,6 +17,11 @@
         <x-flash />
 
         <div class="card">
+            <div class="card-header filter-toolbar">
+                <form action="{{ route('document-category.index') }}" method="GET" class="w-100 m-0" role="search">
+                    <x-search-field placeholder="Cari kode atau nama..." :clear-url="route('document-category.index')" style="max-width: 360px;" />
+                </form>
+            </div>
             <div class="card-body table-responsive p-0">
                 <table class="table table-hover mb-0">
                     <thead>
@@ -51,25 +57,59 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5"><x-empty-state icon="fa-tags" title="Belum ada kategori" text="Tambahkan kategori pertama di bawah." /></td>
+                                <td colspan="5">
+                                    @if (filled(request('search')))
+                                        <x-empty-state icon="fa-search" title="Tidak ada hasil" text="Tidak ada kategori yang cocok dengan pencarian ini." />
+                                    @else
+                                        <x-empty-state icon="fa-tags" title="Belum ada kategori" text="Tambahkan kategori pertama."><button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addCategory">Tambah Kategori</button></x-empty-state>
+                                    @endif
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-            <div class="card-footer">
-                <form action="{{ route('document-category.store') }}" method="POST" class="d-flex flex-wrap gap-2 m-0">
-                    @csrf
-                    <input type="text" name="code" maxlength="30" required placeholder="Kode, mis. BA" aria-label="Kode kategori baru"
-                        class="form-control form-control-sm @error('code') is-invalid @enderror" style="max-width: 160px;" value="{{ old('code') }}">
-                    <input type="text" name="name" maxlength="100" required placeholder="Nama, mis. Berita Acara" aria-label="Nama kategori baru"
-                        class="form-control form-control-sm @error('name') is-invalid @enderror" style="max-width: 280px;" value="{{ old('name') }}">
-                    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Tambah</button>
-                    @error('code')<div class="text-danger small w-100">{{ $message }}</div>@enderror
-                    @error('name')<div class="text-danger small w-100">{{ $message }}</div>@enderror
-                </form>
-            </div>
+            <div class="card-footer text-muted small">Total {{ $categories->count() }} kategori</div>
         </div>
     </div>
 </section>
+
+<form action="{{ route('document-category.store') }}" method="POST">
+    @csrf
+    <div class="modal fade" id="addCategory" tabindex="-1" aria-labelledby="addCategoryLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addCategoryLabel">Tambah Kategori</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="new-code">Kode</label>
+                        <input type="text" class="form-control @error('code') is-invalid @enderror" id="new-code" name="code" maxlength="30" required placeholder="Contoh: BA" value="{{ old('code') }}">
+                        @error('code')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="form-group mb-0">
+                        <label for="new-name">Nama</label>
+                        <input type="text" class="form-control @error('name') is-invalid @enderror" id="new-name" name="name" maxlength="100" required placeholder="Contoh: Berita Acara" value="{{ old('name') }}">
+                        @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <small class="form-text text-muted">Berikutnya: atur tahapannya.</small>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
 @endsection
+
+@if ($errors->has('code') || $errors->has('name'))
+    @section('footer')
+    <script>
+        $(function () { $('#addCategory').modal('show'); });
+    </script>
+    @endsection
+@endif
