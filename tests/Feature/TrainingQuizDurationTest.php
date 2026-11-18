@@ -52,7 +52,7 @@ class TrainingQuizDurationTest extends TestCase
 
     public function test_quiz_rules_save_a_time_limit_for_each_phase(): void
     {
-        $this->actingAs($this->admin)->get(route('training.create'))->assertOk()->assertSee('Batas waktu bawaan sejak dibuka');
+        $this->actingAs($this->admin)->get(route('training.create'))->assertOk()->assertSee('Batas waktu sejak dibuka')->assertSee('name="quiz[posttest_duration_minutes]"', false);
 
         $this->actingAs($this->admin)->post(route('training.quiz-rules', $this->training), [
             'quiz' => ['pretest' => '1', 'pretest_duration_minutes' => '15', 'posttest' => '1', 'posttest_duration_minutes' => ''],

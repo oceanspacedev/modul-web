@@ -68,7 +68,7 @@ class TrainingFullLifecycleTest extends TestCase
         // 1.2 Access Create Page
         $createPageRes = $this->actingAs($this->admin)->get('/training/create');
         $createPageRes->assertStatus(200);
-        $createPageRes->assertSee('Tambah Pelatihan Baru');
+        $createPageRes->assertSee('Buat Pelatihan');
 
         // 1.3 Store New Training
         $storeRes = $this->actingAs($this->admin)->post('/training', [

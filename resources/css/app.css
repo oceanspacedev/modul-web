@@ -5177,6 +5177,242 @@ html:has(.training-detail) {
     padding: 3px 10px;
 }
 
+/*
+ * Buat Pelatihan: tiga langkah dalam satu kolom (info, langkah peserta, peserta & materi). Skala teks sama dengan
+ * halaman detail: 13px keterangan & tombol, 14px isi, 16px judul langkah.
+ */
+html:has(.training-create) {
+    scrollbar-gutter: stable;
+}
+
+.training-create #trainingForm {
+    max-width: 760px;
+}
+
+.training-create,
+.training-create .form-control,
+.training-create .custom-control-label,
+.training-create .select2-container,
+.training-create .select2-selection__rendered,
+.training-create .select2-selection__choice,
+.training-create label {
+    font-size: 14px !important;
+}
+
+.training-create label {
+    font-weight: 500;
+}
+
+.training-create .btn {
+    font-size: 13px !important;
+    line-height: 20px;
+    padding: 5px 12px;
+}
+
+.training-create .btn-xs {
+    padding: 3px 10px;
+}
+
+.training-create .small,
+.training-create small,
+.training-create .text-muted.small,
+.training-create .form-control-sm {
+    font-size: 13px !important;
+}
+
+.training-create-stepper {
+    display: flex;
+    gap: 8px;
+    margin: 0 0 16px;
+    padding: 0;
+    list-style: none;
+    font-size: 13px;
+}
+
+.training-create-stepper li {
+    display: flex;
+    flex: 1 1 0;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 8px 0 0;
+    border-top: 3px solid var(--gray-200);
+    color: var(--gray-500);
+    font-weight: 500;
+}
+
+.training-create #trainingForm.is-stepped .training-create-stepper li {
+    cursor: pointer;
+}
+
+.training-create-stepper li.is-current,
+.training-create-stepper li.is-done {
+    border-top-color: var(--primary-700);
+    color: var(--gray-950);
+}
+
+.training-create-stepper-number {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: var(--gray-100);
+    color: var(--gray-600);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.training-create-stepper li.is-current .training-create-stepper-number,
+.training-create-stepper li.is-done .training-create-stepper-number {
+    background: var(--primary-700);
+    color: white;
+}
+
+.training-create-step {
+    margin-bottom: 16px;
+    padding: 20px;
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-xl);
+    background: white;
+}
+
+.training-create-step[hidden] {
+    display: none;
+}
+
+.training-create-title {
+    margin: 0 0 16px;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 24px;
+}
+
+.training-create-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+    margin-bottom: 16px;
+}
+
+.training-create-title-row .training-create-title {
+    margin: 0;
+}
+
+.training-create-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.training-create-count,
+.training-create-optional,
+.training-create-hint,
+.training-create-help {
+    color: var(--gray-500);
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.training-create-help {
+    margin: -8px 0 16px;
+}
+
+.training-create-toggles {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-lg);
+}
+
+.training-create-toggles > li {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 16px;
+}
+
+/* Keterangan selalu di bawah nama langkah, sejajar dengan teks label saklar. */
+.training-create-toggles .training-create-hint {
+    padding-left: 2.25rem;
+}
+
+.training-create-toggles > li + li {
+    border-top: 1px solid var(--ring);
+}
+
+.training-create-toggles > li.is-fixed .custom-control-label {
+    color: var(--gray-500);
+}
+
+.training-create-sub {
+    padding: 6px 0 0 2.25rem;
+}
+
+.training-create-details {
+    margin-top: 16px;
+}
+
+.training-create-details summary {
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.training-create-details[open] summary {
+    margin-bottom: 12px;
+}
+
+.training-create-quiz {
+    margin: 0 0 12px;
+    padding: 12px 16px;
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-lg);
+}
+
+.training-create-quiz legend {
+    width: auto;
+    margin: 0;
+    padding: 0 4px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.training-create-quiz[hidden] {
+    display: none;
+}
+
+.training-create-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.training-create-nav-spacer {
+    flex: 1;
+}
+
+.training-create-nav [hidden] {
+    display: none !important;
+}
+
+@media (max-width: 575.98px) {
+    .training-create-step {
+        padding: 16px 12px;
+    }
+
+    .training-create-stepper li {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+}
+
 /* Halaman selebar layar: pemutar video dibatasi supaya tetap muat setinggi layar. */
 .material-player {
     max-width: calc((100vh - 14rem) * 16 / 9);

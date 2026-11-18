@@ -45,6 +45,7 @@ class StoreTrainingRequest extends FormRequest
             'quiz_mode' => ['nullable', 'in:formal,game'],
             ...Training::quizRuleValidation(),
             'has_evaluation' => ['nullable', 'boolean'],
+            'has_attendance' => ['nullable', 'boolean'],
             'is_attendance_active' => ['nullable', 'boolean'],
             'require_attendance_proof' => ['nullable', 'boolean'],
         ];

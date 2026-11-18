@@ -118,10 +118,18 @@ class TrainingController extends Controller
                 'status' => TrainingStatus::Scheduled,
                 'is_quiz_active' => false,
                 'is_attendance_active' => $request->boolean('is_attendance_active'),
-                'require_attendance_proof' => $request->boolean('require_attendance_proof'),
                 'quiz_mode' => $request->validated('quiz_mode') ?? 'formal',
                 'has_evaluation' => $request->boolean('has_evaluation'),
                 ...$request->quizRules(),
+                // The create form asks about attendance in its "Langkah peserta" step, so the separate setup
+                // questions are only needed when a caller did not send that answer.
+                ...($request->has('has_attendance') ? [
+                    'has_attendance' => $request->boolean('has_attendance'),
+                    'require_attendance_proof' => $request->boolean('has_attendance') && $request->boolean('require_attendance_proof'),
+                    'setup_completed_at' => now(),
+                ] : [
+                    'require_attendance_proof' => $request->boolean('require_attendance_proof'),
+                ]),
             ]);
 
             $training->documents()->sync($request->validated('documents') ?? []);
@@ -147,9 +155,13 @@ class TrainingController extends Controller
             .($participantFile ? ' dipilih; peserta dari file Excel sedang diimpor di belakang layar dan hasilnya dikirim ke Notifikasi' : '');
 
         if (! $training->hasQuiz()) {
-            return to_route('training.setup', $training)->with([
-                'success' => "Pelatihan tanpa kuis dibuat dengan {$created}. Langkah berikutnya: atur presensi.",
-            ]);
+            return $training->needsSetup()
+                ? to_route('training.setup', $training)->with([
+                    'success' => "Pelatihan tanpa kuis dibuat dengan {$created}. Langkah berikutnya: atur presensi.",
+                ])
+                : to_route('training.show', $training)->with([
+                    'success' => "Pelatihan dibuat dengan {$created}. Buka presensi dan langkah lain dari Kontrol sesi saat sesi dimulai.",
+                ]);
         }
 
         return to_route('training.questions.index', $training)->with([
