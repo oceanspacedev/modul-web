@@ -1,7 +1,7 @@
 @extends('layout.main_template')
 
 @php
-    $stages = old('stages', $category->stages->map(fn ($s) => ['id' => $s->id, 'name' => $s->name, 'description' => $s->description])->all());
+    $stages = old('stages', $category->stages->map(fn ($s) => ['id' => $s->id, 'name' => $s->name])->all());
     $usageById = $category->stages->mapWithKeys(fn ($s) => [$s->id => $stageUsage[$s->name] ?? 0]);
 @endphp
 

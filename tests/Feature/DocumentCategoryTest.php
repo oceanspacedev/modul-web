@@ -51,7 +51,7 @@ class DocumentCategoryTest extends TestCase
             'is_active' => $category->is_active ? '1' : null,
             'pic_user_id' => $category->pic_user_id,
             'sort' => $category->sort,
-            'stages' => $category->stages->map(fn ($s) => ['id' => $s->id, 'name' => $s->name, 'description' => $s->description])->all(),
+            'stages' => $category->stages->map(fn ($s) => ['id' => $s->id, 'name' => $s->name])->all(),
             ...$overrides,
         ];
     }
@@ -197,6 +197,11 @@ class DocumentCategoryTest extends TestCase
         $renamed['stages'][0]['name'] = 'Diterima';
         $this->actingAs($leader)->put(route('document-category.update', $jd), $renamed)->assertSessionHas('success');
         $this->assertSame('Diterima', $document->fresh()->stage);
+
+        // Form hanya berisi judul: penjelasan tahap yang tidak diganti nama tetap ada, yang diganti nama dikosongkan.
+        $jd = $this->category('JD');
+        $this->assertNull($jd->stageDescription('Diterima'));
+        $this->assertSame(DocumentCategory::DEFAULT_STAGES['Drafting'], $jd->stageDescription('Drafting'));
 
         // Tahap yang masih dipakai tidak bisa dihapus, kode yang sudah dipakai tidak bisa diubah.
         $jd = $this->category('JD');

@@ -46,7 +46,6 @@ class DocumentCategoryRequest extends FormRequest
             'stages' => ['required', 'array', 'min:'.DocumentCategory::MIN_STAGES, 'max:'.DocumentCategory::MAX_STAGES],
             'stages.*.id' => ['nullable', 'integer', Rule::exists('document_category_stages', 'id')->where('document_category_id', $category->getKey())],
             'stages.*.name' => ['required', 'string', 'max:40', 'distinct:ignore_case', Rule::notIn([OdDocument::STAGE_CANCELLED])],
-            'stages.*.description' => ['nullable', 'string', 'max:300'],
         ];
     }
 
@@ -102,8 +101,7 @@ class DocumentCategoryRequest extends FormRequest
             'pic_user_id' => 'PIC bawaan',
             'sort' => 'urutan',
             'stages' => 'tahapan',
-            'stages.*.name' => 'nama tahap',
-            'stages.*.description' => 'penjelasan tahap',
+            'stages.*.name' => 'judul tahap',
         ];
     }
 
@@ -115,8 +113,8 @@ class DocumentCategoryRequest extends FormRequest
         return [
             'code.regex' => 'Kode hanya boleh huruf, angka, spasi, titik, garis miring, & dan tanda hubung.',
             'stages.min' => 'Minimal :min tahap.',
-            'stages.*.name.distinct' => 'Nama tahap tidak boleh sama.',
-            'stages.*.name.not_in' => 'Nama tahap "Dibatalkan" dipakai sistem untuk dokumen yang batal.',
+            'stages.*.name.distinct' => 'Judul tahap tidak boleh sama.',
+            'stages.*.name.not_in' => 'Judul tahap "Dibatalkan" dipakai sistem untuk dokumen yang batal.',
         ];
     }
 

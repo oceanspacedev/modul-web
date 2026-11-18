@@ -61,8 +61,13 @@ class DocumentCategoryService
 
             $kept = [];
             foreach ($rows as $index => $row) {
-                $attributes = ['name' => $row['name'], 'description' => $row['description'] ?? null, 'sort' => $index + 1];
+                // Form hanya berisi judul tahap. Penjelasan lama tetap dipakai halaman lacak, kecuali tahapnya diganti
+                // nama (penjelasannya bisa tidak cocok lagi).
                 $stage = $existing->get($row['id'] ?? null);
+                $attributes = ['name' => $row['name'], 'sort' => $index + 1];
+                if (! $stage || $stage->name !== $row['name']) {
+                    $attributes['description'] = null;
+                }
                 $stage ? $stage->update($attributes) : $stage = $category->stages()->create($attributes);
                 $kept[] = $stage->getKey();
             }
