@@ -7,6 +7,7 @@ use App\Http\Controllers\DivisiController;
 use App\Http\Controllers\DocumentCategoryController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DocumentRequestController;
+use App\Http\Controllers\DocumentRequestRecipientController;
 use App\Http\Controllers\DokumenTypeController;
 use App\Http\Controllers\LearningModuleController;
 use App\Http\Controllers\LearningModulePortalController;
@@ -171,6 +172,8 @@ Route::middleware('auth')->group(function () {
         Route::get('{category}/edit', 'edit')->whereNumber('category')->name('edit');
         Route::put('{category}', 'update')->whereNumber('category')->name('update');
         Route::delete('{category}', 'destroy')->whereNumber('category')->name('destroy');
+        Route::post('penerima', [DocumentRequestRecipientController::class, 'store'])->name('recipients.store');
+        Route::delete('penerima/{recipient}', [DocumentRequestRecipientController::class, 'destroy'])->whereNumber('recipient')->name('recipients.destroy');
     });
 
     // # DASHBOARD

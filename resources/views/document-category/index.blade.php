@@ -71,6 +71,43 @@
             </div>
             <div class="card-footer text-muted small">Total {{ $categories->count() }} kategori</div>
         </div>
+
+        <div class="card">
+            <div class="card-header d-flex align-items-center">
+                <h3 class="card-title">WhatsApp pengelola</h3>
+                <button type="button" class="btn btn-default btn-sm ml-auto" data-toggle="modal" data-target="#addRecipient"
+                    @disabled($recipients->count() >= App\Models\DocumentRequestRecipient::MAX)><i class="fas fa-plus"></i> Tambah nomor</button>
+            </div>
+            <div class="card-body p-0">
+                <p class="small text-muted px-3 pt-3 mb-2">Setiap pengajuan baru dikirim ke nomor ini.</p>
+                <table class="table mb-0">
+                    <tbody>
+                        @forelse ($recipients as $recipient)
+                            <tr>
+                                <td><strong>{{ $recipient->name }}</strong></td>
+                                <td>{{ App\Support\WhatsAppNumber::toLocal($recipient->whatsapp) ?? $recipient->whatsapp }}</td>
+                                <td class="text-right">
+                                    <form action="{{ route('document-category.recipients.destroy', $recipient) }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Hapus nomor '.$recipient->name.'?'))">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-default btn-xs text-danger">Hapus</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td class="small text-muted">
+                                    Belum ada nomor.
+                                    @if ($fallbackWhatsapp)
+                                        Sementara dikirim ke nomor admin OD ({{ App\Support\WhatsAppNumber::toLocal($fallbackWhatsapp) ?? $fallbackWhatsapp }}).
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </section>
 
@@ -104,12 +141,42 @@
         </div>
     </div>
 </form>
+
+<form action="{{ route('document-category.recipients.store') }}" method="POST">
+    @csrf
+    <div class="modal fade" id="addRecipient" tabindex="-1" aria-labelledby="addRecipientLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addRecipientLabel">Tambah Nomor Pengelola</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="recipient-name">Nama</label>
+                        <input type="text" class="form-control @error('recipient_name', 'recipient') is-invalid @enderror" id="recipient-name" name="recipient_name" maxlength="60" required placeholder="Contoh: Admin OD" value="{{ old('recipient_name') }}">
+                        @error('recipient_name', 'recipient')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="form-group mb-0">
+                        <label for="recipient-whatsapp">Nomor WhatsApp</label>
+                        <input type="tel" class="form-control @error('whatsapp', 'recipient') is-invalid @enderror" id="recipient-whatsapp" name="whatsapp" maxlength="30" required inputmode="tel" placeholder="081234567890" value="{{ old('whatsapp') }}">
+                        @error('whatsapp', 'recipient')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
 @endsection
 
-@if ($errors->has('code') || $errors->has('name'))
+@if ($errors->recipient->isNotEmpty() || $errors->has('code') || $errors->has('name'))
     @section('footer')
     <script>
-        $(function () { $('#addCategory').modal('show'); });
+        $(function () { $(@js($errors->recipient->isNotEmpty() ? '#addRecipient' : '#addCategory')).modal('show'); });
     </script>
     @endsection
 @endif

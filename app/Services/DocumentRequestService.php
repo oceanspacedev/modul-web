@@ -8,6 +8,7 @@ use App\Models\DocumentRequestHistory;
 use App\Models\OdDocument;
 use App\Models\OdDocumentStatus;
 use App\Models\User;
+use App\Notifications\DocumentRequestSubmitted;
 use App\Notifications\DocumentRequestUpdated;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -87,8 +88,12 @@ class DocumentRequestService
             throw $e;
         }
 
-        $count = count($data['proses']);
-        DocumentRequestUpdated::send($request, "Pengajuan {$count} dokumen {$category->name} sudah kami terima dan akan ditinjau tim Organization Development.");
+        $titles = collect($data['proses'])->values()->map(fn ($process, $i) => ($i + 1).'. '.$process['judul'])->implode("\n");
+        DocumentRequestUpdated::send($request, "Pengajuan dokumen {$category->name} Anda sudah kami terima.\n"
+            ."Kode lacak: *{$request->code}*\n{$titles}\n\nSimpan kode ini untuk melacak progres.");
+
+        $request->setRelation('category', $category);
+        DocumentRequestSubmitted::sendToManagers($request);
 
         return $request;
     }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\DocumentCategoryRequest;
 use App\Models\DocumentCategory;
+use App\Models\DocumentRequestRecipient;
 use App\Models\OdDocument;
 use App\Services\DocumentCategoryService;
 use App\Support\OdTeam;
@@ -30,6 +31,8 @@ class DocumentCategoryController extends Controller
                 ->when($search !== '', fn ($query) => $query->where(fn ($q) => $q->where('code', 'like', "%{$search}%")->orWhere('name', 'like', "%{$search}%")))
                 ->with(['stages', 'pic'])->withCount(['documentRequests' => fn ($q) => $q->withTrashed()])->get(),
             'documentCounts' => OdDocument::withTrashed()->selectRaw('jenis, count(*) as total')->groupBy('jenis')->pluck('total', 'jenis'),
+            'recipients' => DocumentRequestRecipient::orderBy('name')->get(),
+            'fallbackWhatsapp' => config('od-report.admin_whatsapp'),
         ]);
     }
 
