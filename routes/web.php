@@ -52,8 +52,8 @@ Route::prefix('training/portal/{token}')
     ->middleware('throttle:portal')
     ->group(function () {
         Route::get('/', 'showPortal')->name('');
-        // Dipanggil tiap 5 detik oleh setiap peserta dan hanya membaca: tanpa sesi dan cookie, supaya tidak ada tulisan
-        // ke penyimpanan sesi di setiap panggilan.
+        // Dipanggil berkala oleh setiap peserta (portal dan halaman kuis): tanpa session, cookie, CSRF, dan catatan
+        // aktivitas user, supaya tiap panggilan hanya membaca database. Peserta dikenali dari token di alamatnya.
         Route::get('status', 'getStatus')->name('.status')->withoutMiddleware([
             EncryptCookies::class,
             AddQueuedCookiesToResponse::class,
@@ -158,6 +158,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // no_store: tombol Back tidak menampilkan salinan lama form, jadi user yang baru dibuat ikut terdaftar.
+    Route::get('training/participants/template', [TrainingController::class, 'blankParticipantTemplate'])->name('training.participant-template');
     Route::resource('training', TrainingController::class)->whereNumber('training')
         ->middlewareFor(['create', 'edit'], 'cache.headers:no_store;private');
 

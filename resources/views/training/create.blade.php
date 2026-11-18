@@ -17,7 +17,7 @@
     <div class="container-fluid">
         <x-flash />
 
-        <form action="/training" method="POST" id="trainingForm">
+        <form action="/training" method="POST" id="trainingForm" enctype="multipart/form-data">
             @csrf
             <div class="row">
                 <div class="col-lg-7">
@@ -109,6 +109,9 @@
                                 Peserta <span class="text-danger">*</span> <span class="badge badge-secondary"><span id="selectedCountBadge">0</span> dipilih</span>
                             </h3>
                             <div class="card-tools d-flex gap-1">
+                                <button type="button" class="btn btn-xs btn-default" data-toggle="modal" data-target="#importParticipantsModal">
+                                    <i class="fas fa-file-excel" aria-hidden="true"></i> Impor Excel
+                                </button>
                                 <button type="button" id="btnSelectAll" class="btn btn-xs btn-default">Pilih semua</button>
                                 <button type="button" id="btnDeselectAll" class="btn btn-xs btn-default">Kosongkan</button>
                             </div>
@@ -116,6 +119,49 @@
 
                         <div class="card-body">
                             @include('training.partials.participant-picker', ['selected' => old('participants', []), 'saved' => []])
+
+                            <div id="participantFileSummary" class="border rounded p-2 mt-3 d-none flex-wrap align-items-center gap-2">
+                                <i class="fas fa-file-excel text-success" aria-hidden="true"></i>
+                                <span class="small flex-grow-1 text-break" style="min-width: 12rem;">
+                                    Impor dari Excel: <b id="participantFileName"></b><br>
+                                    <span class="text-muted">Diproses setelah pelatihan disimpan; hasilnya dikirim ke Notifikasi.</span>
+                                </span>
+                                <button type="button" class="btn btn-xs btn-default" data-toggle="modal" data-target="#importParticipantsModal">Ganti</button>
+                                <button type="button" class="btn btn-xs btn-default" id="btnClearParticipantFile">Hapus</button>
+                            </div>
+                            @error('participant_file')
+                                <div class="invalid-feedback d-block">{{ $message }} Pilih ulang file Excel-nya.</div>
+                            @enderror
+                        </div>
+                    </div>
+
+                    {{-- IMPORT PESERTA DARI EXCEL: file ikut terkirim bersama form dan diproses setelah pelatihan disimpan. --}}
+                    <div class="modal fade" id="importParticipantsModal" tabindex="-1" role="dialog" aria-labelledby="importParticipantsModalTitle" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="importParticipantsModalTitle">Import Peserta dari Excel</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Tutup"><span aria-hidden="true">&times;</span></button>
+                                </div>
+                                <div class="modal-body">
+                                    <a href="{{ route('training.participant-template') }}" class="btn btn-default btn-block mb-3">
+                                        <i class="fas fa-download"></i> Unduh Template Excel (.xlsx)
+                                    </a>
+                                    <div class="form-group">
+                                        <label for="importParticipantsFile">File Spreadsheet (.xlsx, .xls, .csv)</label>
+                                        <input type="file" name="participant_file" id="importParticipantsFile" class="form-control" accept=".xlsx,.xls,.csv">
+                                    </div>
+                                    <p class="small mb-2">
+                                        Peserta dari file ditambahkan <b>setelah pelatihan disimpan</b>, bersama peserta yang Anda pilih di daftar.
+                                        Undangan WhatsApp untuk mereka mengikuti pilihan <b>Kirim notifikasi WhatsApp</b> di form ini.
+                                    </p>
+                                    @include('training.partials.participant-import-help')
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-default" data-dismiss="modal">Tutup</button>
+                                    <button type="button" class="btn btn-primary" data-dismiss="modal">Gunakan File</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -156,6 +202,22 @@ document.addEventListener('DOMContentLoaded', function() {
             placeholder: 'Pilih dokumen (opsional)'
         });
     }
+
+    // Ringkasan file peserta yang akan diimpor, supaya terlihat tanpa membuka modal.
+    const fileInput = document.getElementById('importParticipantsFile');
+    const summary = document.getElementById('participantFileSummary');
+    const showFile = function () {
+        const file = fileInput.files[0];
+        document.getElementById('participantFileName').textContent = file ? file.name : '';
+        summary.classList.toggle('d-none', !file);
+        summary.classList.toggle('d-flex', !!file);
+    };
+    fileInput.addEventListener('change', showFile);
+    document.getElementById('btnClearParticipantFile').addEventListener('click', function () {
+        fileInput.value = '';
+        showFile();
+    });
+    showFile();
 });
 </script>
 @endsection

@@ -59,18 +59,39 @@ window.startQuizDeadline = function (onTimeUp) {
     }
 
     // Fase yang dikunci manual tidak mengubah apa pun: peserta yang sedang mengerjakan tetap boleh menyelesaikan.
+    // Semua peserta yang sedang mengerjakan memanggilnya, jadi: tiap ±30 detik dengan jeda acak, satu permintaan pada
+    // satu waktu, dan tidak saat tab tidak dilihat. Saat hitung mundur habis, tick() tetap bertanya ke server dulu.
+    const SYNC_MS = 30000;
+    const SYNC_JITTER_MS = 5000;
+    let syncTimer = null;
+
+    function scheduleSync() {
+        clearTimeout(syncTimer);
+        if (finished || document.hidden) return;
+        syncTimer = setTimeout(sync, SYNC_MS + Math.random() * SYNC_JITTER_MS);
+    }
+
     function sync() {
-        if (finished || checking) return;
+        if (finished || checking) return scheduleSync();
         fetchStatus()
             .then(function (data) {
                 if (!finished && !checking && data['is_' + KEY + '_active']) setSecondsLeft(data[KEY + '_seconds_left']);
             })
-            .catch(function () { /* coba lagi di pengecekan berikutnya */ });
+            .catch(function () { /* coba lagi di pengecekan berikutnya */ })
+            .finally(scheduleSync);
     }
+
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+            clearTimeout(syncTimer);
+        } else {
+            scheduleSync();
+        }
+    });
 
     setSecondsLeft(@json($secondsLeft));
     setInterval(tick, 1000);
-    setInterval(sync, 15000);
+    scheduleSync();
 
     return { stop: function () { finished = true; } };
 };

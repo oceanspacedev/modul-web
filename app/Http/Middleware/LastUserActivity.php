@@ -4,29 +4,31 @@ namespace App\Http\Middleware;
 
 use App\Models\User;
 use Closure;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
+use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Records when a signed-in user was last active (users.last_seen, shown on the user list per minute). Written at
+ * most once a minute: pages poll (live stats, notifications), and a write on every request is wasted work.
+ */
 class LastUserActivity
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  Closure(Request): (Response|RedirectResponse)  $next
-     * @return Response|RedirectResponse
-     */
-    public function handle(Request $request, Closure $next)
-    {
-        if (Auth::check()) {
-            $expiresAt = Carbon::now()->addMinutes(1); // keep online for 1 min
-            Cache::put('user-is-online-'.Auth::user()->id, true, $expiresAt);
+    public const WRITE_EVERY_SECONDS = 60;
 
-            // last seen
-            User::where('id', Auth::user()->id)->update(['last_seen' => (new \DateTime)->format('Y-m-d H:i:s')]);
+    /**
+     * @param  Closure(Request): Response  $next
+     */
+    public function handle(Request $request, Closure $next): Response
+    {
+        $user = Auth::user();
+
+        if ($user instanceof User
+            && ($user->last_seen === null || $user->last_seen->lte(now()->subSeconds(self::WRITE_EVERY_SECONDS)))) {
+            // Satu query UPDATE (seperti sebelumnya, ikut mengisi updated_at), tanpa event model.
+            User::whereKey($user->getKey())->update(['last_seen' => now()]);
+            $user->setAttribute('last_seen', now());
+            $user->syncOriginalAttribute('last_seen');
         }
 
         return $next($request);

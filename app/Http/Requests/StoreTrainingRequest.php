@@ -35,8 +35,10 @@ class StoreTrainingRequest extends FormRequest
             'meeting_platform' => ['nullable', Rule::in(array_keys(MeetingProviders::all()))],
             'meeting_monitoring_enabled' => ['nullable', 'boolean'],
             'meeting_account_id' => ['nullable', 'integer', 'min:1'],
-            'participants' => ['required', 'array', 'min:1'],
+            // Peserta boleh dipilih manual, diimpor dari Excel, atau keduanya; minimal salah satu.
+            'participants' => ['required_without:participant_file', 'array', 'min:1'],
             'participants.*' => ['integer', 'exists:users,id'],
+            'participant_file' => ['nullable', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
             'documents' => ['nullable', 'array'],
             'documents.*' => ['integer', 'exists:documents,id'],
             'send_wa_now' => ['nullable', 'boolean'],
@@ -147,6 +149,26 @@ class StoreTrainingRequest extends FormRequest
      */
     public function participantIds(): array
     {
-        return array_values(array_unique(array_map('intval', $this->validated('participants'))));
+        return array_values(array_unique(array_map('intval', $this->validated('participants') ?? [])));
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'participants.required_without' => 'Pilih minimal satu peserta atau impor peserta dari file Excel.',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'participant_file' => 'file peserta',
+        ];
     }
 }

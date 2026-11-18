@@ -30,6 +30,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Routing\Attributes\Controllers\Authorize;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -43,14 +44,17 @@ use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 #[Authorize('viewAny', Training::class, only: ['index'])]
-#[Authorize('create', Training::class, only: ['create', 'store'])]
+#[Authorize('create', Training::class, only: ['create', 'store', 'blankParticipantTemplate'])]
 #[Authorize('view', 'training', only: ['show', 'answerSheet', 'liveStats', 'export'])]
 #[Authorize('delete', 'training', only: ['destroy'])]
-#[Authorize('update', 'training', except: ['index', 'create', 'store', 'show', 'answerSheet', 'liveStats', 'export', 'destroy'])]
+#[Authorize('update', 'training', except: ['index', 'create', 'store', 'blankParticipantTemplate', 'show', 'answerSheet', 'liveStats', 'export', 'destroy'])]
 class TrainingController extends Controller
 {
-    /** Participants per page on the training detail page. */
-    private const PARTICIPANTS_PER_PAGE = 50;
+    /** Page sizes the trainer can pick for the participant table on the detail page (`per_halaman`). */
+    public const PARTICIPANTS_PER_PAGE_OPTIONS = [10, 20, 50, 100];
+
+    /** Participants per page on the training detail page when the trainer has not picked a size. */
+    public const PARTICIPANTS_PER_PAGE = 10;
 
     /** Written answers shown per text question on the detail page; the export has all of them. */
     private const EVALUATION_COMMENTS_SHOWN = 20;
@@ -129,18 +133,27 @@ class TrainingController extends Controller
             return $training;
         });
 
+        // Undangan peserta pilihan dikirim dulu; job import hanya mengundang peserta yang ia tambahkan, jadi tidak dobel.
         if ($request->boolean('send_wa_now')) {
             SendTrainingInvitation::dispatchForTraining($training);
         }
 
+        $participantFile = $request->file('participant_file');
+        if ($participantFile) {
+            $this->queueParticipantImport($request, $training, $participantFile, $request->boolean('send_wa_now'));
+        }
+
+        $created = count($participantIds).' peserta'
+            .($participantFile ? ' dipilih; peserta dari file Excel sedang diimpor di belakang layar dan hasilnya dikirim ke Notifikasi' : '');
+
         if (! $training->hasQuiz()) {
             return to_route('training.setup', $training)->with([
-                'success' => 'Pelatihan tanpa kuis dibuat dengan '.count($participantIds).' peserta. Langkah berikutnya: atur presensi.',
+                'success' => "Pelatihan tanpa kuis dibuat dengan {$created}. Langkah berikutnya: atur presensi.",
             ]);
         }
 
         return to_route('training.questions.index', $training)->with([
-            'success' => 'Pelatihan dibuat dengan '.count($participantIds).' peserta. Langkah berikutnya adalah menyiapkan soal kuis.',
+            'success' => "Pelatihan dibuat dengan {$created}. Langkah berikutnya adalah menyiapkan soal kuis.",
         ]);
     }
 
@@ -192,6 +205,8 @@ class TrainingController extends Controller
 
         // Only one page of participants is loaded and rendered, so the page stays small for any class size.
         $search = trim((string) $request->query('peserta'));
+        $perPage = (int) $request->query('per_halaman');
+        $perPage = in_array($perPage, self::PARTICIPANTS_PER_PAGE_OPTIONS, true) ? $perPage : self::PARTICIPANTS_PER_PAGE;
         $participants = $training->participants()
             ->with([
                 'user.divisi', 'quizResult', 'pretestResult', 'evaluation',
@@ -207,8 +222,12 @@ class TrainingController extends Controller
                 ->orWhere('no_hp', 'like', "%{$search}%")
                 ->orWhereHas('divisi', fn (Builder $divisi) => $divisi->where('name', 'like', "%{$search}%"))))
             ->orderBy('id')
-            ->paginate(self::PARTICIPANTS_PER_PAGE)
-            ->appends($request->only(['peserta', 'wa']))
+            ->paginate($perPage)
+            ->onEachSide(1)
+            ->appends([
+                ...$request->only(['peserta', 'wa']),
+                ...($perPage !== self::PARTICIPANTS_PER_PAGE ? ['per_halaman' => $perPage] : []),
+            ])
             ->fragment('peserta');
 
         $allDocuments = Document::with('dokumentype')->orderBy('name')->get();
@@ -220,12 +239,17 @@ class TrainingController extends Controller
             ->whereIn('monitor_id', TrainingMeetingMonitor::where('training_id', $training->id)->select('id'))
             ->whereNotNull('camera_on')
             ->exists();
+        // The camera column only shows once some participant has a camera status (recap or monitoring).
+        $hasCameraStatus = $training->isOnline() && $training->participants()->whereNotNull('camera_status')->exists();
 
         return view('training.show', [
             'title' => 'Detail Pelatihan: '.$training->title,
             'active' => 'training',
             'training' => $training,
             'participants' => $participants,
+            'perPage' => $perPage,
+            'perPageOptions' => self::PARTICIPANTS_PER_PAGE_OPTIONS,
+            'hasCameraStatus' => $hasCameraStatus,
             'waFailedCount' => $training->participants()->waFailed()->count(),
             'zoomParticipants' => $this->zoomParticipants($training),
             'showMeetingActivity' => $showMeetingActivity,
@@ -770,10 +794,7 @@ class TrainingController extends Controller
             'send_wa' => ['nullable', 'boolean'],
         ]);
 
-        $file = $request->file('file');
-        $path = $file->storeAs('imports', Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
-
-        ProcessTrainingParticipantImport::dispatch($request->user()->id, $training->id, $path, $request->boolean('send_wa'));
+        $this->queueParticipantImport($request, $training, $request->file('file'), $request->boolean('send_wa'));
 
         return to_route('training.show', $training)->withFragment('peserta')->with('info', ProcessTrainingParticipantImport::QUEUED_MESSAGE);
     }
@@ -781,6 +802,24 @@ class TrainingController extends Controller
     public function participantTemplate(Training $training): BinaryFileResponse
     {
         return Excel::download(new TrainingParticipantTemplate, 'template_peserta_'.Str::slug($training->title).'.xlsx');
+    }
+
+    /**
+     * Template import peserta untuk form Tambah Pelatihan, sebelum pelatihannya ada.
+     */
+    public function blankParticipantTemplate(): BinaryFileResponse
+    {
+        return Excel::download(new TrainingParticipantTemplate, 'template_peserta.xlsx');
+    }
+
+    /**
+     * Simpan file peserta ke disk "local" lalu proses di belakang layar (dipakai Kelola peserta dan Tambah Pelatihan).
+     */
+    private function queueParticipantImport(Request $request, Training $training, UploadedFile $file, bool $sendInvitations): void
+    {
+        $path = $file->storeAs('imports', Str::uuid().'.'.$file->getClientOriginalExtension(), 'local');
+
+        ProcessTrainingParticipantImport::dispatch($request->user()->id, $training->id, $path, $sendInvitations);
     }
 
     /**

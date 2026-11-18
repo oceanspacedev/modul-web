@@ -430,7 +430,7 @@
                     if (left === 0) {
                         delete deadlineEnds[phase];
                         box.hidden = true;
-                        poll();
+                        schedulePoll(0);
                     }
                 });
             }
@@ -456,10 +456,66 @@
             });
             setInterval(tickDeadlines, 1000);
 
+            // Jadwal polling. Semua peserta memanggil alamat ini, jadi: satu permintaan pada satu waktu (berikutnya baru
+            // dijadwalkan setelah yang ini selesai, sehingga server yang lambat tidak dibanjiri), tiap ±10 detik dengan
+            // jeda acak supaya peserta tidak serempak, berhenti selama tab tidak dilihat, melambat saat server
+            // sibuk/gagal, dan berhenti sama sekali bila tidak ada lagi yang ditunggu peserta.
+            const POLL_MS = 10000;
+            const POLL_JITTER_MS = 3000;
+            const POLL_MAX_MS = 60000;
+            let pollDelay = POLL_MS;
+            let pollTimer = null;
+            let polling = false;
+            let pollStopped = false;
+
+            function nothingToWatch() {
+                return attendanceStatus !== 'pending' && hasQuizResult && !watchPretest && !watchEvaluation;
+            }
+
+            function schedulePoll(delay) {
+                clearTimeout(pollTimer);
+                if (pollStopped || document.hidden) return;
+                pollTimer = setTimeout(poll, delay + Math.random() * POLL_JITTER_MS);
+            }
+
+            // Fase dibuka/ditutup: muat ulang, tetapi tidak serentak di semua perangkat peserta.
+            function reloadSoon() {
+                pollStopped = true;
+                clearTimeout(pollTimer);
+                setTimeout(function () { window.location.reload(); }, Math.random() * 4000);
+            }
+
             function poll() {
-                fetch(STATUS_URL)
-                    .then(function(res) { return res.json(); })
-                    .then(function(data) {
+                if (polling || pollStopped) return;
+                polling = true;
+                fetch(STATUS_URL, { headers: { 'Accept': 'application/json' } })
+                    .then(function (res) {
+                        if (!res.ok) throw new Error('HTTP ' + res.status);
+                        return res.json();
+                    })
+                    .then(function (data) {
+                        pollDelay = POLL_MS;
+                        handleStatus(data);
+                    })
+                    .catch(function () {
+                        pollDelay = Math.min(pollDelay * 2, POLL_MAX_MS);
+                    })
+                    .finally(function () {
+                        polling = false;
+                        if (nothingToWatch()) pollStopped = true;
+                        schedulePoll(pollDelay);
+                    });
+            }
+
+            document.addEventListener('visibilitychange', function () {
+                if (document.hidden) {
+                    clearTimeout(pollTimer);
+                } else {
+                    schedulePoll(0);
+                }
+            });
+
+            function handleStatus(data) {
 
                         setDeadline('pretest', data.pretest_seconds_left, data.pretest_closes_at);
                         setDeadline('posttest', data.quiz_seconds_left, data.quiz_closes_at);
@@ -470,7 +526,7 @@
                         setLockedText('posttest', data.quiz_opens_at, data.quiz_timed_out);
 
                         if (watchPretest && data.is_pretest_active !== currentPretestActive) {
-                            window.location.reload();
+                            reloadSoon();
                             return;
                         }
 
@@ -478,7 +534,7 @@
                         // tidak hilang; pengecekan berikutnya mencoba lagi.
                         if (watchEvaluation && !attendanceInProgress()
                             && (data.has_evaluation !== currentHasEvaluation || data.is_evaluation_open !== currentEvaluationOpen)) {
-                            window.location.reload();
+                            reloadSoon();
                             return;
                         }
 
@@ -530,7 +586,7 @@
 
                             // Ditunda selama presensi sedang diisi; pengecekan berikutnya mencoba lagi.
                             if (evaluationBeforeQuiz && data.is_quiz_active !== currentQuizActive) {
-                                if (!attendanceInProgress()) window.location.reload();
+                                if (!attendanceInProgress()) reloadSoon();
                                 return;
                             }
 
@@ -543,12 +599,9 @@
                                 setLockedText('posttest', data.quiz_opens_at, data.quiz_timed_out);
                             }
                         }
-                    })
-                    .catch(function() { /* silent fail */ });
             }
 
-            // Jalankan polling setiap 5 detik
-            setInterval(poll, 5000);
+            schedulePoll(POLL_MS);
         })();
     </script>
     @include('training.partials.portal-submit-guard')

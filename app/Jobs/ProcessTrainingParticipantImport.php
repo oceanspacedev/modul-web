@@ -55,7 +55,7 @@ class ProcessTrainingParticipantImport extends BackgroundTask
 
         $errors = $import->errors();
         $message = "Peserta \"{$training->title}\": {$import->addedCount()} ditambahkan, {$import->existingCount()} sudah terdaftar, "
-            ."{$import->updatedUserCount()} data user diperbarui.";
+            ."{$import->updatedUserCount()} data user diperbarui, {$import->createdUserCount()} user baru dibuat.";
         if ($invited > 0) {
             $message .= " Undangan WhatsApp untuk {$invited} peserta baru masuk antrean.";
         }
