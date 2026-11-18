@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DivisiController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\DocumentRequestController;
 use App\Http\Controllers\DokumenTypeController;
 use App\Http\Controllers\LearningModuleController;
 use App\Http\Controllers\LearningModulePortalController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OdDailyController;
 use App\Http\Controllers\OdDocumentController;
 use App\Http\Controllers\OdReportController;
+use App\Http\Controllers\OdRequestController;
 use App\Http\Controllers\OdSettingController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\RoleController;
@@ -48,6 +50,14 @@ Route::post('/login/otp/verify', [AuthController::class, 'verifyOtp'])->middlewa
 // # PUBLIC VIDEO GALLERY
 Route::get('video', [VideoController::class, 'index'])->name('video.index');
 Route::get('video/watch/{video}', [VideoController::class, 'show'])->name('video.show');
+
+// # PERMINTAAN DOKUMEN (publik; pemohon yang login datanya terisi otomatis)
+Route::controller(DocumentRequestController::class)->prefix('permintaan-dokumen')->name('document-request.')->group(function () {
+    Route::get('/', 'create')->name('create');
+    Route::post('/', 'store')->middleware('throttle:document-request')->name('store');
+    Route::get('lacak', 'track')->middleware('throttle:document-request-track')->name('track');
+    Route::get('contoh', 'example')->name('example');
+});
 
 // # PUBLIC PARTICIPANT PORTAL (ACCESSIBLE VIA WHATSAPP TOKEN LINK)
 Route::prefix('training/portal/{token}')
@@ -87,6 +97,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::view('panduan', 'panduan.index', ['active' => 'panduan', 'title' => 'Panduan Penggunaan'])->name('panduan');
     Route::get('my-trainings', [TrainingPortalController::class, 'myTrainings'])->name('training.my-trainings');
+    Route::get('permintaan-saya', [DocumentRequestController::class, 'mine'])->name('document-request.mine');
 
     Route::post('video/{video}/comments', [VideoController::class, 'storeComment'])->name('video.comments.store');
     Route::delete('video/comments/{comment}', [VideoController::class, 'destroyComment'])->name('video.comments.destroy');
@@ -132,6 +143,13 @@ Route::middleware('auth')->group(function () {
             Route::put('{document}', 'update')->whereNumber('document')->name('update');
             Route::patch('{document}/status', 'updateStatus')->whereNumber('document')->name('status');
             Route::delete('{document}', 'destroy')->whereNumber('document')->name('destroy');
+        });
+
+        Route::controller(OdRequestController::class)->prefix('permintaan')->name('requests.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('{documentRequest}', 'show')->whereNumber('documentRequest')->name('show');
+            Route::put('{documentRequest}', 'update')->whereNumber('documentRequest')->name('update');
+            Route::delete('{documentRequest}', 'destroy')->whereNumber('documentRequest')->name('destroy');
         });
 
         Route::controller(OdSettingController::class)->prefix('pengaturan')->name('settings.')->middleware('can:manage-od-report')->group(function () {

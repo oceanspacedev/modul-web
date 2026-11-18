@@ -93,6 +93,10 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
+        // Form Permintaan Dokumen publik: kirim dan lacak dibatasi per IP.
+        RateLimiter::for('document-request', fn (Request $request) => Limit::perMinutes(10, 20)->by('document-request:'.$request->ip()));
+        RateLimiter::for('document-request-track', fn (Request $request) => Limit::perMinute(60)->by('document-request-track:'.$request->ip()));
+
         // The participant portal polls its status every 5 seconds.
         RateLimiter::for('portal', fn (Request $request) => Limit::perMinute(120)->by('portal:'.$request->route('token').'|'.$request->ip()));
     }

@@ -126,6 +126,14 @@
                 </li>
                 @endcanany
 
+                <li class="nav-header">Layanan</li>
+                <li class="nav-item">
+                    <a href="{{ route('document-request.mine') }}" class="nav-link {{ ($active ?? '') === 'document-request' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-paper-plane"></i>
+                        <p>Permintaan Dokumen</p>
+                    </a>
+                </li>
+
                 @can('access-od-report')
                 <li class="nav-header">OD Report</li>
                 @foreach ([
@@ -145,6 +153,12 @@
                     <a href="{{ route('od-report.documents.index') }}" class="nav-link {{ ($active ?? '') === 'od-documents' ? 'active' : '' }}">
                         <i class="nav-icon fas fa-file-signature"></i>
                         <p>Approval Dokumen</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('od-report.requests.index') }}" class="nav-link {{ ($active ?? '') === 'od-requests' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-inbox"></i>
+                        <p>Permintaan Masuk</p>
                     </a>
                 </li>
                 @can('manage-od-report')
