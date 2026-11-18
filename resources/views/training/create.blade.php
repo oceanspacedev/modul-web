@@ -21,6 +21,7 @@
     $attendanceOn = (bool) $old('has_attendance', true);
     $proofOn = (bool) $old('require_attendance_proof', false);
     $evaluationOn = (bool) $old('has_evaluation', false);
+    $saveLabel = $pretestOn || $posttestOn ? 'Simpan & Buat Soal' : 'Simpan Pelatihan';
 
     // Detail kuis memakai nilai bawaan yang sama dengan form Aturan Kuis; disembunyikan supaya tidak perlu dipikirkan.
     $quizDetails = [
@@ -32,7 +33,7 @@
 @endphp
 
 @section('content')
-<section class="content-header">
+<section class="content-header training-create-header">
     <div class="container-fluid">
         <x-page-header title="Buat Pelatihan" :breadcrumbs="['Pelatihan' => null, 'Jadwal Pelatihan' => route('training.index'), 'Buat' => null]" />
     </div>
@@ -45,6 +46,8 @@
         <form action="/training" method="POST" id="trainingForm" enctype="multipart/form-data" data-start-step="{{ $startStep }}">
             @csrf
 
+            <div class="training-create-layout">
+            <div class="training-create-main">
             <ol class="training-create-stepper" aria-label="Langkah membuat pelatihan">
                 @foreach($steps as $number => $label)
                     <li data-stepper="{{ $number }}"><span class="training-create-stepper-number">{{ $number }}</span>{{ $label }}</li>
@@ -109,13 +112,6 @@
                             <label class="custom-control-label" for="quiz_pretest">Pretest</label>
                         </div>
                         <span class="training-create-hint">Kuis sebelum sesi dimulai</span>
-                    </li>
-                    <li class="is-fixed">
-                        <div class="custom-control custom-switch">
-                            <input type="checkbox" class="custom-control-input" id="step_session" checked disabled>
-                            <label class="custom-control-label" for="step_session">Ikuti sesi</label>
-                        </div>
-                        <span class="training-create-hint">Selalu ada</span>
                     </li>
                     <li>
                         <input type="hidden" name="has_attendance" value="0">
@@ -275,8 +271,41 @@
                 <button type="button" class="btn btn-default" data-nav-back hidden>Kembali</button>
                 <span class="training-create-nav-spacer"></span>
                 <button type="button" class="btn btn-primary" data-nav-next hidden>Lanjut</button>
-                <button type="submit" class="btn btn-primary" data-nav-submit
-                    data-label-quiz="Simpan &amp; Buat Soal" data-label-plain="Simpan Pelatihan">Simpan &amp; Buat Soal</button>
+            </div>
+            </div>
+
+            {{-- RINGKASAN: ikut terisi saat form diisi, dengan tombol simpan yang selalu terlihat. --}}
+            <aside class="training-create-summary" aria-labelledby="create-summary-title">
+                <h2 class="training-create-title" id="create-summary-title">Ringkasan</h2>
+                <dl>
+                    <div>
+                        <dt>Judul</dt>
+                        <dd data-summary="title" data-empty="Belum diisi">{{ old('title') ?: 'Belum diisi' }}</dd>
+                    </div>
+                    <div>
+                        <dt>Jadwal</dt>
+                        <dd data-summary="schedule"></dd>
+                    </div>
+                    <div>
+                        <dt>Tempat</dt>
+                        <dd data-summary="place">Tatap muka</dd>
+                    </div>
+                    <div>
+                        <dt>Langkah peserta</dt>
+                        <dd data-summary="steps"></dd>
+                    </div>
+                    <div>
+                        <dt>Peserta</dt>
+                        <dd data-summary="participants">{{ count(old('participants', [])) }} dipilih</dd>
+                    </div>
+                    <div>
+                        <dt>Dokumen materi</dt>
+                        <dd data-summary="documents">{{ count(old('documents', [])) ?: 'Tidak ada' }}</dd>
+                    </div>
+                </dl>
+                <button type="submit" class="btn btn-primary btn-block" data-summary-submit>{{ $saveLabel }}</button>
+                <p class="training-create-help mb-0 mt-2">Semua bisa diubah lagi setelah disimpan.</p>
+            </aside>
             </div>
         </form>
     </div>
@@ -289,7 +318,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const stepper = Array.from(form.querySelectorAll('[data-stepper]'));
     const back = form.querySelector('[data-nav-back]');
     const next = form.querySelector('[data-nav-next]');
-    const submit = form.querySelector('[data-nav-submit]');
     const cancel = form.querySelector('[data-nav-cancel]');
     const quizToggles = Array.from(form.querySelectorAll('[data-quiz-toggle]'));
     const fileInput = document.getElementById('importParticipantsFile');
@@ -315,7 +343,6 @@ document.addEventListener('DOMContentLoaded', function () {
         back.hidden = current === 1;
         cancel.hidden = current !== 1;
         next.hidden = current === steps.length;
-        submit.hidden = current !== steps.length;
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -342,20 +369,68 @@ document.addEventListener('DOMContentLoaded', function () {
         if (target < current || stepIsValid(current)) show(target);
     }));
 
+    // Simpan bisa ditekan dari langkah mana pun (tombol di Ringkasan), jadi semua langkah diperiksa di sini dan
+    // langkah pertama yang belum lengkap dibuka. Validasi bawaan browser tidak bisa menunjuk isian di langkah tersembunyi.
+    form.noValidate = true;
     form.addEventListener('submit', function (e) {
-        const missing = !participantsChosen();
-        document.getElementById('participantsRequired').classList.toggle('d-block', missing);
-        if (missing) {
+        const stop = step => {
             e.preventDefault();
             e.stopImmediatePropagation();
-            show(3);
+            show(step);
+        };
+        for (let step = 1; step <= steps.length; step++) {
+            const invalid = Array.from(steps[step - 1].querySelectorAll('input, select, textarea'))
+                .find(field => !field.disabled && !field.checkValidity());
+            if (invalid) {
+                stop(step);
+                setTimeout(() => invalid.reportValidity(), 300);
+                return;
+            }
         }
+        const missing = !participantsChosen();
+        document.getElementById('participantsRequired').classList.toggle('d-block', missing);
+        if (missing) stop(3);
     }, true);
 
+    // Ringkasan di samping form mengikuti isian.
+    const summaryField = name => form.querySelector('[data-summary="' + name + '"]');
+    const dateFormat = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    function refreshSummary() {
+        const title = document.getElementById('title').value.trim();
+        summaryField('title').textContent = title || summaryField('title').dataset.empty;
+        summaryField('title').classList.toggle('is-empty', !title);
+
+        const date = document.getElementById('training_date').value;
+        const start = document.getElementById('start_time').value;
+        const end = document.getElementById('end_time').value;
+        summaryField('schedule').textContent = (date ? dateFormat.format(new Date(date + 'T00:00')) : '-') + ' · ' + (start || '--:--') + '–' + (end || '--:--') + ' WIB';
+
+        const platform = document.getElementById('meeting_platform');
+        summaryField('place').textContent = platform && platform.value ? platform.options[platform.selectedIndex].text : 'Tatap muka';
+
+        const used = [
+            ['quiz_pretest', 'Pretest'],
+            ['has_attendance', document.getElementById('require_attendance_proof').checked ? 'Presensi (wajib foto)' : 'Presensi'],
+            ['has_evaluation', 'Form evaluasi'], ['quiz_posttest', 'Posttest'],
+        ].filter(([id]) => document.getElementById(id).checked).map(([, label]) => label);
+        summaryField('steps').textContent = used.length ? used.join(' › ') : 'Tidak ada';
+
+        const count = parseInt(document.getElementById('selectedCountBadge').textContent, 10) || 0;
+        summaryField('participants').textContent = count + ' dipilih' + (fileInput.files && fileInput.files.length ? ' + file Excel' : '');
+
+        const documents = document.getElementById('documents').selectedOptions.length;
+        summaryField('documents').textContent = documents ? documents + ' dokumen' : 'Tidak ada';
+    }
+    form.addEventListener('input', refreshSummary);
+    form.addEventListener('change', refreshSummary);
+    if (typeof $ !== 'undefined') $('#documents, #meeting_platform, #trainer_id').on('change', refreshSummary);
+    new MutationObserver(refreshSummary).observe(document.getElementById('selectedCountBadge'), { childList: true, characterData: true, subtree: true });
+
     // Tombol simpan menyebut langkah berikutnya: buat soal bila ada kuis.
+    const saveButtons = form.querySelectorAll('[data-summary-submit]');
     function refreshQuiz() {
         const anyQuiz = quizToggles.some(toggle => toggle.checked);
-        submit.textContent = anyQuiz ? submit.dataset.labelQuiz.replace('&amp;', '&') : submit.dataset.labelPlain;
+        saveButtons.forEach(button => { button.textContent = anyQuiz ? 'Simpan & Buat Soal' : 'Simpan Pelatihan'; });
         form.querySelector('[data-quiz-details]').hidden = !anyQuiz;
         form.querySelectorAll('[data-quiz-phase]').forEach(fieldset => {
             fieldset.hidden = !document.getElementById('quiz_' + fieldset.dataset.quizPhase).checked;
@@ -383,10 +458,12 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('btnClearParticipantFile').addEventListener('click', function () {
         fileInput.value = '';
         showFile();
+        refreshSummary();
     });
     showFile();
 
     show(Number(form.dataset.startStep) || 1);
+    refreshSummary();
 });
 </script>
 @endsection

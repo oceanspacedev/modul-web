@@ -5185,8 +5185,65 @@ html:has(.training-create) {
     scrollbar-gutter: stable;
 }
 
-.training-create #trainingForm {
-    max-width: 760px;
+/* Judul, pesan, dan form (form + ringkasan) berada di tengah halaman dengan lebar yang sama. */
+.training-create #trainingForm,
+.training-create .flash-stack,
+.training-create-header .container-fluid > * {
+    max-width: 1280px;
+    margin-inline: auto;
+}
+
+.training-create-layout {
+    display: grid;
+    gap: 16px;
+}
+
+@media (min-width: 1200px) {
+    .training-create-layout {
+        grid-template-columns: minmax(0, 1fr) 340px;
+        align-items: start;
+        gap: 24px;
+    }
+
+    .training-create-summary {
+        position: sticky;
+        top: 16px;
+        margin-top: 48px; /* sejajar dengan kartu langkah, di bawah penanda 1-2-3 */
+    }
+}
+
+.training-create-summary {
+    padding: 20px;
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-xl);
+    background: white;
+}
+
+.training-create-summary dl {
+    margin: 0 0 16px;
+}
+
+.training-create-summary dl > div {
+    padding: 10px 0;
+    border-top: 1px solid var(--ring);
+}
+
+.training-create-summary dt {
+    color: var(--gray-500);
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.training-create-summary dd {
+    margin: 2px 0 0;
+    color: var(--gray-950);
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.training-create-summary dd.is-empty {
+    color: var(--gray-400);
+    font-weight: 400;
 }
 
 .training-create,
@@ -5344,10 +5401,6 @@ html:has(.training-create) {
 
 .training-create-toggles > li + li {
     border-top: 1px solid var(--ring);
-}
-
-.training-create-toggles > li.is-fixed .custom-control-label {
-    color: var(--gray-500);
 }
 
 .training-create-sub {
