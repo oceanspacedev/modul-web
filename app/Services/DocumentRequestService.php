@@ -107,9 +107,10 @@ class DocumentRequestService
     public function update(DocumentRequest $request, array $data, User $by): void
     {
         $changes = [];
+        $attachments = [];
         $isLeader = $by->can('manage-od-report');
 
-        DB::transaction(function () use ($request, $data, $by, $isLeader, &$changes) {
+        DB::transaction(function () use ($request, $data, $by, $isLeader, &$changes, &$attachments) {
             $request->loadMissing('processes.status');
 
             foreach ($request->processes as $process) {
@@ -132,8 +133,11 @@ class DocumentRequestService
                 }
 
                 if (! empty($input['stage']) && $input['stage'] !== $process->stage && $this->documents->changeStage($process, $input['stage'], $by, notify: false)) {
-                    $changes[] = "• {$process->title}: {$process->publicStage()}"
-                        .($process->isReleased() && $process->hasFile() ? "\n  Buka file: {$process->fileLink()}" : '');
+                    $attachment = $process->isReleased() ? $process->whatsAppAttachment() : null;
+                    $changes[] = "• {$process->title}: {$process->publicStage()}".($attachment ? ' (file terlampir)' : '');
+                    if ($attachment) {
+                        $attachments[] = $attachment;
+                    }
                 } else {
                     $process->save();
                 }
@@ -158,7 +162,7 @@ class DocumentRequestService
         });
 
         if ($changes) {
-            DocumentRequestUpdated::send($request, "Ada pembaruan:\n".implode("\n", $changes));
+            DocumentRequestUpdated::send($request, "Ada pembaruan:\n".implode("\n", $changes), $attachments);
         }
     }
 

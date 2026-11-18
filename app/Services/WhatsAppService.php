@@ -313,6 +313,25 @@ class WhatsAppService
      */
     public static function sendText(string $phone, string $text, string $reference = 'notif'): array
     {
+        return self::sendMessage($phone, $text, $reference);
+    }
+
+    /**
+     * Kirim file sebagai dokumen WhatsApp (bukan link). WAGHub mengunduh file dari $url, jadi URL harus bisa dibuka
+     * dari internet.
+     *
+     * @param  array{url: string, filename: string, mime_type: string}  $attachment
+     */
+    public static function sendDocument(string $phone, string $caption, array $attachment, string $reference = 'notif'): array
+    {
+        return self::sendMessage($phone, $caption, $reference, $attachment);
+    }
+
+    /**
+     * @param  array{url: string, filename: string, mime_type: string}|null  $attachment
+     */
+    private static function sendMessage(string $phone, string $text, string $reference, ?array $attachment = null): array
+    {
         $formattedPhone = self::formatPhoneNumber($phone);
         if (! $formattedPhone) {
             return ['status' => false, 'message' => 'Nomor WhatsApp tidak valid atau kosong'];
@@ -326,14 +345,14 @@ class WhatsAppService
             }
 
             Log::info("WAGHub Simulated to [{$formattedPhone}]:
-".$text);
+".$text.($attachment ? "\n[Lampiran: {$attachment['filename']} {$attachment['url']}]" : ''));
 
             return ['status' => true, 'message' => 'Simulasi sukses (token gateway belum diisi di .env)', 'simulated' => true];
         }
 
         try {
             // Purpose 'otp' sama seperti undangan pelatihan: rute pengiriman yang sudah diizinkan di WAGHub.
-            $response = self::post($formattedPhone, $text, 'otp', $reference, $reference, now()->addDay());
+            $response = self::post($formattedPhone, $text, 'otp', $reference, $reference, now()->addDay(), $attachment);
         } catch (\Throwable $th) {
             Log::error('WAGHub send exception: '.$th->getMessage());
 
@@ -360,6 +379,7 @@ class WhatsAppService
         string $keyPrefix,
         string $clientReference,
         Carbon $expiresAt,
+        ?array $attachment = null,
     ): Response {
         $rawUrl = (string) config('services.whatsapp.url');
         $baseUrl = preg_match('/^https?:\/\//i', $rawUrl) ? $rawUrl : 'https://'.$rawUrl;
@@ -380,10 +400,9 @@ class WhatsAppService
                 'type' => 'phone',
                 'value' => $phone,
             ],
-            'message' => [
-                'type' => 'text',
-                'text' => $text,
-            ],
+            'message' => $attachment
+                ? ['type' => 'document', 'text' => $text, 'attachment' => $attachment]
+                : ['type' => 'text', 'text' => $text],
             'purpose' => $purpose,
             'mode' => 'sync',
             'route_key' => 'default',

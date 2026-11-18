@@ -60,12 +60,32 @@ class DocumentReleaseFileTest extends TestCase
         ]);
     }
 
-    /** Pesan WhatsApp terakhir yang dikirim ke pemohon. */
-    private function lastMessageToRequester(): string
+    /**
+     * Isi pesan WhatsApp yang dikirim ke pemohon, berurutan.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function messagesToRequester(): array
     {
         return Http::recorded()->map(fn (array $pair) => $pair[0]->data())
             ->filter(fn (array $body) => $body['recipient']['value'] === '081234567890')
-            ->last()['message']['text'];
+            ->pluck('message')->values()->all();
+    }
+
+    /** Teks rilis lalu file dikirim sebagai dokumen WhatsApp, bukan link. */
+    private function assertReleaseSentWithFile(OdDocument $document): void
+    {
+        [$text, $file] = array_slice($this->messagesToRequester(), -2);
+
+        $this->assertSame('text', $text['type']);
+        $this->assertStringContainsString('JD Admin Gudang', $text['text']);
+        $this->assertStringContainsString('terlampir', $text['text']);
+        $this->assertStringNotContainsString('http', str_replace(route('document-request.track', ['kode' => $this->request->code]), '', $text['text']));
+
+        $this->assertSame('document', $file['type']);
+        $this->assertSame('File dokumen: JD Admin Gudang', $file['text']);
+        $this->assertSame($document->file_name, $file['attachment']['filename']);
+        $this->assertStringContainsString($document->file_path, $file['attachment']['url']);
     }
 
     public function test_release_from_incoming_requests_needs_a_file_and_sends_its_link(): void
@@ -81,10 +101,9 @@ class DocumentReleaseFileTest extends TestCase
         $this->assertSame('jd-admin-gudang.pdf', $document->file_name);
         Storage::assertExists($document->file_path);
 
-        // WA ke pemohon membawa link file yang langsung bisa dibuka.
-        $message = $this->lastMessageToRequester();
-        $this->assertStringContainsString('JD Admin Gudang: Release', $message);
-        $this->assertStringContainsString('Buka file: '.$document->fileLink(), $message);
+        // WA ke pemohon: teks rilis, lalu file-nya sebagai dokumen WhatsApp.
+        $this->assertReleaseSentWithFile($document);
+        $this->assertSame('application/pdf', last($this->messagesToRequester())['attachment']['mime_type']);
 
         $this->get($document->fileLink())->assertRedirectContains($document->file_path);
         $this->get(route('document-request.file', $document))->assertForbidden();
@@ -128,7 +147,7 @@ class DocumentReleaseFileTest extends TestCase
         $document = $this->document->fresh();
         $this->assertTrue($document->status->isDone());
         $this->assertSame('Release', $document->stage);
-        $this->assertStringContainsString('Buka file: '.$document->fileLink(), $this->lastMessageToRequester());
+        $this->assertReleaseSentWithFile($document);
 
         // Tim OD bisa membuka file dari Approval Dokumen.
         $this->actingAs($this->leader)->get(route('od-report.documents.file', $document))->assertRedirectContains($document->file_path);
@@ -150,6 +169,12 @@ class DocumentReleaseFileTest extends TestCase
             'file' => UploadedFile::fake()->create('jd.docx', 100, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'),
         ])->assertSessionHas('success');
         $this->assertTrue($this->document->fresh()->isReleased());
+
+        // File Word dikirim sebagai dokumen dengan jenis yang sesuai.
+        $this->assertSame([
+            'filename' => 'jd.docx',
+            'mime_type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ], collect(last($this->messagesToRequester())['attachment'])->only(['filename', 'mime_type'])->all());
     }
 
     public function test_manual_documents_can_finish_without_a_file(): void

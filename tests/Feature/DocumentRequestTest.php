@@ -158,8 +158,9 @@ class DocumentRequestTest extends TestCase
         $this->assertStringContainsString('Mohon siapkan SOP lama.', $notes);
         $this->assertStringContainsString('Jadwal observasi', $notes);
 
-        // Satu pesan WhatsApp merangkum semua perubahan (selain pesan saat pengajuan dibuat).
-        Http::assertSentCount(2);
+        // Satu pesan WhatsApp merangkum semua perubahan, lalu file dokumen yang dirilis dikirim sebagai dokumen
+        // (selain pesan saat pengajuan dibuat).
+        Http::assertSentCount(3);
 
         // Batal di Approval Dokumen terlihat pemohon sebagai Dibatalkan.
         $cancel = OdDocumentStatus::firstOfType(OdDocumentStatus::TYPE_CANCEL);

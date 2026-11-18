@@ -92,8 +92,12 @@ class OdDocumentService
         $document->documentRequest->touch();
 
         if ($notify) {
-            $file = $document->isReleased() && $document->hasFile() ? "\nBuka file: {$document->fileLink()}" : '';
-            DocumentRequestUpdated::send($document->documentRequest, "Proses \"{$document->title}\" sekarang: {$after}.{$file}");
+            $attachment = $document->isReleased() ? $document->whatsAppAttachment() : null;
+            DocumentRequestUpdated::send(
+                $document->documentRequest,
+                "Proses \"{$document->title}\" sekarang: {$after}.".($attachment ? ' File dokumen terlampir.' : ''),
+                array_filter([$attachment]),
+            );
         }
 
         return true;

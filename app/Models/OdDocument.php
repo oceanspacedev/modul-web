@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Support\StorageUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Symfony\Component\Mime\MimeTypes;
 
 /**
  * Dokumen yang ditangani tim OD (halaman Approval Dokumen). jenis = kode Kategori Dokumen. Dokumen dari Permintaan
@@ -120,6 +123,28 @@ class OdDocument extends Model
     public function fileLink(): ?string
     {
         return $this->hasFile() ? URL::signedRoute('document-request.file', ['document' => $this->getKey()]) : null;
+    }
+
+    /**
+     * File sebagai lampiran WhatsApp. URL harus bisa diunduh gateway: URL sementara 1 hari untuk S3, selain itu link
+     * bertanda tangan aplikasi.
+     *
+     * @return array{url: string, filename: string, mime_type: string, caption: string}|null
+     */
+    public function whatsAppAttachment(): ?array
+    {
+        if (! $this->hasFile()) {
+            return null;
+        }
+
+        $extension = strtolower(pathinfo($this->file_path, PATHINFO_EXTENSION));
+
+        return [
+            'url' => Storage::disk()->providesTemporaryUrls() ? StorageUrl::for($this->file_path, 24 * 60) : $this->fileLink(),
+            'filename' => $this->file_name ?: basename($this->file_path),
+            'mime_type' => MimeTypes::getDefault()->getMimeTypes($extension)[0] ?? 'application/octet-stream',
+            'caption' => "File dokumen: {$this->title}",
+        ];
     }
 
     /** Hasil simpan berupa rilis: tahap terakhir kategori atau status selesai. */

@@ -18,11 +18,19 @@ class DocumentRequestUpdated extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public string $code, public string $message) {}
+    /**
+     * $attachments: file yang dikirim sebagai dokumen WhatsApp setelah teksnya.
+     *
+     * @param  list<array{url: string, filename: string, mime_type: string, caption: string}>  $attachments
+     */
+    public function __construct(public string $code, public string $message, public array $attachments = []) {}
 
-    public static function send(DocumentRequest $request, string $message): void
+    /**
+     * @param  list<array{url: string, filename: string, mime_type: string, caption: string}>  $attachments
+     */
+    public static function send(DocumentRequest $request, string $message, array $attachments = []): void
     {
-        $notification = new self($request->code, $message);
+        $notification = new self($request->code, $message, $attachments);
 
         NotificationFacade::route('whatsapp', $request->whatsapp)->notify($notification);
         $request->user?->notify($notification);
@@ -47,6 +55,14 @@ class DocumentRequestUpdated extends Notification implements ShouldQueue
             'title' => "Permintaan dokumen {$this->code}",
             'message' => $this->message,
         ];
+    }
+
+    /**
+     * @return list<array{url: string, filename: string, mime_type: string, caption: string}>
+     */
+    public function whatsAppAttachments(): array
+    {
+        return $this->attachments;
     }
 
     public function toWhatsApp(object $notifiable): string
