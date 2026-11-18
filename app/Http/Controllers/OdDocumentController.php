@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\OdDocumentRequest;
+use App\Models\DocumentCategory;
 use App\Models\OdDocument;
 use App\Models\OdDocumentStatus;
 use App\Services\OdDocumentService;
@@ -53,6 +54,7 @@ class OdDocumentController extends Controller
             'active' => 'od-documents',
             'documents' => $documents,
             'statuses' => $statuses,
+            'categories' => DocumentCategory::ordered()->get(),
             'counts' => $counts,
             'sort' => $sort,
         ]);
@@ -83,7 +85,7 @@ class OdDocumentController extends Controller
         $this->authorizeEdit($request, $document);
 
         $document->load([
-            'status', 'documentRequest',
+            'status', 'documentRequest', 'category.stages',
             'activities' => fn ($q) => $q->reported()->with('user')->orderByDesc('date'),
         ]);
 
@@ -92,6 +94,7 @@ class OdDocumentController extends Controller
             'active' => 'od-documents',
             'document' => $document,
             'statuses' => OdDocumentStatus::ordered()->get(),
+            'categories' => DocumentCategory::ordered()->get(),
         ]);
     }
 
@@ -101,6 +104,10 @@ class OdDocumentController extends Controller
         $this->authorizeEdit($request, $document);
 
         $data = $request->safe()->only(['title', 'jenis', 'badan_usaha', 'catatan']);
+        if ($document->isFromRequest()) {
+            // Jenis dokumen dari permintaan mengikuti kategori pengajuannya (tahapannya bergantung pada kategori).
+            unset($data['jenis']);
+        }
         $document->fill([...$data, 'badan_usaha' => ($data['badan_usaha'] ?? null) ?: '-']);
 
         $status = OdDocumentStatus::findOrFail($request->validated('od_document_status_id'));

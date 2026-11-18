@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\DocumentCategory;
 use App\Models\OdDocument;
 use App\Models\OdDocumentStatus;
-use App\Models\OdPicDefault;
 use App\Models\User;
 use Tests\TestCase;
 
@@ -62,7 +62,7 @@ class OdDocumentTest extends TestCase
     {
         $staff = $this->member(User::OD_STAFF, 'STAFF IK');
         $leader = $this->member(User::OD_LEADER, 'LEADER OD');
-        OdPicDefault::create(['jenis' => 'IK', 'user_id' => $staff->id]);
+        DocumentCategory::where('code', 'IK')->update(['pic_user_id' => $staff->id]);
         $open = OdDocumentStatus::firstOfType(OdDocumentStatus::TYPE_OPEN);
 
         $this->actingAs($leader)->post(route('od-report.documents.store'), [
@@ -118,9 +118,6 @@ class OdDocumentTest extends TestCase
         $this->document($staff, ['od_document_status_id' => $done->id]);
         $this->actingAs($leader)->delete(route('od-report.settings.statuses.destroy', $done))->assertSessionHas('error');
         $this->assertModelExists($done);
-
-        $this->actingAs($leader)->put(route('od-report.settings.pics'), ['pic' => ['IK' => $staff->id, 'SOP' => $leader->id]])->assertSessionHas('success');
-        $this->assertSame($staff->id, OdPicDefault::userFor('IK')->id);
     }
 
     public function test_plain_document_can_be_deleted(): void

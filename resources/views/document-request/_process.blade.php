@@ -1,18 +1,18 @@
-{{-- Satu kartu proses di form Permintaan Dokumen. $i = indeks (atau __INDEX__ di template), $process = nilai lama. --}}
+{{-- Satu kartu dokumen di form Permintaan Dokumen. $i = indeks (atau __INDEX__ di template), $process = nilai lama. --}}
 <div class="card" data-process>
     <div class="card-header d-flex align-items-center">
-        <h3 class="card-title">Proses <span data-process-number>1</span></h3>
+        <h3 class="card-title">Dokumen <span data-process-number>1</span></h3>
         <button type="button" class="btn btn-default btn-sm ml-auto text-danger" data-remove-process><i class="fas fa-times"></i> Hapus</button>
     </div>
     <div class="card-body">
         <div class="form-group">
-            <label for="proses-{{ $i }}-judul">Judul proses</label>
+            <label for="proses-{{ $i }}-judul">Judul / nama proses</label>
             <input type="text" class="form-control @error("proses.$i.judul") is-invalid @enderror" id="proses-{{ $i }}-judul" name="proses[{{ $i }}][judul]" maxlength="200" required
                 value="{{ $process['judul'] ?? '' }}" placeholder="Contoh: Penerimaan barang di gudang">
             @error("proses.$i.judul")<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
         <div class="form-group">
-            <label for="proses-{{ $i }}-tujuan">Tujuan / alasan dibuatkan IK</label>
+            <label for="proses-{{ $i }}-tujuan">Tujuan / alasan dibuatkan</label>
             <textarea class="form-control @error("proses.$i.tujuan") is-invalid @enderror" id="proses-{{ $i }}-tujuan" name="proses[{{ $i }}][tujuan]" rows="3" minlength="10" maxlength="2000" required>{{ $process['tujuan'] ?? '' }}</textarea>
             @error("proses.$i.tujuan")<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>

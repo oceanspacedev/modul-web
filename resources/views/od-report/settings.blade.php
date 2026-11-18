@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Pengaturan OD Report" subtitle="Status dokumen dan PIC bawaan" eyebrow="OD Report" />
+        <x-page-header title="Pengaturan OD Report" subtitle="Status dokumen" eyebrow="OD Report" />
     </div>
 </section>
 
@@ -71,32 +71,10 @@
             </div>
 
             <div class="col-lg-5">
-                <form action="{{ route('od-report.settings.pics') }}" method="POST" class="card">
-                    @csrf
-                    @method('PUT')
-                    <div class="card-header"><h3 class="card-title">PIC bawaan per jenis</h3></div>
-                    <div class="card-body">
-                        @if ($team->isEmpty())
-                            <p class="text-muted small mb-0">Belum ada anggota tim. Beri akses OD Report dari menu User.</p>
-                        @endif
-                        @foreach (App\Models\OdDocument::JENIS as $jenis)
-                            <div class="form-group row mb-2">
-                                <label class="col-5 col-form-label col-form-label-sm" for="pic-{{ $loop->index }}">{{ $jenis }}</label>
-                                <div class="col-7">
-                                    <select class="custom-select custom-select-sm" id="pic-{{ $loop->index }}" name="pic[{{ $jenis }}]">
-                                        <option value="">-</option>
-                                        @foreach ($team as $member)
-                                            <option value="{{ $member->id }}" @selected(($picDefaults[$jenis] ?? null) === $member->id)>{{ $member->nama_lengkap }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                    <div class="card-footer text-right">
-                        <button type="submit" class="btn btn-primary btn-sm">Simpan PIC</button>
-                    </div>
-                </form>
+                <div class="card card-body small">
+                    <p class="mb-2">Jenis dokumen, tahapan dan PIC bawaan diatur di Kategori Dokumen.</p>
+                    <a href="{{ route('document-category.index') }}" class="btn btn-default btn-sm align-self-start"><i class="fas fa-tags"></i> Buka Kategori Dokumen</a>
+                </div>
             </div>
         </div>
     </div>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DocumentCategory;
 use App\Models\DocumentRequest;
 use App\Models\OdDocument;
 use App\Services\DocumentRequestService;
@@ -15,7 +16,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * Permintaan Masuk (tim OD): daftar pengajuan IK dan halaman untuk memproses tiap proses, jadwal observasi, dan catatan.
+ * Permintaan Masuk (tim OD): daftar pengajuan dokumen dan halaman untuk memproses tiap proses, jadwal observasi, dan catatan.
  */
 class OdRequestController extends Controller
 {
@@ -23,13 +24,15 @@ class OdRequestController extends Controller
 
     public function index(Request $request): View
     {
-        $all = DocumentRequest::query()->visibleTo($request->user())->with('processes.status')->latest()->get();
+        $all = DocumentRequest::query()->visibleTo($request->user())->with(['category.stages', 'processes.status'])->latest()->get();
+        $categories = DocumentCategory::ordered()->with('stages')->get();
 
         $search = mb_strtolower(trim((string) $request->query('search')));
         $filtered = $all
             ->when($search !== '', fn (Collection $c) => $c->filter(fn (DocumentRequest $r) => str_contains(mb_strtolower(implode(' ', [
                 $r->code, $r->nama, $r->divisi, $r->departemen, $r->jabatan, $r->email, $r->whatsapp, ...$r->processes->pluck('title'),
             ])), $search)))
+            ->when($request->filled('kategori'), fn (Collection $c) => $c->where('document_category_id', (int) $request->query('kategori')))
             ->when($request->filled('departemen'), fn (Collection $c) => $c->where('departemen', $request->query('departemen')))
             ->when($request->filled('prioritas'), fn (Collection $c) => $c->filter(fn (DocumentRequest $r) => $r->topPriority() === $request->query('prioritas')))
             ->when($request->filled('tahap'), fn (Collection $c) => $c->filter(fn (DocumentRequest $r) => $r->processes->contains(fn (OdDocument $p) => $p->publicStage() === $request->query('tahap'))));
@@ -55,6 +58,8 @@ class OdRequestController extends Controller
             'active' => 'od-requests',
             'requests' => $requests,
             'sort' => $sort,
+            'categories' => $categories,
+            'stageOptions' => [...$categories->flatMap->stageNames()->unique()->values(), OdDocument::STAGE_CANCELLED],
             'stats' => [
                 'total' => $all->count(),
                 'new' => $all->filter(fn ($r) => $r->progress() === 0 && $r->stage() !== OdDocument::STAGE_CANCELLED)->count(),
@@ -67,7 +72,7 @@ class OdRequestController extends Controller
     public function show(Request $request, DocumentRequest $documentRequest): View
     {
         $this->authorizeView($request, $documentRequest);
-        $documentRequest->load(['processes.status', 'processes.pic', 'histories.user', 'user']);
+        $documentRequest->load(['category.stages', 'processes.status', 'processes.pic', 'histories.user', 'user']);
 
         return view('od-report.requests.show', [
             'title' => $documentRequest->code,
@@ -84,7 +89,7 @@ class OdRequestController extends Controller
         $data = $request->validate([
             'updated_at' => ['required', 'string'],
             'proses' => ['array'],
-            'proses.*.stage' => ['nullable', Rule::in(array_keys(OdDocument::STAGES))],
+            'proses.*.stage' => ['nullable', Rule::in($documentRequest->category->stageNames())],
             'proses.*.prioritas' => ['nullable', Rule::in(OdDocument::PRIORITAS)],
             'proses.*.pic_user_id' => ['nullable', 'integer', Rule::in(OdTeam::query()->pluck('id')->all())],
             'jadwal_observasi' => ['nullable', 'date_format:Y-m-d'],

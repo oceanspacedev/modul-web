@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\DocumentCategory;
 use App\Models\DocumentRequest;
 use App\Models\OdDocument;
 use App\Models\OdDocumentStatus;
-use App\Models\OdPicDefault;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
@@ -35,6 +35,7 @@ class DocumentRequestTest extends TestCase
     private function payload(array $overrides = []): array
     {
         return [
+            'kategori' => DocumentCategory::where('code', 'IK')->value('id'),
             'nama' => 'Budi Pemohon',
             'divisi' => 'General Affair Aset',
             'departemen' => 'Warehouse',
@@ -54,9 +55,9 @@ class DocumentRequestTest extends TestCase
     public function test_public_request_creates_ik_documents_for_the_default_pic(): void
     {
         $staff = $this->member(User::OD_STAFF, 'STAFF IK');
-        OdPicDefault::create(['jenis' => 'IK', 'user_id' => $staff->id]);
+        DocumentCategory::where('code', 'IK')->update(['pic_user_id' => $staff->id]);
 
-        $this->get(route('document-request.create'))->assertOk()->assertSee('Permintaan Dokumen IK');
+        $this->get(route('document-request.create'))->assertOk()->assertSee('Permintaan Dokumen')->assertSee('Instruksi Kerja');
         $response = $this->post(route('document-request.store'), $this->payload());
 
         $request = DocumentRequest::sole();
@@ -177,7 +178,7 @@ class DocumentRequestTest extends TestCase
     {
         $staff = $this->member(User::OD_STAFF, 'STAFF OD');
         $other = $this->member(User::OD_STAFF, 'STAFF LAIN');
-        OdPicDefault::create(['jenis' => 'IK', 'user_id' => $staff->id]);
+        DocumentCategory::where('code', 'IK')->update(['pic_user_id' => $staff->id]);
         $this->post(route('document-request.store'), $this->payload());
         $request = DocumentRequest::sole();
 

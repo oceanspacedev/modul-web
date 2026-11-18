@@ -23,13 +23,13 @@
                         @if ($document->isFromRequest())
                             <hr>
                             <div class="form-group mb-0">
-                                <label for="stage">Tahap IK <span class="badge badge-info">{{ $document->documentRequest->code }}</span></label>
+                                <label for="stage">Tahap <span class="badge badge-info">{{ $document->documentRequest->code }}</span></label>
                                 <select class="custom-select" id="stage" name="stage">
-                                    @foreach (App\Models\OdDocument::STAGES as $stage => $info)
+                                    @foreach ($document->stageNames() as $stage)
                                         <option value="{{ $stage }}" @selected(old('stage', $document->stage) === $stage)>{{ $loop->iteration }}. {{ $stage }}</option>
                                     @endforeach
                                 </select>
-                                <small class="form-text text-muted">Release otomatis menjadikan status selesai. Pemohon dikabari lewat WhatsApp.</small>
+                                <small class="form-text text-muted">Tahap terakhir otomatis menjadikan status selesai. Pemohon dikabari lewat WhatsApp.</small>
                             </div>
                         @endif
                     </div>

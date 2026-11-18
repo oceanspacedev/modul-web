@@ -11,8 +11,9 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
- * Pengajuan pembuatan dokumen IK oleh karyawan (lewat login atau link publik). Setiap proses yang diajukan adalah
- * satu OdDocument (relasi processes); status dan progres tiket dihitung dari tahap proses-prosesnya.
+ * Pengajuan pembuatan dokumen oleh karyawan (lewat login atau link publik) untuk satu Kategori Dokumen. Setiap item
+ * yang diajukan adalah satu OdDocument (relasi processes); status dan progres tiket dihitung dari tahap item-itemnya
+ * terhadap tahapan kategori.
  */
 class DocumentRequest extends Model
 {
@@ -37,7 +38,7 @@ class DocumentRequest extends Model
     /** Huruf kode tiket tanpa karakter yang mudah tertukar (0/O, 1/I). */
     private const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-    public const CODE_PATTERN = '/^IK-\d{8}-[A-Z0-9]{4}$/';
+    public const CODE_PATTERN = '/^[A-Z0-9]{2,6}-\d{8}-[A-Z0-9]{4}$/';
 
     protected $guarded = ['id'];
 
@@ -60,10 +61,20 @@ class DocumentRequest extends Model
         return $this->belongsTo(User::class)->withTrashed();
     }
 
-    /** @return HasMany<OdDocument, $this> */
+    /** @return BelongsTo<DocumentCategory, $this> */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(DocumentCategory::class, 'document_category_id');
+    }
+
+    /**
+     * Item pengajuan beserta kategori dan tahapannya (dipakai untuk tahap, progres, dan tampilan pemohon).
+     *
+     * @return HasMany<OdDocument, $this>
+     */
     public function processes(): HasMany
     {
-        return $this->hasMany(OdDocument::class)->orderBy('sort')->orderBy('id');
+        return $this->hasMany(OdDocument::class)->with('category.stages')->orderBy('sort')->orderBy('id');
     }
 
     /** @return HasMany<DocumentRequestHistory, $this> */
@@ -84,11 +95,11 @@ class DocumentRequest extends Model
         }
     }
 
-    public static function generateCode(): string
+    public static function generateCode(string $prefix = 'DOK'): string
     {
         do {
             $suffix = collect(range(1, 4))->map(fn () => self::CODE_ALPHABET[random_int(0, strlen(self::CODE_ALPHABET) - 1)])->implode('');
-            $code = 'IK-'.now('Asia/Jakarta')->format('Ymd').'-'.$suffix;
+            $code = $prefix.'-'.now('Asia/Jakarta')->format('Ymd').'-'.$suffix;
         } while (static::withTrashed()->where('code', $code)->exists());
 
         return $code;
@@ -100,17 +111,24 @@ class DocumentRequest extends Model
         return $this->processes->reject(fn (OdDocument $p) => $p->status?->isCancel())->values();
     }
 
+    /** @return list<string> */
+    public function stageNames(): array
+    {
+        return $this->category?->stageNames() ?? [];
+    }
+
     /**
      * Status tiket = tahap proses yang paling tertinggal (proses yang dibatalkan tidak dihitung).
      */
     public function stage(): string
     {
+        $stages = $this->stageNames();
         $active = $this->activeProcesses();
         if ($active->isEmpty()) {
-            return $this->processes->isEmpty() ? array_key_first(OdDocument::STAGES) : OdDocument::STAGE_CANCELLED;
+            return $this->processes->isEmpty() ? ($stages[0] ?? '-') : OdDocument::STAGE_CANCELLED;
         }
 
-        return array_keys(OdDocument::STAGES)[$active->min(fn (OdDocument $p) => $p->stageIndex())];
+        return $stages[$active->min(fn (OdDocument $p) => $p->stageIndex())] ?? '-';
     }
 
     /** Progres 0-100 = rata-rata tahap semua proses yang tidak dibatalkan. */
@@ -121,14 +139,14 @@ class DocumentRequest extends Model
             return 0;
         }
 
-        $last = count(OdDocument::STAGES) - 1;
+        $last = max(1, count($this->stageNames()) - 1);
 
         return (int) round($active->avg(fn (OdDocument $p) => $p->stageIndex() / $last) * 100);
     }
 
     public function releasedCount(): int
     {
-        return $this->processes->where('stage', OdDocument::STAGE_RELEASE)->count();
+        return $this->processes->filter(fn (OdDocument $p) => $p->isReleased())->count();
     }
 
     /** Prioritas tertinggi di antara prosesnya. */
@@ -147,7 +165,7 @@ class DocumentRequest extends Model
 
     public function isFinished(): bool
     {
-        return $this->processes->isNotEmpty() && $this->activeProcesses()->every(fn (OdDocument $p) => $p->stage === OdDocument::STAGE_RELEASE);
+        return $this->processes->isNotEmpty() && $this->activeProcesses()->every(fn (OdDocument $p) => $p->isReleased());
     }
 
     /** Nomor WhatsApp untuk link wa.me (0812… → 62812…). */

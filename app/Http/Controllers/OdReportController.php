@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DocumentCategory;
 use App\Models\OdActivity;
 use App\Models\OdDocument;
 use App\Models\OdDocumentStatus;
@@ -114,7 +115,7 @@ class OdReportController extends Controller
             ->when($memberId, fn (Builder $q) => $q->where('pic_user_id', $memberId))
             ->with(['status', 'pic'])->orderBy('submitted_at')->orderBy('id')->get();
 
-        $byJenis = collect(OdDocument::JENIS)->merge($documents->pluck('jenis'))->unique()
+        $byJenis = DocumentCategory::ordered()->pluck('code')->merge($documents->pluck('jenis'))->unique()
             ->mapWithKeys(fn ($jenis) => [$jenis => $documents->where('jenis', $jenis)->values()])
             ->filter(fn ($list) => $list->isNotEmpty());
 

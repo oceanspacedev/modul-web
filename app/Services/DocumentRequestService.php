@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\DocumentCategory;
 use App\Models\DocumentRequest;
 use App\Models\DocumentRequestHistory;
 use App\Models\OdDocument;
 use App\Models\OdDocumentStatus;
-use App\Models\OdPicDefault;
 use App\Models\User;
 use App\Notifications\DocumentRequestUpdated;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -14,7 +14,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Membuat dan memproses Permintaan Dokumen. Setiap proses menjadi OdDocument jenis IK dengan PIC bawaan IK.
+ * Membuat dan memproses Permintaan Dokumen. Setiap item menjadi OdDocument dengan jenis, PIC bawaan dan tahap awal dari
+ * Kategori Dokumen yang dipilih pemohon.
  */
 class DocumentRequestService
 {
@@ -31,22 +32,31 @@ class DocumentRequestService
         }
 
         try {
-            $request = DB::transaction(function () use ($data, $user, $key) {
+            $category = DocumentCategory::with('stages')->findOrFail($data['kategori']);
+            $firstStage = $category->firstStage();
+
+            $request = DB::transaction(function () use ($data, $user, $key, $category, $firstStage) {
+                $observation = $category->needs_observation
+                    ? collect($data)->only(['obs_tanggal_1', 'obs_tanggal_2', 'obs_catatan'])->all()
+                    : ['obs_tanggal_1' => null, 'obs_tanggal_2' => null, 'obs_catatan' => null];
+
                 $request = DocumentRequest::create([
-                    ...collect($data)->only(['nama', 'divisi', 'departemen', 'jabatan', 'atasan', 'whatsapp', 'email', 'obs_tanggal_1', 'obs_tanggal_2', 'obs_catatan'])->all(),
-                    'code' => DocumentRequest::generateCode(),
+                    ...collect($data)->only(['nama', 'divisi', 'departemen', 'jabatan', 'atasan', 'whatsapp', 'email'])->all(),
+                    ...$observation,
+                    'code' => DocumentRequest::generateCode($category->ticketPrefix()),
+                    'document_category_id' => $category->getKey(),
                     'user_id' => $user?->getKey(),
                     'idempotency_key' => $key ?: (string) Str::uuid(),
                     'tanggal' => today(),
                 ]);
 
                 $open = OdDocumentStatus::firstOfType(OdDocumentStatus::TYPE_OPEN);
-                $pic = OdPicDefault::userFor('IK');
+                $pic = $category->picUser();
 
                 foreach (array_values($data['proses']) as $index => $process) {
                     $request->processes()->create([
                         'title' => $process['judul'],
-                        'jenis' => 'IK',
+                        'jenis' => $category->code,
                         'badan_usaha' => '-',
                         'od_document_status_id' => $open->getKey(),
                         'pic_user_id' => $pic?->getKey(),
@@ -55,14 +65,14 @@ class DocumentRequestService
                         'tujuan' => $process['tujuan'],
                         'prioritas' => $process['prioritas'],
                         'sistem' => $process['sistem'] ?? null,
-                        'stage' => array_key_first(OdDocument::STAGES),
+                        'stage' => $firstStage,
                         'sort' => $index + 1,
                     ]);
                 }
 
                 DocumentRequestHistory::create([
                     'document_request_id' => $request->getKey(),
-                    'status' => array_key_first(OdDocument::STAGES),
+                    'status' => $firstStage,
                     'note' => 'Pengajuan diterima.',
                     'user_id' => $user?->getKey(),
                 ]);
@@ -78,7 +88,7 @@ class DocumentRequestService
         }
 
         $count = count($data['proses']);
-        DocumentRequestUpdated::send($request, "Pengajuan {$count} proses sudah kami terima dan akan ditinjau tim Organization Development.");
+        DocumentRequestUpdated::send($request, "Pengajuan {$count} dokumen {$category->name} sudah kami terima dan akan ditinjau tim Organization Development.");
 
         return $request;
     }

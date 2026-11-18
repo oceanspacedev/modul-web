@@ -1,8 +1,8 @@
 @extends('layout.main_template')
 
 @php
-    $stageNames = array_keys(App\Models\OdDocument::STAGES);
-    $last = count($stageNames) - 1;
+    $category = $documentRequest?->category;
+    $stageNames = $category?->stageNames() ?? [];
 @endphp
 
 @section('content')
@@ -37,7 +37,7 @@
 
         <form action="{{ route('document-request.track') }}" method="GET" class="card">
             <div class="card-body d-flex gap-2">
-                <input type="text" name="kode" class="form-control" value="{{ $code }}" placeholder="IK-YYYYMMDD-XXXX" aria-label="Kode tiket" required style="text-transform: uppercase;">
+                <input type="text" name="kode" class="form-control" value="{{ $code }}" placeholder="KODE-YYYYMMDD-XXXX" aria-label="Kode tiket" required style="text-transform: uppercase;">
                 <button type="submit" class="btn btn-primary">Lacak</button>
             </div>
             <div class="card-footer small" id="myTickets" hidden>Pengajuan di perangkat ini: <span></span></div>
@@ -57,7 +57,7 @@
                 <div class="card-body">
                     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
                         <div>
-                            <div class="text-muted small">{{ $documentRequest->code }}</div>
+                            <div class="text-muted small">{{ $documentRequest->code }} · {{ $category?->label() }}</div>
                             <h3 class="h5 mb-1">{{ $documentRequest->stage() }}</h3>
                             <div class="small text-muted">
                                 {{ $documentRequest->nama }} · {{ $documentRequest->departemen }} · WA {{ $documentRequest->maskedWhatsapp() }} · {{ $documentRequest->maskedEmail() }}
@@ -65,7 +65,7 @@
                         </div>
                         <div class="text-right">
                             <div class="h4 mb-0">{{ $progress }}%</div>
-                            <div class="small text-muted">{{ $released }} dari {{ $documentRequest->processes->count() }} proses Release</div>
+                            <div class="small text-muted">{{ $released }} dari {{ $documentRequest->processes->count() }} dokumen selesai</div>
                         </div>
                     </div>
                     <div class="progress mt-3" style="height: 8px;">
@@ -96,7 +96,7 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between gap-2">
                             <strong>{{ $loop->iteration }}. {{ $process->title }}</strong>
-                            <span class="badge {{ $stage === App\Models\OdDocument::STAGE_RELEASE ? 'badge-success' : ($stage === App\Models\OdDocument::STAGE_CANCELLED ? 'badge-secondary' : 'badge-info') }}">{{ $stage }}</span>
+                            <span class="badge {{ $process->isReleased() ? 'badge-success' : ($stage === App\Models\OdDocument::STAGE_CANCELLED ? 'badge-secondary' : 'badge-info') }}">{{ $stage }}</span>
                         </div>
                         <div class="d-flex gap-1 mt-2" aria-hidden="true">
                             @foreach ($stageNames as $index => $name)
@@ -104,7 +104,7 @@
                             @endforeach
                         </div>
                         @if ($stage !== App\Models\OdDocument::STAGE_CANCELLED)
-                            <div class="small text-muted mt-2">{{ App\Models\OdDocument::STAGES[$process->stage] ?? '' }}</div>
+                            <div class="small text-muted mt-2">{{ $category?->stageDescription($process->stage) }}</div>
                         @endif
                     </div>
                 </div>
@@ -128,8 +128,8 @@
             <details class="card card-body small mb-4">
                 <summary class="font-weight-bold">Arti setiap tahap</summary>
                 <ol class="mt-2 mb-0 pl-3">
-                    @foreach (App\Models\OdDocument::STAGES as $name => $info)
-                        <li class="mb-1"><strong>{{ $name }}</strong>: {{ $info }}</li>
+                    @foreach ($category?->stages ?? [] as $item)
+                        <li class="mb-1"><strong>{{ $item->name }}</strong>@if ($item->description): {{ $item->description }}@endif</li>
                     @endforeach
                 </ol>
             </details>

@@ -126,7 +126,7 @@ class OdReportExportTest extends TestCase
         $sheet = $this->sheet(new DocumentRequestExport($this->leader));
         $this->assertSame('Kode', $sheet->getCell('A1')->getValue());
         $this->assertSame(['IK-20261118-AAAA', '081234567890', 'Retur', 'Drafting'], [
-            $sheet->getCell('A3')->getValue(), $sheet->getCell('H3')->getValue(), $sheet->getCell('K3')->getValue(), $sheet->getCell('O3')->getValue(),
+            $sheet->getCell('A3')->getValue(), $sheet->getCell('I3')->getValue(), $sheet->getCell('L3')->getValue(), $sheet->getCell('P3')->getValue(),
         ]);
     }
 

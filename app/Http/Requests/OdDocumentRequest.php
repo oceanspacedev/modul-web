@@ -21,13 +21,17 @@ class OdDocumentRequest extends FormRequest
      */
     public function rules(): array
     {
+        /** @var OdDocument|null $document */
+        $document = $this->route('document');
+
         return [
             'title' => ['required', 'string', 'max:250'],
-            'jenis' => ['required', Rule::in(OdDocument::JENIS)],
+            'jenis' => ['required', Rule::exists('document_categories', 'code')],
             'badan_usaha' => ['nullable', 'string', 'max:120'],
             'od_document_status_id' => ['required', 'integer', Rule::exists('od_document_statuses', 'id')],
             'catatan' => ['nullable', 'string', 'max:300'],
-            'stage' => ['nullable', Rule::in(array_keys(OdDocument::STAGES))],
+            // Tahap hanya untuk dokumen dari Permintaan Dokumen, dari tahapan kategorinya.
+            'stage' => ['nullable', Rule::in($document?->category?->stageNames() ?? [])],
         ];
     }
 

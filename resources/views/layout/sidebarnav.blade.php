@@ -127,6 +127,14 @@
                 @endcanany
 
                 <li class="nav-header">Layanan</li>
+                @can('manage-od-report')
+                <li class="nav-item">
+                    <a href="{{ route('document-category.index') }}" class="nav-link {{ ($active ?? '') === 'document-category' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-tags"></i>
+                        <p>Kategori Dokumen</p>
+                    </a>
+                </li>
+                @endcan
                 <li class="nav-item">
                     <a href="{{ route('document-request.mine') }}" class="nav-link {{ ($active ?? '') === 'document-request' ? 'active' : '' }}">
                         <i class="nav-icon fas fa-paper-plane"></i>

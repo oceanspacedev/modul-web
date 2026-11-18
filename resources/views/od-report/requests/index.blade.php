@@ -38,6 +38,12 @@
         <div class="card">
             <div class="card-header filter-toolbar">
                 <form action="{{ route('od-report.requests.index') }}" method="GET" class="d-flex flex-wrap align-items-center gap-2 w-100 m-0">
+                    <select name="kategori" class="custom-select custom-select-sm" style="width: 160px;" onchange="this.form.submit()" aria-label="Kategori">
+                        <option value="">Semua kategori</option>
+                        @foreach ($categories as $category)
+                            <option value="{{ $category->id }}" @selected((int) request('kategori') === $category->id)>{{ $category->code }}</option>
+                        @endforeach
+                    </select>
                     <select name="departemen" class="custom-select custom-select-sm" style="width: 200px;" onchange="this.form.submit()" aria-label="Departemen">
                         <option value="">Semua departemen</option>
                         @foreach (App\Models\DocumentRequest::DEPARTMENTS as $department)
@@ -52,7 +58,7 @@
                     </select>
                     <select name="tahap" class="custom-select custom-select-sm" style="width: 200px;" onchange="this.form.submit()" aria-label="Tahap">
                         <option value="">Semua tahap</option>
-                        @foreach ([...array_keys(App\Models\OdDocument::STAGES), App\Models\OdDocument::STAGE_CANCELLED] as $stage)
+                        @foreach ($stageOptions as $stage)
                             <option value="{{ $stage }}" @selected(request('tahap') === $stage)>{{ $stage }}</option>
                         @endforeach
                     </select>
@@ -83,7 +89,7 @@
                             @php($priority = $request->topPriority())
                             <tr>
                                 <td><a href="{{ route('od-report.requests.show', $request) }}"><strong>{{ $request->code }}</strong></a>
-                                    <div class="small text-muted">{{ $request->created_at->format('d/m/Y') }}</div></td>
+                                    <div class="small text-muted">{{ $request->category?->code }} · {{ $request->created_at->format('d/m/Y') }}</div></td>
                                 <td>{{ $request->nama }}<div class="small text-muted">{{ $request->departemen }}</div></td>
                                 <td style="white-space: normal; min-width: 200px;">
                                     {{ $request->processes->first()?->title }}

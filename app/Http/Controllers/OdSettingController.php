@@ -2,17 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\OdDocument;
 use App\Models\OdDocumentStatus;
-use App\Models\OdPicDefault;
-use App\Support\OdTeam;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * Pengaturan OD Report (Leader): daftar status dokumen dan PIC bawaan per jenis dokumen.
+ * Pengaturan OD Report (Leader): daftar status dokumen. Jenis, tahapan dan PIC bawaan diatur di Kategori Dokumen.
  */
 class OdSettingController extends Controller
 {
@@ -22,8 +19,6 @@ class OdSettingController extends Controller
             'title' => 'Pengaturan OD Report',
             'active' => 'od-settings',
             'statuses' => OdDocumentStatus::ordered()->withCount('documents')->get(),
-            'team' => OdTeam::members(),
-            'picDefaults' => OdPicDefault::pluck('user_id', 'jenis'),
         ]);
     }
 
@@ -62,24 +57,6 @@ class OdSettingController extends Controller
         $status->delete();
 
         return back()->with('success', 'Status dihapus.');
-    }
-
-    public function updatePics(Request $request): RedirectResponse
-    {
-        $memberIds = OdTeam::query()->pluck('id')->all();
-        $data = $request->validate([
-            'pic' => ['array'],
-            'pic.*' => ['nullable', 'integer', Rule::in($memberIds)],
-        ]);
-
-        foreach (OdDocument::JENIS as $jenis) {
-            $userId = $data['pic'][$jenis] ?? null;
-            $userId
-                ? OdPicDefault::updateOrCreate(['jenis' => $jenis], ['user_id' => $userId])
-                : OdPicDefault::where('jenis', $jenis)->delete();
-        }
-
-        return back()->with('success', 'PIC bawaan disimpan.');
     }
 
     /**

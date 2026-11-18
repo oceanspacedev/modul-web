@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreDocumentRequestRequest;
+use App\Models\DocumentCategory;
 use App\Models\DocumentRequest;
-use App\Models\OdDocument;
 use App\Services\DocumentRequestService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,10 +20,15 @@ class DocumentRequestController extends Controller
     {
         $user = $request->user()?->loadMissing(['divisi', 'roles']);
         $jabatan = $user?->jabatan?->name;
+        $categories = DocumentCategory::active()->ordered()->with('stages')->get();
 
         return view('document-request.create', [
             'title' => 'Permintaan Dokumen',
             'active' => 'document-request',
+            'categories' => $categories,
+            // ?kategori=JD memilihkan kategori; satu-satunya kategori aktif langsung terpilih.
+            'selectedCategory' => $categories->first(fn (DocumentCategory $c) => strcasecmp($c->code, (string) $request->query('kategori')) === 0)?->id
+                ?? ($categories->count() === 1 ? $categories->first()->id : null),
             'prefill' => $user ? [
                 'nama' => $user->nama_lengkap,
                 'divisi' => $user->divisi?->name,
@@ -50,7 +55,7 @@ class DocumentRequestController extends Controller
     {
         $code = strtoupper(trim((string) $request->query('kode')));
         $documentRequest = preg_match(DocumentRequest::CODE_PATTERN, $code)
-            ? DocumentRequest::where('code', $code)->with(['processes.status', 'histories'])->first()
+            ? DocumentRequest::where('code', $code)->with(['category.stages', 'processes.status', 'histories'])->first()
             : null;
 
         return view('document-request.track', [
@@ -78,8 +83,7 @@ class DocumentRequestController extends Controller
             'title' => 'Permintaan Saya',
             'active' => 'document-request',
             'requests' => DocumentRequest::where('user_id', $request->user()->getKey())
-                ->with('processes.status')->latest()->paginate(20),
-            'stages' => OdDocument::STAGES,
+                ->with(['category.stages', 'processes.status'])->latest()->paginate(20),
         ]);
     }
 }

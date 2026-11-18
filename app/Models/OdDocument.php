@@ -9,37 +9,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * Dokumen yang ditangani tim OD (halaman Approval Dokumen). Dokumen dari Permintaan Dokumen adalah satu "proses"
- * pengajuan: punya document_request_id, tujuan, prioritas, sistem dan stage (8 tahap IK) yang terlihat pemohon.
- * Stage Release dan status bertipe done selalu berjalan bersama (lihat applyStage() dan applyStatus()).
+ * Dokumen yang ditangani tim OD (halaman Approval Dokumen). jenis = kode Kategori Dokumen. Dokumen dari Permintaan
+ * Dokumen adalah satu "proses" pengajuan: punya document_request_id, tujuan, prioritas, sistem dan stage (tahapan
+ * kategorinya) yang terlihat pemohon. Tahap terakhir kategori dan status bertipe done selalu berjalan bersama (lihat
+ * applyStage() dan applyStatus()).
  */
 class OdDocument extends Model
 {
     use SoftDeletes;
 
-    public const JENIS = ['IK', 'JD', 'SOP', 'SE', 'MEMO', 'Dokumen Lainnya'];
-
-    /** Urutan dokumen di ekspor ACHIEVEMENT bulanan. */
-    public const JENIS_EXPORT_ORDER = ['SOP', 'SE', 'MEMO', 'IK', 'JD'];
-
     /** Saran isian badan usaha (bebas diketik). */
     public const BADAN_USAHA = ['CV CS', 'CV CS AUTO EV', 'CV TOP', 'PT SMI', 'PT MSI', 'PT CSN', 'RISM'];
 
     public const PRIORITAS = ['Urgent', 'High', 'Medium', 'Low'];
-
-    public const STAGE_RELEASE = 'Release';
-
-    /** Tahap pembuatan IK dari pengajuan, berurutan, beserta artinya untuk pemohon. */
-    public const STAGES = [
-        'Diajukan' => 'Pengajuan diterima dan menunggu ditinjau oleh tim Organization Development (OD).',
-        'Dijadwalkan observasi' => 'Tim OD sudah menetapkan jadwal observasi. Mohon siapkan proses kerja sesuai jadwal.',
-        'Dalam proses observasi' => 'Tim OD sedang mengamati langsung proses kerja sebagai bahan penyusunan IK.',
-        'Drafting' => 'Tim OD sedang menyusun draf dokumen Instruksi Kerja.',
-        'Proses review PIC' => 'Draf IK sedang direview oleh PIC proses. Mohon bantu merespons bila diminta.',
-        'Proses review OD Leader' => 'Draf IK sedang direview oleh OD Leader.',
-        'Proses Esign' => 'Dokumen IK sedang dalam proses tanda tangan elektronik.',
-        'Release' => 'Dokumen IK sudah dirilis dan dapat dicek serta diunduh di cloud dokumen.',
-    ];
 
     public const STAGE_CANCELLED = 'Dibatalkan';
 
@@ -60,6 +42,12 @@ class OdDocument extends Model
     public function status(): BelongsTo
     {
         return $this->belongsTo(OdDocumentStatus::class, 'od_document_status_id');
+    }
+
+    /** @return BelongsTo<DocumentCategory, $this> */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(DocumentCategory::class, 'jenis', 'code');
     }
 
     /** @return BelongsTo<User, $this> */
@@ -102,27 +90,39 @@ class OdDocument extends Model
         return $this->document_request_id !== null;
     }
 
+    /** @return list<string> */
+    public function stageNames(): array
+    {
+        return $this->category?->stageNames() ?? [];
+    }
+
     public function stageIndex(): int
     {
-        $index = array_search($this->stage, array_keys(self::STAGES), true);
+        $index = array_search($this->stage, $this->stageNames(), true);
 
         return $index === false ? 0 : $index;
+    }
+
+    /** Sudah di tahap terakhir kategorinya (rilis). */
+    public function isReleased(): bool
+    {
+        return $this->stage !== null && $this->stage === $this->category?->finalStage();
     }
 
     /** Tahap yang dilihat pemohon: dokumen yang statusnya batal tampil sebagai "Dibatalkan". */
     public function publicStage(): string
     {
-        return $this->status?->isCancel() ? self::STAGE_CANCELLED : ($this->stage ?? array_key_first(self::STAGES));
+        return $this->status?->isCancel() ? self::STAGE_CANCELLED : ($this->stage ?? $this->category?->firstStage() ?? '-');
     }
 
     /**
-     * Ubah tahap IK. Release = status selesai; keluar dari Release mengembalikan status ke berjalan.
+     * Ubah tahap. Tahap terakhir = status selesai; keluar dari tahap terakhir mengembalikan status ke berjalan.
      */
     public function applyStage(string $stage): void
     {
         $this->stage = $stage;
 
-        if ($stage === self::STAGE_RELEASE) {
+        if ($this->isReleased()) {
             if (! $this->status?->isDone() && ($done = OdDocumentStatus::firstOfType(OdDocumentStatus::TYPE_DONE))) {
                 $this->status()->associate($done);
             }
@@ -134,21 +134,22 @@ class OdDocument extends Model
     }
 
     /**
-     * Ubah status di Approval Dokumen. Untuk dokumen dari pengajuan, status selesai = stage Release dan sebaliknya.
+     * Ubah status di Approval Dokumen. Untuk dokumen dari pengajuan, status selesai = tahap terakhir dan sebaliknya.
      */
     public function applyStatus(OdDocumentStatus $status): void
     {
         $this->status()->associate($status);
+        $stages = $this->stageNames();
 
         if ($status->isDone()) {
             $this->received_at ??= today();
-            if ($this->isFromRequest()) {
-                $this->stage = self::STAGE_RELEASE;
+            if ($this->isFromRequest() && $stages) {
+                $this->stage = end($stages);
             }
         } else {
             $this->received_at = null;
-            if ($this->isFromRequest() && $this->stage === self::STAGE_RELEASE) {
-                $this->stage = 'Proses Esign';
+            if ($this->isFromRequest() && $this->isReleased()) {
+                $this->stage = $stages[count($stages) - 2] ?? $stages[0];
             }
         }
     }

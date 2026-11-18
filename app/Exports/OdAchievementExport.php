@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Exports\Concerns\WritesTextAsText;
+use App\Models\DocumentCategory;
 use App\Models\OdDocument;
 use App\Models\OdDocumentStatus;
 use App\Models\User;
@@ -19,7 +20,7 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 /**
  * Monthly Report format "ACHIEVEMENT BUSDEV": header merah NO | POSISI | ACHIEVEMENT | BADAN USAHA | Keterangan,
  * kolom POSISI di-merge per jabatan dan NO mulai ulang per jabatan. Dokumen batal tidak disertakan; status berjalan
- * pertama ditulis "Proses Approval" seperti di template. Urutan: SOP, SE, MEMO, IK, JD, lainnya, lalu terlama.
+ * pertama ditulis "Proses Approval" seperti di template. Urutan: urutan Kategori Dokumen, lalu terlama.
  */
 class OdAchievementExport implements FromArray, WithCustomValueBinder, WithEvents, WithTitle
 {
@@ -51,7 +52,9 @@ class OdAchievementExport implements FromArray, WithCustomValueBinder, WithEvent
             ->get();
 
         $memberOrder = OdTeam::query()->pluck('id')->flip();
-        $jenisRank = fn (OdDocument $d) => ($i = array_search(mb_strtoupper($d->jenis), OdDocument::JENIS_EXPORT_ORDER, true)) === false ? count(OdDocument::JENIS_EXPORT_ORDER) : $i;
+        // Urutan jenis mengikuti urutan Kategori Dokumen.
+        $order = DocumentCategory::ordered()->pluck('code')->map(fn ($code) => mb_strtoupper($code))->flip();
+        $jenisRank = fn (OdDocument $d) => $order[mb_strtoupper($d->jenis)] ?? $order->count();
         $firstOpen = OdDocumentStatus::firstOfType(OdDocumentStatus::TYPE_OPEN);
 
         $rows = [['NO', 'POSISI', 'ACHIEVEMENT', 'BADAN USAHA', 'Keterangan']];

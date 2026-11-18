@@ -12,11 +12,14 @@
 <div class="form-row">
     <div class="form-group col-sm-6">
         <label for="jenis">Jenis</label>
-        <select class="custom-select @error('jenis') is-invalid @enderror" id="jenis" name="jenis" required>
-            @foreach (App\Models\OdDocument::JENIS as $jenis)
-                <option value="{{ $jenis }}" @selected(old('jenis', $document?->jenis) === $jenis)>{{ $jenis }}</option>
+        <select class="custom-select @error('jenis') is-invalid @enderror" id="jenis" name="jenis" required @disabled($document?->isFromRequest())>
+            @foreach ($categories as $category)
+                <option value="{{ $category->code }}" @selected(old('jenis', $document?->jenis) === $category->code)>{{ $category->code }}</option>
             @endforeach
         </select>
+        @if ($document?->isFromRequest())
+            <input type="hidden" name="jenis" value="{{ $document->jenis }}">
+        @endif
         @error('jenis')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="form-group col-sm-6">

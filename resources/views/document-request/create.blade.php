@@ -3,16 +3,16 @@
 @php
     $old = fn ($key, $default = null) => old($key, $prefill[$key] ?? $default);
     $processes = old('proses', [['judul' => '', 'tujuan' => '', 'prioritas' => '', 'sistem' => '']]);
-    $steps = ['Data pemohon', 'Proses', 'Observasi'];
+    $steps = ['Data pemohon', 'Dokumen', 'Observasi'];
+    $chosen = (int) old('kategori', $selectedCategory);
 @endphp
 
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Permintaan Dokumen IK" subtitle="Ajukan pembuatan Instruksi Kerja ke tim Organization Development" eyebrow="Human Capital">
+        <x-page-header title="Permintaan Dokumen" subtitle="Ajukan pembuatan dokumen ke tim Organization Development" eyebrow="Human Capital">
             <x-slot:actions>
                 <a href="{{ route('document-request.track') }}" class="btn btn-default"><i class="fas fa-search"></i> Lacak</a>
-                <a href="{{ route('document-request.example') }}" class="btn btn-default"><i class="far fa-file-pdf"></i> Contoh IK</a>
             </x-slot:actions>
         </x-page-header>
     </div>
@@ -24,7 +24,7 @@
 
         <ol class="d-flex list-unstyled gap-2 mb-3 request-steps" aria-label="Langkah">
             @foreach ($steps as $label)
-                <li class="flex-fill">
+                <li class="flex-fill" data-step-item="{{ $loop->index }}">
                     <button type="button" class="btn btn-block btn-default text-left" data-step-tab="{{ $loop->index }}">
                         <span class="badge badge-secondary mr-1">{{ $loop->iteration }}</span> {{ $label }}
                     </button>
@@ -96,13 +96,33 @@
 
             {{-- Langkah 2 --}}
             <div data-step="1">
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">Kategori dokumen</h3></div>
+                    <div class="card-body">
+                        @forelse ($categories as $category)
+                            <div class="custom-control custom-radio {{ $loop->last ? '' : 'mb-2' }}">
+                                <input type="radio" class="custom-control-input @error('kategori') is-invalid @enderror" id="kategori-{{ $category->id }}" name="kategori" value="{{ $category->id }}" required
+                                    data-needs-observation="{{ $category->needs_observation ? 1 : 0 }}" @checked($chosen === $category->id)>
+                                <label class="custom-control-label" for="kategori-{{ $category->id }}">
+                                    <strong>{{ $category->label() }}</strong>
+                                    @if ($category->code === 'IK')<a href="{{ route('document-request.example') }}" target="_blank" class="small ml-1">Lihat contoh</a>@endif
+                                    @if ($category->description)<span class="d-block small text-muted">{{ $category->description }}</span>@endif
+                                    <span class="d-block small text-muted">{{ implode(' → ', $category->stageNames()) }}</span>
+                                </label>
+                            </div>
+                        @empty
+                            <p class="text-muted mb-0">Belum ada kategori dokumen yang dibuka.</p>
+                        @endforelse
+                        @error('kategori')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
+                    </div>
+                </div>
                 <div id="processList">
                     @foreach ($processes as $i => $process)
                         @include('document-request._process', ['i' => $i, 'process' => $process])
                     @endforeach
                 </div>
                 @error('proses')<div class="alert alert-danger">{{ $message }}</div>@enderror
-                <button type="button" class="btn btn-default btn-block mb-3" id="addProcess"><i class="fas fa-plus"></i> Tambah proses (maks. {{ App\Models\DocumentRequest::MAX_PROCESSES }})</button>
+                <button type="button" class="btn btn-default btn-block mb-3" id="addProcess"><i class="fas fa-plus"></i> Tambah dokumen (maks. {{ App\Models\DocumentRequest::MAX_PROCESSES }})</button>
             </div>
 
             {{-- Langkah 3 --}}
@@ -113,7 +133,7 @@
                     <div class="form-row">
                         <div class="form-group col-md-6">
                             <label for="obs_tanggal_1">Pilihan tanggal 1</label>
-                            <input type="date" class="form-control @error('obs_tanggal_1') is-invalid @enderror" id="obs_tanggal_1" name="obs_tanggal_1" required min="{{ today()->toDateString() }}" value="{{ old('obs_tanggal_1') }}">
+                            <input type="date" class="form-control @error('obs_tanggal_1') is-invalid @enderror" id="obs_tanggal_1" name="obs_tanggal_1" min="{{ today()->toDateString() }}" value="{{ old('obs_tanggal_1') }}">
                             @error('obs_tanggal_1')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="form-group col-md-6">
@@ -152,25 +172,44 @@
         const tabs = [...document.querySelectorAll('[data-step-tab]')];
         const list = document.getElementById('processList');
         const maxProcesses = {{ App\Models\DocumentRequest::MAX_PROCESSES }};
+        const observationStep = 2;
+        const observationDate = document.getElementById('obs_tanggal_1');
         let current = 0;
+
+        // Langkah Observasi hanya untuk kategori yang butuh observasi.
+        function needsObservation() {
+            const chosen = form.querySelector('input[name="kategori"]:checked');
+            return !!chosen && chosen.dataset.needsObservation === '1';
+        }
+
+        function lastStep() {
+            return needsObservation() ? observationStep : observationStep - 1;
+        }
+
+        function syncObservation() {
+            const needed = needsObservation();
+            observationDate.required = needed;
+            document.querySelector('[data-step-item="' + observationStep + '"]').hidden = !needed;
+            show(current, false);
+        }
 
         const keyInput = document.getElementById('idempotencyKey');
         if (!keyInput.value) {
             keyInput.value = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
         }
 
-        function show(index) {
-            current = index;
-            steps.forEach((step, i) => step.hidden = i !== index);
+        function show(index, scroll = true) {
+            current = Math.min(index, lastStep());
+            steps.forEach((step, i) => step.hidden = i !== current);
             tabs.forEach((tab, i) => {
-                tab.classList.toggle('btn-primary', i === index);
-                tab.classList.toggle('btn-default', i !== index);
-                tab.disabled = i > index;
+                tab.classList.toggle('btn-primary', i === current);
+                tab.classList.toggle('btn-default', i !== current);
+                tab.disabled = i > current;
             });
-            document.getElementById('prevStep').style.visibility = index === 0 ? 'hidden' : 'visible';
-            document.getElementById('nextStep').hidden = index === steps.length - 1;
-            document.getElementById('submitRequest').hidden = index !== steps.length - 1;
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.getElementById('prevStep').style.visibility = current === 0 ? 'hidden' : 'visible';
+            document.getElementById('nextStep').hidden = current === lastStep();
+            document.getElementById('submitRequest').hidden = current !== lastStep();
+            if (scroll) { window.scrollTo({ top: 0, behavior: 'smooth' }); }
         }
 
         function valid(index) {
@@ -203,6 +242,7 @@
             list.insertAdjacentHTML('beforeend', document.getElementById('processTemplate').innerHTML.replaceAll('__INDEX__', index));
             renumber();
         });
+        form.querySelectorAll('input[name="kategori"]').forEach(radio => radio.addEventListener('change', syncObservation));
         list.addEventListener('click', event => {
             const button = event.target.closest('[data-remove-process]');
             if (button) { button.closest('[data-process]').remove(); renumber(); }
@@ -216,6 +256,7 @@
         // Setelah validasi server gagal, buka langkah yang berisi kesalahan pertama.
         const firstError = form.querySelector('.is-invalid');
         renumber();
+        syncObservation();
         show(firstError ? steps.indexOf(firstError.closest('[data-step]')) : 0);
     })();
 </script>

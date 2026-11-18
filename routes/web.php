@@ -4,6 +4,7 @@ use App\Http\Controllers\AreaController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DivisiController;
+use App\Http\Controllers\DocumentCategoryController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DocumentRequestController;
 use App\Http\Controllers\DokumenTypeController;
@@ -160,8 +161,16 @@ Route::middleware('auth')->group(function () {
             Route::post('status', 'storeStatus')->name('statuses.store');
             Route::put('status/{status}', 'updateStatus')->whereNumber('status')->name('statuses.update');
             Route::delete('status/{status}', 'destroyStatus')->whereNumber('status')->name('statuses.destroy');
-            Route::put('pic', 'updatePics')->name('pics');
         });
+    });
+
+    // # KATEGORI DOKUMEN (master jenis dokumen OD dan tahapannya; dikelola OD Leader)
+    Route::controller(DocumentCategoryController::class)->prefix('kategori-dokumen')->name('document-category.')->middleware('can:manage-od-report')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::get('{category}/edit', 'edit')->whereNumber('category')->name('edit');
+        Route::put('{category}', 'update')->whereNumber('category')->name('update');
+        Route::delete('{category}', 'destroy')->whereNumber('category')->name('destroy');
     });
 
     // # DASHBOARD

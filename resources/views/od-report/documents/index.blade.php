@@ -36,8 +36,8 @@
                     @endif
                     <select name="jenis" class="custom-select custom-select-sm" style="width: 150px;" onchange="this.form.submit()" aria-label="Jenis">
                         <option value="">Semua jenis</option>
-                        @foreach (App\Models\OdDocument::JENIS as $jenis)
-                            <option value="{{ $jenis }}" @selected(request('jenis') === $jenis)>{{ $jenis }}</option>
+                        @foreach ($categories as $category)
+                            <option value="{{ $category->code }}" @selected(request('jenis') === $category->code)>{{ $category->code }}</option>
                         @endforeach
                     </select>
                     <select name="sort" class="custom-select custom-select-sm" style="width: 170px;" onchange="this.form.submit()" aria-label="Urutkan">

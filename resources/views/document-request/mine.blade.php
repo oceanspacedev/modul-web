@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Permintaan Saya" subtitle="Pengajuan dokumen IK ke tim OD" eyebrow="Permintaan Dokumen">
+        <x-page-header title="Permintaan Saya" subtitle="Pengajuan dokumen ke tim OD" eyebrow="Permintaan Dokumen">
             <x-slot:actions>
                 <a href="{{ route('document-request.example') }}" class="btn btn-default"><i class="far fa-file-pdf"></i> Contoh IK</a>
                 <a href="{{ route('document-request.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Ajukan Dokumen</a>
@@ -22,7 +22,8 @@
                     <thead>
                         <tr>
                             <th>Kode</th>
-                            <th>Proses</th>
+                            <th>Kategori</th>
+                            <th>Dokumen</th>
                             <th>Status</th>
                             <th style="width: 160px;">Progres</th>
                             <th>Diajukan</th>
@@ -32,9 +33,10 @@
                         @forelse ($requests as $request)
                             <tr>
                                 <td><a href="{{ route('document-request.track', ['kode' => $request->code]) }}">{{ $request->code }}</a></td>
+                                <td>{{ $request->category?->code }}</td>
                                 <td style="white-space: normal;">
                                     {{ $request->processes->first()?->title }}
-                                    @if ($request->processes->count() > 1)<span class="text-muted">(+{{ $request->processes->count() - 1 }} proses)</span>@endif
+                                    @if ($request->processes->count() > 1)<span class="text-muted">(+{{ $request->processes->count() - 1 }})</span>@endif
                                 </td>
                                 <td>{{ $request->stage() }}</td>
                                 <td>
@@ -45,8 +47,8 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5">
-                                    <x-empty-state icon="fa-file-signature" title="Belum ada pengajuan" text="Ajukan pembuatan IK ke tim OD.">
+                                <td colspan="6">
+                                    <x-empty-state icon="fa-file-signature" title="Belum ada pengajuan" text="Ajukan pembuatan dokumen ke tim OD.">
                                         <a href="{{ route('document-request.create') }}" class="btn btn-primary btn-sm">Ajukan Dokumen</a>
                                     </x-empty-state>
                                 </td>

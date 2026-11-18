@@ -4,12 +4,13 @@
     $user = auth()->user();
     $isLeader = $user->can('manage-od-report');
     $r = $documentRequest;
+    $stageNames = $r->category->stageNames();
 @endphp
 
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header :title="$r->code" :subtitle="$r->stage().' · '.$r->progress().'%'"
+        <x-page-header :title="$r->code" :subtitle="$r->category->label().' · '.$r->stage().' · '.$r->progress().'%'"
             :breadcrumbs="['Permintaan Masuk' => route('od-report.requests.index'), $r->code => null]">
             <x-slot:actions>
                 <a href="{{ route('document-request.track', ['kode' => $r->code]) }}" class="btn btn-default" target="_blank"><i class="fas fa-eye"></i> Tampilan pemohon</a>
@@ -42,7 +43,7 @@
                             <div class="ml-auto d-flex gap-2 align-items-center">
                                 <select class="custom-select custom-select-sm" id="applyStage" aria-label="Tahap untuk semua proses" style="width: 210px;">
                                     <option value="">Terapkan tahap ke semua…</option>
-                                    @foreach (App\Models\OdDocument::STAGES as $stage => $info)
+                                    @foreach ($stageNames as $stage)
                                         <option value="{{ $stage }}">{{ $stage }}</option>
                                     @endforeach
                                 </select>
@@ -61,7 +62,7 @@
                                     <div class="form-row">
                                         <div class="col-md-5 mb-2">
                                             <select class="custom-select custom-select-sm" name="proses[{{ $process->id }}][stage]" data-stage @disabled(! $editable) aria-label="Tahap {{ $process->title }}">
-                                                @foreach (App\Models\OdDocument::STAGES as $stage => $info)
+                                                @foreach ($stageNames as $stage)
                                                     <option value="{{ $stage }}" @selected($process->stage === $stage)>{{ $loop->iteration }}. {{ $stage }}</option>
                                                 @endforeach
                                             </select>
@@ -92,8 +93,9 @@
                     </div>
 
                     <div class="card">
-                        <div class="card-header"><h3 class="card-title">Observasi & catatan</h3></div>
+                        <div class="card-header"><h3 class="card-title">{{ $r->obs_tanggal_1 ? 'Observasi & catatan' : 'Catatan' }}</h3></div>
                         <div class="card-body">
+                            @if ($r->obs_tanggal_1)
                             <div class="form-group">
                                 <label for="jadwal_observasi">Jadwal observasi final</label>
                                 <div class="d-flex flex-wrap gap-2">
@@ -106,6 +108,9 @@
                                 </div>
                                 @if ($r->obs_catatan)<small class="form-text text-muted">Catatan pemohon: {{ $r->obs_catatan }}</small>@endif
                             </div>
+                            @else
+                                <input type="hidden" name="jadwal_observasi" value="{{ $r->jadwal_observasi?->toDateString() }}">
+                            @endif
                             <div class="form-group">
                                 <label for="catatan_publik">Catatan untuk pemohon <span class="text-muted font-weight-normal">(masuk riwayat & WA)</span></label>
                                 <input type="text" class="form-control" id="catatan_publik" name="catatan_publik" maxlength="300" value="{{ old('catatan_publik') }}">
