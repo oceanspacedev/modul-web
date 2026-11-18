@@ -17,10 +17,10 @@ class OdDocument extends Model
 {
     use SoftDeletes;
 
-    public const JENIS = ['IK', 'JD', 'SOP', 'SE', 'MEMO', 'SA', 'Dokumen Lainnya'];
+    public const JENIS = ['IK', 'JD', 'SOP', 'SE', 'MEMO', 'Dokumen Lainnya'];
 
     /** Urutan dokumen di ekspor ACHIEVEMENT bulanan. */
-    public const JENIS_EXPORT_ORDER = ['SOP', 'SE', 'MEMO', 'SA', 'IK', 'JD'];
+    public const JENIS_EXPORT_ORDER = ['SOP', 'SE', 'MEMO', 'IK', 'JD'];
 
     /** Saran isian badan usaha (bebas diketik). */
     public const BADAN_USAHA = ['CV CS', 'CV CS AUTO EV', 'CV TOP', 'PT SMI', 'PT MSI', 'PT CSN', 'RISM'];

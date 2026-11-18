@@ -71,7 +71,13 @@ class OdDocumentTest extends TestCase
         $this->assertSame($leader->id, OdDocument::where('title', 'IK Penerimaan Barang')->value('pic_user_id'));
 
         $this->actingAs($leader)->get(route('od-report.documents.index'))->assertOk()
-            ->assertDontSee('<th>PIC</th>', false)->assertDontSee('name="pic_user_id"', false)->assertDontSee('Semua PIC');
+            ->assertDontSee('<th>PIC</th>', false)->assertDontSee('name="pic_user_id"', false)->assertDontSee('Semua PIC')
+            ->assertDontSee('<option value="SA"', false);
+
+        // Jenis SA tidak dipakai lagi.
+        $this->actingAs($leader)->post(route('od-report.documents.store'), [
+            'title' => 'SA Lama', 'jenis' => 'SA', 'od_document_status_id' => $open->id,
+        ])->assertSessionHasErrors('jenis');
 
         $this->actingAs($staff)->post(route('od-report.documents.store'), [
             'title' => 'SOP Gudang', 'jenis' => 'SOP', 'pic_user_id' => $leader->id, 'od_document_status_id' => $open->id,

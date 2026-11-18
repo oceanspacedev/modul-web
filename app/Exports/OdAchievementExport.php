@@ -19,7 +19,7 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 /**
  * Monthly Report format "ACHIEVEMENT BUSDEV": header merah NO | POSISI | ACHIEVEMENT | BADAN USAHA | Keterangan,
  * kolom POSISI di-merge per jabatan dan NO mulai ulang per jabatan. Dokumen batal tidak disertakan; status berjalan
- * pertama ditulis "Proses Approval" seperti di template. Urutan: SOP, SE, MEMO, SA, IK, JD, lainnya, lalu terlama.
+ * pertama ditulis "Proses Approval" seperti di template. Urutan: SOP, SE, MEMO, IK, JD, lainnya, lalu terlama.
  */
 class OdAchievementExport implements FromArray, WithCustomValueBinder, WithEvents, WithTitle
 {
