@@ -126,6 +126,24 @@
                 </li>
                 @endcanany
 
+                @can('access-od-report')
+                <li class="nav-header">OD Report</li>
+                <li class="nav-item">
+                    <a href="{{ route('od-report.documents.index') }}" class="nav-link {{ ($active ?? '') === 'od-documents' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-file-signature"></i>
+                        <p>Approval Dokumen</p>
+                    </a>
+                </li>
+                @can('manage-od-report')
+                <li class="nav-item">
+                    <a href="{{ route('od-report.settings.index') }}" class="nav-link {{ ($active ?? '') === 'od-settings' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-cog"></i>
+                        <p>Pengaturan OD</p>
+                    </a>
+                </li>
+                @endcan
+                @endcan
+
                 @canany(['manage-users', 'manage-roles', 'manage-master-data'])
                 <li class="nav-header">Pengaturan</li>
 

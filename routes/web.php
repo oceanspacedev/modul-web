@@ -11,6 +11,8 @@ use App\Http\Controllers\LearningModulePortalController;
 use App\Http\Controllers\LearningModuleQuestionController;
 use App\Http\Controllers\MeetingAccountController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OdDocumentController;
+use App\Http\Controllers\OdSettingController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ScoreRecapController;
@@ -100,6 +102,26 @@ Route::middleware('auth')->group(function () {
     Route::controller(ScoreRecapController::class)->prefix('rekap-nilai')->name('score-recap.')->group(function () {
         Route::get('/', 'index')->name('index');
         Route::post('export', 'export')->name('export');
+    });
+
+    // # OD REPORT (tim Organization Development; Staff melihat datanya sendiri, Leader seluruh tim)
+    Route::prefix('od-report')->name('od-report.')->middleware('can:access-od-report')->group(function () {
+        Route::controller(OdDocumentController::class)->prefix('dokumen')->name('documents.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->name('store');
+            Route::get('{document}/edit', 'edit')->whereNumber('document')->name('edit');
+            Route::put('{document}', 'update')->whereNumber('document')->name('update');
+            Route::patch('{document}/status', 'updateStatus')->whereNumber('document')->name('status');
+            Route::delete('{document}', 'destroy')->whereNumber('document')->name('destroy');
+        });
+
+        Route::controller(OdSettingController::class)->prefix('pengaturan')->name('settings.')->middleware('can:manage-od-report')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('status', 'storeStatus')->name('statuses.store');
+            Route::put('status/{status}', 'updateStatus')->whereNumber('status')->name('statuses.update');
+            Route::delete('status/{status}', 'destroyStatus')->whereNumber('status')->name('statuses.destroy');
+            Route::put('pic', 'updatePics')->name('pics');
+        });
     });
 
     // # DASHBOARD
