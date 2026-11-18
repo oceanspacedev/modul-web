@@ -42,6 +42,19 @@ class OdDocumentTest extends TestCase
         $this->actingAs($this->member(User::OD_STAFF))->get(route('od-report.documents.index'))->assertOk()->assertSee('Approval Dokumen');
     }
 
+    public function test_document_menus_sit_under_layanan_with_approval_last(): void
+    {
+        $this->actingAs($this->member(User::OD_STAFF))->get(route('document-request.mine'))
+            ->assertOk()
+            ->assertSeeInOrder(['Layanan', 'Permintaan Dokumen', 'Permintaan Masuk', 'Approval Dokumen', 'OD Report', 'Dashboard OD']);
+
+        $this->actingAs(User::factory()->staff()->create())->get(route('document-request.mine'))
+            ->assertOk()
+            ->assertSee('Permintaan Dokumen')
+            ->assertDontSee('Permintaan Masuk')
+            ->assertDontSee('Approval Dokumen');
+    }
+
     public function test_staff_only_sees_and_edits_own_documents_while_leader_sees_all(): void
     {
         $staff = $this->member(User::OD_STAFF, 'STAFF SATU');
