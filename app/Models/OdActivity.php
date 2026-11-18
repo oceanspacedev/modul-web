@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use App\Services\OdSheetSync;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Satu pekerjaan di Daily Report tim OD. saved_at kosong = masih draft (belum "Simpan Laporan"); Weekly dan Monthly
@@ -30,6 +33,30 @@ class OdActivity extends Model
     protected $guarded = ['id'];
 
     /**
+     * SYNC ID untuk spreadsheet Weekly Report diberikan sejak dibuat. Aktivitas yang tersimpan dan berubah dikirim ke
+     * spreadsheet; yang sudah terkirim lalu dihapus dikosongkan barisnya (lihat OdSheetSync).
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (OdActivity $activity) {
+            $activity->sync_key ??= (string) Str::uuid();
+        });
+
+        static::saved(function (OdActivity $activity) {
+            if ($activity->saved_at !== null) {
+                OdSheetSync::queue();
+            }
+        });
+
+        static::deleted(function (OdActivity $activity) {
+            if ($activity->synced_at !== null) {
+                DB::table('od_sheet_deletions')->insertOrIgnore(['sync_key' => $activity->sync_key, 'created_at' => now()]);
+                OdSheetSync::queue();
+            }
+        });
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
@@ -37,6 +64,7 @@ class OdActivity extends Model
         return [
             'date' => 'date',
             'saved_at' => 'datetime',
+            'synced_at' => 'datetime',
         ];
     }
 

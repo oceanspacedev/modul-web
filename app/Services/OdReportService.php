@@ -19,7 +19,9 @@ class OdReportService
      */
     public function autoSavePastDrafts(): void
     {
-        OdActivity::whereNull('saved_at')->whereDate('date', '<', today())->update(['saved_at' => now()]);
+        if (OdActivity::whereNull('saved_at')->whereDate('date', '<', today())->update(['saved_at' => now()])) {
+            OdSheetSync::queue();
+        }
     }
 
     /**

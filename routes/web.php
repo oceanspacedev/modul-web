@@ -161,6 +161,7 @@ Route::middleware('auth')->group(function () {
             Route::put('status/{status}', 'updateStatus')->whereNumber('status')->name('statuses.update');
             Route::delete('status/{status}', 'destroyStatus')->whereNumber('status')->name('statuses.destroy');
             Route::put('pic', 'updatePics')->name('pics');
+            Route::post('sinkron-sheets', 'syncSheets')->name('sync-sheets');
         });
     });
 
