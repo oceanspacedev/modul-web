@@ -11,7 +11,9 @@ use App\Http\Controllers\LearningModulePortalController;
 use App\Http\Controllers\LearningModuleQuestionController;
 use App\Http\Controllers\MeetingAccountController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OdDailyController;
 use App\Http\Controllers\OdDocumentController;
+use App\Http\Controllers\OdReportController;
 use App\Http\Controllers\OdSettingController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\RoleController;
@@ -106,6 +108,23 @@ Route::middleware('auth')->group(function () {
 
     // # OD REPORT (tim Organization Development; Staff melihat datanya sendiri, Leader seluruh tim)
     Route::prefix('od-report')->name('od-report.')->middleware('can:access-od-report')->group(function () {
+        Route::controller(OdReportController::class)->group(function () {
+            Route::get('/', 'dashboard')->name('dashboard');
+            Route::get('weekly', 'weekly')->name('weekly');
+            Route::get('monthly', 'monthly')->name('monthly');
+        });
+
+        Route::controller(OdDailyController::class)->prefix('daily')->name('daily.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->name('store');
+            Route::post('simpan', 'save')->name('save');
+            Route::post('buka-kembali', 'reopen')->name('reopen');
+            Route::get('{activity}/edit', 'edit')->whereNumber('activity')->name('edit');
+            Route::put('{activity}', 'update')->whereNumber('activity')->name('update');
+            Route::patch('{activity}/geser', 'move')->whereNumber('activity')->name('move');
+            Route::delete('{activity}', 'destroy')->whereNumber('activity')->name('destroy');
+        });
+
         Route::controller(OdDocumentController::class)->prefix('dokumen')->name('documents.')->group(function () {
             Route::get('/', 'index')->name('index');
             Route::post('/', 'store')->name('store');

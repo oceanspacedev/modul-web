@@ -128,6 +128,19 @@
 
                 @can('access-od-report')
                 <li class="nav-header">OD Report</li>
+                @foreach ([
+                    ['od-report.dashboard', 'od-dashboard', 'fas fa-chart-pie', 'Dashboard OD'],
+                    ['od-report.daily.index', 'od-daily', 'fas fa-edit', 'Daily Report'],
+                    ['od-report.weekly', 'od-weekly', 'fas fa-calendar-week', 'Weekly Report'],
+                    ['od-report.monthly', 'od-monthly', 'fas fa-calendar-alt', 'Monthly Report'],
+                ] as [$route, $key, $icon, $label])
+                <li class="nav-item">
+                    <a href="{{ route($route) }}" class="nav-link {{ ($active ?? '') === $key ? 'active' : '' }}">
+                        <i class="nav-icon {{ $icon }}"></i>
+                        <p>{{ $label }}</p>
+                    </a>
+                </li>
+                @endforeach
                 <li class="nav-item">
                     <a href="{{ route('od-report.documents.index') }}" class="nav-link {{ ($active ?? '') === 'od-documents' ? 'active' : '' }}">
                         <i class="nav-icon fas fa-file-signature"></i>

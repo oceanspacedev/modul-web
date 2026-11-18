@@ -41,7 +41,7 @@ class OdDocumentController extends Controller
         $documents = $base
             ->when($request->filled('status'), fn (Builder $q) => $q->where('od_document_status_id', $request->integer('status')))
             ->with(['status', 'pic', 'documentRequest'])
-            ->withCount(['activities' => fn (Builder $q) => $q->saved()])
+            ->withCount(['activities' => fn (Builder $q) => $q->reported()])
             ->when($sort === 'open', fn (Builder $q) => $q->orderByRaw(
                 'case when od_document_status_id in ('.$statuses->where('type', OdDocumentStatus::TYPE_OPEN)->pluck('id')->push(0)->implode(',').') then 0 else 1 end'
             ))
@@ -90,7 +90,7 @@ class OdDocumentController extends Controller
 
         $document->load([
             'status', 'pic', 'documentRequest',
-            'activities' => fn ($q) => $q->saved()->with('user')->orderByDesc('date'),
+            'activities' => fn ($q) => $q->reported()->with('user')->orderByDesc('date'),
         ]);
 
         return view('od-report.documents.edit', [

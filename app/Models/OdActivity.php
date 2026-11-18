@@ -53,7 +53,7 @@ class OdActivity extends Model
     }
 
     /** @param Builder<OdActivity> $query */
-    public function scopeSaved(Builder $query): void
+    public function scopeReported(Builder $query): void
     {
         $query->whereNotNull('saved_at');
     }
