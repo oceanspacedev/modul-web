@@ -14,7 +14,7 @@
 
         <div class="row">
             <div class="col-lg-7">
-                <form action="{{ route('od-report.documents.update', $document) }}" method="POST" class="card">
+                <form action="{{ route('od-report.documents.update', $document) }}" method="POST" class="card" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
                     <div class="card-body">

@@ -60,6 +60,8 @@ Route::controller(DocumentRequestController::class)->prefix('permintaan-dokumen'
     Route::post('/', 'store')->middleware('throttle:document-request')->name('store');
     Route::get('lacak', 'track')->middleware('throttle:document-request-track')->name('track');
     Route::get('contoh', 'example')->name('example');
+    // Link file rilis yang dikirim ke pemohon lewat WhatsApp; hanya link bertanda tangan dari aplikasi yang bisa dibuka.
+    Route::get('file/{document}', 'file')->whereNumber('document')->middleware(['signed', 'throttle:document-request-track'])->name('file');
 });
 
 // # PUBLIC PARTICIPANT PORTAL (ACCESSIBLE VIA WHATSAPP TOKEN LINK)
@@ -147,6 +149,7 @@ Route::middleware('auth')->group(function () {
             Route::get('{document}/edit', 'edit')->whereNumber('document')->name('edit');
             Route::put('{document}', 'update')->whereNumber('document')->name('update');
             Route::patch('{document}/status', 'updateStatus')->whereNumber('document')->name('status');
+            Route::get('{document}/file', 'file')->whereNumber('document')->name('file');
             Route::delete('{document}', 'destroy')->whereNumber('document')->name('destroy');
         });
 

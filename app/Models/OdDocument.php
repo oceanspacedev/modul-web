@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\URL;
 
 /**
  * Dokumen yang ditangani tim OD (halaman Approval Dokumen). jenis = kode Kategori Dokumen. Dokumen dari Permintaan
@@ -24,6 +25,11 @@ class OdDocument extends Model
     public const PRIORITAS = ['Urgent', 'High', 'Medium', 'Low'];
 
     public const STAGE_CANCELLED = 'Dibatalkan';
+
+    /** File dokumen rilis: PDF atau Office, maks 50 MB. */
+    public const FILE_RULES = ['file', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx', 'max:51200'];
+
+    public const FILE_REQUIRED_MESSAGE = 'Unggah file dokumen sebelum rilis.';
 
     protected $guarded = ['id'];
 
@@ -94,6 +100,34 @@ class OdDocument extends Model
     public function stageNames(): array
     {
         return $this->category?->stageNames() ?? [];
+    }
+
+    public function hasFile(): bool
+    {
+        return filled($this->file_path);
+    }
+
+    /** Dokumen dari permintaan harus punya file sebelum dirilis (file dikirim ke pemohon). */
+    public function needsFileToRelease(): bool
+    {
+        return $this->isFromRequest() && ! $this->hasFile();
+    }
+
+    /**
+     * Link file untuk pemohon (WhatsApp dan halaman lacak). Bertanda tangan dan tanpa kedaluwarsa, jadi hanya link
+     * yang dibuat aplikasi yang bisa dibuka.
+     */
+    public function fileLink(): ?string
+    {
+        return $this->hasFile() ? URL::signedRoute('document-request.file', ['document' => $this->getKey()]) : null;
+    }
+
+    /** Hasil simpan berupa rilis: tahap terakhir kategori atau status selesai. */
+    public function wouldRelease(?string $stage, ?OdDocumentStatus $status): bool
+    {
+        $final = $this->category?->finalStage();
+
+        return ($stage !== null && $final !== null && $stage === $final) || (bool) $status?->isDone();
     }
 
     public function stageIndex(): int

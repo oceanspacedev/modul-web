@@ -12,7 +12,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Approval Dokumen OD: dokumen yang ditangani tim OD, termasuk proses dari Permintaan Dokumen.
@@ -77,6 +79,10 @@ class OdDocumentController extends Controller
         $document->applyStatus($status);
         $document->save();
 
+        if ($request->hasFile('file')) {
+            $this->documents->attachFile($document, $request->file('file'));
+        }
+
         return to_route('od-report.documents.index')->with('success', 'Dokumen ditambahkan.');
     }
 
@@ -113,6 +119,13 @@ class OdDocumentController extends Controller
         $status = OdDocumentStatus::findOrFail($request->validated('od_document_status_id'));
         $stage = $request->validated('stage');
 
+        if ($this->releasesWithoutFile($document, $document->isFromRequest() ? $stage : null, $status, $request->hasFile('file'))) {
+            throw ValidationException::withMessages(['file' => OdDocument::FILE_REQUIRED_MESSAGE]);
+        }
+        if ($request->hasFile('file')) {
+            $this->documents->attachFile($document, $request->file('file'));
+        }
+
         if ($document->isFromRequest() && $stage && $stage !== $document->stage) {
             $this->documents->changeStage($document, $stage, $user);
         } elseif ($status->isNot($document->status)) {
@@ -128,11 +141,20 @@ class OdDocumentController extends Controller
     {
         $this->authorizeEdit($request, $document);
 
-        $validated = $request->validate([
+        $validated = $request->validateWithBag('release', [
             'od_document_status_id' => ['required', 'integer', Rule::exists('od_document_statuses', 'id')],
-        ]);
+            'file' => ['nullable', ...OdDocument::FILE_RULES],
+        ], [], ['file' => 'file dokumen']);
+        $status = OdDocumentStatus::findOrFail($validated['od_document_status_id']);
 
-        $this->documents->changeStatus($document, OdDocumentStatus::findOrFail($validated['od_document_status_id']), $request->user());
+        if ($this->releasesWithoutFile($document, null, $status, $request->hasFile('file'))) {
+            throw ValidationException::withMessages(['file' => OdDocument::FILE_REQUIRED_MESSAGE." ({$document->title})"])->errorBag('release');
+        }
+        if ($request->hasFile('file')) {
+            $this->documents->attachFile($document, $request->file('file'));
+        }
+
+        $this->documents->changeStatus($document, $status, $request->user());
 
         return back()->with('success', 'Status "'.$document->title.'" menjadi '.$document->status->name.'.');
     }
@@ -149,6 +171,27 @@ class OdDocumentController extends Controller
         $document->delete();
 
         return back()->with('success', 'Dokumen dihapus.');
+    }
+
+    /**
+     * File dokumen untuk tim OD (siapa pun yang bisa melihat dokumennya).
+     */
+    public function file(Request $request, OdDocument $document): Response
+    {
+        throw_unless(OdDocument::query()->visibleTo($request->user())->whereKey($document->getKey())->exists(), AuthorizationException::class);
+        abort_unless($document->hasFile(), 404);
+
+        return $this->documents->fileResponse($document);
+    }
+
+    /**
+     * Dokumen dari permintaan baru akan dirilis lewat perubahan ini, tapi belum punya file dan tidak mengunggah.
+     */
+    private function releasesWithoutFile(OdDocument $document, ?string $stage, OdDocumentStatus $status, bool $uploading): bool
+    {
+        $alreadyReleased = $document->status?->isDone() || $document->isReleased();
+
+        return ! $uploading && ! $alreadyReleased && $document->needsFileToRelease() && $document->wouldRelease($stage, $status);
     }
 
     /** Staff hanya boleh mengubah dokumen miliknya. */

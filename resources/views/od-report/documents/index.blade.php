@@ -21,6 +21,9 @@
 <section class="content">
     <div class="container-fluid">
         <x-flash />
+        @foreach ($errors->getBag('release')->all() as $message)
+            <div class="alert alert-danger">{{ $message }}</div>
+        @endforeach
 
         <div class="card">
             <div class="card-header filter-toolbar">
@@ -69,6 +72,9 @@
                             <tr>
                                 <td style="white-space: normal; min-width: 240px;">
                                     <strong>{{ $document->title }}</strong>
+                                    @if ($document->hasFile())
+                                        <a href="{{ route('od-report.documents.file', $document) }}" target="_blank" class="ml-1" title="{{ $document->file_name }}"><i class="fas fa-paperclip"></i></a>
+                                    @endif
                                     <div class="small text-muted">
                                         @if ($document->documentRequest)
                                             <span class="badge badge-info">{{ $document->documentRequest->code }}</span>
@@ -93,9 +99,11 @@
                                         <form action="{{ route('od-report.documents.status', $document) }}" method="POST" class="m-0">
                                             @csrf
                                             @method('PATCH')
-                                            <select name="od_document_status_id" class="custom-select custom-select-sm" onchange="this.form.submit()" aria-label="Status {{ $document->title }}">
+                                            <select name="od_document_status_id" class="custom-select custom-select-sm" aria-label="Status {{ $document->title }}"
+                                                data-status-select data-current="{{ $document->od_document_status_id }}" data-title="{{ $document->title }}"
+                                                data-needs-file="{{ $document->needsFileToRelease() && ! $document->status->isDone() ? 1 : 0 }}">
                                                 @foreach ($statuses as $status)
-                                                    <option value="{{ $status->id }}" @selected($status->id === $document->od_document_status_id)>{{ $status->name }}</option>
+                                                    <option value="{{ $status->id }}" data-done="{{ $status->isDone() ? 1 : 0 }}" @selected($status->id === $document->od_document_status_id)>{{ $status->name }}</option>
                                                 @endforeach
                                             </select>
                                         </form>
@@ -135,9 +143,33 @@
     </div>
 </section>
 
+<div class="modal fade" id="releaseModal" tabindex="-1" role="dialog" aria-labelledby="releaseTitle" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <form method="POST" class="modal-content" enctype="multipart/form-data" id="releaseForm">
+            @csrf
+            @method('PATCH')
+            <input type="hidden" name="od_document_status_id" id="releaseStatus">
+            <div class="modal-header">
+                <h5 class="modal-title" id="releaseTitle">Rilis dokumen</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2"><strong id="releaseDocument"></strong></p>
+                <label for="releaseFile">File dokumen</label>
+                <input type="file" class="form-control-file" id="releaseFile" name="file" required accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                <small class="form-text text-muted">PDF, Word, Excel, PowerPoint. Maks 50 MB. File dikirim ke pemohon lewat WhatsApp.</small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-primary">Rilis</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="modal fade" id="addDocumentModal" tabindex="-1" role="dialog" aria-labelledby="addDocumentTitle" aria-hidden="true">
     <div class="modal-dialog" role="document">
-        <form action="{{ route('od-report.documents.store') }}" method="POST" class="modal-content">
+        <form action="{{ route('od-report.documents.store') }}" method="POST" class="modal-content" enctype="multipart/form-data">
             @csrf
             <div class="modal-header">
                 <h5 class="modal-title" id="addDocumentTitle">Tambah Dokumen</h5>
@@ -158,9 +190,29 @@
 @section('footer')
 <script>
     $(function () {
-        @if ($errors->any())
+        @if ($errors->getBag('default')->any())
             $('#addDocumentModal').modal('show');
         @endif
+
+        // Status selesai untuk dokumen dari permintaan yang belum punya file: minta file dulu lewat modal.
+        let pending = null;
+        $('[data-status-select]').on('change', function () {
+            const option = this.options[this.selectedIndex];
+            if (this.dataset.needsFile === '1' && option.dataset.done === '1') {
+                pending = this;
+                $('#releaseForm').attr('action', this.form.action);
+                $('#releaseStatus').val(this.value);
+                $('#releaseDocument').text(this.dataset.title);
+                $('#releaseFile').val('');
+                $('#releaseModal').modal('show');
+                return;
+            }
+            this.form.submit();
+        });
+        $('#releaseModal').on('hidden.bs.modal', function () {
+            if (pending) { pending.value = pending.dataset.current; pending = null; }
+        });
+        $('#releaseForm').on('submit', function () { pending = null; });
     });
 </script>
 @endsection

@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
@@ -92,6 +93,7 @@ class OdRequestController extends Controller
             'proses.*.stage' => ['nullable', Rule::in($documentRequest->category->stageNames())],
             'proses.*.prioritas' => ['nullable', Rule::in(OdDocument::PRIORITAS)],
             'proses.*.pic_user_id' => ['nullable', 'integer', Rule::in(OdTeam::query()->pluck('id')->all())],
+            'proses.*.file' => ['nullable', ...OdDocument::FILE_RULES],
             'jadwal_observasi' => ['nullable', 'date_format:Y-m-d'],
             'catatan_publik' => ['nullable', 'string', 'max:300'],
             'catatan_admin' => ['nullable', 'string', 'max:2000'],
@@ -100,6 +102,20 @@ class OdRequestController extends Controller
         // Dua anggota tim membuka halaman yang sama: perubahan yang datang belakangan tidak menimpa diam-diam.
         if ($data['updated_at'] !== $documentRequest->updated_at->toIso8601String()) {
             return back()->withInput()->with('error', 'Pengajuan ini baru saja diubah anggota tim lain. Muat ulang halaman lalu ulangi perubahan Anda.');
+        }
+
+        // Dokumen yang dirilis harus punya file: file itu yang dikirim ke pemohon.
+        $final = $documentRequest->category->finalStage();
+        $missing = $documentRequest->processes()->get()
+            ->filter(function (OdDocument $process) use ($data, $final) {
+                $input = $data['proses'][$process->id] ?? [];
+
+                return ($input['stage'] ?? null) === $final && $process->stage !== $final
+                    && $process->needsFileToRelease() && empty($input['file']);
+            })
+            ->mapWithKeys(fn (OdDocument $process) => ["proses.{$process->id}.file" => OdDocument::FILE_REQUIRED_MESSAGE." ({$process->title})"]);
+        if ($missing->isNotEmpty()) {
+            throw ValidationException::withMessages($missing->all());
         }
 
         $service->update($documentRequest, $data, $request->user());

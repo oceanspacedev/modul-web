@@ -47,6 +47,16 @@
     </div>
 </div>
 
+<div class="form-group">
+    <label for="file">File dokumen <span class="text-muted font-weight-normal">({{ $document?->isFromRequest() ? 'wajib saat rilis' : 'opsional' }})</span></label>
+    @if ($document?->hasFile())
+        <div class="small mb-1"><a href="{{ route('od-report.documents.file', $document) }}" target="_blank"><i class="fas fa-paperclip"></i> {{ $document->file_name }}</a></div>
+    @endif
+    <input type="file" class="form-control-file @error('file') is-invalid @enderror" id="file" name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+    <small class="form-text text-muted">PDF, Word, Excel, PowerPoint. Maks 50 MB.</small>
+    @error('file')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+</div>
+
 <div class="form-group mb-0">
     <label for="catatan">Catatan</label>
     <textarea class="form-control @error('catatan') is-invalid @enderror" id="catatan" name="catatan" rows="2" maxlength="300">{{ old('catatan', $document?->catatan) }}</textarea>

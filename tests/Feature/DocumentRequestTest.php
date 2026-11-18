@@ -7,8 +7,10 @@ use App\Models\DocumentRequest;
 use App\Models\OdDocument;
 use App\Models\OdDocumentStatus;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -21,6 +23,7 @@ class DocumentRequestTest extends TestCase
         parent::setUp();
         Carbon::setTestNow('2026-11-18 10:00:00');
         Http::fake(['whatsapp.test/*' => Http::response(['status' => true])]);
+        Storage::fake();
     }
 
     private function member(string $access, string $name): User
@@ -132,7 +135,7 @@ class DocumentRequestTest extends TestCase
         $this->actingAs($leader)->put(route('od-report.requests.update', $request), [
             'updated_at' => $request->fresh()->updated_at->toIso8601String(),
             'proses' => [
-                $first->id => ['stage' => 'Release', 'prioritas' => 'High', 'pic_user_id' => $leader->id],
+                $first->id => ['stage' => 'Release', 'prioritas' => 'High', 'pic_user_id' => $leader->id, 'file' => UploadedFile::fake()->create('ik-penerimaan.pdf', 100, 'application/pdf')],
                 $second->id => ['stage' => 'Drafting', 'prioritas' => 'Medium'],
             ],
             'jadwal_observasi' => '2026-11-20',
@@ -165,7 +168,9 @@ class DocumentRequestTest extends TestCase
 
         // Status selesai di Approval Dokumen = tahap Release.
         $done = OdDocumentStatus::firstOfType(OdDocumentStatus::TYPE_DONE);
-        $this->actingAs($leader)->patch(route('od-report.documents.status', $second), ['od_document_status_id' => $done->id]);
+        $this->actingAs($leader)->patch(route('od-report.documents.status', $second), [
+            'od_document_status_id' => $done->id, 'file' => UploadedFile::fake()->create('ik-retur.pdf', 100, 'application/pdf'),
+        ]);
         $this->assertSame('Release', $second->fresh()->stage);
         $this->assertTrue($request->fresh()->load('processes.status')->isFinished());
 

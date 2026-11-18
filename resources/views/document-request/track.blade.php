@@ -106,6 +106,9 @@
                         @if ($stage !== App\Models\OdDocument::STAGE_CANCELLED)
                             <div class="small text-muted mt-2">{{ $category?->stageDescription($process->stage) }}</div>
                         @endif
+                        @if ($process->isReleased() && $process->hasFile())
+                            <a href="{{ $process->fileLink() }}" target="_blank" rel="noopener" class="btn btn-success btn-sm mt-2"><i class="fas fa-file-download"></i> Buka file</a>
+                        @endif
                     </div>
                 </div>
             @endforeach

@@ -30,6 +30,7 @@ class OdDocumentRequest extends FormRequest
             'badan_usaha' => ['nullable', 'string', 'max:120'],
             'od_document_status_id' => ['required', 'integer', Rule::exists('od_document_statuses', 'id')],
             'catatan' => ['nullable', 'string', 'max:300'],
+            'file' => ['nullable', ...OdDocument::FILE_RULES],
             // Tahap hanya untuk dokumen dari Permintaan Dokumen, dari tahapan kategorinya.
             'stage' => ['nullable', Rule::in($document?->category?->stageNames() ?? [])],
         ];
@@ -46,6 +47,7 @@ class OdDocumentRequest extends FormRequest
             'badan_usaha' => 'badan usaha',
             'od_document_status_id' => 'status',
             'catatan' => 'catatan',
+            'file' => 'file dokumen',
             'stage' => 'tahap',
         ];
     }

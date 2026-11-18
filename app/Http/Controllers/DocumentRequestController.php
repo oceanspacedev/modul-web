@@ -5,10 +5,13 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreDocumentRequestRequest;
 use App\Models\DocumentCategory;
 use App\Models\DocumentRequest;
+use App\Models\OdDocument;
 use App\Services\DocumentRequestService;
+use App\Services\OdDocumentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Sisi pemohon Permintaan Dokumen: form (publik atau login), lacak dengan kode tiket, contoh dokumen, dan daftar
@@ -66,6 +69,17 @@ class DocumentRequestController extends Controller
             'cloud' => config('od-report.cloud'),
             'adminWhatsapp' => config('od-report.admin_whatsapp'),
         ]);
+    }
+
+    /**
+     * File dokumen yang sudah dirilis, dibuka pemohon dari link WhatsApp atau halaman lacak. PDF tampil langsung di
+     * browser; file Office diunduh dengan nama aslinya.
+     */
+    public function file(OdDocument $document, OdDocumentService $documents): Response
+    {
+        abort_unless($document->isFromRequest() && $document->hasFile() && $document->isReleased(), 404);
+
+        return $documents->fileResponse($document);
     }
 
     public function example(): View

@@ -7,8 +7,10 @@ use App\Models\DocumentRequest;
 use App\Models\OdDocument;
 use App\Models\OdDocumentStatus;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -21,6 +23,7 @@ class DocumentCategoryTest extends TestCase
         parent::setUp();
         Carbon::setTestNow('2026-11-18 10:00:00');
         Http::fake(['whatsapp.test/*' => Http::response(['status' => true])]);
+        Storage::fake();
     }
 
     private function member(string $access, string $name = 'Anggota OD'): User
@@ -167,7 +170,7 @@ class DocumentCategoryTest extends TestCase
         $leader = $this->member(User::OD_LEADER);
         $form = fn (string $stage) => [
             'updated_at' => $request->fresh()->updated_at->toIso8601String(),
-            'proses' => [$document->id => ['stage' => $stage]],
+            'proses' => [$document->id => ['stage' => $stage, 'file' => UploadedFile::fake()->create('jd.pdf', 50, 'application/pdf')]],
         ];
         $this->actingAs($leader)->put(route('od-report.requests.update', $request), $form('Dalam proses observasi'))->assertSessionHasErrors('proses.'.$document->id.'.stage');
         $this->actingAs($leader)->put(route('od-report.requests.update', $request), $form('Release'))->assertSessionHas('success');

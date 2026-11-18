@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Notifications\DocumentRequestSubmitted;
 use App\Notifications\DocumentRequestUpdated;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -126,8 +127,13 @@ class DocumentRequestService
                     $this->history($request, $by, $process->publicStage(), "Prioritas \"{$process->title}\" menjadi {$input['prioritas']}.", $process);
                 }
 
+                if (($input['file'] ?? null) instanceof UploadedFile) {
+                    $this->documents->attachFile($process, $input['file']);
+                }
+
                 if (! empty($input['stage']) && $input['stage'] !== $process->stage && $this->documents->changeStage($process, $input['stage'], $by, notify: false)) {
-                    $changes[] = "• {$process->title}: {$process->publicStage()}";
+                    $changes[] = "• {$process->title}: {$process->publicStage()}"
+                        .($process->isReleased() && $process->hasFile() ? "\n  Buka file: {$process->fileLink()}" : '');
                 } else {
                     $process->save();
                 }

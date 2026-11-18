@@ -94,7 +94,8 @@ class DocumentCategoryService
             ->where('stage', '!=', $final)->update(['stage' => $final]);
 
         if ($firstDone = OdDocumentStatus::firstOfType(OdDocumentStatus::TYPE_DONE)) {
-            $this->documents($category)->whereNotNull('document_request_id')->whereIn('od_document_status_id', $open)
+            // Dokumen dari permintaan hanya boleh rilis bila sudah punya file.
+            $this->documents($category)->whereNotNull('document_request_id')->whereNotNull('file_path')->whereIn('od_document_status_id', $open)
                 ->where('stage', $final)->update(['od_document_status_id' => $firstDone->getKey(), 'received_at' => today()]);
         }
     }

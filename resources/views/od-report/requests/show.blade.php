@@ -30,7 +30,7 @@
     <div class="container-fluid">
         <x-flash />
 
-        <form action="{{ route('od-report.requests.update', $r) }}" method="POST">
+        <form action="{{ route('od-report.requests.update', $r) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
             <input type="hidden" name="updated_at" value="{{ $r->updated_at->toIso8601String() }}">
@@ -87,6 +87,19 @@
                                             @endif
                                         </div>
                                     </div>
+                                    @if ($editable || $process->hasFile())
+                                        <div class="d-flex flex-wrap align-items-center gap-2 small">
+                                            @if ($process->hasFile())
+                                                <a href="{{ route('od-report.documents.file', $process) }}" target="_blank"><i class="fas fa-paperclip"></i> {{ $process->file_name }}</a>
+                                            @endif
+                                            @if ($editable)
+                                                <input type="file" name="proses[{{ $process->id }}][file]" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                                                    class="form-control-file form-control-sm w-auto @error("proses.{$process->id}.file") is-invalid @enderror" aria-label="File {{ $process->title }}">
+                                                <span class="text-muted">{{ $process->hasFile() ? 'Ganti file' : 'File wajib saat rilis' }}</span>
+                                            @endif
+                                        </div>
+                                        @error("proses.{$process->id}.file")<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                                    @endif
                                 </div>
                             @endforeach
                         </div>
