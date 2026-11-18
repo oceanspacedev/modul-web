@@ -71,6 +71,7 @@ class StoreUserRequest extends FormRequest
                 $this->validApprover(),
             ],
             'trainer' => ['sometimes', 'boolean'],
+            'od_access' => ['sometimes', 'nullable', Rule::in(array_keys(User::OD_ACCESS))],
         ];
 
         if ($this->canChangeCredentials()) {

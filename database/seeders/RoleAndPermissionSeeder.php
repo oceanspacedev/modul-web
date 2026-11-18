@@ -54,6 +54,10 @@ class RoleAndPermissionSeeder extends Seeder
             'manage-documents' => 'Mengelola & Mengunggah Dokumen Modul',
             'view-documents' => 'Melihat & Mengunduh Dokumen Modul',
 
+            // OD Report (diberikan per orang dari form user)
+            'access-od-report' => 'Mengisi OD Report & Memproses Permintaan Dokumen',
+            'manage-od-report' => 'Melihat OD Report Seluruh Tim & Mengatur OD Report',
+
             // Pengaturan
             'manage-users' => 'Mengelola Akun Pengguna',
             'manage-roles' => 'Mengelola Jabatan & Hak Akses',
