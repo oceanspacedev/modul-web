@@ -8,7 +8,6 @@ use App\Models\OdDocument;
 use App\Models\OdDocumentStatus;
 use App\Models\User;
 use App\Services\OdReportService;
-use App\Services\OdSheetSync;
 use App\Support\OdTeam;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -125,9 +124,6 @@ class OdDailyController extends Controller
     {
         $count = OdActivity::where('user_id', $request->user()->getKey())->whereDate('date', today())
             ->whereNull('saved_at')->update(['saved_at' => now()]);
-        if ($count) {
-            OdSheetSync::queue();
-        }
 
         return to_route('od-report.daily.index')->with('success', $count
             ? "{$count} aktivitas tersimpan dan masuk ke Weekly & Monthly."

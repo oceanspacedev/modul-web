@@ -71,35 +71,6 @@
             </div>
 
             <div class="col-lg-5">
-                <div class="card">
-                    <div class="card-header d-flex align-items-center">
-                        <h3 class="card-title">Sinkron Google Sheets</h3>
-                        @php($sheetState = $sheets['status']['state'])
-                        <span class="badge ml-2 {{ ! $sheets['enabled'] ? 'badge-secondary' : ($sheetState === false ? 'badge-danger' : ($sheetState ? 'badge-success' : 'badge-warning')) }}">
-                            {{ ! $sheets['enabled'] ? 'Belum diatur' : ($sheetState === false ? 'Bermasalah' : ($sheetState ? 'Tersambung' : 'Menunggu')) }}
-                        </span>
-                    </div>
-                    <div class="card-body small">
-                        <p class="mb-2">Daily Report yang sudah disimpan otomatis masuk ke spreadsheet Weekly Report.</p>
-                        @if (! $sheets['enabled'])
-                            <p class="text-muted mb-0">Isi <code>OD_SHEETS_SYNC_URL</code> (alamat /exec) dan <code>OD_SHEETS_SPREADSHEET</code> (link spreadsheet) di .env server.</p>
-                        @else
-                            <p class="mb-1">Menunggu dikirim: <strong>{{ $sheets['pending'] }}</strong></p>
-                            @if ($sheets['status']['at'])
-                                <p class="text-muted mb-0">{{ $sheets['status']['at'] }} · {{ $sheets['status']['message'] }}</p>
-                            @endif
-                        @endif
-                    </div>
-                    @if ($sheets['enabled'])
-                        <div class="card-footer text-right">
-                            <form action="{{ route('od-report.settings.sync-sheets') }}" method="POST" class="m-0">
-                                @csrf
-                                <button type="submit" class="btn btn-default btn-sm"><i class="fas fa-sync"></i> Sinkronkan sekarang</button>
-                            </form>
-                        </div>
-                    @endif
-                </div>
-
                 <form action="{{ route('od-report.settings.pics') }}" method="POST" class="card">
                     @csrf
                     @method('PUT')

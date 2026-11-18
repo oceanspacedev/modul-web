@@ -1,6 +1,5 @@
 <?php
 
-use App\Services\OdSheetSync;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -13,5 +12,3 @@ Schedule::command('training:send-reminders')->everyFifteenMinutes();
 Schedule::command('dnd:sync-users')->dailyAt(config('services.dnd.sync_time'))->withoutOverlapping();
 Schedule::command('horizon:snapshot')->everyFiveMinutes();
 Schedule::command('notifications:prune')->dailyAt('02:00');
-// Kirim ulang perubahan Daily Report yang gagal terkirim ke spreadsheet Weekly Report (tidak jalan bila belum diatur).
-Schedule::call(fn () => OdSheetSync::queue())->name('od-sheets-sync')->everyFifteenMinutes();

@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\OdDocument;
 use App\Models\OdDocumentStatus;
 use App\Models\OdPicDefault;
-use App\Services\OdSheetSync;
 use App\Support\OdTeam;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +16,7 @@ use Illuminate\View\View;
  */
 class OdSettingController extends Controller
 {
-    public function index(OdSheetSync $sheets): View
+    public function index(): View
     {
         return view('od-report.settings', [
             'title' => 'Pengaturan OD Report',
@@ -25,24 +24,7 @@ class OdSettingController extends Controller
             'statuses' => OdDocumentStatus::ordered()->withCount('documents')->get(),
             'team' => OdTeam::members(),
             'picDefaults' => OdPicDefault::pluck('user_id', 'jenis'),
-            'sheets' => [
-                'enabled' => OdSheetSync::enabled(),
-                'pending' => $sheets->pendingCount(),
-                'status' => $sheets->status(),
-            ],
         ]);
-    }
-
-    /** Kirim perubahan Daily Report ke spreadsheet Weekly Report sekarang juga. */
-    public function syncSheets(): RedirectResponse
-    {
-        if (! OdSheetSync::enabled()) {
-            return back()->with('error', 'Sinkron Google Sheets belum diatur di server (OD_SHEETS_SYNC_URL dan OD_SHEETS_SPREADSHEET).');
-        }
-
-        OdSheetSync::queue();
-
-        return back()->with('success', 'Sinkron dimulai. Muat ulang halaman ini sebentar lagi untuk melihat hasilnya.');
     }
 
     public function storeStatus(Request $request): RedirectResponse
