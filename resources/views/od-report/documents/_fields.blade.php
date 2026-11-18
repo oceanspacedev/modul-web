@@ -1,5 +1,4 @@
 @php
-    $isLeader = auth()->user()->can('manage-od-report');
     $defaultStatus = $statuses->firstWhere('type', App\Models\OdDocumentStatus::TYPE_OPEN);
 @endphp
 
@@ -34,18 +33,7 @@
 </div>
 
 <div class="form-row">
-    @if ($isLeader)
-        <div class="form-group col-sm-6">
-            <label for="pic_user_id">PIC</label>
-            <select class="custom-select @error('pic_user_id') is-invalid @enderror" id="pic_user_id" name="pic_user_id">
-                @foreach ($team as $member)
-                    <option value="{{ $member->id }}" @selected((int) old('pic_user_id', $document?->pic_user_id ?? auth()->id()) === $member->id)>{{ $member->nama_lengkap }}</option>
-                @endforeach
-            </select>
-            @error('pic_user_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
-        </div>
-    @endif
-    <div class="form-group {{ $isLeader ? 'col-sm-6' : 'col-12' }}">
+    <div class="form-group col-12">
         <label for="od_document_status_id">Status</label>
         <select class="custom-select @error('od_document_status_id') is-invalid @enderror" id="od_document_status_id" name="od_document_status_id" required>
             @foreach ($statuses as $status)

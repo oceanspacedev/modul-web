@@ -5,9 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\OdDocumentRequest;
 use App\Models\OdDocument;
 use App\Models\OdDocumentStatus;
-use App\Models\OdPicDefault;
 use App\Services\OdDocumentService;
-use App\Support\OdTeam;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -17,7 +15,8 @@ use Illuminate\View\View;
 
 /**
  * Approval Dokumen OD: dokumen yang ditangani tim OD, termasuk proses dari Permintaan Dokumen.
- * Staff hanya melihat dan mengubah dokumen yang PIC-nya dia; Leader semua dokumen.
+ * PIC tidak ditampilkan di sini: dokumen milik orang yang menambahkannya (proses dari permintaan mengikuti PIC yang
+ * diatur di Permintaan Masuk). Staff hanya melihat dan mengubah dokumen miliknya; Leader semua dokumen.
  */
 class OdDocumentController extends Controller
 {
@@ -32,15 +31,14 @@ class OdDocumentController extends Controller
 
         $base = OdDocument::query()->visibleTo($user)
             ->when($request->filled('search'), fn (Builder $q) => $q->where('title', 'like', '%'.$request->string('search')->trim().'%'))
-            ->when($request->filled('jenis'), fn (Builder $q) => $q->where('jenis', $request->string('jenis')))
-            ->when($request->filled('pic') && $user->can('manage-od-report'), fn (Builder $q) => $q->where('pic_user_id', $request->integer('pic')));
+            ->when($request->filled('jenis'), fn (Builder $q) => $q->where('jenis', $request->string('jenis')));
 
         $counts = (clone $base)->selectRaw('od_document_status_id, count(*) as total')->groupBy('od_document_status_id')->pluck('total', 'od_document_status_id');
 
         $sort = array_key_exists($request->query('sort'), self::SORTS) ? $request->query('sort') : 'new';
         $documents = $base
             ->when($request->filled('status'), fn (Builder $q) => $q->where('od_document_status_id', $request->integer('status')))
-            ->with(['status', 'pic', 'documentRequest'])
+            ->with(['status', 'documentRequest'])
             ->withCount(['activities' => fn (Builder $q) => $q->reported()])
             ->when($sort === 'open', fn (Builder $q) => $q->orderByRaw(
                 'case when od_document_status_id in ('.$statuses->where('type', OdDocumentStatus::TYPE_OPEN)->pluck('id')->push(0)->implode(',').') then 0 else 1 end'
@@ -57,8 +55,6 @@ class OdDocumentController extends Controller
             'statuses' => $statuses,
             'counts' => $counts,
             'sort' => $sort,
-            'team' => OdTeam::members(),
-            'picDefaults' => OdPicDefault::pluck('user_id', 'jenis'),
         ]);
     }
 
@@ -71,10 +67,8 @@ class OdDocumentController extends Controller
         $document = new OdDocument([
             ...$data,
             'badan_usaha' => ($data['badan_usaha'] ?? null) ?: '-',
-            // Staff selalu menjadi PIC dokumen yang dia tambahkan.
-            'pic_user_id' => $user->can('manage-od-report')
-                ? ($request->validated('pic_user_id') ?? OdPicDefault::userFor($data['jenis'])?->getKey() ?? $user->getKey())
-                : $user->getKey(),
+            // PIC tidak dipilih di Approval Dokumen: dokumen milik orang yang menambahkannya.
+            'pic_user_id' => $user->getKey(),
             'submitted_at' => today(),
             'month' => today()->format('Y-m'),
         ]);
@@ -89,7 +83,7 @@ class OdDocumentController extends Controller
         $this->authorizeEdit($request, $document);
 
         $document->load([
-            'status', 'pic', 'documentRequest',
+            'status', 'documentRequest',
             'activities' => fn ($q) => $q->reported()->with('user')->orderByDesc('date'),
         ]);
 
@@ -98,7 +92,6 @@ class OdDocumentController extends Controller
             'active' => 'od-documents',
             'document' => $document,
             'statuses' => OdDocumentStatus::ordered()->get(),
-            'team' => OdTeam::members(),
         ]);
     }
 
@@ -109,9 +102,6 @@ class OdDocumentController extends Controller
 
         $data = $request->safe()->only(['title', 'jenis', 'badan_usaha', 'catatan']);
         $document->fill([...$data, 'badan_usaha' => ($data['badan_usaha'] ?? null) ?: '-']);
-        if ($user->can('manage-od-report') && $request->filled('pic_user_id')) {
-            $document->pic_user_id = $request->validated('pic_user_id');
-        }
 
         $status = OdDocumentStatus::findOrFail($request->validated('od_document_status_id'));
         $stage = $request->validated('stage');
@@ -154,7 +144,7 @@ class OdDocumentController extends Controller
         return back()->with('success', 'Dokumen dihapus.');
     }
 
-    /** Staff hanya boleh mengubah dokumen yang PIC-nya dia. */
+    /** Staff hanya boleh mengubah dokumen miliknya. */
     private function authorizeEdit(Request $request, OdDocument $document): void
     {
         throw_unless($document->canBeEditedBy($request->user()), AuthorizationException::class);

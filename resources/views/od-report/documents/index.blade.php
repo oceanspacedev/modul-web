@@ -8,7 +8,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Approval Dokumen" :subtitle="$isLeader ? 'Dokumen yang ditangani tim OD' : 'Dokumen dengan PIC Anda'" eyebrow="OD Report">
+        <x-page-header title="Approval Dokumen" :subtitle="$isLeader ? 'Dokumen yang ditangani tim OD' : 'Dokumen yang Anda tangani'" eyebrow="OD Report">
             <x-slot:actions>
                 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addDocumentModal">
                     <i class="fas fa-plus"></i> Tambah Dokumen
@@ -40,14 +40,6 @@
                             <option value="{{ $jenis }}" @selected(request('jenis') === $jenis)>{{ $jenis }}</option>
                         @endforeach
                     </select>
-                    @if ($isLeader)
-                        <select name="pic" class="custom-select custom-select-sm" style="width: 170px;" onchange="this.form.submit()" aria-label="PIC">
-                            <option value="">Semua PIC</option>
-                            @foreach ($team as $member)
-                                <option value="{{ $member->id }}" @selected((int) request('pic') === $member->id)>{{ $member->nama_lengkap }}</option>
-                            @endforeach
-                        </select>
-                    @endif
                     <select name="sort" class="custom-select custom-select-sm" style="width: 170px;" onchange="this.form.submit()" aria-label="Urutkan">
                         @foreach (App\Http\Controllers\OdDocumentController::SORTS as $value => $label)
                             <option value="{{ $value }}" @selected($sort === $value)>{{ $label }}</option>
@@ -65,7 +57,6 @@
                             <th>Dokumen</th>
                             <th>Jenis</th>
                             <th>Badan Usaha</th>
-                            <th>PIC</th>
                             <th>Diajukan</th>
                             <th style="width: 170px;">Status</th>
                             <th class="text-right">Aksi</th>
@@ -92,7 +83,6 @@
                                 </td>
                                 <td>{{ $document->jenis }}</td>
                                 <td>{{ $document->badan_usaha }}</td>
-                                <td>{{ $document->pic->nama_lengkap ?? '-' }}</td>
                                 <td>
                                     {{ $document->submitted_at->format('d/m/Y') }}
                                     @if ($document->received_at)
@@ -129,7 +119,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7">
+                                <td colspan="6">
                                     <x-empty-state icon="fa-file-signature" title="Belum ada dokumen" text="Tambah dokumen atau ubah filter." />
                                 </td>
                             </tr>
@@ -169,14 +159,6 @@
 @section('footer')
 <script>
     $(function () {
-        const picDefaults = @json($picDefaults);
-        $('#addDocumentModal [name="jenis"]').on('change', function () {
-            const pic = picDefaults[this.value] || picDefaults['Dokumen Lainnya'];
-            if (pic) {
-                $('#addDocumentModal [name="pic_user_id"]').val(pic);
-            }
-        }).trigger('change');
-
         @if ($errors->any())
             $('#addDocumentModal').modal('show');
         @endif

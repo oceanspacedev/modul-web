@@ -58,7 +58,7 @@ class OdDocumentTest extends TestCase
             ->assertSee($mine->title)->assertSee($theirs->title);
     }
 
-    public function test_new_document_goes_to_default_pic_for_its_type_and_staff_always_owns_theirs(): void
+    public function test_approval_has_no_pic_and_new_document_belongs_to_whoever_adds_it(): void
     {
         $staff = $this->member(User::OD_STAFF, 'STAFF IK');
         $leader = $this->member(User::OD_LEADER, 'LEADER OD');
@@ -68,7 +68,10 @@ class OdDocumentTest extends TestCase
         $this->actingAs($leader)->post(route('od-report.documents.store'), [
             'title' => 'IK Penerimaan Barang', 'jenis' => 'IK', 'od_document_status_id' => $open->id,
         ])->assertRedirect(route('od-report.documents.index'));
-        $this->assertSame($staff->id, OdDocument::where('title', 'IK Penerimaan Barang')->value('pic_user_id'));
+        $this->assertSame($leader->id, OdDocument::where('title', 'IK Penerimaan Barang')->value('pic_user_id'));
+
+        $this->actingAs($leader)->get(route('od-report.documents.index'))->assertOk()
+            ->assertDontSee('<th>PIC</th>', false)->assertDontSee('name="pic_user_id"', false)->assertDontSee('Semua PIC');
 
         $this->actingAs($staff)->post(route('od-report.documents.store'), [
             'title' => 'SOP Gudang', 'jenis' => 'SOP', 'pic_user_id' => $leader->id, 'od_document_status_id' => $open->id,
