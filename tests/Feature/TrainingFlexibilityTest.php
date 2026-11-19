@@ -416,7 +416,12 @@ class TrainingFlexibilityTest extends TestCase
         $this->actingAs($this->admin)->get(route('training.show', $training))->assertOk()
             ->assertSee('Presensi tidak dipakai di pelatihan ini')->assertSee('Pakai Presensi')
             ->assertDontSee('<dt>Kehadiran</dt>', false)->assertDontSee('Bukti Foto')->assertDontSee('Atur Presensi Manual')
-            ->assertDontSee('<th scope="col">Presensi</th>', false)->assertSee('<th scope="col">Kamera</th>', false);
+            ->assertDontSee('<th scope="col">Presensi</th>', false)->assertDontSee('<th scope="col">Kamera</th>', false);
+        // Kolom Kamera baru muncul setelah ada status kamera, supaya tidak tampil kolom berisi "—" saja.
+        $training->participants()->update(['camera_status' => 'on_cam']);
+        $this->actingAs($this->admin)->get(route('training.show', $training))->assertOk()
+            ->assertSee('<th scope="col">Kamera</th>', false);
+        $training->participants()->update(['camera_status' => null]);
         $this->actingAs($this->admin)->post(route('training.toggle-attendance', $training))->assertSessionHas('error');
         $this->assertFalse($training->fresh()->is_attendance_active);
 

@@ -51,7 +51,7 @@ class TrainingPretestTest extends TestCase
 
     public function test_training_form_saves_rules_for_each_phase(): void
     {
-        $this->actingAs($this->admin)->get(route('training.create'))->assertOk()->assertSee('Aturan Kuis')->assertSee('Sebelum sesi dimulai');
+        $this->actingAs($this->admin)->get(route('training.create'))->assertOk()->assertSee('Atur detail kuis')->assertSee('Kuis sebelum sesi dimulai');
 
         $this->actingAs($this->admin)->post('/training', [
             'title' => 'Pelatihan Baru', 'trainer_id' => $this->admin->id, 'training_date' => now()->toDateString(),

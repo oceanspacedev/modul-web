@@ -19,9 +19,13 @@
 @php
     $mainPhase = $training->mainPhase();
     $mainPhaseLabel = $training->mainPhaseLabel();
-    $hasAttendanceColumn = $training->has_attendance || $training->isOnline();
     $meetingLabel = $training->meetingPlatformLabel() ?? 'Meeting';
-    $participantColumnCount = 2 + (int) $hasAttendanceColumn + (int) $training->has_pretest + (int) $training->has_posttest + (int) $training->has_evaluation;
+    // Kamera hanya ditampilkan bila memang ada datanya (rekap/pemantauan), supaya tidak muncul kolom berisi "—" saja.
+    $showsCamera = $training->isOnline() && ($hasCameraStatus || $canMonitorCamera);
+    $hasAttendanceColumn = $training->has_attendance || $showsCamera;
+    // Ringkasan dan kolom Evaluasi hanya selama formnya dipakai; isian lama tetap terbaca di tab Evaluasi.
+    $showsEvaluation = $training->has_evaluation && $evaluation !== null;
+    $participantColumnCount = 2 + (int) $hasAttendanceColumn + (int) $training->has_pretest + (int) $training->has_posttest + (int) $showsEvaluation;
     $quizStats = [];
     if ($training->has_pretest && $training->has_posttest) {
         $quizStats['Pretest'] = ['submitted' => 'pretestSubmitted', 'average' => 'pretestAvg'];
@@ -42,7 +46,12 @@
     ];
     $activeSection = request()->string('bagian', strict: true)->toString();
     $activeSection = array_key_exists($activeSection, $sectionLinks) ? $activeSection : 'peserta';
-    $sectionQuery = request()->only(['peserta', 'wa', 'page']);
+    $rosterQuery = array_filter([
+        'peserta' => request('peserta'),
+        'wa' => $failedWaOnly ? 'gagal' : null,
+        'per_halaman' => $perPage !== \App\Http\Controllers\TrainingController::PARTICIPANTS_PER_PAGE ? $perPage : null,
+    ], filled(...));
+    $sectionQuery = [...$rosterQuery, ...request()->only('page')];
 @endphp
 
 <section class="content-header training-detail-header">
@@ -53,11 +62,10 @@
         <div class="training-heading">
             <div>
                 <h1 class="training-title">{{ $training->title }}</h1>
+                {{-- Satu baris info sesi: jadwal, status, pemateri, dan tempat (link meeting atau tatap muka). --}}
                 <p class="training-session-meta">
                     <span>{{ $training->training_date->translatedFormat('j F Y') }} · {{ substr($training->start_time, 0, 5) }}–{{ substr($training->end_time, 0, 5) }} WIB</span>
                     <x-training-status-badge :status="$training->status" />
-                </p>
-                <p class="training-session-meta">
                     @if($training->trainer)
                         <span>Pemateri <strong>{{ $training->trainer->nama_lengkap }}</strong>@if($training->trainer->divisi) · {{ $training->trainer->divisi->name }}@endif</span>
                     @endif
@@ -119,6 +127,60 @@
                     @endif
                 </div>
             </div>
+        @endif
+
+        {{-- Ringkasan angka tampil di atas tab, sesuai fitur yang dipakai pelatihan ini. --}}
+        @if($training->has_attendance || $quizStats || $showsEvaluation)
+            <dl class="training-totals" style="--stat-count: {{ (int) $training->has_attendance + count($quizStats) + (int) $showsEvaluation }}">
+                @if($training->has_attendance)
+                    <div>
+                        <dt>Kehadiran</dt>
+                        <dd class="training-total-value">
+                            <strong id="statAttended">{{ $stats['attended'] }}</strong>
+                            <span aria-hidden="true">/</span><span class="sr-only">hadir dari</span>
+                            <span data-training-stat="total">{{ $stats['total'] }}</span>
+                        </dd>
+                        <dd class="training-total-meta"><span id="statPending">{{ $stats['pending'] }}</span> belum absen · <span id="statAbsent">{{ $stats['absent'] }}</span> tidak hadir</dd>
+                    </div>
+                @endif
+                @foreach($quizStats as $label => $keys)
+                    <div>
+                        <dt>{{ $label }}</dt>
+                        <dd class="training-total-value">
+                            <strong data-training-stat="{{ $keys['submitted'] }}">{{ $stats[$keys['submitted']] }}</strong>
+                            <span aria-hidden="true">/</span><span class="sr-only">selesai dari</span>
+                            <span data-training-stat="total">{{ $stats['total'] }}</span>
+                        </dd>
+                        {{-- Diperbarui polling live stats: rata-rata baru muncul setelah ada yang mengerjakan. --}}
+                        <dd class="training-total-meta" data-training-average="{{ $keys['average'] }}" data-training-count="{{ $keys['submitted'] }}">
+                            @if($stats[$keys['submitted']] > 0)
+                                Rata-rata <b data-training-stat="{{ $keys['average'] }}">{{ number_format($stats[$keys['average']], 1, ',', '.') }}</b>
+                            @else
+                                Belum ada yang mengerjakan
+                            @endif
+                        </dd>
+                    </div>
+                @endforeach
+                @if($showsEvaluation)
+                    <div>
+                        <dt>Evaluasi</dt>
+                        <dd class="training-total-value">
+                            <strong>{{ $evaluation['count'] }}</strong>
+                            <span aria-hidden="true">/</span><span class="sr-only">mengisi dari</span>
+                            <span>{{ $stats['total'] }}</span>
+                        </dd>
+                        <dd class="training-total-meta">
+                            @if($evaluation['average'] !== null)
+                                Rata-rata <span class="text-nowrap"><b>{{ number_format($evaluation['average'], 2, ',', '.') }}</b> / {{ \App\Support\TrainingEvaluationForm::SCALE_MAX }}</span>
+                            @elseif($evaluation['questionCount'] === 0)
+                                Belum ada pertanyaan
+                            @else
+                                Belum ada yang mengisi
+                            @endif
+                        </dd>
+                    </div>
+                @endif
+            </dl>
         @endif
 
         <nav class="training-sections" aria-label="Bagian pelatihan">
@@ -281,13 +343,7 @@
                             <input type="checkbox" class="custom-control-input" id="importParticipantsSendWa" name="send_wa" value="1">
                             <label class="custom-control-label font-weight-normal" for="importParticipantsSendWa">Kirim undangan WhatsApp ke peserta yang baru ditambahkan</label>
                         </div>
-                        <ul class="small text-muted pl-3 mb-0">
-                            <li>Kolom dibaca dari judulnya di baris pertama; hanya sheet pertama yang dibaca. Kolom lain (mis. RSC, Detail Cabang) diabaikan.</li>
-                            <li><b>No HP wajib</b> di setiap baris, karena undangan dan link portal dikirim lewat WhatsApp.</li>
-                            <li>Peserta dicocokkan ke master User lewat <b>Employee ID</b>, lalu username, lalu No HP. Karyawan yang belum ada di master User tidak dibuat; tambahkan dulu lewat Pengaturan &gt; User atau sinkronisasi DnD.</li>
-                            <li>Nama, Job Position, Divisi, dan No HP di master User ikut diperbarui bila Anda berwenang atas user itu. No HP adalah login WhatsApp, jadi hanya admin yang berwenang yang dapat mengubahnya.</li>
-                            <li>Peserta yang sudah terdaftar tidak didobel. Baris yang ditolak dan catatannya dikabarkan lewat Notifikasi.</li>
-                        </ul>
+                        @include('training.partials.participant-import-help')
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
@@ -332,61 +388,34 @@
                 </div>
             </header>
 
-            @if($training->has_attendance || $quizStats || $training->has_evaluation)
-                <dl class="training-totals">
-                    @if($training->has_attendance)
-                        <div>
-                            <dt>Kehadiran</dt>
-                            <dd class="training-total-value">
-                                <strong id="statAttended">{{ $stats['attended'] }}</strong>
-                                <span aria-hidden="true">/</span><span class="sr-only">hadir dari</span>
-                                <span data-training-stat="total">{{ $stats['total'] }}</span>
-                            </dd>
-                            <dd class="training-total-meta"><span id="statPending">{{ $stats['pending'] }}</span> belum absen · <span id="statAbsent">{{ $stats['absent'] }}</span> tidak hadir</dd>
-                        </div>
-                    @endif
-                    @foreach($quizStats as $label => $keys)
-                        <div>
-                            <dt>{{ $label }}</dt>
-                            <dd class="training-total-value">
-                                <strong data-training-stat="{{ $keys['submitted'] }}">{{ $stats[$keys['submitted']] }}</strong>
-                                <span aria-hidden="true">/</span><span class="sr-only">selesai dari</span>
-                                <span data-training-stat="total">{{ $stats['total'] }}</span>
-                            </dd>
-                            <dd class="training-total-meta">
-                                Rata-rata <b data-training-stat="{{ $keys['average'] }}">{{ $stats[$keys['submitted']] > 0 ? number_format($stats[$keys['average']], 1, ',', '.') : '—' }}</b>
-                            </dd>
-                        </div>
-                    @endforeach
-                    @if($training->has_evaluation)
-                        <div>
-                            <dt>Evaluasi</dt>
-                            <dd class="training-total-value">
-                                <strong>{{ $evaluation['count'] }}</strong>
-                                <span aria-hidden="true">/</span><span class="sr-only">mengisi dari</span>
-                                <span>{{ $stats['total'] }}</span>
-                            </dd>
-                            @if($evaluation['average'] !== null)
-                                <dd class="training-total-meta">Rata-rata <span class="text-nowrap"><b>{{ number_format($evaluation['average'], 2, ',', '.') }}</b> / {{ \App\Support\TrainingEvaluationForm::SCALE_MAX }}</span></dd>
-                            @endif
-                        </div>
-                    @endif
-                </dl>
-            @endif
-
             <div class="training-roster-toolbar">
                 <form action="{{ route('training.show', $training) }}#peserta" method="GET" class="m-0 training-roster-search" role="search">
-                    @if($failedWaOnly)
-                        <input type="hidden" name="wa" value="gagal">
-                    @endif
+                    @foreach(\Illuminate\Support\Arr::except($rosterQuery, 'peserta') as $name => $value)
+                        <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                    @endforeach
                     <x-search-field name="peserta" placeholder="Cari peserta"
-                        :clear-url="route('training.show', $failedWaOnly ? [$training, 'wa' => 'gagal'] : $training).'#peserta'" />
+                        :clear-url="route('training.show', [$training, ...\Illuminate\Support\Arr::except($rosterQuery, 'peserta')]).'#peserta'" />
                 </form>
                 @if($waFailedCount > 0 || $failedWaOnly)
-                    <a href="{{ route('training.show', [$training, ...request()->only('peserta'), ...($failedWaOnly ? [] : ['wa' => 'gagal'])]) }}#peserta"
+                    <a href="{{ route('training.show', [$training, ...\Illuminate\Support\Arr::except($rosterQuery, 'wa'), ...($failedWaOnly ? [] : ['wa' => 'gagal'])]) }}#peserta"
                         class="btn btn-default btn-sm">
                         {{ $failedWaOnly ? 'Tampilkan semua peserta' : 'Undangan gagal ('.$waFailedCount.')' }}
                     </a>
+                @endif
+                @if($participants->total() > 0)
+                    <form action="{{ route('training.show', $training) }}#peserta" method="GET" class="training-roster-pagesize" data-auto-submit>
+                        @foreach(\Illuminate\Support\Arr::except($rosterQuery, 'per_halaman') as $name => $value)
+                            <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                        @endforeach
+                        <label for="rosterPerPage" class="mb-0">Tampilkan</label>
+                        <select name="per_halaman" id="rosterPerPage" data-native-select class="form-control form-control-sm w-auto">
+                            @foreach($perPageOptions as $option)
+                                <option value="{{ $option }}" @selected($option === $perPage)>{{ $option }}</option>
+                            @endforeach
+                        </select>
+                        <span>per halaman</span>
+                        <noscript><button type="submit" class="btn btn-default btn-sm">Terapkan</button></noscript>
+                    </form>
                 @endif
             </div>
 
@@ -403,16 +432,16 @@
                     <thead role="rowgroup">
                         <tr role="row">
                             <th scope="col">Peserta</th>
-                            {{-- Tanpa presensi, kolom ini hanya memuat catatan kamera (pelatihan daring) atau tidak tampil. --}}
+                            {{-- Tanpa presensi, kolom ini hanya memuat status kamera bila ada datanya; selain itu tidak tampil. --}}
                             @if($training->has_attendance)
                                 <th scope="col">Presensi</th>
-                            @elseif($training->isOnline())
+                            @elseif($showsCamera)
                                 <th scope="col">Kamera</th>
                             @endif
                             @foreach($quizStats as $label => $keys)
                                 <th scope="col" class="training-participant-score">{{ $label }}</th>
                             @endforeach
-                            @if($training->has_evaluation)
+                            @if($showsEvaluation)
                                 <th scope="col" class="training-participant-score">Evaluasi</th>
                             @endif
                             <th scope="col" class="training-row-actions text-center" id="thActionHeader">Aksi</th>
@@ -539,13 +568,15 @@
                                             <span class="status-dot">Belum absen</span>
                                         @endif
                                     @endif
-                                    <span class="camera-badge-box" id="cameraBadge_{{ $part->id }}">
-                                        @if($part->camera_status)
-                                            <span class="training-camera is-{{ $part->camera_status->value }}"><i class="fas fa-video mr-1" aria-hidden="true"></i>{{ $part->cameraSummary() }}</span>
-                                        @elseif(! $training->has_attendance)
-                                            <span class="text-muted">—</span>
-                                        @endif
-                                    </span>
+                                    @if($training->isOnline())
+                                        <span class="camera-badge-box" id="cameraBadge_{{ $part->id }}">
+                                            @if($part->camera_status)
+                                                <span class="training-camera is-{{ $part->camera_status->value }}"><i class="fas fa-video mr-1" aria-hidden="true"></i>{{ $part->cameraSummary() }}</span>
+                                            @elseif(! $training->has_attendance)
+                                                <span class="text-muted" aria-hidden="true">—</span><span class="sr-only">Belum ada data kamera</span>
+                                            @endif
+                                        </span>
+                                    @endif
                                 </td>
                             @endif
                             @foreach($quizResults as $label => $result)
@@ -564,7 +595,7 @@
                                     @endif
                                 </td>
                             @endforeach
-                            @if($training->has_evaluation)
+                            @if($showsEvaluation)
                                 <td role="cell" class="training-participant-detail training-participant-score">
                                     <span class="training-mobile-label" aria-hidden="true">Evaluasi</span>
                                     @if($part->evaluation)
@@ -586,59 +617,48 @@
                                     <div class="dropdown-menu dropdown-menu-right" style="max-height: 280px; overflow-y: auto;">
                                         <button type="button" class="dropdown-item" data-toggle="modal" data-target="#participantDetails_{{ $part->id }}">Rincian peserta</button>
                                         <button type="button" class="dropdown-item" data-toggle="modal" data-target="#waLogModal_{{ $part->id }}">Riwayat WhatsApp</button>
-                                        <div class="dropdown-divider"></div>
-                                        @if($quiz && $quiz->answers)
-                                            <a class="dropdown-item answer-sheet-link" href="#" data-url="{{ route('training.answer-sheet', [$training, $quiz]) }}">
-                                                Lembar Jawaban {{ $pretest ? 'Posttest' : '' }} {{ $hasEssay && $mainPhase === 'posttest' ? '& Review Essay' : '' }}
-                                            </a>
-                                        @endif
+                                        {{-- Lembar jawaban hanya untuk fase yang dipakai dan sudah dikerjakan peserta ini. --}}
                                         @if($pretest && $pretest->answers)
                                             <a class="dropdown-item answer-sheet-link" href="#" data-url="{{ route('training.answer-sheet', [$training, $pretest]) }}">
-                                                Lembar Jawaban Pretest {{ $pretest->essay_status === 'pending' ? '& Review Essay' : '' }}
+                                                Lembar Jawaban Pretest{{ $pretest->essay_status === 'pending' ? ' & Review Essay' : '' }}
                                             </a>
                                         @endif
-                                        @if(($quiz && $quiz->answers) || ($pretest && $pretest->answers))
-                                            <div class="dropdown-divider"></div>
+                                        @if($quiz && $quiz->answers)
+                                            <a class="dropdown-item answer-sheet-link" href="#" data-url="{{ route('training.answer-sheet', [$training, $quiz]) }}">
+                                                Lembar Jawaban {{ $mainPhaseLabel }}{{ $hasEssay && $quiz->essay_status === 'pending' ? ' & Review Essay' : '' }}
+                                            </a>
                                         @endif
 
+                                        <div class="dropdown-divider"></div>
                                         <a class="dropdown-item copy-link-btn" href="javascript:void(0)" data-link="{{ url('/training/portal/' . $part->token) }}">
                                             Salin tautan peserta
                                         </a>
 
                                         <form action="/training/{{ $training->id }}/send-wa/{{ $part->id }}" method="POST" class="d-inline">
                                             @csrf
-                                            <button type="submit" class="dropdown-item">
-                                                Kirim undangan WhatsApp
-                                            </button>
+                                            <button type="submit" class="dropdown-item">Kirim undangan WhatsApp</button>
                                         </form>
                                         @if($waLinks)
                                             <form action="{{ route('training.send-manual-wa', [$training, $part]) }}" method="POST" target="_blank" class="d-inline">
                                                 @csrf
-                                                <button type="submit" class="dropdown-item">
-                                                    Kirim Manual via WhatsApp Web
-                                                </button>
+                                                <button type="submit" class="dropdown-item">Kirim Manual via WhatsApp Web</button>
                                             </form>
                                         @else
                                             <span class="dropdown-item text-muted" title="Nomor WhatsApp peserta kosong atau tidak valid. Perbaiki di Pengaturan &gt; User.">Kirim Manual (No. HP tidak valid)</span>
                                         @endif
 
                                         @if($training->has_attendance)
-                                        <a class="dropdown-item" href="#" data-toggle="modal" data-target="#editAttendanceModal_{{ $part->id }}">
-                                            Atur Presensi Manual
-                                        </a>
+                                            <div class="dropdown-divider"></div>
+                                            <a class="dropdown-item" href="#" data-toggle="modal" data-target="#editAttendanceModal_{{ $part->id }}">Atur Presensi Manual</a>
+                                        @endif
 
-                                        @if($part->attendance_status !== 'pending')
+                                        {{-- Aksi yang menghapus data dikumpulkan di bawah, dan hanya muncul bila datanya memang ada. --}}
+                                        <div class="dropdown-divider"></div>
+                                        @if($training->has_attendance && $part->attendance_status !== 'pending')
                                             <form action="/training/{{ $training->id }}/reset-attendance/{{ $part->id }}" method="POST" class="d-inline" onsubmit="return confirm(@js('Kembalikan status presensi '.$userName.' menjadi Belum Absen?'))">
                                                 @csrf
-                                                <button type="submit" class="dropdown-item text-danger">
-                                                    Reset Presensi (Belum Absen)
-                                                </button>
+                                                <button type="submit" class="dropdown-item text-danger">Reset Presensi (Belum Absen)</button>
                                             </form>
-                                        @endif
-                                        @endif
-
-                                        @if($quiz || $pretest || $part->evaluation)
-                                            <div class="dropdown-divider"></div>
                                         @endif
                                         @if($quiz || $pretest)
                                             <form action="/training/{{ $training->id }}/reset-quiz/{{ $part->id }}" method="POST" class="d-inline" onsubmit="return confirm(@js('Reset hasil kuis untuk '.$userName.'?'))">
@@ -656,8 +676,6 @@
                                                 </button>
                                             </form>
                                         @endif
-
-                                        <div class="dropdown-divider"></div>
                                         <form action="{{ route('training.participants.remove', [$training, $part]) }}" method="POST" class="d-inline" onsubmit="return confirm(@js('Keluarkan '.$userName.' dari pelatihan ini? Link portalnya tidak berlaku lagi, dan hasil kuis, presensi, serta evaluasinya ikut dihapus.'))">
                                             @csrf
                                             @method('DELETE')
@@ -672,6 +690,7 @@
                                 @include('training.detail.participant-details')
 
                                 <!-- MODAL ATUR PRESENSI MANUAL -->
+                                @if($training->has_attendance)
                                 <div class="modal fade text-left" id="editAttendanceModal_{{ $part->id }}" tabindex="-1" role="dialog" aria-hidden="true">
                                     <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
                                         <div class="modal-content">
@@ -712,6 +731,7 @@
                                         </div>
                                     </div>
                                 </div>
+                                @endif
                             </td>
                         </tr>
                         @empty
@@ -721,7 +741,7 @@
                                     <x-empty-state icon="fa-search" title="Peserta tidak ditemukan" text="Coba kata kunci lain: nama, ID karyawan, No. HP, atau divisi." />
                                 @elseif(request('wa') === 'gagal')
                                     <x-empty-state icon="fa-check" title="Tidak ada undangan WhatsApp yang gagal" text="Semua kiriman otomatis terakhir berhasil atau belum dikirim.">
-                                        <a href="{{ route('training.show', $training) }}#peserta" class="btn btn-default btn-sm">Tampilkan semua peserta</a>
+                                        <a href="{{ route('training.show', [$training, ...\Illuminate\Support\Arr::except($rosterQuery, 'wa')]) }}#peserta" class="btn btn-default btn-sm">Tampilkan semua peserta</a>
                                     </x-empty-state>
                                 @else
                                     <x-empty-state icon="fa-users" title="Belum ada peserta" />
@@ -737,7 +757,9 @@
                 <span class="text-muted small">
                     Menampilkan {{ $participants->firstItem() }}-{{ $participants->lastItem() }} dari {{ $participants->total() }} peserta{{ filled(request('peserta')) ? ' yang cocok' : '' }}
                 </span>
-                {{ $participants->links('pagination::bootstrap-4') }}
+                @if($participants->hasPages())
+                    {{ $participants->links('pagination::bootstrap-4') }}
+                @endif
             </div>
             @endif
         </section>
@@ -1120,6 +1142,11 @@
 
     window.addEventListener('popstate', () => showSection(sectionFromUrl()));
     showSection(sectionFromUrl());
+
+    // Jumlah peserta per halaman langsung diterapkan saat dipilih.
+    document.querySelectorAll('form[data-auto-submit] select').forEach(select => {
+        select.addEventListener('change', () => select.form.submit());
+    });
 })();
 
 function toggleVideoTypeInShow(type) {
@@ -1219,11 +1246,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---------------------------------------------------------------
 (function () {
     const STATS_URL = @js(route('training.live-stats', $training));
-    const statFields = document.querySelectorAll('[data-training-stat]');
+    const averageKeys = { avgScore: true, pretestAvg: true };
     const scoreFormat = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
     function updateStat(el, value) {
-        if (el && el.textContent !== String(value)) {
+        // Spasi dari template diabaikan, supaya angka yang sama tidak dianggap berubah dan tidak berkedip.
+        if (el && el.textContent.trim() !== String(value)) {
             el.textContent = value;
             el.style.transition = 'color 0.3s';
             const orig = el.style.color;
@@ -1244,12 +1272,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateStat(document.getElementById('statAbsent'), data.absent);
                 updateStat(document.getElementById('statPending'), data.pending);
 
-                const values = {
-                    ...data,
-                    avgScore: data.quizSubmitted ? scoreFormat.format(data.avgScore) : '—',
-                    pretestAvg: data.pretestSubmitted ? scoreFormat.format(data.pretestAvg) : '—',
-                };
-                statFields.forEach(el => updateStat(el, values[el.dataset.trainingStat]));
+                document.querySelectorAll('[data-training-stat]').forEach(el => {
+                    if (!(el.dataset.trainingStat in averageKeys)) updateStat(el, data[el.dataset.trainingStat]);
+                });
+                // Rata-rata baru ditampilkan setelah ada yang mengerjakan; sebelumnya cukup keterangan singkat.
+                document.querySelectorAll('[data-training-average]').forEach(el => {
+                    const key = el.dataset.trainingAverage;
+                    if (!data[el.dataset.trainingCount]) {
+                        updateStat(el, 'Belum ada yang mengerjakan');
+                        return;
+                    }
+                    let value = el.querySelector('[data-training-stat]');
+                    if (!value) {
+                        el.textContent = 'Rata-rata ';
+                        value = document.createElement('b');
+                        value.dataset.trainingStat = key;
+                        el.appendChild(value);
+                    }
+                    updateStat(value, scoreFormat.format(data[key]));
+                });
             })
             .catch(function() { /* silent fail */ });
     }
@@ -2515,6 +2556,12 @@ if (typeof $ !== 'undefined') {
                         dot.textContent = 'Tidak hadir';
                     }
                 });
+
+                // Kolom Kamera belum tampil (belum ada rekap): muat ulang supaya server merender kolomnya.
+                if (!document.querySelector('.camera-badge-box') && items.length) {
+                    location.reload();
+                    return;
+                }
 
                 const count = status => items.filter(i => i.camera_status === status).length;
                 saveNotice.textContent = `Rekap kamera tersimpan untuk ${items.length} peserta: ${count('on_cam')} On Cam, ${count('partial')} Tidak Full On Cam, ${count('off_cam')} Full Off Cam.`

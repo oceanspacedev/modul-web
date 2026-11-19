@@ -102,7 +102,7 @@ class TrainingEvaluationTest extends TestCase
 
     public function test_training_form_turns_the_evaluation_on_and_off(): void
     {
-        $this->actingAs($this->admin)->get(route('training.create'))->assertOk()->assertSee('Form Evaluasi')->assertSee('name="has_evaluation"', false);
+        $this->actingAs($this->admin)->get(route('training.create'))->assertOk()->assertSee('Form evaluasi')->assertSee('name="has_evaluation"', false);
 
         $payload = [
             'title' => 'Pelatihan Baru', 'trainer_id' => $this->admin->id, 'training_date' => now()->toDateString(),

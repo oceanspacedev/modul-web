@@ -594,7 +594,7 @@ class TrainingPortalController extends Controller
      */
     public function getStatus($token)
     {
-        $participant = $this->findParticipant($token, ['training', 'quizResult']);
+        $participant = $this->findParticipant($token, ['training']);
         $training = $participant->training;
         // Dipanggil tiap beberapa detik oleh setiap peserta: cek adanya form evaluasi cukup sekali.
         $hasEvaluationForm = $training->hasEvaluationForm();
@@ -626,7 +626,10 @@ class TrainingPortalController extends Controller
             'evaluation_closes_at' => $hasEvaluationForm ? $training->phaseClosesAt(Training::STEP_EVALUATION)?->format('H:i') : null,
             'require_attendance_proof' => (bool) $training->require_attendance_proof,
             'attendance_status' => $participant->attendance_status,
-            'has_quiz_result' => $participant->quizResult ? true : false,
+            // Cukup ada/tidaknya hasil posttest (relasi quizResult mencari hasil terakhir lewat subquery join).
+            'has_quiz_result' => TrainingQuizResult::where('training_participant_id', $participant->id)
+                ->where('phase', Training::PHASE_POSTTEST)
+                ->exists(),
         ]);
     }
 

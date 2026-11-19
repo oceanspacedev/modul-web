@@ -4,9 +4,11 @@ namespace App\Imports;
 
 use App\Models\Divisi;
 use App\Models\Position;
+use App\Models\Role;
 use App\Models\Training;
 use App\Models\TrainingParticipant;
 use App\Models\User;
+use App\Services\DataAccessService;
 use App\Support\WhatsAppNumber;
 use Exception;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,8 +24,11 @@ use Throwable;
  * Import peserta pelatihan dari Excel, sekaligus memutakhirkan data user yang cocok di master User.
  *
  * Setiap baris dicocokkan ke user yang sudah ada lewat Employee ID, lalu username, lalu No. HP (kolom pertama yang
- * terisi). User yang belum ada tidak dibuat: master User bersumber dari DnD dan butuh jabatan, badan usaha, dan
- * approval yang tidak ada di file peserta, jadi barisnya ditolak dengan alasannya.
+ * terisi). Employee ID yang belum ada di master User dibuatkan user baru dari kolom template saja (Full Name, No HP,
+ * Job Position, Divisi): jabatan STAFF, badan usaha mengikuti divisi, username = Employee ID, password acak (login
+ * lewat OTP WhatsApp), approval line kosong. Sinkronisasi DnD mencocokkan lewat Employee ID, jadi user ini nanti
+ * dimutakhirkan DnD, bukan diduplikasi. Hanya pengimpor dengan izin Kelola User yang bisa membuatnya, dan baris yang
+ * No. HP atau username-nya sudah dipakai user lain ditolak. Tanpa Employee ID tidak dibuat user baru.
  *
  * No. HP wajib di setiap baris karena undangan dan link portal dikirim lewat WhatsApp. Nama, posisi, divisi, dan
  * No. HP user hanya diubah bila pengimpor boleh mengubah user itu (UserPolicy, mengikuti cakupan DataAccessService);
@@ -55,6 +60,8 @@ class TrainingParticipantImport implements ToCollection, WithHeadingRow
     private int $existingCount = 0;
 
     private int $updatedUserCount = 0;
+
+    private int $createdUserCount = 0;
 
     /** @var list<int> peserta baru yang ditambahkan import ini */
     private array $addedParticipantIds = [];
@@ -128,6 +135,11 @@ class TrainingParticipantImport implements ToCollection, WithHeadingRow
         return $this->updatedUserCount;
     }
 
+    public function createdUserCount(): int
+    {
+        return $this->createdUserCount;
+    }
+
     /**
      * @return list<int>
      */
@@ -143,6 +155,13 @@ class TrainingParticipantImport implements ToCollection, WithHeadingRow
     {
         $phone = $this->phone($this->value($row, self::PHONE_COLUMNS));
         $user = $this->findUser($row, $phone);
+        $created = $user === null;
+
+        if ($created) {
+            [$user, $notes] = $this->createUser($row, $phone);
+            $updated = false;
+        }
+
         $label = $user->nama_lengkap.($user->employee_id ? " ({$user->employee_id})" : '');
 
         if ($user->trashed()) {
@@ -153,7 +172,9 @@ class TrainingParticipantImport implements ToCollection, WithHeadingRow
             throw new ImportRowRejected("{$label} sudah ada di baris {$this->seenUsers[$user->id]} file yang sama");
         }
 
-        [$notes, $updated] = $this->updateUser($user, $row, $phone);
+        if (! $created) {
+            [$notes, $updated] = $this->updateUser($user, $row, $phone);
+        }
 
         if (blank($user->no_hp)) {
             throw new ImportRowRejected("{$label} tidak punya No. HP di master User, jadi tidak bisa menerima undangan WhatsApp. ".implode(' ', $notes));
@@ -174,6 +195,9 @@ class TrainingParticipantImport implements ToCollection, WithHeadingRow
         if ($updated) {
             $this->updatedUserCount++;
         }
+        if ($created) {
+            $this->createdUserCount++;
+        }
         if ($notes !== []) {
             $this->notes[] = "Baris {$rowNumber} ({$label}, tetap menjadi peserta): ".implode(' ', $notes);
         }
@@ -181,14 +205,19 @@ class TrainingParticipantImport implements ToCollection, WithHeadingRow
 
     /**
      * User dari kolom pengenal pertama yang terisi: Employee ID, username, lalu No. HP. Tidak menebak ke kolom
-     * berikutnya bila kolom yang terisi tidak cocok, supaya baris tidak terpasang ke orang lain.
+     * berikutnya bila kolom yang terisi tidak cocok, supaya baris tidak terpasang ke orang lain. Null bila Employee ID
+     * belum ada di master User (calon user baru).
      *
      * @param  array<string, mixed>  $row
      */
-    private function findUser(array $row, string $phone): User
+    private function findUser(array $row, string $phone): ?User
     {
         $employeeId = $this->text($this->value($row, self::EMPLOYEE_ID_COLUMNS));
         if ($employeeId !== '') {
+            if (! User::withTrashed()->where('employee_id', $employeeId)->exists()) {
+                return null;
+            }
+
             return $this->single(
                 User::withTrashed()->where('employee_id', $employeeId),
                 "Employee ID {$employeeId} tidak ditemukan di master User. Tambahkan karyawannya lewat Pengaturan > User atau sinkronisasi DnD, lalu impor ulang",
@@ -208,7 +237,7 @@ class TrainingParticipantImport implements ToCollection, WithHeadingRow
         // User aktif didahulukan: nomor yang juga tersimpan di user nonaktif tidak membuat barisnya dianggap ganda.
         return $this->single(
             User::query()->where('no_hp', $phone)->exists() ? User::query()->where('no_hp', $phone) : User::withTrashed()->where('no_hp', $phone),
-            "No. HP {$phone} tidak ditemukan di master User. Isi kolom Employee ID supaya peserta bisa dicocokkan",
+            "No. HP {$phone} tidak ditemukan di master User. Isi kolom Employee ID supaya peserta bisa dicocokkan atau dibuatkan user baru",
             "No. HP {$phone} dipakai lebih dari satu user. Isi kolom Employee ID supaya peserta bisa dicocokkan",
         );
     }
@@ -225,6 +254,105 @@ class TrainingParticipantImport implements ToCollection, WithHeadingRow
             1 => $users->first(),
             default => throw new ImportRowRejected($ambiguous),
         };
+    }
+
+    /**
+     * Buat user baru dari kolom template untuk Employee ID yang belum ada. Mengembalikan user dan catatan untuk data
+     * yang tidak bisa dipakai (mis. posisi baru tanpa izin master data).
+     *
+     * @param  array<string, mixed>  $row
+     * @return array{0: User, 1: list<string>}
+     */
+    private function createUser(array $row, string $phone): array
+    {
+        $employeeId = $this->text($this->value($row, self::EMPLOYEE_ID_COLUMNS));
+        $missing = "Employee ID {$employeeId} tidak ditemukan di master User";
+
+        if (! Gate::forUser($this->actor)->allows('create', User::class)) {
+            throw new ImportRowRejected("{$missing}. Hanya pengguna dengan izin Kelola User yang dapat membuat user baru lewat import; tambahkan karyawannya lewat Pengaturan > User atau sinkronisasi DnD, lalu impor ulang");
+        }
+
+        $name = Str::upper(Str::squish($this->text($this->value($row, self::NAME_COLUMNS))));
+        if ($name === '') {
+            throw new ImportRowRejected("{$missing}; isi kolom Full Name supaya user baru bisa dibuat");
+        }
+
+        $divisi = $this->divisiForNewUser($missing, Str::squish($this->text($this->value($row, self::DIVISI_COLUMNS))));
+
+        $username = Str::lower(preg_replace('/\s+/', '', $employeeId));
+        $usernameOwner = User::withTrashed()->whereRaw('LOWER(username) = ?', [$username])->first();
+        if ($usernameOwner) {
+            throw new ImportRowRejected("{$missing} dan username \"{$username}\" untuk user barunya sudah dipakai {$usernameOwner->nama_lengkap}. Periksa Employee ID-nya");
+        }
+
+        $phoneOwner = User::withTrashed()->where('no_hp', $phone)->first();
+        if ($phoneOwner) {
+            throw new ImportRowRejected("{$missing} dan No. HP {$phone} sudah dipakai {$phoneOwner->nama_lengkap}"
+                .($phoneOwner->employee_id ? " ({$phoneOwner->employee_id})" : '')
+                .($phoneOwner->trashed() ? ' (nonaktif)' : '').'. Periksa Employee ID atau No. HP-nya, user baru tidak dibuat');
+        }
+
+        $notes = [];
+        $positionId = null;
+        $positionName = Str::squish($this->text($this->value($row, self::POSITION_COLUMNS)));
+        if ($positionName !== '') {
+            $position = Position::query()->whereRaw('LOWER(name) = ?', [Str::lower($positionName)])->first();
+            if (! $position && Gate::forUser($this->actor)->allows('manage-master-data')) {
+                $position = Position::create(['name' => $positionName]);
+            }
+            if ($position) {
+                $positionId = $position->id;
+            } else {
+                $notes[] = "Posisi \"{$positionName}\" tidak ada di master Posisi dan Anda tidak berhak menambah master data, posisi user baru dikosongkan.";
+            }
+        }
+
+        $user = User::create([
+            'employee_id' => $employeeId,
+            'nama_lengkap' => $name,
+            'username' => $username,
+            'no_hp' => $phone,
+            'area_id' => $divisi->area_id,
+            'divisi_id' => $divisi->id,
+            'position_id' => $positionId,
+            // Login peserta lewat OTP WhatsApp; password bisa diatur nanti di Pengaturan > User.
+            'password' => Str::password(32),
+        ]);
+        $user->assignJabatan(Role::findByName(User::ROLE_STAFF, 'web'));
+
+        return [$user, $notes];
+    }
+
+    /**
+     * Divisi user baru dari kolom Divisi (wajib), di badan usaha yang boleh diakses pengimpor. Nama divisi yang sama
+     * di beberapa badan usaha diutamakan yang sebadan usaha dengan pengimpor.
+     */
+    private function divisiForNewUser(string $missing, string $divisiName): Divisi
+    {
+        if ($divisiName === '') {
+            throw new ImportRowRejected("{$missing}; isi kolom Divisi supaya user baru bisa dibuat");
+        }
+
+        $divisis = Divisi::query()->whereRaw('LOWER(name) = ?', [Str::lower($divisiName)])->get();
+        if ($divisis->isEmpty()) {
+            throw new ImportRowRejected("{$missing} dan Divisi \"{$divisiName}\" tidak ada di master Divisi, jadi user baru tidak dibuat");
+        }
+
+        $accessible = $divisis->filter(fn (Divisi $divisi) => ! DataAccessService::isAreaScopedAdmin($this->actor)
+            || DataAccessService::canAccessArea($this->actor, $divisi->area_id));
+        if ($accessible->isEmpty()) {
+            throw new ImportRowRejected("{$missing} dan Divisi \"{$divisiName}\" berada di luar cakupan badan usaha Anda, jadi user baru tidak dibuat");
+        }
+
+        $ownArea = $accessible->firstWhere('area_id', $this->actor->area_id);
+        if ($ownArea) {
+            return $ownArea;
+        }
+        if ($accessible->count() > 1) {
+            throw new ImportRowRejected("{$missing} dan Divisi \"{$divisiName}\" ada di beberapa badan usaha, jadi user baru tidak dibuat. Tambahkan karyawannya lewat Pengaturan > User");
+        }
+
+        return $accessible->first();
     }
 
     /**
