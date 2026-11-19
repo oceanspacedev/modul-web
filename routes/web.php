@@ -125,8 +125,9 @@ Route::middleware('auth')->group(function () {
 
     // # OD REPORT (tim Organization Development; Staff melihat datanya sendiri, Leader seluruh tim)
     Route::prefix('od-report')->name('od-report.')->middleware('can:access-od-report')->group(function () {
+        // Dashboard OD sudah digabung ke Dashboard; alamat lamanya diarahkan ke sana.
+        Route::redirect('/', '/dashboard');
         Route::controller(OdReportController::class)->group(function () {
-            Route::get('/', 'dashboard')->name('dashboard');
             Route::get('weekly', 'weekly')->name('weekly');
             Route::get('monthly', 'monthly')->name('monthly');
         });
@@ -181,7 +182,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // # DASHBOARD
-    Route::get('dashboard', [DashboardController::class, 'index'])->middleware('can:view-dashboard')->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->middleware('can:open-dashboard')->name('dashboard');
 
     // # VIDEO MANAGEMENT (authorized by VideoPolicy)
     Route::get('video-manage/{video}/source', [VideoController::class, 'source'])->name('video.source');

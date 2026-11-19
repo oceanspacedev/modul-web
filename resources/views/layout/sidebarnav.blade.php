@@ -10,7 +10,7 @@
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                 <li class="nav-header">Menu</li>
 
-                @can('view-dashboard')
+                @can('open-dashboard')
                 <li class="nav-item">
                     <a href="/dashboard" class="nav-link {{ ($active ?? '') === 'dashboard' ? 'active' : '' }}">
                         <i class="nav-icon fas fa-th-large"></i>
@@ -159,7 +159,6 @@
                 @can('access-od-report')
                 <li class="nav-header">Report</li>
                 @foreach ([
-                    ['od-report.dashboard', 'od-dashboard', 'fas fa-chart-pie', 'Dashboard OD'],
                     ['od-report.daily.index', 'od-daily', 'fas fa-edit', 'Daily Report'],
                     ['od-report.weekly', 'od-weekly', 'fas fa-calendar-week', 'Weekly Report'],
                     ['od-report.monthly', 'od-monthly', 'fas fa-calendar-alt', 'Monthly Report'],

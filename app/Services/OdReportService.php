@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\OdActivity;
+use App\Models\OdDocument;
 use App\Models\User;
 use App\Support\OdTeam;
 use App\Support\OdWeek;
@@ -93,6 +94,79 @@ class OdReportService
             'hold' => $activities->where('result', OdActivity::RESULT_HOLD)->count(),
             'percent' => $total ? (int) round($done / $total * 100) : 0,
         ];
+    }
+
+    /**
+     * Ringkasan OD Report untuk bagian OD di Dashboard: angka minggu/bulan ini, dokumen, siapa yang sudah lapor,
+     * grafik 30 hari dan aktivitas terbaru. Staff melihat datanya sendiri, Leader seluruh tim.
+     *
+     * @return array<string, mixed>
+     */
+    public function dashboard(User $user): array
+    {
+        $this->autoSavePastDrafts();
+
+        $today = CarbonImmutable::today();
+        $week = OdWeek::of($today);
+        $from = $today->subDays(29);
+
+        $activities = OdActivity::query()->visibleTo($user)->reported()
+            ->whereDate('date', '>=', $from->min($week->start->subWeek())->min($today->startOfMonth()))
+            ->get(['id', 'user_id', 'date', 'result']);
+
+        $thisWeek = $activities->filter(fn ($a) => $a->date->betweenIncluded($week->start, $week->end()))->count();
+        $lastWeek = $activities->filter(fn ($a) => $a->date->betweenIncluded($week->start->subWeek(), $week->start->subDay()))->count();
+        $month = $this->stats($activities->filter(fn ($a) => $a->date->isSameMonth($today)));
+
+        $documents = OdDocument::query()->visibleTo($user)->with('status')->get(['id', 'od_document_status_id']);
+        $team = $user->can('manage-od-report') ? OdTeam::members() : collect([$user]);
+        $savedToday = OdActivity::reported()->whereDate('date', $today)->distinct()->pluck('user_id');
+
+        return [
+            'thisWeek' => $thisWeek,
+            'trend' => $lastWeek ? (int) round(($thisWeek - $lastWeek) / $lastWeek * 100) : ($thisWeek ? 100 : 0),
+            'month' => $month,
+            'openDocs' => $documents->filter(fn ($d) => $d->status->isOpen())->count(),
+            'doneDocs' => $documents->filter(fn ($d) => $d->status->isDone())->count(),
+            'reportedToday' => $team->whereIn('id', $savedToday)->count(),
+            'teamSize' => $team->count(),
+            'attention' => $this->attention($user, $today, $month),
+            'chart' => collect(range(29, 0))->map(fn ($back) => $today->subDays($back))->map(fn (CarbonImmutable $day) => [
+                'label' => $day->format('d/m'),
+                'done' => $activities->filter(fn ($a) => $a->date->isSameDay($day) && $a->result === OdActivity::RESULT_DONE)->count(),
+                'open' => $activities->filter(fn ($a) => $a->date->isSameDay($day) && $a->result !== OdActivity::RESULT_DONE)->count(),
+            ]),
+            'recentActivities' => OdActivity::query()->visibleTo($user)->reported()->with(['user', 'document'])
+                ->latest('date')->latest('id')->limit(8)->get(),
+        ];
+    }
+
+    /**
+     * Hal yang perlu perhatian (dari aplikasi lama): draft belum disimpan dan laporan hari ini kosong (hanya untuk
+     * anggota tim OD, bukan ADMIN yang sekadar bisa membuka OD Report), serta pekerjaan Hold bulan ini.
+     *
+     * @param  array{hold: int}  $month
+     * @return list<array{0: string, 1: string}>
+     */
+    private function attention(User $user, CarbonImmutable $today, array $month): array
+    {
+        $items = [];
+
+        if (OdTeam::query()->whereKey($user->getKey())->exists()) {
+            $mineToday = OdActivity::where('user_id', $user->getKey())->whereDate('date', $today)->get(['saved_at']);
+
+            if ($drafts = $mineToday->whereNull('saved_at')->count()) {
+                $items[] = ["{$drafts} aktivitas belum disimpan", route('od-report.daily.index')];
+            }
+            if ($mineToday->isEmpty()) {
+                $items[] = ['Laporan hari ini belum diisi', route('od-report.daily.index')];
+            }
+        }
+        if ($month['hold']) {
+            $items[] = ["{$month['hold']} pekerjaan berstatus Hold bulan ini", route('od-report.weekly', ['status' => OdActivity::RESULT_HOLD])];
+        }
+
+        return $items;
     }
 
     /**

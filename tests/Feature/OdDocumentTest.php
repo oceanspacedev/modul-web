@@ -46,7 +46,7 @@ class OdDocumentTest extends TestCase
     {
         $this->actingAs($this->member(User::OD_STAFF))->get(route('document-request.mine'))
             ->assertOk()
-            ->assertSeeInOrder(['Dokumen', 'Permintaan Dokumen', 'Permintaan Masuk', 'Approval Dokumen', 'Report', 'Dashboard OD']);
+            ->assertSeeInOrder(['Dokumen', 'Permintaan Dokumen', 'Permintaan Masuk', 'Approval Dokumen', 'Report', 'Daily Report']);
 
         $this->actingAs(User::factory()->staff()->create())->get(route('document-request.mine'))
             ->assertOk()

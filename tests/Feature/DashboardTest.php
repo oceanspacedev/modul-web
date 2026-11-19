@@ -59,4 +59,24 @@ class DashboardTest extends TestCase
         $this->assertSame([85.0, 90.0, 80.0], [$data['quizAvgScore'], $data['quizMaxScore'], $data['quizMinScore']]);
         $this->assertSame(['sangat_baik' => 1, 'baik' => 1, 'cukup' => 0, 'kurang' => 0], $data['scoreBuckets']);
     }
+
+    public function test_dashboard_only_shows_sections_the_user_can_open(): void
+    {
+        // Staff bawaan: video dan dokumen saja.
+        $this->actingAs(User::factory()->staff()->create())->get(route('dashboard'))->assertOk()
+            ->assertSee('Penonton Video Materi')->assertSee('Dokumen Modul')
+            ->assertDontSee('Total Pengguna')->assertDontSee('Peserta Pelatihan')
+            ->assertDontSee('Hasil Kuis Pelatihan')->assertDontSee('Jumlah Konten');
+
+        // Trainer: ditambah ringkasan pelatihan dan nilai kuis.
+        $trainer = User::factory()->staff()->create();
+        $trainer->setTrainer(true);
+        $this->actingAs($trainer->fresh())->get(route('dashboard'))->assertOk()
+            ->assertSee('Peserta Pelatihan')->assertSee('Hasil Kuis Pelatihan')
+            ->assertDontSee('Total Pengguna')->assertDontSee('Jumlah Konten');
+
+        // Admin melihat semuanya.
+        $this->actingAs($this->admin)->get(route('dashboard'))->assertOk()
+            ->assertSee('Total Pengguna')->assertSee('Peserta Pelatihan')->assertSee('Jumlah Konten');
+    }
 }

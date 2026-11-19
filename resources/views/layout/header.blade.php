@@ -97,7 +97,7 @@
                             </div>
                         </div>
                         <div class="user-menu-body">
-                            @can('view-dashboard')
+                            @can('open-dashboard')
                             <a href="/dashboard" class="dropdown-item"><i class="fas fa-th-large"></i> Dashboard</a>
                             @endcan
                             <a href="/panduan" class="dropdown-item"><i class="fas fa-book-open"></i> Panduan Penggunaan</a>

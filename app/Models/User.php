@@ -104,12 +104,12 @@ class User extends Authenticatable
     }
 
     /**
-     * Halaman awal setelah login: dashboard, atau "Pelatihan Saya" untuk role tanpa akses dashboard
+     * Halaman awal setelah login: dashboard (izin view-dashboard atau akses OD Report), atau "Pelatihan Saya" untuk role tanpa akses dashboard
      * (dashboard akan menolak mereka dengan 403).
      */
     public function homeUrl(): string
     {
-        return $this->can('view-dashboard')
+        return $this->can('open-dashboard')
             ? route('dashboard')
             : route('training.my-trainings');
     }

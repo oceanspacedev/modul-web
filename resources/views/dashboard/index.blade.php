@@ -4,7 +4,7 @@
 @php $fmtScore = fn ($score) => rtrim(rtrim(number_format((float) $score, 1, ',', '.'), '0'), ','); @endphp
 <div class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Dashboard" subtitle="Ringkasan seluruh modul, pelatihan, video, dan grafik analitik sistem.">
+        <x-page-header title="Dashboard" subtitle="Ringkasan sesuai hak akses Anda.">
             <x-slot:actions>
                 <span class="text-muted small">
                     <i class="far fa-calendar-alt mr-1"></i> {{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}
@@ -18,9 +18,23 @@
     <div class="container-fluid">
         <x-flash />
 
+        @if ($od)
+            @include('dashboard.partials.od-report')
+        @endif
+
+        @if (! $od && ! $data)
+            <x-empty-state icon="fa-th-large" title="Belum ada ringkasan" text="Hak akses Anda belum mencakup ringkasan di Dashboard." />
+        @endif
+
+        @if ($data)
+        @if ($od)
+            <h2 class="h6 mb-2 mt-2 text-muted">Pelatihan & Konten</h2>
+        @endif
+
         {{-- Ringkasan angka --}}
         <div class="row">
-            <div class="col-xl-2 col-md-4 col-6 mb-3">
+            @if ($show['users'])
+            <div class="col-xl col-md-4 col-6 mb-3">
                 <a href="/user" class="stat-tile">
                     <div class="min-w-0">
                         <p class="stat-tile-label">Total Pengguna</p>
@@ -29,8 +43,10 @@
                     </div>
                 </a>
             </div>
+            @endif
 
-            <div class="col-xl-2 col-md-4 col-6 mb-3">
+            @if ($show['trainings'])
+            <div class="col-xl col-md-4 col-6 mb-3">
                 <a href="/training" class="stat-tile">
                     <div class="min-w-0">
                         <p class="stat-tile-label">Jadwal Pelatihan</p>
@@ -39,8 +55,10 @@
                     </div>
                 </a>
             </div>
+            @endif
 
-            <div class="col-xl-2 col-md-4 col-6 mb-3">
+            @if ($show['videos'])
+            <div class="col-xl col-md-4 col-6 mb-3">
                 <a href="/video" class="stat-tile">
                     <div class="min-w-0">
                         <p class="stat-tile-label">Video Materi</p>
@@ -49,8 +67,10 @@
                     </div>
                 </a>
             </div>
+            @endif
 
-            <div class="col-xl-2 col-md-4 col-6 mb-3">
+            @if ($show['trainings'])
+            <div class="col-xl col-md-4 col-6 mb-3">
                 <a href="/training" class="stat-tile">
                     <div class="min-w-0">
                         <p class="stat-tile-label">Peserta Pelatihan</p>
@@ -59,8 +79,10 @@
                     </div>
                 </a>
             </div>
+            @endif
 
-            <div class="col-xl-2 col-md-4 col-6 mb-3">
+            @if ($show['documents'])
+            <div class="col-xl col-md-4 col-6 mb-3">
                 <a href="/document" class="stat-tile">
                     <div class="min-w-0">
                         <p class="stat-tile-label">Dokumen Modul</p>
@@ -69,8 +91,10 @@
                     </div>
                 </a>
             </div>
+            @endif
 
-            <div class="col-xl-2 col-md-4 col-6 mb-3">
+            @if ($show['trainings'])
+            <div class="col-xl col-md-4 col-6 mb-3">
                 <a href="/training" class="stat-tile">
                     <div class="min-w-0">
                         <p class="stat-tile-label">Hasil Kuis Pelatihan</p>
@@ -79,10 +103,12 @@
                     </div>
                 </a>
             </div>
+            @endif
         </div>
 
         {{-- Grafik & analitik --}}
         <div class="row dash-grid">
+            @if ($show['trainings'])
             <div class="col-12">
                 {{-- 1. Grafik Peserta Pelatihan --}}
                 <div class="card dash-card">
@@ -165,8 +191,10 @@
                 </div>
 
             </div>
+            @endif
 
-            <div class="col-lg-4">
+            @if ($show['videos'])
+            <div class="col-lg">
                 {{-- 2. Grafik Popularitas Video Materi --}}
                 <div class="card dash-card is-compact">
                     <div class="card-header">
@@ -233,8 +261,10 @@
                     </div>
                 </div>
             </div>
+            @endif
 
-            <div class="col-lg-4">
+            @if ($show['trainings'])
+            <div class="col-lg">
                 {{-- 3. Grafik Distribusi Nilai & Evaluasi Kuis --}}
                 <div class="card dash-card is-compact">
                     <div class="card-header">
@@ -344,8 +374,10 @@
                     </div>
                 </div>
             </div>
+            @endif
 
-            <div class="col-lg-4">
+            @if ($show['masterData'])
+            <div class="col-lg">
                 {{-- 4. Grafik Komposisi Modul & Master Data --}}
                 <div class="card dash-card is-compact">
                     <div class="card-header">
@@ -407,7 +439,9 @@
                     </div>
                 </div>
             </div>
+            @endif
         </div>
+        @endif
     </div>
 </section>
 @endsection
@@ -421,6 +455,34 @@ $(document).ready(function() {
     Chart.defaults.global.defaultFontFamily = "'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif";
     Chart.defaults.global.defaultFontColor = '#71717a';
 
+    @if ($od)
+    // -------------------------------------------------------------
+    // OD Report: aktivitas 30 hari terakhir (Done vs Proses)
+    // -------------------------------------------------------------
+    var odChart = @json($od['chart']);
+    new Chart(document.getElementById('chartOdActivities').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: odChart.map(function (d) { return d.label; }),
+            datasets: [
+                { label: 'Done', data: odChart.map(function (d) { return d.done; }), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,.08)', pointRadius: 2, lineTension: .3 },
+                { label: 'Proses', data: odChart.map(function (d) { return d.open; }), borderColor: '#e6007a', backgroundColor: 'rgba(230,0,122,.06)', pointRadius: 2, lineTension: .3 },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            legend: { position: 'bottom' },
+            scales: {
+                xAxes: [{ gridLines: { display: false }, ticks: { maxTicksLimit: 10 } }],
+                yAxes: [{ gridLines: { color: '#f4f4f5' }, ticks: { beginAtZero: true, precision: 0 } }],
+            },
+        },
+    });
+    @endif
+
+    @if ($data)
+    @if ($show['trainings'])
     // -------------------------------------------------------------
     // 1. Chart Peserta Pelatihan (Bar Chart - primary pink)
     // -------------------------------------------------------------
@@ -479,6 +541,9 @@ $(document).ready(function() {
         });
     }
 
+    @endif
+
+    @if ($show['videos'])
     // -------------------------------------------------------------
     // 3. Chart Popularitas Video (Horizontal Bar - primary pink)
     // -------------------------------------------------------------
@@ -537,6 +602,9 @@ $(document).ready(function() {
         });
     }
 
+    @endif
+
+    @if ($show['masterData'])
     // -------------------------------------------------------------
     // 4. Chart Komposisi Konten Sistem (Doughnut - blue + zinc grays)
     // -------------------------------------------------------------
@@ -586,12 +654,15 @@ $(document).ready(function() {
         });
     }
 
+    @endif
+
     // Resize charts on tab change to prevent rendering distortion
     $('a[data-toggle="pill"]').on('shown.bs.tab', function(e) {
         if (window.chartPelatihan) window.chartPelatihan.resize();
         if (window.chartVideo) window.chartVideo.resize();
         if (window.chartContent) window.chartContent.resize();
     });
+    @endif
 });
 </script>
 @endsection

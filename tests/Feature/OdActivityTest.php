@@ -10,7 +10,7 @@ use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 /**
- * Daily, Weekly, Monthly dan Dashboard OD Report.
+ * Daily, Weekly, Monthly OD Report dan bagian OD di Dashboard.
  */
 class OdActivityTest extends TestCase
 {
@@ -152,9 +152,40 @@ class OdActivityTest extends TestCase
             'od_document_status_id' => OdDocumentStatus::firstOfType(OdDocumentStatus::TYPE_DONE)->id,
         ]);
 
-        $this->actingAs($leader)->get(route('od-report.dashboard'))->assertOk()
-            ->assertSee('Dashboard OD')->assertSee('1 pekerjaan berstatus Hold bulan ini');
+        $this->actingAs($leader)->get(route('dashboard'))->assertOk()
+            ->assertSee('OD Report')->assertSee('1 pekerjaan berstatus Hold bulan ini')->assertSee('Penonton Video Materi');
         $this->actingAs($leader)->get(route('od-report.monthly', ['bulan' => '2026-11']))->assertOk()
             ->assertSee('SOP Penjualan')->assertSee('50%');
+    }
+
+    public function test_od_dashboard_is_part_of_the_main_dashboard(): void
+    {
+        $staff = $this->member(User::OD_STAFF, 'STAFF OD');
+        $this->activity($staff, '2026-11-10', 'Drafting IK');
+
+        $this->actingAs($staff)->get('/od-report')->assertRedirect('/dashboard');
+        $this->actingAs($staff)->get(route('dashboard'))->assertOk()
+            ->assertSee('OD Report')->assertSee('Drafting IK')->assertSee('Laporan hari ini belum diisi')
+            ->assertDontSee('Dashboard OD');
+
+        // Bukan anggota OD: tidak ada bagian OD.
+        $this->actingAs(User::factory()->staff()->create())->get(route('dashboard'))->assertOk()
+            ->assertSee('Penonton Video Materi')->assertDontSee('Isi Daily');
+
+        // ADMIN bisa membuka OD Report, tapi tidak diingatkan mengisi Daily karena bukan anggota tim.
+        $this->actingAs(User::where('username', 'admin')->sole())->get(route('dashboard'))->assertOk()
+            ->assertSee('Isi Daily')->assertDontSee('Laporan hari ini belum diisi');
+    }
+
+    public function test_od_member_without_dashboard_permission_still_gets_the_od_dashboard(): void
+    {
+        $staff = $this->member(User::OD_STAFF, 'STAFF OD');
+        $staff->syncRoles([]);
+        $staff = $staff->fresh();
+
+        $this->assertFalse($staff->can('view-dashboard'));
+        $this->assertSame(route('dashboard'), $staff->homeUrl());
+        $this->actingAs($staff)->get(route('dashboard'))->assertOk()
+            ->assertSee('Isi Daily')->assertDontSee('Penonton Video Materi');
     }
 }
