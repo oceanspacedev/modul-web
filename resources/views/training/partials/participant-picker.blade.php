@@ -8,7 +8,13 @@
 
     Variabel: $users (baris ringkas: id, nama_lengkap, employee_id, username, divisi_id, no_hp), $divisis,
     $selected (id user terpilih), $saved (opsional, id peserta tersimpan: mengeluarkannya meminta konfirmasi).
+
+    participants_saved[] memberi tahu server peserta mana yang sudah ada saat form dibuka, supaya peserta yang masuk
+    lewat impor selama form terbuka tidak ikut dikeluarkan saat form disimpan.
 --}}
+@foreach($saved ?? [] as $savedId)
+    <input type="hidden" name="participants_saved[]" value="{{ $savedId }}">
+@endforeach
 <div class="form-row">
     <div class="form-group col-sm-6">
         <select id="filterDivisi" class="form-control form-control-sm select2" aria-label="Divisi" style="width: 100%;">

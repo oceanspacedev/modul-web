@@ -18,6 +18,8 @@ class UpdateTrainingRequest extends StoreTrainingRequest
         return [
             ...Arr::except(parent::rules(), ['participant_file']),
             'participants' => ['required', 'array', 'min:1'],
+            'participants_saved' => ['nullable', 'array'],
+            'participants_saved.*' => ['integer'],
             'status' => ['required', Rule::enum(TrainingStatus::class)],
         ];
     }

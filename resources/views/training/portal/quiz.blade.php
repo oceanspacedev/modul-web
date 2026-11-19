@@ -132,6 +132,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 
     @include('training.partials.quiz-deadline-script')
+    @include('training.partials.quiz-safe-submit-script')
     <script>
     (function() {
         let tabSwitchCount = 0;
@@ -252,8 +253,7 @@
                 setTimeout(() => {
                     stopAlarmSound();
                     isSubmitting = true;
-                    $('#formQuiz').find('[required]').removeAttr('required');
-                    document.getElementById('formQuiz').submit();
+                    window.sendQuizSafely(0);
                 }, 2000);
             } else {
                 $('#antiCheatModal').modal('show');
@@ -284,14 +284,14 @@
             stopAlarmSound();
         });
 
-        // Batas waktu habis: kumpulkan jawaban yang sudah terisi, soal kosong ikut terkirim apa adanya.
+        // Batas waktu habis: kumpulkan jawaban yang sudah terisi, soal kosong ikut terkirim apa adanya. Semua peserta
+        // sampai di titik ini bersamaan, jadi kirimannya disebar acak dalam 5 detik dan dicoba lagi bila gagal.
         window.startQuizDeadline(function() {
             if (isSubmitting) return;
             isSubmitting = true;
             stopAlarmSound();
             document.getElementById('isTimeUp').value = '1';
-            $('#formQuiz').find('[required]').removeAttr('required');
-            document.getElementById('formQuiz').submit();
+            window.sendQuizSafely(5000);
         });
 
         // Prevent Copy, Cut, Context Menu
