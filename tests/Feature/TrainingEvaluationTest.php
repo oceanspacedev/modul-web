@@ -473,6 +473,49 @@ class TrainingEvaluationTest extends TestCase
         $this->assertSame('Instruksi yang diberikan pemateri jelas dan mudah dipahami', $foreign->fresh()->question);
     }
 
+    public function test_questions_can_be_copied_from_another_training(): void
+    {
+        $source = Training::create([
+            'title' => 'Pelatihan Bulan Lalu', 'trainer_id' => $this->admin->id, 'training_date' => '2026-10-01',
+            'start_time' => '09:00', 'end_time' => '10:00', 'has_evaluation' => true,
+        ]);
+        $source->evaluationQuestions()->delete();
+        $source->evaluationQuestions()->createMany([
+            ['section' => 'Toko', 'type' => 'choice', 'question' => 'Nama toko?', 'options' => ['Toko A', 'Toko B'], 'is_required' => true, 'position' => 1],
+            ['type' => 'scale', 'question' => 'Materi bermanfaat', 'low_label' => 'Buruk', 'high_label' => 'Bagus', 'is_required' => false, 'position' => 2],
+        ]);
+        $copy = route('training.evaluation.copy', $this->training);
+
+        $this->actingAs($this->admin)->get(route('training.evaluation.index', $this->training))
+            ->assertOk()->assertSee('Salin dari Pelatihan Lain')->assertSee('Pelatihan Bulan Lalu');
+
+        // Ganti: form bawaan diganti persis dengan pertanyaan sumber.
+        $this->actingAs($this->admin)->post($copy, ['source_training_id' => $source->id, 'mode' => 'replace'])->assertSessionHas('success');
+        $copied = $this->training->evaluationQuestions()->get();
+        $this->assertSame(['Nama toko?', 'Materi bermanfaat'], $copied->pluck('question')->all());
+        $this->assertSame(['Toko A', 'Toko B'], $copied[0]->options);
+        $this->assertSame('Toko', $copied[0]->section);
+        $this->assertSame(['Buruk', 'Bagus', false], [$copied[1]->low_label, $copied[1]->high_label, $copied[1]->is_required]);
+        // Sumber tidak berubah.
+        $this->assertSame(2, $source->evaluationQuestions()->count());
+
+        // Setelah ada peserta mengisi, mengganti ditolak tapi menambahkan di akhir tetap boleh.
+        $this->training->update(['is_quiz_active' => true, 'is_evaluation_active' => true]);
+        $this->post(self::PORTAL.'/evaluation', $this->answers())->assertSessionHasNoErrors();
+        $this->actingAs($this->admin)->post($copy, ['source_training_id' => $source->id, 'mode' => 'replace'])->assertSessionHas('error');
+        $this->assertSame(2, $this->training->evaluationQuestions()->count());
+
+        $this->actingAs($this->admin)->post($copy, ['source_training_id' => $source->id, 'mode' => 'append'])->assertSessionHas('success');
+        $this->assertSame([1, 2, 3, 4], $this->training->evaluationQuestions()->pluck('position')->all());
+
+        // Tidak bisa menyalin dari diri sendiri, dan peserta biasa tidak boleh menyalin.
+        $this->actingAs($this->admin)->post($copy, ['source_training_id' => $this->training->id, 'mode' => 'append'])
+            ->assertSessionHasErrors('source_training_id');
+        $this->actingAs($this->staff)->from('/my-trainings')->post($copy, ['source_training_id' => $source->id, 'mode' => 'append'])
+            ->assertSessionHas('error');
+        $this->assertSame(4, $this->training->evaluationQuestions()->count());
+    }
+
     public function test_form_without_questions_does_not_hold_back_the_posttest(): void
     {
         $this->training->update(['is_quiz_active' => true, 'is_evaluation_active' => true]);
