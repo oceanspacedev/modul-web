@@ -310,6 +310,7 @@ Route::middleware('auth')->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::post('/', 'store')->name('store');
                 Route::post('defaults', 'addDefaults')->name('defaults');
+                Route::post('copy', 'copyFrom')->name('copy');
                 Route::put('{evaluationQuestion}', 'update')->name('update');
                 Route::post('{evaluationQuestion}/move', 'move')->name('move');
                 Route::delete('{evaluationQuestion}', 'destroy')->name('destroy');

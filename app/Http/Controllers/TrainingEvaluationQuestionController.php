@@ -7,6 +7,7 @@ use App\Models\TrainingEvaluationQuestion;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Attributes\Controllers\Authorize;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -21,9 +22,21 @@ class TrainingEvaluationQuestionController extends Controller
     /** Batas panjang isian "Pilihan jawaban" secara keseluruhan (semua baris), longgar untuk MAX_OPTIONS opsi. */
     private const OPTIONS_TEXT_MAX = 50000;
 
+    /** Pelatihan sumber yang ditawarkan di dialog salin, terbaru dulu. */
+    private const COPY_SOURCES_SHOWN = 200;
+
     public function index(Training $training): View
     {
         $training->load('evaluationQuestions');
+
+        $copySources = Training::query()
+            ->whereKeyNot($training->id)
+            ->whereHas('evaluationQuestions')
+            ->withCount('evaluationQuestions')
+            ->latest('training_date')
+            ->latest('id')
+            ->limit(self::COPY_SOURCES_SHOWN)
+            ->get(['id', 'title', 'training_date']);
 
         return view('training.evaluation.index', [
             'title' => 'Pertanyaan Evaluasi: '.$training->title,
@@ -32,6 +45,7 @@ class TrainingEvaluationQuestionController extends Controller
             'questions' => $training->evaluationQuestions,
             'sectionNames' => $training->evaluationQuestions->pluck('section')->filter(fn ($section) => filled($section))->unique(strict: true)->values(),
             'answerCount' => $training->evaluations()->count(),
+            'copySources' => $copySources,
         ]);
     }
 
@@ -101,6 +115,50 @@ class TrainingEvaluationQuestionController extends Controller
         $training->addDefaultEvaluationQuestions();
 
         return back()->with('success', 'Pertanyaan bawaan ditambahkan. Silakan sesuaikan.');
+    }
+
+    /**
+     * Salin pertanyaan evaluasi dari pelatihan lain supaya form yang sama tidak perlu diketik ulang.
+     * "replace" mengganti seluruh pertanyaan (hanya selama belum ada yang mengisi), "append" menambahkannya di akhir.
+     */
+    public function copyFrom(Request $request, Training $training): RedirectResponse
+    {
+        $validated = $request->validate([
+            'source_training_id' => ['required', 'integer', Rule::exists('trainings', 'id'), Rule::notIn([$training->id])],
+            'mode' => ['required', Rule::in(['replace', 'append'])],
+        ], [
+            'source_training_id.required' => 'Pilih pelatihan sumber.',
+            'source_training_id.exists' => 'Pelatihan sumber tidak ditemukan.',
+            'source_training_id.not_in' => 'Pilih pelatihan lain sebagai sumber.',
+        ]);
+
+        $source = Training::with('evaluationQuestions')->findOrFail($validated['source_training_id']);
+
+        if ($source->evaluationQuestions->isEmpty()) {
+            return back()->with('error', 'Pelatihan sumber belum punya pertanyaan evaluasi.');
+        }
+
+        $replace = $validated['mode'] === 'replace';
+        if ($replace && $training->evaluations()->exists()) {
+            return back()->with('error', 'Pertanyaan tidak bisa diganti karena sudah ada peserta yang mengisi. Pilih "Tambahkan di akhir".');
+        }
+
+        DB::transaction(function () use ($training, $source, $replace) {
+            if ($replace) {
+                $training->evaluationQuestions()->delete();
+            }
+
+            $position = $replace ? 0 : (int) $training->evaluationQuestions()->max('position');
+
+            foreach ($source->evaluationQuestions as $question) {
+                $training->evaluationQuestions()->create([
+                    ...$question->only(['section', 'type', 'question', 'low_label', 'high_label', 'options', 'is_required']),
+                    'position' => ++$position,
+                ]);
+            }
+        });
+
+        return back()->with('success', $source->evaluationQuestions->count().' pertanyaan disalin dari "'.$source->title.'".');
     }
 
     /**

@@ -43,6 +43,9 @@
                 <a href="{{ route('training.show', $training) }}" class="btn btn-default">
                     <i class="fas fa-arrow-left"></i> Kembali
                 </a>
+                <button type="button" class="btn btn-default" data-toggle="modal" data-target="#copyEvaluationModal">
+                    <i class="fas fa-copy"></i> Salin dari Pelatihan Lain
+                </button>
                 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#evaluationQuestionModal" data-mode="create">
                     <i class="fas fa-plus"></i> Tambah Pertanyaan
                 </button>
@@ -81,11 +84,12 @@
             @if($questions->isEmpty())
                 <div class="card-body">
                     <x-empty-state icon="fa-clipboard-list" title="Belum ada pertanyaan"
-                        text="Tanpa pertanyaan, peserta tidak diminta mengisi form evaluasi. Tambah pertanyaan sendiri atau mulai dari template bawaan.">
-                        <form action="{{ route('training.evaluation.defaults', $training) }}" method="POST" class="m-0">
+                        text="Tanpa pertanyaan, peserta tidak diminta mengisi form evaluasi. Tambah pertanyaan sendiri, salin dari pelatihan lain, atau mulai dari template bawaan.">
+                        <form action="{{ route('training.evaluation.defaults', $training) }}" method="POST" class="d-inline m-0">
                             @csrf
                             <button type="submit" class="btn btn-default">Pakai template bawaan</button>
                         </form>
+                        <button type="button" class="btn btn-default" data-toggle="modal" data-target="#copyEvaluationModal">Salin dari pelatihan lain</button>
                     </x-empty-state>
                 </div>
             @else
@@ -227,6 +231,57 @@
         </form>
     </div>
 </div>
+{{-- MODAL SALIN PERTANYAAN DARI PELATIHAN LAIN --}}
+<div class="modal fade" id="copyEvaluationModal" tabindex="-1" role="dialog" aria-labelledby="copyEvaluationModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <form action="{{ route('training.evaluation.copy', $training) }}" method="POST" class="modal-content">
+            @csrf
+            <div class="modal-header">
+                <h5 class="modal-title" id="copyEvaluationModalTitle">Salin dari Pelatihan Lain</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                @if($copySources->isEmpty())
+                    <p class="text-muted mb-0">Belum ada pelatihan lain yang punya pertanyaan evaluasi.</p>
+                @else
+                    <div class="form-group">
+                        <label for="copy_source">Pelatihan sumber <span class="text-danger">*</span></label>
+                        <select class="form-control" id="copy_source" name="source_training_id" required style="width: 100%;" data-placeholder="Cari judul pelatihan">
+                            <option value=""></option>
+                            @foreach($copySources as $source)
+                                <option value="{{ $source->id }}" @selected((int) old('source_training_id') === $source->id)>
+                                    {{ $source->title }} ({{ $source->training_date?->translatedFormat('d M Y') }}, {{ $source->evaluation_questions_count }} pertanyaan)
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('source_training_id')<small class="text-danger">{{ $message }}</small>@enderror
+                    </div>
+                    <div class="form-group mb-0">
+                        <label class="d-block">Pertanyaan yang sudah ada di sini</label>
+                        <div class="custom-control custom-radio">
+                            <input type="radio" class="custom-control-input" id="copy_replace" name="mode" value="replace"
+                                @checked($answerCount === 0) @disabled($answerCount > 0)>
+                            <label class="custom-control-label" for="copy_replace">
+                                Ganti semuanya ({{ $questions->count() }} pertanyaan dihapus)
+                                @if($answerCount > 0)<span class="text-muted">&middot; tidak bisa, sudah ada peserta yang mengisi</span>@endif
+                            </label>
+                        </div>
+                        <div class="custom-control custom-radio">
+                            <input type="radio" class="custom-control-input" id="copy_append" name="mode" value="append" @checked($answerCount > 0)>
+                            <label class="custom-control-label" for="copy_append">Tambahkan di akhir daftar</label>
+                        </div>
+                    </div>
+                @endif
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                @if($copySources->isNotEmpty())
+                    <button type="submit" class="btn btn-primary">Salin Pertanyaan</button>
+                @endif
+            </div>
+        </form>
+    </div>
+</div>
 @endsection
 
 @section('footer')
@@ -282,6 +337,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     showFieldsForType();
+
+    // Daftar pelatihan sumber bisa panjang, jadi pakai pencarian select2 bila tersedia.
+    if (typeof $ !== 'undefined' && $.fn.select2 && document.getElementById('copy_source')) {
+        $('#copy_source').select2({ width: '100%', placeholder: $('#copy_source').data('placeholder'), dropdownParent: $('#copyEvaluationModal') });
+    }
+    @if($errors->has('source_training_id'))
+        $('#copyEvaluationModal').modal('show');
+    @endif
 });
 </script>
 @endsection
