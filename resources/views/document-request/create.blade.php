@@ -105,7 +105,7 @@
                                     data-needs-observation="{{ $category->needs_observation ? 1 : 0 }}" @checked($chosen === $category->id)>
                                 <label class="custom-control-label" for="kategori-{{ $category->id }}">
                                     <strong>{{ $category->label() }}</strong>
-                                    @if ($category->code === 'IK')<a href="{{ route('document-request.example') }}" target="_blank" class="small ml-1">Lihat contoh</a>@endif
+                                    @if ($category->hasExample())<a href="{{ route('document-request.example', $category) }}" target="_blank" class="small ml-1">Lihat contoh</a>@endif
                                     @if ($category->description)<span class="d-block small text-muted">{{ $category->description }}</span>@endif
                                     <span class="d-block small text-muted">{{ implode(' → ', $category->stageNames()) }}</span>
                                 </label>

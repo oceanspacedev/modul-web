@@ -30,6 +30,12 @@ class DocumentCategory extends Model
 
     public const MAX_STAGES = 20;
 
+    /** File contoh yang boleh diunggah: dokumen Office, PDF, atau gambar, maks. 20 MB. */
+    public const EXAMPLE_RULES = ['file', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png', 'max:20480'];
+
+    /** Contoh bawaan aplikasi, dipakai selama kategorinya belum punya file contoh sendiri. */
+    private const BUNDLED_EXAMPLES = ['IK' => 'assets/permintaan-dokumen/contoh-ik.pdf'];
+
     protected $guarded = ['id'];
 
     /**
@@ -124,6 +130,45 @@ class DocumentCategory extends Model
     {
         return OdDocument::withTrashed()->where('jenis', $this->code)->exists()
             || $this->documentRequests()->withTrashed()->exists();
+    }
+
+    public function hasUploadedExample(): bool
+    {
+        return filled($this->example_path);
+    }
+
+    public function hasExample(): bool
+    {
+        return $this->hasUploadedExample() || isset(self::BUNDLED_EXAMPLES[$this->code]);
+    }
+
+    public function exampleUrl(): ?string
+    {
+        return match (true) {
+            $this->hasUploadedExample() => route('document-request.example-file', $this),
+            isset(self::BUNDLED_EXAMPLES[$this->code]) => asset(self::BUNDLED_EXAMPLES[$this->code]),
+            default => null,
+        };
+    }
+
+    /** Nama file contoh untuk tampilan dan unduhan. */
+    public function exampleFileName(): ?string
+    {
+        return $this->hasUploadedExample()
+            ? $this->example_name
+            : (isset(self::BUNDLED_EXAMPLES[$this->code]) ? basename(self::BUNDLED_EXAMPLES[$this->code]) : null);
+    }
+
+    /** Cara menampilkan contoh di halaman: pdf, image, atau file (hanya unduh). */
+    public function exampleViewer(): string
+    {
+        $path = $this->example_path ?? self::BUNDLED_EXAMPLES[$this->code] ?? '';
+
+        return match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
+            'pdf' => 'pdf',
+            'jpg', 'jpeg', 'png' => 'image',
+            default => 'file',
+        };
     }
 
     public function label(): string

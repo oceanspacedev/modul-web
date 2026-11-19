@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Daily Report" :subtitle="$today->locale('id')->translatedFormat('l, d F Y')" eyebrow="OD Report" />
+        <x-page-header title="Daily Report" :subtitle="$today->locale('id')->translatedFormat('l, d F Y')" eyebrow="Report" />
     </div>
 </section>
 

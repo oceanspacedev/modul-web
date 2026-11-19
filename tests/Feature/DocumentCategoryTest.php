@@ -103,6 +103,50 @@ class DocumentCategoryTest extends TestCase
         $this->actingAs($staff)->get(route('document-request.mine'))->assertDontSee('Kategori Dokumen');
     }
 
+    public function test_leader_attaches_an_example_file_that_requesters_can_open(): void
+    {
+        $leader = $this->member(User::OD_LEADER);
+        $jd = $this->category('JD');
+        $ik = $this->category('IK');
+
+        // IK punya contoh bawaan; JD belum punya contoh.
+        $this->get(route('document-request.create'))->assertOk()
+            ->assertSee(route('document-request.example', $ik))->assertDontSee(route('document-request.example', $jd));
+        $this->get(route('document-request.example', $jd))->assertNotFound();
+        $this->get(route('document-request.example', $ik))->assertOk()->assertSee('contoh-ik.pdf');
+
+        $this->actingAs($leader)->put(route('document-category.update', $jd), $this->form($jd, ['example' => UploadedFile::fake()->create('virus.exe', 10)]))
+            ->assertSessionHasErrors('example');
+
+        $this->actingAs($leader)->put(route('document-category.update', $jd), $this->form($jd, ['example' => UploadedFile::fake()->create('Contoh JD.pdf', 50, 'application/pdf')]))
+            ->assertSessionHas('success');
+        $jd->refresh();
+        $this->assertSame('Contoh JD.pdf', $jd->example_name);
+        Storage::assertExists($jd->example_path);
+        $this->actingAs($leader)->get(route('document-category.index'))->assertSee('fa-paperclip', false);
+
+        auth()->logout();
+        $this->get(route('document-request.create'))->assertSee(route('document-request.example', $jd));
+        $this->get(route('document-request.example', $jd))->assertOk()->assertSee('Contoh Dokumen JD')->assertSee(route('document-request.example-file', $jd));
+        $this->get(route('document-request.example-file', $jd))->assertRedirectContains($jd->example_path);
+
+        // Ganti file: file lama dihapus. Simpan tanpa file: contoh tetap.
+        $old = $jd->example_path;
+        $this->actingAs($leader)->put(route('document-category.update', $jd), $this->form($jd, ['example' => UploadedFile::fake()->create('jd.docx', 20)]));
+        Storage::assertMissing($old);
+        $this->actingAs($leader)->put(route('document-category.update', $jd->fresh()), $this->form($jd->fresh()));
+        $jd->refresh();
+        $this->assertSame('jd.docx', $jd->example_name);
+        $this->get(route('document-request.example', $jd))->assertSee('Unduh contoh');
+
+        // Hapus contoh.
+        $path = $jd->example_path;
+        $this->actingAs($leader)->put(route('document-category.update', $jd), $this->form($jd, ['remove_example' => '1']));
+        Storage::assertMissing($path);
+        $this->assertNull($jd->fresh()->example_path);
+        $this->get(route('document-request.example-file', $jd))->assertNotFound();
+    }
+
     public function test_leader_adds_category_and_edits_its_stages(): void
     {
         $leader = $this->member(User::OD_LEADER, 'LEADER OD');

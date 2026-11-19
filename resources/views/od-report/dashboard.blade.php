@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Dashboard OD" :subtitle="$today->locale('id')->translatedFormat('l, d F Y')" eyebrow="OD Report">
+        <x-page-header title="Dashboard OD" :subtitle="$today->locale('id')->translatedFormat('l, d F Y')" eyebrow="Report">
             <x-slot:actions>
                 <a href="{{ route('od-report.daily.index') }}" class="btn btn-primary"><i class="fas fa-edit"></i> Isi Daily</a>
             </x-slot:actions>

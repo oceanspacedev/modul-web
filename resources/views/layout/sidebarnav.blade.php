@@ -126,7 +126,7 @@
                 </li>
                 @endcanany
 
-                <li class="nav-header">Layanan</li>
+                <li class="nav-header">Dokumen</li>
                 @can('manage-od-report')
                 <li class="nav-item">
                     <a href="{{ route('document-category.index') }}" class="nav-link {{ ($active ?? '') === 'document-category' ? 'active' : '' }}">
@@ -141,9 +141,23 @@
                         <p>Permintaan Dokumen</p>
                     </a>
                 </li>
+                @can('access-od-report')
+                <li class="nav-item">
+                    <a href="{{ route('od-report.requests.index') }}" class="nav-link {{ ($active ?? '') === 'od-requests' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-inbox"></i>
+                        <p>Permintaan Masuk</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('od-report.documents.index') }}" class="nav-link {{ ($active ?? '') === 'od-documents' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-file-signature"></i>
+                        <p>Approval Dokumen</p>
+                    </a>
+                </li>
+                @endcan
 
                 @can('access-od-report')
-                <li class="nav-header">OD Report</li>
+                <li class="nav-header">Report</li>
                 @foreach ([
                     ['od-report.dashboard', 'od-dashboard', 'fas fa-chart-pie', 'Dashboard OD'],
                     ['od-report.daily.index', 'od-daily', 'fas fa-edit', 'Daily Report'],
@@ -157,18 +171,6 @@
                     </a>
                 </li>
                 @endforeach
-                <li class="nav-item">
-                    <a href="{{ route('od-report.documents.index') }}" class="nav-link {{ ($active ?? '') === 'od-documents' ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-file-signature"></i>
-                        <p>Approval Dokumen</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('od-report.requests.index') }}" class="nav-link {{ ($active ?? '') === 'od-requests' ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-inbox"></i>
-                        <p>Permintaan Masuk</p>
-                    </a>
-                </li>
                 @can('manage-od-report')
                 <li class="nav-item">
                     <a href="{{ route('od-report.settings.index') }}" class="nav-link {{ ($active ?? '') === 'od-settings' ? 'active' : '' }}">

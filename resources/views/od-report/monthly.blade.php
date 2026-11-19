@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Monthly Report" :subtitle="App\Support\OdWeek::monthLabel($month)" eyebrow="OD Report">
+        <x-page-header title="Monthly Report" :subtitle="App\Support\OdWeek::monthLabel($month)" eyebrow="Report">
             <x-slot:actions>
                 @if (Route::has('od-report.export'))
                     <form action="{{ route('od-report.export') }}" method="POST" class="m-0">

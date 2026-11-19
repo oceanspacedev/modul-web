@@ -109,6 +109,28 @@ class DocumentRequestTest extends TestCase
         $this->actingAs($user)->get(route('document-request.mine'))->assertOk()->assertSee($request->code)->assertSee('Penerimaan barang');
     }
 
+    public function test_guest_fills_everything_and_logged_in_user_gets_saved_details_back(): void
+    {
+        // Tamu: form terbuka tanpa login dan semua kolom kosong; ada jalan masuk dari halaman login.
+        $this->get(route('login'))->assertOk()->assertSee(route('document-request.create'));
+        $this->get(route('document-request.create'))->assertOk()
+            ->assertSee('id="nama" name="nama" maxlength="100" required autocomplete="name" value=""', false)->assertSee('Masuk');
+
+        // Login: atasan dari approval line; departemen dan jabatan diingat dari pengajuan sebelumnya.
+        $boss = User::factory()->staff()->create(['nama_lengkap' => 'PAK ATASAN']);
+        $user = User::factory()->staff()->create(['nama_lengkap' => 'SITI KARYAWAN', 'approval_id' => $boss->id]);
+        $this->actingAs($user)->get(route('document-request.create'))->assertOk()
+            ->assertSee('value="SITI KARYAWAN"', false)->assertSee('value="PAK ATASAN"', false)
+            ->assertDontSee('<option value="Finance" selected>', false);
+
+        $this->actingAs($user)->post(route('document-request.store'), $this->payload(['nama' => 'SITI KARYAWAN', 'departemen' => 'Finance', 'jabatan' => 'Coordinator']));
+        $this->assertSame(1, DocumentRequest::where('user_id', $user->id)->count());
+
+        $this->actingAs($user)->get(route('document-request.create'))->assertOk()
+            ->assertSee('<option value="Finance" selected>', false);
+        $this->assertMatchesRegularExpression('/<option value="(Staff|Coordinator)" selected>/', $this->actingAs($user)->get(route('document-request.create'))->getContent());
+    }
+
     public function test_tracking_shows_progress_but_never_internal_notes(): void
     {
         $this->post(route('document-request.store'), $this->payload());

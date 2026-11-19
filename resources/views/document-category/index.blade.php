@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Kategori Dokumen" subtitle="Jenis dokumen dan tahapannya" eyebrow="Layanan">
+        <x-page-header title="Kategori Dokumen" subtitle="Jenis dokumen dan tahapannya" eyebrow="Dokumen">
             <x-slot:actions>
                 <a href="{{ route('document-request.create') }}" class="btn btn-default" target="_blank"><i class="fas fa-external-link-alt"></i> Lihat form</a>
                 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addCategory"><i class="fas fa-plus"></i> Tambah Kategori</button>
@@ -41,6 +41,7 @@
                                     <a href="{{ route('document-category.edit', $category) }}"><strong>{{ $category->code }}</strong></a>
                                     @unless ($category->is_active)<span class="badge badge-secondary ml-1">Nonaktif</span>@endunless
                                     @if ($category->needs_observation)<span class="badge badge-light ml-1">Observasi</span>@endif
+                                    @if ($category->hasExample())<span class="badge badge-light ml-1"><i class="fas fa-paperclip"></i> Contoh</span>@endif
                                     <div class="small text-muted">{{ $category->name }}</div>
                                 </td>
                                 <td style="white-space: normal; min-width: 260px;" class="small">{{ implode(' → ', $category->stageNames()) }}</td>

@@ -8,7 +8,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Approval Dokumen" :subtitle="$isLeader ? 'Dokumen yang ditangani tim OD' : 'Dokumen yang Anda tangani'" eyebrow="OD Report">
+        <x-page-header title="Approval Dokumen" :subtitle="$isLeader ? 'Dokumen yang ditangani tim OD' : 'Dokumen yang Anda tangani'" eyebrow="Dokumen">
             <x-slot:actions>
                 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addDocumentModal">
                     <i class="fas fa-plus"></i> Tambah Dokumen
