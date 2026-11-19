@@ -603,4 +603,36 @@ class TrainingParticipantImportTest extends TestCase
 
         $this->actingAs(User::factory()->staff()->create())->get(route('training.participant-template'))->assertRedirect();
     }
+
+    public function test_saving_the_edit_form_keeps_participants_imported_while_it_was_open(): void
+    {
+        $picked = User::factory()->staff()->create();
+        $dropped = User::factory()->staff()->create();
+        $imported = User::factory()->staff()->create();
+        TrainingParticipant::createFor($this->training, $picked->id);
+        $droppedParticipant = TrainingParticipant::createFor($this->training, $dropped->id);
+
+        $this->actingAs($this->admin)->get(route('training.edit', $this->training))
+            ->assertOk()
+            ->assertSee('name="participants_saved[]" value="'.$dropped->id.'"', false);
+
+        // Impor di latar belakang menambah peserta selagi form edit masih terbuka.
+        $importedParticipant = TrainingParticipant::createFor($this->training, $imported->id);
+        TrainingQuizResult::create([
+            'training_id' => $this->training->id, 'user_id' => $imported->id, 'training_participant_id' => $importedParticipant->id,
+            'phase' => Training::PHASE_POSTTEST, 'total_questions' => 1, 'correct_answers' => 1, 'score' => 100, 'submitted_at' => now(),
+        ]);
+
+        // Pemateri mengeluarkan satu peserta lama dan menyimpan form yang dibuka sebelum impor selesai.
+        $this->put(route('training.update', $this->training), [
+            'title' => 'Product Knowledge Retail', 'trainer_id' => $this->admin->id, 'training_date' => $this->training->training_date->toDateString(),
+            'start_time' => '09:00', 'end_time' => '11:00', 'meeting_link' => 'https://zoom.us/j/123', 'status' => 'scheduled',
+            'participants' => [$picked->id],
+            'participants_saved' => [$picked->id, $dropped->id],
+        ])->assertSessionHasNoErrors();
+
+        $this->assertModelMissing($droppedParticipant);
+        $this->assertModelExists($importedParticipant);
+        $this->assertSame(1, TrainingQuizResult::where('training_participant_id', $importedParticipant->id)->count());
+    }
 }

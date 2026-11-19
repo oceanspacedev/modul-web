@@ -128,4 +128,22 @@ class TrainingPortalStabilityTest extends TestCase
 
         $this->withServerVariables([])->get(self::PORTAL.'?unggahan=terlalu-besar')->assertOk()->assertSee('ukuran fotonya terlalu besar');
     }
+
+    public function test_formal_quiz_saves_answers_on_the_device_and_sends_a_time_up_submission_safely(): void
+    {
+        $this->get(self::PORTAL.'/quiz')->assertOk()
+            ->assertSee('window.sendQuizSafely', false)
+            ->assertSee('quiz:token_stabil:posttest:', false);
+
+        // Kiriman otomatis saat waktu habis dikirim lewat fetch dan diulang bila gagal: ulangan tidak membuat hasil kedua.
+        $payload = ['answers' => [$this->question->id => 'a'], 'attempt_number' => 1, 'is_time_up' => '1'];
+        $this->postJson(self::PORTAL.'/quiz', $payload)
+            ->assertOk()->assertJson(['success' => true, 'redirect_url' => self::PORTAL.'/result']);
+        $this->postJson(self::PORTAL.'/quiz', $payload)
+            ->assertOk()->assertJson(['success' => true, 'redirect_url' => self::PORTAL.'/result']);
+
+        $result = TrainingQuizResult::where('training_participant_id', $this->participant->id)->sole();
+        $this->assertSame(1, $result->attempt_count);
+        $this->assertSame(100.0, $result->score);
+    }
 }

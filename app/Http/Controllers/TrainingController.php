@@ -427,6 +427,11 @@ class TrainingController extends Controller
             }
 
             $removedParticipantIds = array_diff($existingParticipantIds, $newParticipantIds);
+            // Hanya peserta yang sudah ada saat form dibuka yang bisa dikeluarkan: peserta hasil impor yang masuk
+            // selama form terbuka tidak ada di form, tetapi bukan berarti dikeluarkan pemateri.
+            if ($request->has('participants_saved')) {
+                $removedParticipantIds = array_intersect($removedParticipantIds, array_map('intval', $request->validated('participants_saved') ?? []));
+            }
             if ($removedParticipantIds !== []) {
                 $training->participants()->whereIn('user_id', $removedParticipantIds)->get()->each->remove();
             }
