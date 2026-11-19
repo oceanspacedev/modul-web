@@ -36,6 +36,13 @@ class User extends Authenticatable
     /** Hak akses tambahan trainer, diberikan langsung ke user di luar jabatannya. */
     public const TRAINER_PERMISSIONS = ['manage-trainings', 'manage-videos', 'manage-documents', 'manage-learning-modules'];
 
+    /** Akses OD Report per orang (tim Organization Development). */
+    public const OD_STAFF = 'staff';
+
+    public const OD_LEADER = 'leader';
+
+    public const OD_ACCESS = [self::OD_STAFF => 'OD Staff', self::OD_LEADER => 'OD Leader'];
+
     protected static function booted(): void
     {
         // Ganti No. HP = ganti nomor login WhatsApp, jadi OTP lama yang belum dipakai tidak berlaku lagi.
@@ -127,6 +134,31 @@ class User extends Authenticatable
         $trainer
             ? $this->givePermissionTo(self::TRAINER_PERMISSIONS)
             : $this->revokePermissionTo(self::TRAINER_PERMISSIONS);
+    }
+
+    /**
+     * Akses OD Report yang diberikan langsung ke user: null, OD_STAFF atau OD_LEADER.
+     */
+    public function odReportAccess(): ?string
+    {
+        $direct = $this->getDirectPermissions()->pluck('name');
+
+        return match (true) {
+            $direct->contains('manage-od-report') => self::OD_LEADER,
+            $direct->contains('access-od-report') => self::OD_STAFF,
+            default => null,
+        };
+    }
+
+    public function setOdReportAccess(?string $access): void
+    {
+        $this->revokePermissionTo(['access-od-report', 'manage-od-report']);
+
+        match ($access) {
+            self::OD_LEADER => $this->givePermissionTo(['access-od-report', 'manage-od-report']),
+            self::OD_STAFF => $this->givePermissionTo('access-od-report'),
+            default => null,
+        };
     }
 
     /**

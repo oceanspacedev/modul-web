@@ -53,6 +53,10 @@ class RolePermissionTest extends TestCase
         }
         $this->assertFalse($staff->hasPermissionTo('manage-trainings'));
         $this->assertFalse($staff->hasPermissionTo('manage-users'));
+
+        // OD Report diberikan per orang, bukan per jabatan.
+        $this->assertTrue($admin->hasPermissionTo('manage-od-report'));
+        $this->assertFalse($staff->hasPermissionTo('access-od-report'));
     }
 
     public function test_admin_can_create_new_role_with_selected_permissions()
@@ -200,6 +204,7 @@ class RolePermissionTest extends TestCase
             'divisi_id' => 1,
             'role_id' => $this->jabatanId('STAFF'),
             'trainer' => '1',
+            'od_access' => User::OD_LEADER,
             'email' => $username.'@example.com',
             'no_hp' => '081234567890',
         ];
@@ -215,6 +220,13 @@ class RolePermissionTest extends TestCase
         $this->assertSame('STAFF', $createdUser->jabatan->name);
         $this->assertTrue($createdUser->isTrainer());
         $this->assertFalse($createdUser->hasRole('ADMIN'));
+        $this->assertSame(User::OD_LEADER, $createdUser->odReportAccess());
+        $this->assertTrue($createdUser->can('manage-od-report'));
+
+        $createdUser->setOdReportAccess(User::OD_STAFF);
+        $createdUser->refresh();
+        $this->assertSame(User::OD_STAFF, $createdUser->odReportAccess());
+        $this->assertFalse($createdUser->can('manage-od-report'));
     }
 
     public function test_user_update_with_role_syncs_jabatan()

@@ -550,6 +550,10 @@
                         <span>Galeri Video</span>
                     </a>
                 </div>
+                <a href="{{ route('document-request.create') }}" class="btn-social" style="margin-top: 8px;">
+                    <i class="fas fa-file-alt icon-gallery"></i>
+                    <span>Permintaan Dokumen</span>
+                </a>
             </div>
 
             <!-- ============================================== -->

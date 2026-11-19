@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\TrainingStatus;
 use App\Models\Training;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 
 class UpdateTrainingRequest extends StoreTrainingRequest
@@ -13,8 +14,12 @@ class UpdateTrainingRequest extends StoreTrainingRequest
      */
     public function rules(): array
     {
+        // Impor Excel saat edit lewat Kelola peserta di halaman detail, jadi form edit tetap wajib memilih peserta.
         return [
-            ...parent::rules(),
+            ...Arr::except(parent::rules(), ['participant_file']),
+            'participants' => ['required', 'array', 'min:1'],
+            'participants_saved' => ['nullable', 'array'],
+            'participants_saved.*' => ['integer'],
             'status' => ['required', Rule::enum(TrainingStatus::class)],
         ];
     }

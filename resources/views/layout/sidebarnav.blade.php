@@ -126,6 +126,61 @@
                 </li>
                 @endcanany
 
+                <li class="nav-header">Dokumen</li>
+                @can('manage-od-report')
+                <li class="nav-item">
+                    <a href="{{ route('document-category.index') }}" class="nav-link {{ ($active ?? '') === 'document-category' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-tags"></i>
+                        <p>Kategori Dokumen</p>
+                    </a>
+                </li>
+                @endcan
+                <li class="nav-item">
+                    <a href="{{ route('document-request.mine') }}" class="nav-link {{ ($active ?? '') === 'document-request' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-paper-plane"></i>
+                        <p>Permintaan Dokumen</p>
+                    </a>
+                </li>
+                @can('access-od-report')
+                <li class="nav-item">
+                    <a href="{{ route('od-report.requests.index') }}" class="nav-link {{ ($active ?? '') === 'od-requests' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-inbox"></i>
+                        <p>Permintaan Masuk</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('od-report.documents.index') }}" class="nav-link {{ ($active ?? '') === 'od-documents' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-file-signature"></i>
+                        <p>Approval Dokumen</p>
+                    </a>
+                </li>
+                @endcan
+
+                @can('access-od-report')
+                <li class="nav-header">Report</li>
+                @foreach ([
+                    ['od-report.dashboard', 'od-dashboard', 'fas fa-chart-pie', 'Dashboard OD'],
+                    ['od-report.daily.index', 'od-daily', 'fas fa-edit', 'Daily Report'],
+                    ['od-report.weekly', 'od-weekly', 'fas fa-calendar-week', 'Weekly Report'],
+                    ['od-report.monthly', 'od-monthly', 'fas fa-calendar-alt', 'Monthly Report'],
+                ] as [$route, $key, $icon, $label])
+                <li class="nav-item">
+                    <a href="{{ route($route) }}" class="nav-link {{ ($active ?? '') === $key ? 'active' : '' }}">
+                        <i class="nav-icon {{ $icon }}"></i>
+                        <p>{{ $label }}</p>
+                    </a>
+                </li>
+                @endforeach
+                @can('manage-od-report')
+                <li class="nav-item">
+                    <a href="{{ route('od-report.settings.index') }}" class="nav-link {{ ($active ?? '') === 'od-settings' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-cog"></i>
+                        <p>Pengaturan OD</p>
+                    </a>
+                </li>
+                @endcan
+                @endcan
+
                 @canany(['manage-users', 'manage-roles', 'manage-master-data'])
                 <li class="nav-header">Pengaturan</li>
 

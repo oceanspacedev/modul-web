@@ -6,6 +6,7 @@ use App\Exports\TrainingParticipantTemplate;
 use App\Jobs\BackgroundTask;
 use App\Jobs\ProcessTrainingParticipantImport;
 use App\Jobs\SendTrainingInvitation;
+use App\Models\Area;
 use App\Models\Divisi;
 use App\Models\Position;
 use App\Models\Training;
@@ -20,7 +21,9 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Excel as ExcelFormat;
 use Maatwebsite\Excel\Facades\Excel;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
 
@@ -115,6 +118,26 @@ class TrainingParticipantImportTest extends TestCase
         $this->assertSame(['Employee ID', 'Full Name', 'No HP', 'Job Position', 'Divisi'], (new TrainingParticipantTemplate)->headings());
     }
 
+    public function test_template_has_no_sample_row_that_could_become_a_real_user(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'template');
+        file_put_contents($path, Excel::raw(new TrainingParticipantTemplate, ExcelFormat::XLSX));
+        $sheet = IOFactory::load($path)->getActiveSheet();
+        unlink($path);
+
+        $filledRows = collect($sheet->toArray())->filter(fn (array $row) => array_filter($row, fn ($value) => filled($value)) !== []);
+        $this->assertSame([['Employee ID', 'Full Name', 'No HP', 'Job Position', 'Divisi']], $filledRows->values()->all(), 'Hanya judul kolom.');
+        $this->assertSame(NumberFormat::FORMAT_TEXT, $sheet->getStyle('A2')->getNumberFormat()->getFormatCode());
+        $this->assertSame(NumberFormat::FORMAT_TEXT, $sheet->getStyle('C500')->getNumberFormat()->getFormatCode());
+
+        // Template yang langsung diunggah tanpa diisi tidak membuat user apa pun.
+        Storage::disk('local')->put('imports/peserta.xlsx', Excel::raw(new TrainingParticipantTemplate, ExcelFormat::XLSX));
+        (new ProcessTrainingParticipantImport($this->admin->id, $this->training->id, 'imports/peserta.xlsx'))->handle();
+
+        $this->assertSame([], $this->participantIds());
+        $this->assertSame(1, User::count());
+    }
+
     public function test_import_adds_participants_by_employee_id_and_refreshes_master_user_data(): void
     {
         $retail = Divisi::create(['name' => 'RETAIL', 'area_id' => 1]);
@@ -151,7 +174,7 @@ class TrainingParticipantImportTest extends TestCase
         $this->assertSame('RETAIL STORE COORDINATOR (CJ1)', $rudi->fresh()->position->name);
         $this->assertSame('081299990003', $kevin->fresh()->no_hp);
         $this->assertSame(1, Position::where('name', 'RETAIL STORE COORDINATOR (WJ1)')->count());
-        $this->assertNull(User::where('employee_id', '2099.01.01.01')->first(), 'Karyawan yang belum ada di master tidak dibuat.');
+        $this->assertNull(User::where('employee_id', '2099.01.01.01')->first(), 'Karyawan baru tanpa Divisi tidak dibuat.');
 
         $notification = $this->sentNotification($this->admin);
         $this->assertSame(BackgroundTaskFinished::STATUS_PARTIAL, $notification->status);
@@ -389,5 +412,227 @@ class TrainingParticipantImportTest extends TestCase
             ->delete(route('training.participants.remove', [$otherTraining, $participant]));
 
         $this->assertModelExists($participant);
+    }
+
+    public function test_unknown_employee_ids_become_new_staff_users_from_the_template_columns(): void
+    {
+        Divisi::create(['name' => 'RETAIL', 'area_id' => 1]);
+
+        $this->import([
+            ['Employee ID', 'Full Name', 'No HP', 'Job Position', 'Divisi'],
+            ['2024.05.01.07', 'siti  aminah', '+62 812 7777 0001', 'HEAD STORE (WJ1)', 'retail'],
+        ]);
+
+        $siti = User::where('employee_id', '2024.05.01.07')->sole();
+        $this->assertSame('SITI AMINAH', $siti->nama_lengkap);
+        $this->assertSame('2024.05.01.07', $siti->username);
+        $this->assertSame('081277770001', $siti->no_hp);
+        $this->assertSame(1, (int) $siti->area_id);
+        $this->assertSame('RETAIL', $siti->divisi->name);
+        $this->assertSame('HEAD STORE (WJ1)', $siti->position->name);
+        $this->assertSame(User::ROLE_STAFF, $siti->jabatan->name);
+        $this->assertNull($siti->approval_id);
+        $this->assertSame([$siti->id], $this->participantIds());
+
+        $notification = $this->sentNotification($this->admin);
+        $this->assertSame(BackgroundTaskFinished::STATUS_SUCCESS, $notification->status);
+        $this->assertStringContainsString('1 ditambahkan, 0 sudah terdaftar, 0 data user diperbarui, 1 user baru dibuat', $notification->message);
+    }
+
+    public function test_new_users_are_not_created_when_they_would_clash_or_lack_template_data(): void
+    {
+        Divisi::create(['name' => 'RETAIL', 'area_id' => 1]);
+        $owner = User::factory()->staff()->create(['nama_lengkap' => 'PEMILIK NOMOR', 'no_hp' => '081277770002']);
+        User::factory()->staff()->create(['nama_lengkap' => 'PEMILIK USERNAME', 'username' => '2024.05.01.09']);
+
+        $this->import([
+            ['Employee ID', 'Full Name', 'No HP', 'Job Position', 'Divisi'],
+            ['2024.05.01.08', 'NOMOR DOBEL', '081277770002', '', 'RETAIL'],
+            ['2024.05.01.09', 'USERNAME DOBEL', '081277770003', '', 'RETAIL'],
+            ['2024.05.01.10', 'DIVISI ASING', '081277770004', '', 'GUDANG'],
+            ['2024.05.01.11', '', '081277770005', '', 'RETAIL'],
+            ['', 'TANPA EMPLOYEE ID', '081277770006', '', 'RETAIL'],
+        ]);
+
+        $this->assertSame([], $this->participantIds());
+        $this->assertSame(0, User::where('employee_id', 'like', '2024.05.01.%')->count());
+        $this->assertSame('081277770002', $owner->fresh()->no_hp);
+
+        $errors = $this->sentNotification($this->admin)->errors;
+        $this->assertCount(5, $errors);
+        $this->assertStringContainsString('Baris 2: Employee ID 2024.05.01.08 tidak ditemukan di master User dan No. HP 081277770002 sudah dipakai PEMILIK NOMOR', $errors[0]);
+        $this->assertStringContainsString('Baris 3:', $errors[1]);
+        $this->assertStringContainsString('username "2024.05.01.09" untuk user barunya sudah dipakai PEMILIK USERNAME', $errors[1]);
+        $this->assertStringContainsString('Baris 4:', $errors[2]);
+        $this->assertStringContainsString('Divisi "GUDANG" tidak ada di master Divisi', $errors[2]);
+        $this->assertStringContainsString('Baris 5:', $errors[3]);
+        $this->assertStringContainsString('isi kolom Full Name', $errors[3]);
+        $this->assertStringContainsString('Baris 6: No. HP 081277770006 tidak ditemukan di master User', $errors[4]);
+    }
+
+    public function test_only_importers_who_manage_users_create_new_users_and_only_in_their_business_units(): void
+    {
+        Divisi::create(['name' => 'RETAIL', 'area_id' => 1]);
+        Area::create(['id' => 2, 'name' => 'AREA LAIN']);
+        Divisi::create(['name' => 'RETAIL', 'area_id' => 2]);
+        Divisi::create(['name' => 'GUDANG', 'area_id' => 2]);
+        $rows = [
+            ['Employee ID', 'Full Name', 'No HP', 'Job Position', 'Divisi'],
+            ['2024.06.01.01', 'ANDI', '081277770011', '', 'RETAIL'],
+            ['2024.06.01.02', 'BUDI', '081277770012', '', 'GUDANG'],
+        ];
+
+        $trainer = User::factory()->staff()->trainer()->create();
+        $this->import($rows, $trainer);
+        $this->assertSame(0, User::where('employee_id', 'like', '2024.06.01.%')->count());
+        $this->assertStringContainsString('Hanya pengguna dengan izin Kelola User', $this->sentNotification($trainer)->errors[0]);
+
+        $scopedAdmin = User::factory()->state(['data_access' => User::DATA_ACCESS_SELECTED, 'area_id' => 1])->jabatan(User::ROLE_ADMIN)->create();
+        $scopedAdmin->dataAccessAreas()->sync([1]);
+        $this->import($rows, $scopedAdmin);
+
+        $andi = User::where('employee_id', '2024.06.01.01')->sole();
+        $this->assertSame(1, (int) $andi->area_id, 'RETAIL yang sebadan usaha dengan pengimpor dipakai.');
+        $this->assertNull(User::where('employee_id', '2024.06.01.02')->first());
+        $this->assertStringContainsString('berada di luar cakupan badan usaha Anda', $this->sentNotification($scopedAdmin)->errors[0]);
+    }
+
+    /**
+     * @param  list<list<mixed>>  $rows
+     */
+    private function xlsxUpload(array $rows): UploadedFile
+    {
+        $spreadsheet = new Spreadsheet;
+        $spreadsheet->getActiveSheet()->fromArray($rows, null, 'A1', true);
+        $path = tempnam(sys_get_temp_dir(), 'peserta');
+        (new Xlsx($spreadsheet))->save($path);
+        $content = file_get_contents($path);
+        unlink($path);
+
+        return UploadedFile::fake()->createWithContent('peserta.xlsx', $content);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function newTrainingForm(array $overrides = []): array
+    {
+        return [
+            'title' => 'Onboarding Toko Baru',
+            'trainer_id' => $this->admin->id,
+            'training_date' => now()->addDay()->toDateString(),
+            'start_time' => '09:00',
+            'end_time' => '11:00',
+            ...$overrides,
+        ];
+    }
+
+    public function test_create_form_imports_excel_participants_alongside_picked_ones_without_double_invitations(): void
+    {
+        Queue::fake([SendTrainingInvitation::class]);
+        $picked = User::factory()->staff()->create(['no_hp' => '081100000011']);
+        $fromFile = User::factory()->staff()->create(['no_hp' => '081100000012']);
+
+        $this->actingAs($this->admin)->post('/training', $this->newTrainingForm([
+            'participants' => [$picked->id],
+            'participant_file' => $this->xlsxUpload([
+                ['Full Name', 'No HP'],
+                ['', '081100000011'],
+                ['', '081100000012'],
+            ]),
+            'send_wa_now' => '1',
+        ]))->assertRedirect()->assertSessionHas('success', fn (string $message) => str_contains($message, 'peserta dari file Excel sedang diimpor'));
+
+        $training = Training::where('title', 'Onboarding Toko Baru')->sole();
+        $this->assertEqualsCanonicalizing([$picked->id, $fromFile->id], $training->participants()->pluck('user_id')->all());
+
+        // Peserta pilihan diundang sekali oleh form, peserta dari file sekali oleh job import.
+        Queue::assertPushed(SendTrainingInvitation::class, 2);
+        Queue::assertPushed(SendTrainingInvitation::class, fn (SendTrainingInvitation $job) => $job->participant->user_id === $picked->id);
+        Queue::assertPushed(SendTrainingInvitation::class, fn (SendTrainingInvitation $job) => $job->participant->user_id === $fromFile->id);
+
+        $notification = $this->sentNotification($this->admin);
+        $this->assertStringContainsString('1 ditambahkan, 1 sudah terdaftar', $notification->message);
+        $this->assertSame([], Storage::disk('local')->allFiles('imports'));
+    }
+
+    public function test_create_form_accepts_an_excel_file_instead_of_picked_participants(): void
+    {
+        Queue::fake([SendTrainingInvitation::class]);
+        $fromFile = User::factory()->staff()->create(['employee_id' => 'EMP-777', 'no_hp' => '081100000013']);
+
+        $this->actingAs($this->admin)->post('/training', $this->newTrainingForm([
+            'participant_file' => $this->xlsxUpload([['Employee ID', 'No HP'], ['EMP-777', '081100000013']]),
+        ]))->assertRedirect()->assertSessionHasNoErrors();
+
+        $training = Training::where('title', 'Onboarding Toko Baru')->sole();
+        $this->assertSame([$fromFile->id], $training->participants()->pluck('user_id')->all());
+        Queue::assertNothingPushed();
+    }
+
+    public function test_create_form_needs_picked_participants_or_an_excel_file(): void
+    {
+        $this->actingAs($this->admin)->post('/training', $this->newTrainingForm())
+            ->assertSessionHasErrors(['participants' => 'Pilih minimal satu peserta atau impor peserta dari file Excel.']);
+
+        $this->actingAs($this->admin)->post('/training', $this->newTrainingForm([
+            'participant_file' => UploadedFile::fake()->create('peserta.pdf', 10, 'application/pdf'),
+        ]))->assertSessionHasErrors(['participant_file' => 'File peserta harus berupa berkas berjenis: xlsx, xls, csv.']);
+
+        $this->assertDatabaseMissing('trainings', ['title' => 'Onboarding Toko Baru']);
+
+        // Form edit tidak memakai impor Excel; peserta tetap wajib dipilih.
+        $this->actingAs($this->admin)->put(route('training.update', $this->training), [])
+            ->assertSessionHasErrors('participants')
+            ->assertSessionDoesntHaveErrors('participant_file');
+    }
+
+    public function test_create_form_offers_the_template_before_the_training_exists(): void
+    {
+        $trainer = User::factory()->staff()->trainer()->create();
+
+        $this->actingAs($trainer)->get(route('training.create'))
+            ->assertOk()
+            ->assertSee('enctype="multipart/form-data"', false)
+            ->assertSee('name="participant_file"', false)
+            ->assertSee(route('training.participant-template'));
+
+        $response = $this->actingAs($trainer)->get(route('training.participant-template'))->assertOk();
+        $this->assertStringContainsString('template_peserta.xlsx', $response->headers->get('content-disposition'));
+
+        $this->actingAs(User::factory()->staff()->create())->get(route('training.participant-template'))->assertRedirect();
+    }
+
+    public function test_saving_the_edit_form_keeps_participants_imported_while_it_was_open(): void
+    {
+        $picked = User::factory()->staff()->create();
+        $dropped = User::factory()->staff()->create();
+        $imported = User::factory()->staff()->create();
+        TrainingParticipant::createFor($this->training, $picked->id);
+        $droppedParticipant = TrainingParticipant::createFor($this->training, $dropped->id);
+
+        $this->actingAs($this->admin)->get(route('training.edit', $this->training))
+            ->assertOk()
+            ->assertSee('name="participants_saved[]" value="'.$dropped->id.'"', false);
+
+        // Impor di latar belakang menambah peserta selagi form edit masih terbuka.
+        $importedParticipant = TrainingParticipant::createFor($this->training, $imported->id);
+        TrainingQuizResult::create([
+            'training_id' => $this->training->id, 'user_id' => $imported->id, 'training_participant_id' => $importedParticipant->id,
+            'phase' => Training::PHASE_POSTTEST, 'total_questions' => 1, 'correct_answers' => 1, 'score' => 100, 'submitted_at' => now(),
+        ]);
+
+        // Pemateri mengeluarkan satu peserta lama dan menyimpan form yang dibuka sebelum impor selesai.
+        $this->put(route('training.update', $this->training), [
+            'title' => 'Product Knowledge Retail', 'trainer_id' => $this->admin->id, 'training_date' => $this->training->training_date->toDateString(),
+            'start_time' => '09:00', 'end_time' => '11:00', 'meeting_link' => 'https://zoom.us/j/123', 'status' => 'scheduled',
+            'participants' => [$picked->id],
+            'participants_saved' => [$picked->id, $dropped->id],
+        ])->assertSessionHasNoErrors();
+
+        $this->assertModelMissing($droppedParticipant);
+        $this->assertModelExists($importedParticipant);
+        $this->assertSame(1, TrainingQuizResult::where('training_participant_id', $importedParticipant->id)->count());
     }
 }

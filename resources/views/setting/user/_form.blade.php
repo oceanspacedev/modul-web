@@ -174,6 +174,17 @@
                         <label class="custom-control-label" for="trainer">Trainer</label>
                     </div>
                     <small class="form-text text-muted">Memberi akses kelola training, video, dan dokumen di luar hak akses jabatannya.</small>
+
+                    <div class="form-group mt-3 mb-0">
+                        <label for="od_access">OD Report</label>
+                        <select class="form-control" id="od_access" name="od_access">
+                            <option value="">Tidak ada akses</option>
+                            @foreach (App\Models\User::OD_ACCESS as $value => $label)
+                                <option value="{{ $value }}" @selected(old('od_access', $isEdit ? $user->odReportAccess() : null) === $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        <small class="form-text text-muted">Staff: laporan & dokumen miliknya. Leader: seluruh tim + pengaturan.</small>
+                    </div>
                 </div>
             </div>
         </div>

@@ -69,6 +69,14 @@ class RoleController extends Controller
                     'view-documents' => 'Melihat & Mengunduh Dokumen Modul',
                 ],
             ],
+            'OD Report' => [
+                'icon' => 'fas fa-clipboard-list',
+                'color' => 'text-info',
+                'permissions' => [
+                    'access-od-report' => 'Mengisi OD Report & Memproses Permintaan Dokumen (OD Staff)',
+                    'manage-od-report' => 'Melihat Seluruh Tim & Mengatur OD Report (OD Leader)',
+                ],
+            ],
             'Pengaturan Sistem' => [
                 'icon' => 'fas fa-sliders-h',
                 'color' => 'text-secondary',

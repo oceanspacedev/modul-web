@@ -298,5 +298,9 @@ class UserController extends Controller
         if ($request->has('trainer') && $request->user()->can('manageTrainer', User::class)) {
             $user->setTrainer($request->boolean('trainer'));
         }
+
+        if ($request->has('od_access') && $request->user()->can('manageTrainer', User::class)) {
+            $user->setOdReportAccess($request->validated('od_access'));
+        }
     }
 }

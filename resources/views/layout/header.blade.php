@@ -128,6 +128,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a href="{{ route('document-request.create') }}" class="nav-link {{ ($active ?? '') === 'document-request' ? 'text-dark' : '' }}">
+                            Permintaan Dokumen
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a href="{{ route('login') }}" class="btn btn-primary btn-sm">
                             Masuk
                         </a>

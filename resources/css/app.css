@@ -4482,29 +4482,30 @@ body.page-center {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 16px;
+    margin-bottom: 8px;
     color: var(--gray-600);
     font-size: 13px;
 }
 
+/* Judul dan tombol sebaris; info sesi satu baris di bawah judul */
 .training-heading {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: 16px 24px;
+    gap: 12px 24px;
     flex-wrap: wrap;
-    padding-bottom: 12px;
+    padding-bottom: 4px;
 }
 
 .training-heading > div:first-child {
-    flex: 1 1 480px;
+    flex: 1 1 420px;
     min-width: 0;
 }
 
 .training-detail-header .training-title {
-    max-width: 36ch;
-    margin: 0 0 12px;
-    font-size: clamp(24px, 3vw, 36px);
+    max-width: 48ch;
+    margin: 0 0 6px;
+    font-size: clamp(22px, 2.4vw, 30px);
     font-weight: 600;
     line-height: 1.16;
     overflow-wrap: anywhere;
@@ -4670,16 +4671,23 @@ body.page-center {
     margin-left: auto;
 }
 
+/* Ringkasan angka: kotak sejajar di atas tab */
 .training-totals {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 168px), 1fr));
-    gap: 16px;
-    margin: 0 20px;
-    padding: 12px 0 16px;
-    border-block: 1px solid var(--ring);
+    /* Satu baris rata: jumlah kolom = jumlah kotak yang tampil (--stat-count), maksimal 4 */
+    grid-template-columns: repeat(min(var(--stat-count, 4), 4), minmax(0, 1fr));
+    gap: 12px;
+    margin: 0 0 20px;
     font-size: 13px;
     line-height: 20px;
     font-variant-numeric: tabular-nums;
+}
+
+.training-totals > div {
+    padding: 12px 16px;
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-xl);
+    background: white;
 }
 
 .training-totals dt {
@@ -4726,11 +4734,30 @@ body.page-center {
     width: min(280px, 100%);
 }
 
+.training-roster-pagesize {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 0 auto;
+    color: var(--gray-600);
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.training-roster-pagesize label {
+    font-weight: 400;
+}
+
+.training-roster-pagesize select {
+    min-width: 64px;
+}
+
 .training-roster-footer {
     border-top: 1px solid var(--ring);
 }
 
 .training-roster-footer ul {
+    flex-wrap: wrap;
     margin: 0;
 }
 
@@ -5036,18 +5063,30 @@ tr.camera-row[data-status=""] .camera-status-picker {
         padding-inline: 12px;
     }
 
-    .training-roster-notice,
-    .training-totals {
+    .training-roster-notice {
         margin-inline: 12px;
     }
 
     .training-totals {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px 16px;
+        grid-template-columns: repeat(min(var(--stat-count, 2), 2), minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .training-totals > div {
+        padding: 10px 12px;
     }
 
     .training-roster-search {
         width: 100%;
+    }
+
+    .training-roster-pagesize {
+        margin-left: 0;
+    }
+
+    .training-roster-footer {
+        justify-content: center;
     }
 
     #kontrol-sesi .list-group-item {
@@ -5057,6 +5096,374 @@ tr.camera-row[data-status=""] .camera-status-picker {
     #kontrol-sesi .list-group-item .btn {
         white-space: normal !important;
     }
+}
+
+/*
+ * Halaman detail pelatihan: satu skala teks untuk seluruh halaman, menggantikan ukuran rem bawaan Bootstrap/AdminLTE
+ * (10,5–12,25px) yang membuat teks di tiap bagian berbeda-beda.
+ * 13px keterangan & tombol · 14px isi · 16px judul bagian · 22px angka ringkasan · 24px judul halaman.
+ */
+html:has(.training-detail) {
+    /* Ruang scrollbar selalu disediakan: tab pendek (Materi) dan tab panjang (Peserta) tidak menggeser lebar halaman. */
+    scrollbar-gutter: stable;
+}
+
+.training-detail,
+.training-detail .table,
+.training-detail .dropdown-item,
+.training-detail .form-control,
+.training-detail .form-control-sm,
+.training-detail .training-roster-search input,
+.training-detail .text-muted,
+.training-detail .text-sm,
+.training-detail .training-person-link,
+.training-detail .status-dot,
+.training-detail .training-notice,
+.training-sections a {
+    font-size: 14px !important;
+    line-height: 20px;
+}
+
+.training-detail-header .training-back-link,
+.training-detail-header .training-session-meta,
+.training-detail .training-totals dt,
+.training-detail .training-total-meta,
+.training-detail .training-section-count,
+.training-detail .training-roster-pagesize,
+.training-detail .training-roster-pagesize label,
+.training-detail-header .badge,
+.training-detail #participantsTable > thead th,
+.training-detail .cell-sub,
+.training-detail .training-camera,
+.training-detail .training-mobile-label,
+.training-detail .training-roster-footer,
+.training-detail .training-roster-footer .small,
+.training-detail .page-link,
+.training-detail .text-xs,
+.training-detail .small,
+.training-detail small {
+    font-size: 13px !important;
+    line-height: 20px;
+}
+
+.training-detail .cell-sub {
+    display: block;
+}
+
+.training-detail-header .training-title {
+    font-size: 24px;
+    line-height: 32px;
+}
+
+.training-detail .training-section-title {
+    font-size: 16px;
+    line-height: 24px;
+}
+
+.training-detail .training-total-value strong {
+    font-size: 22px;
+    line-height: 28px;
+}
+
+/* Semua tombol sama tinggi dan ukuran teksnya; tombol di baris tabel/kontrol sesi sedikit lebih pendek. */
+.training-detail .btn,
+.training-detail-header .btn {
+    font-size: 13px !important;
+    line-height: 20px;
+    padding: 5px 12px;
+}
+
+.training-detail .btn-xs {
+    padding: 3px 10px;
+}
+
+/*
+ * Buat Pelatihan: tiga langkah dalam satu kolom (info, langkah peserta, peserta & materi). Skala teks sama dengan
+ * halaman detail: 13px keterangan & tombol, 14px isi, 16px judul langkah.
+ */
+html:has(.training-create) {
+    scrollbar-gutter: stable;
+}
+
+/* Judul, pesan, dan form (form + ringkasan) berada di tengah halaman dengan lebar yang sama. */
+.training-create #trainingForm,
+.training-create .flash-stack,
+.training-create-header .container-fluid > * {
+    max-width: 1280px;
+    margin-inline: auto;
+}
+
+.training-create-layout {
+    display: grid;
+    gap: 16px;
+}
+
+@media (min-width: 1200px) {
+    .training-create-layout {
+        grid-template-columns: minmax(0, 1fr) 340px;
+        align-items: start;
+        gap: 24px;
+    }
+
+    .training-create-summary {
+        position: sticky;
+        top: 16px;
+        margin-top: 48px; /* sejajar dengan kartu langkah, di bawah penanda 1-2-3 */
+    }
+}
+
+.training-create-summary {
+    padding: 20px;
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-xl);
+    background: white;
+}
+
+.training-create-summary dl {
+    margin: 0 0 16px;
+}
+
+.training-create-summary dl > div {
+    padding: 10px 0;
+    border-top: 1px solid var(--ring);
+}
+
+.training-create-summary dt {
+    color: var(--gray-500);
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.training-create-summary dd {
+    margin: 2px 0 0;
+    color: var(--gray-950);
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.training-create-summary dd.is-empty {
+    color: var(--gray-400);
+    font-weight: 400;
+}
+
+.training-create,
+.training-create .form-control,
+.training-create .custom-control-label,
+.training-create .select2-container,
+.training-create .select2-selection__rendered,
+.training-create .select2-selection__choice,
+.training-create label {
+    font-size: 14px !important;
+}
+
+.training-create label {
+    font-weight: 500;
+}
+
+.training-create .btn {
+    font-size: 13px !important;
+    line-height: 20px;
+    padding: 5px 12px;
+}
+
+.training-create .btn-xs {
+    padding: 3px 10px;
+}
+
+.training-create .small,
+.training-create small,
+.training-create .text-muted.small,
+.training-create .form-control-sm {
+    font-size: 13px !important;
+}
+
+.training-create-stepper {
+    display: flex;
+    gap: 8px;
+    margin: 0 0 16px;
+    padding: 0;
+    list-style: none;
+    font-size: 13px;
+}
+
+.training-create-stepper li {
+    display: flex;
+    flex: 1 1 0;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 8px 0 0;
+    border-top: 3px solid var(--gray-200);
+    color: var(--gray-500);
+    font-weight: 500;
+}
+
+.training-create #trainingForm.is-stepped .training-create-stepper li {
+    cursor: pointer;
+}
+
+.training-create-stepper li.is-current,
+.training-create-stepper li.is-done {
+    border-top-color: var(--primary-700);
+    color: var(--gray-950);
+}
+
+.training-create-stepper-number {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: var(--gray-100);
+    color: var(--gray-600);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.training-create-stepper li.is-current .training-create-stepper-number,
+.training-create-stepper li.is-done .training-create-stepper-number {
+    background: var(--primary-700);
+    color: white;
+}
+
+.training-create-step {
+    margin-bottom: 16px;
+    padding: 20px;
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-xl);
+    background: white;
+}
+
+.training-create-step[hidden] {
+    display: none;
+}
+
+.training-create-title {
+    margin: 0 0 16px;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 24px;
+}
+
+.training-create-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+    margin-bottom: 16px;
+}
+
+.training-create-title-row .training-create-title {
+    margin: 0;
+}
+
+.training-create-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.training-create-count,
+.training-create-optional,
+.training-create-hint,
+.training-create-help {
+    color: var(--gray-500);
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.training-create-help {
+    margin: -8px 0 16px;
+}
+
+.training-create-toggles {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-lg);
+}
+
+.training-create-toggles > li {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 16px;
+}
+
+/* Keterangan selalu di bawah nama langkah, sejajar dengan teks label saklar. */
+.training-create-toggles .training-create-hint {
+    padding-left: 2.25rem;
+}
+
+.training-create-toggles > li + li {
+    border-top: 1px solid var(--ring);
+}
+
+.training-create-sub {
+    padding: 6px 0 0 2.25rem;
+}
+
+.training-create-details {
+    margin-top: 16px;
+}
+
+.training-create-details summary {
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.training-create-details[open] summary {
+    margin-bottom: 12px;
+}
+
+.training-create-quiz {
+    margin: 0 0 12px;
+    padding: 12px 16px;
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-lg);
+}
+
+.training-create-quiz legend {
+    width: auto;
+    margin: 0;
+    padding: 0 4px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.training-create-quiz[hidden] {
+    display: none;
+}
+
+.training-create-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.training-create-nav-spacer {
+    flex: 1;
+}
+
+.training-create-nav [hidden] {
+    display: none !important;
+}
+
+@media (max-width: 575.98px) {
+    .training-create-step {
+        padding: 16px 12px;
+    }
+
+    .training-create-stepper li {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
 }
 
 /* Halaman selebar layar: pemutar video dibatasi supaya tetap muat setinggi layar. */

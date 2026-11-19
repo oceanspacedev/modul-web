@@ -4,13 +4,22 @@ use App\Http\Controllers\AreaController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DivisiController;
+use App\Http\Controllers\DocumentCategoryController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\DocumentRequestController;
+use App\Http\Controllers\DocumentRequestRecipientController;
 use App\Http\Controllers\DokumenTypeController;
 use App\Http\Controllers\LearningModuleController;
 use App\Http\Controllers\LearningModulePortalController;
 use App\Http\Controllers\LearningModuleQuestionController;
 use App\Http\Controllers\MeetingAccountController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OdDailyController;
+use App\Http\Controllers\OdDocumentController;
+use App\Http\Controllers\OdExportController;
+use App\Http\Controllers\OdReportController;
+use App\Http\Controllers\OdRequestController;
+use App\Http\Controllers\OdSettingController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ScoreRecapController;
@@ -45,6 +54,17 @@ Route::post('/login/otp/verify', [AuthController::class, 'verifyOtp'])->middlewa
 Route::get('video', [VideoController::class, 'index'])->name('video.index');
 Route::get('video/watch/{video}', [VideoController::class, 'show'])->name('video.show');
 
+// # PERMINTAAN DOKUMEN (publik; pemohon yang login datanya terisi otomatis)
+Route::controller(DocumentRequestController::class)->prefix('permintaan-dokumen')->name('document-request.')->group(function () {
+    Route::get('/', 'create')->name('create');
+    Route::post('/', 'store')->middleware('throttle:document-request')->name('store');
+    Route::get('lacak', 'track')->middleware('throttle:document-request-track')->name('track');
+    Route::get('contoh/{category?}', 'example')->whereNumber('category')->name('example');
+    Route::get('contoh/{category}/file', 'exampleFile')->whereNumber('category')->middleware('throttle:document-request-track')->name('example-file');
+    // Link file rilis yang dikirim ke pemohon lewat WhatsApp; hanya link bertanda tangan dari aplikasi yang bisa dibuka.
+    Route::get('file/{document}', 'file')->whereNumber('document')->middleware(['signed', 'throttle:document-request-track'])->name('file');
+});
+
 // # PUBLIC PARTICIPANT PORTAL (ACCESSIBLE VIA WHATSAPP TOKEN LINK)
 Route::prefix('training/portal/{token}')
     ->name('training.portal')
@@ -52,8 +72,8 @@ Route::prefix('training/portal/{token}')
     ->middleware('throttle:portal')
     ->group(function () {
         Route::get('/', 'showPortal')->name('');
-        // Dipanggil tiap 5 detik oleh setiap peserta dan hanya membaca: tanpa sesi dan cookie, supaya tidak ada tulisan
-        // ke penyimpanan sesi di setiap panggilan.
+        // Dipanggil berkala oleh setiap peserta (portal dan halaman kuis): tanpa session, cookie, CSRF, dan catatan
+        // aktivitas user, supaya tiap panggilan hanya membaca database. Peserta dikenali dari token di alamatnya.
         Route::get('status', 'getStatus')->name('.status')->withoutMiddleware([
             EncryptCookies::class,
             AddQueuedCookiesToResponse::class,
@@ -83,6 +103,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::view('panduan', 'panduan.index', ['active' => 'panduan', 'title' => 'Panduan Penggunaan'])->name('panduan');
     Route::get('my-trainings', [TrainingPortalController::class, 'myTrainings'])->name('training.my-trainings');
+    Route::get('permintaan-saya', [DocumentRequestController::class, 'mine'])->name('document-request.mine');
 
     Route::post('video/{video}/comments', [VideoController::class, 'storeComment'])->name('video.comments.store');
     Route::delete('video/comments/{comment}', [VideoController::class, 'destroyComment'])->name('video.comments.destroy');
@@ -100,6 +121,63 @@ Route::middleware('auth')->group(function () {
     Route::controller(ScoreRecapController::class)->prefix('rekap-nilai')->name('score-recap.')->group(function () {
         Route::get('/', 'index')->name('index');
         Route::post('export', 'export')->name('export');
+    });
+
+    // # OD REPORT (tim Organization Development; Staff melihat datanya sendiri, Leader seluruh tim)
+    Route::prefix('od-report')->name('od-report.')->middleware('can:access-od-report')->group(function () {
+        Route::controller(OdReportController::class)->group(function () {
+            Route::get('/', 'dashboard')->name('dashboard');
+            Route::get('weekly', 'weekly')->name('weekly');
+            Route::get('monthly', 'monthly')->name('monthly');
+        });
+
+        Route::post('ekspor', OdExportController::class)->name('export');
+
+        Route::controller(OdDailyController::class)->prefix('daily')->name('daily.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->name('store');
+            Route::post('simpan', 'save')->name('save');
+            Route::post('buka-kembali', 'reopen')->name('reopen');
+            Route::get('{activity}/edit', 'edit')->whereNumber('activity')->name('edit');
+            Route::put('{activity}', 'update')->whereNumber('activity')->name('update');
+            Route::patch('{activity}/geser', 'move')->whereNumber('activity')->name('move');
+            Route::delete('{activity}', 'destroy')->whereNumber('activity')->name('destroy');
+        });
+
+        Route::controller(OdDocumentController::class)->prefix('dokumen')->name('documents.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->name('store');
+            Route::get('{document}/edit', 'edit')->whereNumber('document')->name('edit');
+            Route::put('{document}', 'update')->whereNumber('document')->name('update');
+            Route::patch('{document}/status', 'updateStatus')->whereNumber('document')->name('status');
+            Route::get('{document}/file', 'file')->whereNumber('document')->name('file');
+            Route::delete('{document}', 'destroy')->whereNumber('document')->name('destroy');
+        });
+
+        Route::controller(OdRequestController::class)->prefix('permintaan')->name('requests.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('{documentRequest}', 'show')->whereNumber('documentRequest')->name('show');
+            Route::put('{documentRequest}', 'update')->whereNumber('documentRequest')->name('update');
+            Route::delete('{documentRequest}', 'destroy')->whereNumber('documentRequest')->name('destroy');
+        });
+
+        Route::controller(OdSettingController::class)->prefix('pengaturan')->name('settings.')->middleware('can:manage-od-report')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('status', 'storeStatus')->name('statuses.store');
+            Route::put('status/{status}', 'updateStatus')->whereNumber('status')->name('statuses.update');
+            Route::delete('status/{status}', 'destroyStatus')->whereNumber('status')->name('statuses.destroy');
+        });
+    });
+
+    // # KATEGORI DOKUMEN (master jenis dokumen OD dan tahapannya; dikelola OD Leader)
+    Route::controller(DocumentCategoryController::class)->prefix('kategori-dokumen')->name('document-category.')->middleware('can:manage-od-report')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::get('{category}/edit', 'edit')->whereNumber('category')->name('edit');
+        Route::put('{category}', 'update')->whereNumber('category')->name('update');
+        Route::delete('{category}', 'destroy')->whereNumber('category')->name('destroy');
+        Route::post('penerima', [DocumentRequestRecipientController::class, 'store'])->name('recipients.store');
+        Route::delete('penerima/{recipient}', [DocumentRequestRecipientController::class, 'destroy'])->whereNumber('recipient')->name('recipients.destroy');
     });
 
     // # DASHBOARD
@@ -158,6 +236,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // no_store: tombol Back tidak menampilkan salinan lama form, jadi user yang baru dibuat ikut terdaftar.
+    Route::get('training/participants/template', [TrainingController::class, 'blankParticipantTemplate'])->name('training.participant-template');
     Route::resource('training', TrainingController::class)->whereNumber('training')
         ->middlewareFor(['create', 'edit'], 'cache.headers:no_store;private');
 
