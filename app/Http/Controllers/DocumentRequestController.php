@@ -6,6 +6,7 @@ use App\Http\Requests\StoreDocumentRequestRequest;
 use App\Models\DocumentCategory;
 use App\Models\DocumentRequest;
 use App\Models\OdDocument;
+use App\Models\User;
 use App\Services\DocumentCategoryService;
 use App\Services\DocumentRequestService;
 use App\Services\OdDocumentService;
@@ -22,8 +23,7 @@ class DocumentRequestController extends Controller
 {
     public function create(Request $request): View
     {
-        $user = $request->user()?->loadMissing(['divisi', 'roles']);
-        $jabatan = $user?->jabatan?->name;
+        $user = $request->user()?->loadMissing(['divisi', 'roles', 'approval']);
         $categories = DocumentCategory::active()->ordered()->with('stages')->get();
 
         return view('document-request.create', [
@@ -33,14 +33,30 @@ class DocumentRequestController extends Controller
             // ?kategori=JD memilihkan kategori; satu-satunya kategori aktif langsung terpilih.
             'selectedCategory' => $categories->first(fn (DocumentCategory $c) => strcasecmp($c->code, (string) $request->query('kategori')) === 0)?->id
                 ?? ($categories->count() === 1 ? $categories->first()->id : null),
-            'prefill' => $user ? [
-                'nama' => $user->nama_lengkap,
-                'divisi' => $user->divisi?->name,
-                'jabatan' => collect(DocumentRequest::JABATAN)->first(fn ($j) => strcasecmp($j, (string) $jabatan) === 0),
-                'whatsapp' => $user->no_hp,
-                'email' => $user->email,
-            ] : [],
+            'prefill' => $user ? $this->prefill($user) : [],
         ]);
+    }
+
+    /**
+     * Data pemohon untuk user yang login: dari akunnya, dan yang tidak ada di akun (departemen, jabatan, atasan) dari
+     * pengajuan terakhirnya, supaya tidak perlu diisi ulang. Tamu mengisi semuanya sendiri.
+     *
+     * @return array<string, string|null>
+     */
+    private function prefill(User $user): array
+    {
+        $last = DocumentRequest::where('user_id', $user->getKey())->latest('id')->first();
+        $pick = fn (array $options, ?string $value) => collect($options)->first(fn ($option) => strcasecmp($option, (string) $value) === 0);
+
+        return [
+            'nama' => $user->nama_lengkap,
+            'divisi' => $user->divisi?->name ?? $last?->divisi,
+            'departemen' => $pick(DocumentRequest::DEPARTMENTS, $last?->departemen) ?? $pick(DocumentRequest::DEPARTMENTS, $user->divisi?->name),
+            'jabatan' => $pick(DocumentRequest::JABATAN, $user->jabatan?->name) ?? $pick(DocumentRequest::JABATAN, $last?->jabatan),
+            'whatsapp' => $user->no_hp,
+            'email' => $user->email,
+            'atasan' => $user->approval?->nama_lengkap ?? $last?->atasan,
+        ];
     }
 
     public function store(StoreDocumentRequestRequest $request, DocumentRequestService $service): RedirectResponse
