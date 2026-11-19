@@ -6,6 +6,7 @@ use App\Http\Requests\StoreDocumentRequestRequest;
 use App\Models\DocumentCategory;
 use App\Models\DocumentRequest;
 use App\Models\OdDocument;
+use App\Services\DocumentCategoryService;
 use App\Services\DocumentRequestService;
 use App\Services\OdDocumentService;
 use Illuminate\Http\RedirectResponse;
@@ -82,13 +83,29 @@ class DocumentRequestController extends Controller
         return $documents->fileResponse($document);
     }
 
-    public function example(): View
+    /**
+     * Contoh dokumen per kategori. Tanpa kategori: kategori aktif pertama yang punya contoh.
+     */
+    public function example(?DocumentCategory $category = null): View
     {
+        $categories = DocumentCategory::active()->ordered()->get()->filter->hasExample()->values();
+        $category ??= $categories->first();
+        abort_unless($category?->hasExample(), 404);
+
         return view('document-request.example', [
-            'title' => 'Contoh Dokumen IK',
+            'title' => "Contoh Dokumen {$category->code}",
             'active' => 'document-request',
+            'category' => $category,
+            'categories' => $categories,
             'cloud' => config('od-report.cloud'),
         ]);
+    }
+
+    public function exampleFile(DocumentCategory $category, DocumentCategoryService $categories): Response
+    {
+        abort_unless($category->hasUploadedExample(), 404);
+
+        return $categories->exampleResponse($category);
     }
 
     public function mine(Request $request): View

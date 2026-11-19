@@ -17,7 +17,7 @@
     <div class="container-fluid">
         <x-flash />
 
-        <form action="{{ route('document-category.update', $category) }}" method="POST" id="categoryForm">
+        <form action="{{ route('document-category.update', $category) }}" method="POST" id="categoryForm" enctype="multipart/form-data">
             @csrf
             @method('PUT')
 
@@ -45,6 +45,29 @@
                                 <label for="description">Keterangan <span class="text-muted font-weight-normal">(tampil di form)</span></label>
                                 <input type="text" class="form-control @error('description') is-invalid @enderror" id="description" name="description" maxlength="300" value="{{ old('description', $category->description) }}">
                                 @error('description')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+
+                            <div class="form-group">
+                                <label for="example">File contoh <span class="text-muted font-weight-normal">(maks. 20 MB)</span></label>
+                                @if ($category->hasExample())
+                                    <div class="d-flex align-items-center mb-2 small">
+                                        <i class="far fa-file mr-1"></i>
+                                        <a href="{{ route('document-request.example', $category) }}" target="_blank" class="text-truncate">{{ $category->exampleFileName() }}</a>
+                                        @if ($category->hasUploadedExample())
+                                            <div class="custom-control custom-checkbox ml-auto">
+                                                <input type="checkbox" class="custom-control-input" id="remove_example" name="remove_example" value="1" @checked(old('remove_example'))>
+                                                <label class="custom-control-label" for="remove_example">Hapus</label>
+                                            </div>
+                                        @else
+                                            <span class="text-muted ml-auto">bawaan</span>
+                                        @endif
+                                    </div>
+                                @endif
+                                <div class="custom-file">
+                                    <input type="file" class="custom-file-input @error('example') is-invalid @enderror" id="example" name="example" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png">
+                                    <label class="custom-file-label" for="example" data-browse="Pilih">{{ $category->hasExample() ? 'Ganti file...' : 'Pilih file...' }}</label>
+                                    @error('example')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
                             </div>
 
                             <div class="form-row">
@@ -150,6 +173,11 @@
         });
 
         renumber();
+
+        const example = document.getElementById('example');
+        example.addEventListener('change', () => {
+            if (example.files.length) example.nextElementSibling.textContent = example.files[0].name;
+        });
     })();
 </script>
 @endsection

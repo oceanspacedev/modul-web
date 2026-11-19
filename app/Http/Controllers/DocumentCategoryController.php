@@ -77,6 +77,7 @@ class DocumentCategoryController extends Controller
             return back()->with('error', "Kategori {$category->code} sudah dipakai dokumen. Nonaktifkan saja supaya tidak muncul di form.");
         }
 
+        $this->categories->replaceExample($category, null);
         $category->delete();
 
         return to_route('document-category.index')->with('success', "Kategori {$category->code} dihapus.");

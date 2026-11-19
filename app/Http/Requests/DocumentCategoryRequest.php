@@ -26,6 +26,7 @@ class DocumentCategoryRequest extends FormRequest
             'code' => trim((string) $this->input('code')),
             'needs_observation' => $this->boolean('needs_observation'),
             'is_active' => $this->boolean('is_active'),
+            'remove_example' => $this->boolean('remove_example'),
         ]);
     }
 
@@ -43,6 +44,8 @@ class DocumentCategoryRequest extends FormRequest
             'is_active' => ['boolean'],
             'pic_user_id' => ['nullable', 'integer', Rule::in(OdTeam::query()->pluck('id')->all())],
             'sort' => ['nullable', 'integer', 'min:0', 'max:999'],
+            'example' => ['nullable', ...DocumentCategory::EXAMPLE_RULES],
+            'remove_example' => ['boolean'],
             'stages' => ['required', 'array', 'min:'.DocumentCategory::MIN_STAGES, 'max:'.DocumentCategory::MAX_STAGES],
             'stages.*.id' => ['nullable', 'integer', Rule::exists('document_category_stages', 'id')->where('document_category_id', $category->getKey())],
             'stages.*.name' => ['required', 'string', 'max:40', 'distinct:ignore_case', Rule::notIn([OdDocument::STAGE_CANCELLED])],
@@ -100,6 +103,7 @@ class DocumentCategoryRequest extends FormRequest
             'description' => 'keterangan',
             'pic_user_id' => 'PIC bawaan',
             'sort' => 'urutan',
+            'example' => 'file contoh',
             'stages' => 'tahapan',
             'stages.*.name' => 'judul tahap',
         ];

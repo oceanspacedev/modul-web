@@ -5,9 +5,14 @@ namespace App\Services;
 use App\Models\DocumentCategory;
 use App\Models\OdDocument;
 use App\Models\OdDocumentStatus;
+use App\Support\StorageUrl;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Simpan Kategori Dokumen dan tahapannya. Nama tahap disimpan apa adanya di od_documents.stage, jadi tahap yang diganti
@@ -44,7 +49,7 @@ class DocumentCategoryService
         DB::transaction(function () use ($category, $data) {
             $rows = array_values($data['stages']);
             $category->update([
-                ...Arr::except($data, ['stages']),
+                ...Arr::except($data, ['stages', 'example', 'remove_example']),
                 'sort' => $data['sort'] ?? $category->sort,
             ]);
 
@@ -79,6 +84,43 @@ class DocumentCategoryService
 
             $this->syncFinalStage($category, end($rows)['name']);
         });
+
+        if (($data['example'] ?? null) instanceof UploadedFile) {
+            $this->replaceExample($category, $data['example']);
+        } elseif (! empty($data['remove_example'])) {
+            $this->replaceExample($category, null);
+        }
+    }
+
+    /**
+     * Ganti (atau hapus, bila $file null) file contoh kategori. Ekstensi diambil dari isi file, bukan nama kiriman.
+     */
+    public function replaceExample(DocumentCategory $category, ?UploadedFile $file): void
+    {
+        $old = $category->example_path;
+
+        $category->forceFill($file ? [
+            'example_path' => $file->storeAs('kategori-dokumen/contoh', Str::uuid().'.'.$file->extension()),
+            'example_name' => mb_substr($file->getClientOriginalName(), 0, 200),
+        ] : ['example_path' => null, 'example_name' => null])->save();
+
+        if ($old && $old !== $category->example_path) {
+            Storage::delete($old);
+        }
+    }
+
+    /**
+     * Tampilkan file contoh: disk S3 lewat URL sementara, disk lain dialirkan langsung (PDF terbuka di browser).
+     */
+    public function exampleResponse(DocumentCategory $category): Response
+    {
+        if (Storage::disk()->providesTemporaryUrls()) {
+            return redirect()->away(StorageUrl::for($category->example_path, 10));
+        }
+
+        abort_unless(Storage::exists($category->example_path), 404);
+
+        return Storage::response($category->example_path, $category->example_name);
     }
 
     /**

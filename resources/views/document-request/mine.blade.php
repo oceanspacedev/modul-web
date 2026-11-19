@@ -5,7 +5,7 @@
     <div class="container-fluid">
         <x-page-header title="Permintaan Saya" subtitle="Pengajuan dokumen ke tim OD" eyebrow="Permintaan Dokumen">
             <x-slot:actions>
-                <a href="{{ route('document-request.example') }}" class="btn btn-default"><i class="far fa-file-pdf"></i> Contoh IK</a>
+                <a href="{{ route('document-request.example') }}" class="btn btn-default"><i class="far fa-file-alt"></i> Contoh Dokumen</a>
                 <a href="{{ route('document-request.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Ajukan Dokumen</a>
             </x-slot:actions>
         </x-page-header>
