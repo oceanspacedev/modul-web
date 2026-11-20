@@ -82,6 +82,7 @@ class RoleController extends Controller
                 'color' => 'text-secondary',
                 'permissions' => [
                     'manage-users' => 'Mengelola Akun Pengguna',
+                    'impersonate-users' => 'Masuk sebagai User Lain (Impersonate)',
                     'manage-roles' => 'Mengelola Jabatan & Hak Akses',
                     'manage-master-data' => 'Mengelola Area, Divisi, Posisi, & Tipe Dokumen',
                 ],

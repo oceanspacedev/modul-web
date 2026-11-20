@@ -175,6 +175,13 @@
                     </div>
                     <small class="form-text text-muted">Memberi akses kelola training, video, dan dokumen di luar hak akses jabatannya.</small>
 
+                    <input type="hidden" name="impersonate" value="0">
+                    <div class="custom-control custom-checkbox mt-3">
+                        <input type="checkbox" class="custom-control-input" id="impersonate" name="impersonate" value="1" @checked(old('impersonate', $isEdit && $user->canImpersonateDirectly()))>
+                        <label class="custom-control-label" for="impersonate">Impersonate</label>
+                    </div>
+                    <small class="form-text text-muted">Boleh masuk sebagai user lain yang bisa ia kelola.</small>
+
                     <div class="form-group mt-3 mb-0">
                         <label for="od_access">OD Report</label>
                         <select class="form-control" id="od_access" name="od_access">

@@ -83,6 +83,18 @@ class UserPolicy
         return DataAccessService::isAdmin($user) && ($model === null || $this->changeCredentials($user, $model));
     }
 
+    /**
+     * Masuk sebagai karyawan lain sama dengan memakai loginnya, jadi cakupannya mengikuti changeCredentials.
+     * Super admin diloloskan Gate::before; larangan diri sendiri dan user diarsipkan dicek lagi di controller.
+     */
+    public function impersonate(User $user, User $model): bool
+    {
+        return $user->checkPermissionTo(User::IMPERSONATE_PERMISSION)
+            && ! $user->is($model)
+            && ! $model->trashed()
+            && $this->changeCredentials($user, $model);
+    }
+
     private function canAccessRecord(User $user, User $model): bool
     {
         // Akun ADMIN hanya dikelola super admin.

@@ -302,5 +302,9 @@ class UserController extends Controller
         if ($request->has('od_access') && $request->user()->can('manageTrainer', User::class)) {
             $user->setOdReportAccess($request->validated('od_access'));
         }
+
+        if ($request->has('impersonate') && $request->user()->can('manageTrainer', User::class)) {
+            $user->setImpersonator($request->boolean('impersonate'));
+        }
     }
 }
