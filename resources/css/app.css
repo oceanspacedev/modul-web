@@ -1239,6 +1239,311 @@ a.stat-tile:hover {
     box-shadow: var(--focus-ring);
 }
 
+/* Form Permintaan Dokumen: stepper, bagian berjudul, kartu kategori, kartu dokumen. */
+.request-stepper {
+    display: flex;
+    flex: 1 1 auto;
+    width: 100%;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.request-stepper li {
+    display: flex;
+    flex: 1 1 0;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.request-stepper li:first-child {
+    flex: 0 0 auto;
+}
+
+.request-stepper li + li::before {
+    content: "";
+    flex: 1 1 auto;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--gray-200);
+}
+
+.request-stepper li.is-done + li::before,
+.request-stepper li.is-current::before {
+    background: var(--primary-600);
+}
+
+.request-stepper button {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: left;
+    color: inherit;
+}
+
+.request-stepper button:disabled {
+    cursor: default;
+}
+
+.request-stepper-dot {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid var(--gray-300);
+    border-radius: 50%;
+    background: #fff;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--gray-500);
+}
+
+.request-stepper li.is-current .request-stepper-dot,
+.request-stepper li.is-done .request-stepper-dot {
+    border-color: var(--primary-600);
+    background: var(--primary-600);
+    color: #fff;
+}
+
+.request-stepper li.is-done .request-stepper-dot {
+    background: var(--primary-50);
+    color: var(--primary-700);
+}
+
+.request-stepper-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.request-stepper-label {
+    font-weight: 600;
+    color: var(--gray-500);
+}
+
+.request-stepper li.is-current .request-stepper-label,
+.request-stepper li.is-done .request-stepper-label {
+    color: var(--gray-950);
+}
+
+.request-stepper small {
+    color: var(--gray-500);
+}
+
+.request-section + .request-section {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--gray-200);
+}
+
+.request-section-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.request-section-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: var(--radius-md);
+    background: var(--primary-50);
+    color: var(--primary-700);
+}
+
+.request-section-hint {
+    margin: 0.125rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--gray-500);
+}
+
+.request-categories {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.request-category {
+    min-height: 7.5rem;
+}
+
+.request-category-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    margin-bottom: 0.5rem;
+    border-radius: var(--radius-md);
+    background: var(--gray-100);
+    color: var(--gray-600);
+}
+
+.request-category:has(input:checked) .request-category-icon {
+    background: var(--primary-600);
+    color: #fff;
+}
+
+.request-category-check {
+    position: absolute;
+    top: 0.625rem;
+    right: 0.625rem;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    background: var(--primary-600);
+    font-size: 0.625rem;
+    color: #fff;
+}
+
+.request-category:has(input:checked) .request-category-check {
+    display: inline-flex;
+}
+
+.request-categories:has(input.is-invalid) .request-category {
+    border-color: var(--danger-600);
+}
+
+.request-info {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    background: var(--gray-50);
+    font-size: 0.875rem;
+}
+
+.request-info-title {
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--gray-950);
+}
+
+.request-info-title i {
+    margin-right: 0.25rem;
+    color: var(--warning-600);
+}
+
+.request-info-meta small {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+}
+
+.request-doc {
+    margin-bottom: 1rem;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+}
+
+.request-doc-head {
+    display: flex;
+    align-items: center;
+    padding: 0.625rem 1rem;
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--gray-50);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    font-weight: 600;
+}
+
+.request-doc-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.375rem;
+    height: 1.375rem;
+    margin-right: 0.25rem;
+    border-radius: 50%;
+    background: var(--primary-50);
+    font-size: 0.75rem;
+    color: var(--primary-700);
+}
+
+.request-doc-body {
+    padding: 1rem;
+}
+
+.request-seg {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.request-seg label {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin: 0;
+    padding: 0.375rem 0.75rem;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.request-seg input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.request-seg label:has(input:checked) {
+    border-color: var(--primary-600);
+    background: var(--primary-50);
+}
+
+.request-seg label:has(input:focus-visible) {
+    box-shadow: var(--focus-ring);
+}
+
+.request-seg:has(input.is-invalid) label {
+    border-color: var(--danger-600);
+}
+
+.request-seg-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+}
+
+.request-add {
+    border-style: dashed;
+}
+
+.request-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+}
+
+@media (max-width: 575.98px) {
+    .request-stepper small {
+        display: none;
+    }
+
+    .request-stepper-label {
+        font-size: 0.8125rem;
+    }
+}
+
 .setup-wizard-summary {
     list-style: none;
     margin: 0 0 1rem;

@@ -5,6 +5,8 @@
     $processes = old('proses', [['judul' => '', 'tujuan' => '', 'prioritas' => '', 'sistem' => '']]);
     $steps = ['Data pemohon', 'Dokumen', 'Observasi'];
     $chosen = (int) old('kategori', $selectedCategory);
+    $icons = ['SOP' => 'fa-tasks', 'SE' => 'fa-envelope-open-text', 'MEMO' => 'fa-sticky-note', 'IK' => 'fa-tools', 'JD' => 'fa-user-tie', 'PL' => 'fa-bullseye', 'PLAN' => 'fa-bullseye'];
+    $required = '<span class="text-danger">*</span>';
 @endphp
 
 @section('content')
@@ -22,17 +24,7 @@
     <div class="container-fluid" style="max-width: 860px;">
         <x-flash />
 
-        <ol class="d-flex list-unstyled gap-2 mb-3 request-steps" aria-label="Langkah">
-            @foreach ($steps as $label)
-                <li class="flex-fill" data-step-item="{{ $loop->index }}">
-                    <button type="button" class="btn btn-block btn-default text-left" data-step-tab="{{ $loop->index }}">
-                        <span class="badge badge-secondary mr-1">{{ $loop->iteration }}</span> {{ $label }}
-                    </button>
-                </li>
-            @endforeach
-        </ol>
-
-        <form action="{{ route('document-request.store') }}" method="POST" id="requestForm" novalidate>
+        <form action="{{ route('document-request.store') }}" method="POST" id="requestForm" class="card" novalidate>
             @csrf
             <input type="hidden" name="idempotency_key" id="idempotencyKey" value="{{ old('idempotency_key') }}">
             <div style="position: absolute; left: -10000px;" aria-hidden="true">
@@ -40,117 +32,194 @@
                 <input type="text" name="website" id="website" tabindex="-1" autocomplete="off">
             </div>
 
-            {{-- Langkah 1 --}}
-            <div class="card" data-step="0">
-                <div class="card-header"><h3 class="card-title">Data pemohon</h3></div>
-                <div class="card-body">
-                    <div class="form-row">
-                        <div class="form-group col-md-6">
-                            <label for="nama">Nama lengkap</label>
-                            <input type="text" class="form-control @error('nama') is-invalid @enderror" id="nama" name="nama" maxlength="100" required autocomplete="name" value="{{ $old('nama') }}">
-                            @error('nama')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label for="divisi">Divisi / unit kerja</label>
-                            <input type="text" class="form-control @error('divisi') is-invalid @enderror" id="divisi" name="divisi" maxlength="120" required value="{{ $old('divisi') }}" placeholder="Contoh: General Affair Aset">
-                            @error('divisi')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label for="departemen">Departemen</label>
-                            <select class="custom-select @error('departemen') is-invalid @enderror" id="departemen" name="departemen" required>
-                                <option value="">Pilih departemen</option>
-                                @foreach (App\Models\DocumentRequest::DEPARTMENTS as $department)
-                                    <option value="{{ $department }}" @selected($old('departemen') === $department)>{{ $department }}</option>
-                                @endforeach
-                            </select>
-                            @error('departemen')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label for="jabatan">Jabatan</label>
-                            <select class="custom-select @error('jabatan') is-invalid @enderror" id="jabatan" name="jabatan" required>
-                                <option value="">Pilih jabatan</option>
-                                @foreach (App\Models\DocumentRequest::JABATAN as $jabatan)
-                                    <option value="{{ $jabatan }}" @selected($old('jabatan') === $jabatan)>{{ $jabatan }}</option>
-                                @endforeach
-                            </select>
-                            @error('jabatan')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label for="whatsapp">Nomor WhatsApp</label>
-                            <input type="tel" class="form-control @error('whatsapp') is-invalid @enderror" id="whatsapp" name="whatsapp" maxlength="30" required inputmode="tel" autocomplete="tel" value="{{ $old('whatsapp') }}" placeholder="081234567890">
-                            @error('whatsapp')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label for="email">Email perusahaan</label>
-                            <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" maxlength="150" required autocomplete="email" value="{{ $old('email') }}">
-                            @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="form-group col-md-6 mb-0">
-                            <label for="atasan">Atasan langsung <span class="text-muted font-weight-normal">(opsional)</span></label>
-                            <input type="text" class="form-control @error('atasan') is-invalid @enderror" id="atasan" name="atasan" maxlength="100" value="{{ $old('atasan') }}">
-                            @error('atasan')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Langkah 2 --}}
-            <div data-step="1">
-                <div class="card">
-                    <div class="card-header"><h3 class="card-title">Kategori dokumen</h3></div>
-                    <div class="card-body">
-                        @forelse ($categories as $category)
-                            <div class="custom-control custom-radio {{ $loop->last ? '' : 'mb-2' }}">
-                                <input type="radio" class="custom-control-input @error('kategori') is-invalid @enderror" id="kategori-{{ $category->id }}" name="kategori" value="{{ $category->id }}" required
-                                    data-needs-observation="{{ $category->needs_observation ? 1 : 0 }}" @checked($chosen === $category->id)>
-                                <label class="custom-control-label" for="kategori-{{ $category->id }}">
-                                    <strong>{{ $category->label() }}</strong>
-                                    @if ($category->hasExample())<a href="{{ route('document-request.example', $category) }}" target="_blank" class="small ml-1">Lihat contoh</a>@endif
-                                    @if ($category->description)<span class="d-block small text-muted">{{ $category->description }}</span>@endif
-                                    <span class="d-block small text-muted">{{ implode(' → ', $category->stageNames()) }}</span>
-                                </label>
-                            </div>
-                        @empty
-                            <p class="text-muted mb-0">Belum ada kategori dokumen yang dibuka.</p>
-                        @endforelse
-                        @error('kategori')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
-                    </div>
-                </div>
-                <div id="processList">
-                    @foreach ($processes as $i => $process)
-                        @include('document-request._process', ['i' => $i, 'process' => $process])
+            <div class="card-header">
+                <ol class="request-stepper" aria-label="Langkah">
+                    @foreach ($steps as $label)
+                        <li data-step-item="{{ $loop->index }}">
+                            <button type="button" data-step-tab="{{ $loop->index }}">
+                                <span class="request-stepper-dot" data-step-dot>{{ $loop->iteration }}</span>
+                                <span class="request-stepper-text">
+                                    <span class="request-stepper-label">{{ $label }}</span>
+                                    <small data-step-status></small>
+                                </span>
+                            </button>
+                        </li>
                     @endforeach
-                </div>
-                @error('proses')<div class="alert alert-danger">{{ $message }}</div>@enderror
-                <button type="button" class="btn btn-default btn-block mb-3" id="addProcess"><i class="fas fa-plus"></i> Tambah dokumen (maks. {{ App\Models\DocumentRequest::MAX_PROCESSES }})</button>
+                </ol>
             </div>
 
-            {{-- Langkah 3 --}}
-            <div class="card" data-step="2">
-                <div class="card-header"><h3 class="card-title">Jadwal observasi</h3></div>
-                <div class="card-body">
-                    <p class="text-muted small">Tim OD akan mengamati langsung proses kerja. Pilih tanggal yang memungkinkan.</p>
-                    <div class="form-row">
-                        <div class="form-group col-md-6">
-                            <label for="obs_tanggal_1">Pilihan tanggal 1</label>
-                            <input type="date" class="form-control @error('obs_tanggal_1') is-invalid @enderror" id="obs_tanggal_1" name="obs_tanggal_1" min="{{ today()->toDateString() }}" value="{{ old('obs_tanggal_1') }}">
-                            @error('obs_tanggal_1')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            <div class="card-body">
+                {{-- Langkah 1 --}}
+                <div data-step="0">
+                    <div class="request-section">
+                        <div class="request-section-head">
+                            <span class="request-section-icon"><i class="fas fa-id-card"></i></span>
+                            <div>
+                                <h3 class="section-title">Identitas</h3>
+                                <p class="request-section-hint">Isi sesuai data karyawan. Tanda {!! $required !!} wajib diisi.</p>
+                            </div>
                         </div>
-                        <div class="form-group col-md-6">
-                            <label for="obs_tanggal_2">Pilihan tanggal 2 <span class="text-muted font-weight-normal">(opsional)</span></label>
-                            <input type="date" class="form-control @error('obs_tanggal_2') is-invalid @enderror" id="obs_tanggal_2" name="obs_tanggal_2" min="{{ today()->toDateString() }}" value="{{ old('obs_tanggal_2') }}">
-                            @error('obs_tanggal_2')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="nama">Nama lengkap {!! $required !!}</label>
+                                <input type="text" class="form-control @error('nama') is-invalid @enderror" id="nama" name="nama" maxlength="100" required autocomplete="name" value="{{ $old('nama') }}">
+                                @error('nama')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="divisi">Divisi / unit kerja {!! $required !!}</label>
+                                <input type="text" class="form-control @error('divisi') is-invalid @enderror" id="divisi" name="divisi" maxlength="120" required value="{{ $old('divisi') }}" placeholder="Contoh: General Affair Aset">
+                                @error('divisi')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="departemen">Departemen {!! $required !!}</label>
+                                <select class="custom-select @error('departemen') is-invalid @enderror" id="departemen" name="departemen" required>
+                                    <option value="">Pilih departemen</option>
+                                    @foreach (App\Models\DocumentRequest::DEPARTMENTS as $department)
+                                        <option value="{{ $department }}" @selected($old('departemen') === $department)>{{ $department }}</option>
+                                    @endforeach
+                                </select>
+                                @error('departemen')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="jabatan">Jabatan {!! $required !!}</label>
+                                <select class="custom-select @error('jabatan') is-invalid @enderror" id="jabatan" name="jabatan" required>
+                                    <option value="">Pilih jabatan</option>
+                                    @foreach (App\Models\DocumentRequest::JABATAN as $jabatan)
+                                        <option value="{{ $jabatan }}" @selected($old('jabatan') === $jabatan)>{{ $jabatan }}</option>
+                                    @endforeach
+                                </select>
+                                @error('jabatan')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <div class="form-group col-md-6 mb-0">
+                                <label for="atasan">Atasan langsung <span class="text-muted font-weight-normal">(opsional)</span></label>
+                                <input type="text" class="form-control @error('atasan') is-invalid @enderror" id="atasan" name="atasan" maxlength="100" value="{{ $old('atasan') }}">
+                                @error('atasan')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
                         </div>
-                        <div class="form-group col-12 mb-0">
-                            <label for="obs_catatan">Preferensi jam / catatan <span class="text-muted font-weight-normal">(opsional)</span></label>
-                            <input type="text" class="form-control @error('obs_catatan') is-invalid @enderror" id="obs_catatan" name="obs_catatan" maxlength="300" value="{{ old('obs_catatan') }}" placeholder="Contoh: pagi 09.00–11.00 WIB">
-                            @error('obs_catatan')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="request-section">
+                        <div class="request-section-head">
+                            <span class="request-section-icon"><i class="fas fa-address-book"></i></span>
+                            <div>
+                                <h3 class="section-title">Kontak</h3>
+                                <p class="request-section-hint">Kami menghubungi Anda lewat kontak ini.</p>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6 mb-md-0">
+                                <label for="whatsapp">Nomor WhatsApp {!! $required !!}</label>
+                                <input type="tel" class="form-control @error('whatsapp') is-invalid @enderror" id="whatsapp" name="whatsapp" maxlength="30" required inputmode="tel" autocomplete="tel" value="{{ $old('whatsapp') }}" placeholder="081234567890">
+                                @error('whatsapp')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <div class="form-group col-md-6 mb-0">
+                                <label for="email">Email perusahaan {!! $required !!}</label>
+                                <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" maxlength="150" required autocomplete="email" value="{{ $old('email') }}">
+                                @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Langkah 2 --}}
+                <div data-step="1">
+                    <div class="request-section">
+                        <div class="request-section-head">
+                            <span class="request-section-icon"><i class="fas fa-folder-open"></i></span>
+                            <div>
+                                <h3 class="section-title">Kategori dokumen {!! $required !!}</h3>
+                                <p class="request-section-hint">Pilih satu jenis dokumen.</p>
+                            </div>
+                        </div>
+                        @if ($categories->isEmpty())
+                            <p class="text-muted mb-0">Belum ada kategori dokumen yang dibuka.</p>
+                        @else
+                            <div class="choice-cards request-categories">
+                                @foreach ($categories as $category)
+                                    <label class="choice-card request-category" for="kategori-{{ $category->id }}">
+                                        <input type="radio" class="@error('kategori') is-invalid @enderror" id="kategori-{{ $category->id }}" name="kategori" value="{{ $category->id }}" required
+                                            data-needs-observation="{{ $category->needs_observation ? 1 : 0 }}" @checked($chosen === $category->id)>
+                                        <span class="request-category-check"><i class="fas fa-check"></i></span>
+                                        <span class="request-category-icon"><i class="fas {{ $icons[strtoupper($category->code)] ?? 'fa-file-alt' }}"></i></span>
+                                        <span class="choice-card-title">{{ $category->code }}</span>
+                                        @if ($category->name !== $category->code)<span class="choice-card-text">{{ $category->name }}</span>@endif
+                                    </label>
+                                @endforeach
+                            </div>
+                            @error('kategori')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
+
+                            @foreach ($categories as $category)
+                                <div class="request-info" data-category-info="{{ $category->id }}" hidden>
+                                    <div class="request-info-title"><i class="fas fa-lightbulb"></i> Apa itu {{ $category->name }}?</div>
+                                    @if ($category->description)<p class="mb-2">{{ $category->description }}</p>@endif
+                                    <div class="request-info-meta">
+                                        <small>Tahapan</small>
+                                        {{ implode(' → ', $category->stageNames()) }}
+                                        @if ($category->needs_observation)<span class="d-block">Termasuk observasi langsung oleh tim OD.</span>@endif
+                                    </div>
+                                    @if ($category->hasExample())
+                                        <a href="{{ route('document-request.example', $category) }}" target="_blank" class="btn btn-default btn-sm mt-3"><i class="fas fa-eye"></i> Lihat contoh dokumen</a>
+                                    @endif
+                                </div>
+                            @endforeach
+                        @endif
+                    </div>
+
+                    <div class="request-section">
+                        <div class="request-section-head">
+                            <span class="request-section-icon"><i class="fas fa-file-signature"></i></span>
+                            <div>
+                                <h3 class="section-title">Detail dokumen</h3>
+                                <p class="request-section-hint">Satu kartu untuk setiap dokumen.</p>
+                            </div>
+                        </div>
+                        <div id="processList">
+                            @foreach ($processes as $i => $process)
+                                @include('document-request._process', ['i' => $i, 'process' => $process])
+                            @endforeach
+                        </div>
+                        @error('proses')<div class="alert alert-danger">{{ $message }}</div>@enderror
+                        <button type="button" class="btn btn-default btn-block request-add" id="addProcess"><i class="fas fa-plus"></i> Tambah dokumen (maks. {{ App\Models\DocumentRequest::MAX_PROCESSES }})</button>
+                    </div>
+                </div>
+
+                {{-- Langkah 3 --}}
+                <div data-step="2">
+                    <div class="request-section">
+                        <div class="request-section-head">
+                            <span class="request-section-icon"><i class="fas fa-calendar-alt"></i></span>
+                            <div>
+                                <h3 class="section-title">Jadwal observasi</h3>
+                                <p class="request-section-hint">Tim OD akan mengamati langsung proses kerja. Jadwal final dikonfirmasi lewat WhatsApp atau email.</p>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="obs_tanggal_1">Pilihan tanggal 1 {!! $required !!}</label>
+                                <input type="date" class="form-control @error('obs_tanggal_1') is-invalid @enderror" id="obs_tanggal_1" name="obs_tanggal_1" min="{{ today()->toDateString() }}" value="{{ old('obs_tanggal_1') }}">
+                                @error('obs_tanggal_1')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="obs_tanggal_2">Pilihan tanggal 2 <span class="text-muted font-weight-normal">(opsional)</span></label>
+                                <input type="date" class="form-control @error('obs_tanggal_2') is-invalid @enderror" id="obs_tanggal_2" name="obs_tanggal_2" min="{{ today()->toDateString() }}" value="{{ old('obs_tanggal_2') }}">
+                                @error('obs_tanggal_2')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <div class="form-group col-12 mb-0">
+                                <label for="obs_catatan">Preferensi jam / catatan <span class="text-muted font-weight-normal">(opsional)</span></label>
+                                <input type="text" class="form-control @error('obs_catatan') is-invalid @enderror" id="obs_catatan" name="obs_catatan" maxlength="300" value="{{ old('obs_catatan') }}" placeholder="Contoh: pagi 09.00–11.00 WIB">
+                                @error('obs_catatan')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <div class="request-chips mt-2">
+                                    @foreach (['Pagi', 'Siang', 'Di lokasi kerja'] as $chip)
+                                        <button type="button" class="btn btn-default btn-sm" data-note-chip="{{ $chip }}">{{ $chip }}</button>
+                                    @endforeach
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="d-flex justify-content-between mb-4">
+            <div class="card-footer d-flex justify-content-between">
                 <button type="button" class="btn btn-default" id="prevStep"><i class="fas fa-arrow-left"></i> Kembali</button>
                 <button type="button" class="btn btn-primary" id="nextStep">Lanjut <i class="fas fa-arrow-right"></i></button>
                 <button type="submit" class="btn btn-primary" id="submitRequest"><i class="fas fa-paper-plane"></i> Kirim pengajuan</button>
@@ -169,6 +238,7 @@
     (function () {
         const form = document.getElementById('requestForm');
         const steps = [...form.querySelectorAll('[data-step]')];
+        const items = [...document.querySelectorAll('[data-step-item]')];
         const tabs = [...document.querySelectorAll('[data-step-tab]')];
         const list = document.getElementById('processList');
         const maxProcesses = {{ App\Models\DocumentRequest::MAX_PROCESSES }};
@@ -176,9 +246,13 @@
         const observationDate = document.getElementById('obs_tanggal_1');
         let current = 0;
 
+        function chosenCategory() {
+            return form.querySelector('input[name="kategori"]:checked');
+        }
+
         // Langkah Observasi hanya untuk kategori yang butuh observasi.
         function needsObservation() {
-            const chosen = form.querySelector('input[name="kategori"]:checked');
+            const chosen = chosenCategory();
             return !!chosen && chosen.dataset.needsObservation === '1';
         }
 
@@ -186,10 +260,12 @@
             return needsObservation() ? observationStep : observationStep - 1;
         }
 
-        function syncObservation() {
+        function syncCategory() {
+            const chosen = chosenCategory();
+            document.querySelectorAll('[data-category-info]').forEach(info => info.hidden = !chosen || info.dataset.categoryInfo !== chosen.value);
             const needed = needsObservation();
             observationDate.required = needed;
-            document.querySelector('[data-step-item="' + observationStep + '"]').hidden = !needed;
+            items[observationStep].hidden = !needed;
             show(current, false);
         }
 
@@ -200,11 +276,14 @@
 
         function show(index, scroll = true) {
             current = Math.min(index, lastStep());
+            const total = lastStep() + 1;
             steps.forEach((step, i) => step.hidden = i !== current);
-            tabs.forEach((tab, i) => {
-                tab.classList.toggle('btn-primary', i === current);
-                tab.classList.toggle('btn-default', i !== current);
-                tab.disabled = i > current;
+            items.forEach((item, i) => {
+                item.classList.toggle('is-done', i < current);
+                item.classList.toggle('is-current', i === current);
+                item.querySelector('[data-step-dot]').innerHTML = i < current ? '<i class="fas fa-check"></i>' : i + 1;
+                item.querySelector('[data-step-status]').textContent = i < current ? 'Selesai' : 'Langkah ' + (i + 1) + ' dari ' + total;
+                tabs[i].disabled = i > current;
             });
             document.getElementById('prevStep').style.visibility = current === 0 ? 'hidden' : 'visible';
             document.getElementById('nextStep').hidden = current === lastStep();
@@ -242,11 +321,17 @@
             list.insertAdjacentHTML('beforeend', document.getElementById('processTemplate').innerHTML.replaceAll('__INDEX__', index));
             renumber();
         });
-        form.querySelectorAll('input[name="kategori"]').forEach(radio => radio.addEventListener('change', syncObservation));
+        form.querySelectorAll('input[name="kategori"]').forEach(radio => radio.addEventListener('change', syncCategory));
         list.addEventListener('click', event => {
             const button = event.target.closest('[data-remove-process]');
             if (button) { button.closest('[data-process]').remove(); renumber(); }
         });
+
+        const note = document.getElementById('obs_catatan');
+        document.querySelectorAll('[data-note-chip]').forEach(chip => chip.addEventListener('click', () => {
+            note.value = (note.value ? note.value + ', ' : '') + chip.dataset.noteChip.toLowerCase();
+            note.focus();
+        }));
 
         form.addEventListener('submit', event => {
             if (!valid(current)) { event.preventDefault(); return; }
@@ -256,7 +341,7 @@
         // Setelah validasi server gagal, buka langkah yang berisi kesalahan pertama.
         const firstError = form.querySelector('.is-invalid');
         renumber();
-        syncObservation();
+        syncCategory();
         show(firstError ? steps.indexOf(firstError.closest('[data-step]')) : 0);
     })();
 </script>
