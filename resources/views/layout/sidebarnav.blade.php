@@ -149,6 +149,12 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ route('document-builder.index') }}" class="nav-link {{ ($active ?? '') === 'document-builder' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-magic"></i>
+                        <p>Dokumen Builder</p>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('od-report.documents.index') }}" class="nav-link {{ ($active ?? '') === 'od-documents' ? 'active' : '' }}">
                         <i class="nav-icon fas fa-file-signature"></i>
                         <p>Approval Dokumen</p>

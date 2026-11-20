@@ -9,7 +9,11 @@
 <section class="content-header">
     <div class="container-fluid">
         <x-page-header :title="$category->label()" subtitle="Ubah kategori dan tahapannya"
-            :breadcrumbs="['Kategori Dokumen' => route('document-category.index'), $category->code => null]" />
+            :breadcrumbs="['Kategori Dokumen' => route('document-category.index'), $category->code => null]">
+            <x-slot:actions>
+                <a href="{{ route('document-category.builder-steps.edit', $category) }}" class="btn btn-default"><i class="fas fa-magic"></i> Langkah Builder</a>
+            </x-slot:actions>
+        </x-page-header>
     </div>
 </section>
 

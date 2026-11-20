@@ -55,6 +55,16 @@ class DocumentCategory extends Model
         return $this->hasMany(DocumentCategoryStage::class)->orderBy('sort')->orderBy('id');
     }
 
+    /**
+     * Langkah form Dokumen Builder yang sudah diatur; kosong berarti pakai langkah bawaan.
+     *
+     * @return HasMany<DocumentBuilderQuestion, $this>
+     */
+    public function builderQuestions(): HasMany
+    {
+        return $this->hasMany(DocumentBuilderQuestion::class)->orderBy('sort')->orderBy('id');
+    }
+
     /** @return BelongsTo<User, $this> */
     public function pic(): BelongsTo
     {
@@ -129,7 +139,8 @@ class DocumentCategory extends Model
     public function isInUse(): bool
     {
         return OdDocument::withTrashed()->where('jenis', $this->code)->exists()
-            || $this->documentRequests()->withTrashed()->exists();
+            || $this->documentRequests()->withTrashed()->exists()
+            || DocumentDraft::withTrashed()->where('document_category_id', $this->id)->exists();
     }
 
     public function hasUploadedExample(): bool

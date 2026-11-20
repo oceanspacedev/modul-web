@@ -4,6 +4,8 @@ use App\Http\Controllers\AreaController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DivisiController;
+use App\Http\Controllers\DocumentBuilderController;
+use App\Http\Controllers\DocumentBuilderStepController;
 use App\Http\Controllers\DocumentCategoryController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DocumentRequestController;
@@ -170,6 +172,23 @@ Route::middleware('auth')->group(function () {
         });
     });
 
+    // # DOKUMEN BUILDER (tim OD menyusun SOP, IK, JD, SE, MEMO, ... lewat form bertahap dibantu AI)
+    Route::controller(DocumentBuilderController::class)->prefix('dokumen-builder')->name('document-builder.')->middleware('can:access-od-report')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('buat', 'create')->name('create');
+        Route::get('buat/{category}', 'form')->whereNumber('category')->name('form');
+        Route::post('buat/{category}', 'store')->whereNumber('category')->name('store');
+        Route::get('{draft}', 'show')->whereNumber('draft')->name('show');
+        Route::get('{draft}/edit', 'edit')->whereNumber('draft')->name('edit');
+        Route::put('{draft}', 'update')->whereNumber('draft')->name('update');
+        Route::get('{draft}/susun-ulang', 'answers')->whereNumber('draft')->name('answers');
+        Route::post('{draft}/susun-ulang', 'recompose')->whereNumber('draft')->name('recompose');
+        Route::get('{draft}/proses', 'progress')->whereNumber('draft')->name('progress');
+        Route::get('{draft}/ai-status', 'aiStatus')->whereNumber('draft')->name('ai-status');
+        Route::get('{draft}/word', 'word')->whereNumber('draft')->name('word');
+        Route::delete('{draft}', 'destroy')->whereNumber('draft')->name('destroy');
+    });
+
     // # KATEGORI DOKUMEN (master jenis dokumen OD dan tahapannya; dikelola OD Leader)
     Route::controller(DocumentCategoryController::class)->prefix('kategori-dokumen')->name('document-category.')->middleware('can:manage-od-report')->group(function () {
         Route::get('/', 'index')->name('index');
@@ -177,6 +196,9 @@ Route::middleware('auth')->group(function () {
         Route::get('{category}/edit', 'edit')->whereNumber('category')->name('edit');
         Route::put('{category}', 'update')->whereNumber('category')->name('update');
         Route::delete('{category}', 'destroy')->whereNumber('category')->name('destroy');
+        Route::get('{category}/langkah-builder', [DocumentBuilderStepController::class, 'edit'])->whereNumber('category')->name('builder-steps.edit');
+        Route::put('{category}/langkah-builder', [DocumentBuilderStepController::class, 'update'])->whereNumber('category')->name('builder-steps.update');
+        Route::delete('{category}/langkah-builder', [DocumentBuilderStepController::class, 'reset'])->whereNumber('category')->name('builder-steps.reset');
         Route::post('penerima', [DocumentRequestRecipientController::class, 'store'])->name('recipients.store');
         Route::delete('penerima/{recipient}', [DocumentRequestRecipientController::class, 'destroy'])->whereNumber('recipient')->name('recipients.destroy');
     });

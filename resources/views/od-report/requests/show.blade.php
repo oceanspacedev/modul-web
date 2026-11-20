@@ -60,6 +60,11 @@
                                     </div>
                                     <p class="small mb-2" style="white-space: pre-line;">{{ $process->tujuan }}</p>
                                     @if ($process->sistem)<p class="small text-muted mb-2">Sistem/alat: {{ $process->sistem }}</p>@endif
+                                    @if ($process->builderDraft)
+                                        <a href="{{ route('document-builder.edit', $process->builderDraft) }}" class="btn btn-default btn-xs mb-2"><i class="fas fa-file-alt"></i> Lihat draf builder</a>
+                                    @elseif ($editable && $process->category?->is_active && $process->status->isOpen())
+                                        <a href="{{ route('document-builder.form', ['category' => $process->category, 'permintaan' => $process->id]) }}" class="btn btn-default btn-xs mb-2"><i class="fas fa-magic"></i> Susun di Builder</a>
+                                    @endif
                                     <div class="form-row">
                                         <div class="col-md-5 mb-2">
                                             <select class="custom-select custom-select-sm" name="proses[{{ $process->id }}][stage]" data-stage data-current="{{ $process->stage }}" @disabled(! $editable) aria-label="Tahap {{ $process->title }}">

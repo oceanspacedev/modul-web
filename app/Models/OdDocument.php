@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -69,6 +70,16 @@ class OdDocument extends Model
     public function documentRequest(): BelongsTo
     {
         return $this->belongsTo(DocumentRequest::class);
+    }
+
+    /**
+     * Draf Dokumen Builder yang disusun dari item permintaan ini.
+     *
+     * @return HasOne<DocumentDraft, $this>
+     */
+    public function builderDraft(): HasOne
+    {
+        return $this->hasOne(DocumentDraft::class)->latest('id');
     }
 
     /** @return HasMany<OdActivity, $this> */
