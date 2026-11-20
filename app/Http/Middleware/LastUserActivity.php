@@ -23,7 +23,9 @@ class LastUserActivity
     {
         $user = Auth::user();
 
+        // Saat impersonate yang aktif adalah admin, bukan karyawannya.
         if ($user instanceof User
+            && ! app('impersonate')->isImpersonating()
             && ($user->last_seen === null || $user->last_seen->lte(now()->subSeconds(self::WRITE_EVERY_SECONDS)))) {
             // Satu query UPDATE (seperti sebelumnya, ikut mengisi updated_at), tanpa event model.
             User::whereKey($user->getKey())->update(['last_seen' => now()]);

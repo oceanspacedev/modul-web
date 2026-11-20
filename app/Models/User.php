@@ -15,13 +15,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use InvalidArgumentException;
+use Lab404\Impersonate\Models\Impersonate;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['employee_id', 'nama_lengkap', 'username', 'email', 'no_hp', 'password', 'data_access', 'area_id', 'divisi_id', 'position_id', 'approval_id'])]
 #[Hidden(['password', 'remember_token', 'created_at', 'updated_at'])]
 class User extends Authenticatable
 {
-    use HasFactory, HasRoles, Notifiable, SoftDeletes;
+    use HasFactory, HasRoles, Impersonate, Notifiable, SoftDeletes;
 
     public const ROLE_ADMIN = 'ADMIN';
 
@@ -42,6 +43,9 @@ class User extends Authenticatable
     public const OD_LEADER = 'leader';
 
     public const OD_ACCESS = [self::OD_STAFF => 'OD Staff', self::OD_LEADER => 'OD Leader'];
+
+    /** Hak akses masuk sebagai user lain (lab404/laravel-impersonate), diatur per orang dari form user. */
+    public const IMPERSONATE_PERMISSION = 'impersonate-users';
 
     protected static function booted(): void
     {
@@ -159,6 +163,31 @@ class User extends Authenticatable
             self::OD_STAFF => $this->givePermissionTo('access-od-report'),
             default => null,
         };
+    }
+
+    public function canImpersonateDirectly(): bool
+    {
+        return $this->getDirectPermissions()->contains('name', self::IMPERSONATE_PERMISSION);
+    }
+
+    public function setImpersonator(bool $allowed): void
+    {
+        $allowed
+            ? $this->givePermissionTo(self::IMPERSONATE_PERMISSION)
+            : $this->revokePermissionTo(self::IMPERSONATE_PERMISSION);
+    }
+
+    /**
+     * Dipakai lab404/laravel-impersonate. Siapa yang boleh dimasuki dicek UserPolicy::impersonate.
+     */
+    public function canImpersonate(): bool
+    {
+        return $this->can(self::IMPERSONATE_PERMISSION);
+    }
+
+    public function canBeImpersonated(): bool
+    {
+        return ! $this->trashed();
     }
 
     /**
