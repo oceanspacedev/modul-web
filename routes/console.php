@@ -12,3 +12,5 @@ Schedule::command('training:send-reminders')->everyFifteenMinutes();
 Schedule::command('dnd:sync-users')->dailyAt(config('services.dnd.sync_time'))->withoutOverlapping();
 Schedule::command('horizon:snapshot')->everyFiveMinutes();
 Schedule::command('notifications:prune')->dailyAt('02:00');
+// Jaring pengaman sinkron Daily Report → Google Sheets (biasanya sudah terkirim lewat queue saat Simpan Laporan).
+Schedule::command('od-report:sync-sheet')->everyThirtyMinutes()->withoutOverlapping();

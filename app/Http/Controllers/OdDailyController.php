@@ -8,6 +8,7 @@ use App\Models\OdDocument;
 use App\Models\OdDocumentStatus;
 use App\Models\User;
 use App\Services\OdReportService;
+use App\Services\OdSheetSync;
 use App\Support\OdTeam;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -23,7 +24,7 @@ use Illuminate\View\View;
  */
 class OdDailyController extends Controller
 {
-    public function __construct(private OdReportService $reports) {}
+    public function __construct(private OdReportService $reports, private OdSheetSync $sheet) {}
 
     public function index(Request $request): View
     {
@@ -41,6 +42,7 @@ class OdDailyController extends Controller
             'drafts' => $mine->filter->isDraft()->values(),
             'saved' => $mine->reject->isDraft()->values(),
             'documents' => $this->documentOptions($user),
+            'sheetUrl' => $this->sheet->enabled() ? $this->sheet->spreadsheetUrl() : null,
             'text' => $request->boolean('teks') ? $this->reports->dailyText($user, $today) : null,
             'teamStatus' => $user->can('manage-od-report') ? $this->teamStatus($today) : collect(),
             'history' => OdActivity::where('user_id', $user->getKey())->reported()->whereDate('date', '<', $today)
@@ -124,6 +126,9 @@ class OdDailyController extends Controller
     {
         $count = OdActivity::where('user_id', $request->user()->getKey())->whereDate('date', today())
             ->whereNull('saved_at')->update(['saved_at' => now()]);
+        if ($count) {
+            OdSheetSync::queue();
+        }
 
         return to_route('od-report.daily.index')->with('success', $count
             ? "{$count} aktivitas tersimpan dan masuk ke Weekly & Monthly."
