@@ -173,8 +173,8 @@ class OdReportService
     }
 
     /**
-     * Teks laporan harian siap salin. Leader mendapat format "Afternoon Briefing BusDev" gabungan tim: bagiannya
-     * sendiri diawali nama depan, lalu pekerjaan anggota lain hari itu tanpa nama, nama pekerjaan KAPITAL.
+     * Teks laporan harian siap salin. Leader mendapat teks gabungan tim diawali tanggal: bagiannya sendiri diawali
+     * nama depan, lalu pekerjaan anggota lain hari itu tanpa nama, nama pekerjaan KAPITAL.
      */
     public function dailyText(User $user, CarbonImmutable $date): string
     {
@@ -189,7 +189,7 @@ class OdReportService
             ->map(fn (User $member) => $this->activitiesOn($member, $date))
             ->filter(fn (Collection $list) => $list->isNotEmpty());
 
-        $text = "Afternoon Briefing BusDev\n({$dateLabel})\n\n".strtok($user->nama_lengkap, ' ')."\n".$this->list($mine, true);
+        $text = "({$dateLabel})\n\n".strtok($user->nama_lengkap, ' ')."\n".$this->list($mine, true);
         foreach ($others as $list) {
             $text .= "\n\n".$this->list($list, true);
         }
