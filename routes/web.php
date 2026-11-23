@@ -171,6 +171,8 @@ Route::middleware('auth')->group(function () {
             Route::post('status', 'storeStatus')->name('statuses.store');
             Route::put('status/{status}', 'updateStatus')->whereNumber('status')->name('statuses.update');
             Route::delete('status/{status}', 'destroyStatus')->whereNumber('status')->name('statuses.destroy');
+            Route::put('google-sheets', 'updateSheet')->name('sheet.update');
+            Route::post('sinkron-sheet', 'syncSheet')->name('sheet-sync');
         });
     });
 
