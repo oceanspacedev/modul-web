@@ -15,7 +15,7 @@ class SyncOdReportSheetCommand extends Command
     public function handle(OdSheetSync $sync): int
     {
         if (! $sync->enabled()) {
-            $this->warn('Sinkron Google Sheets belum diatur (atur di Pengaturan OD), dilewati.');
+            $this->warn('Sinkron Google Sheets belum diatur (atur di menu Pengaturan), dilewati.');
 
             return self::SUCCESS;
         }

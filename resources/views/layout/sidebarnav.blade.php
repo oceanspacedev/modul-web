@@ -180,7 +180,7 @@
                 <li class="nav-item">
                     <a href="{{ route('od-report.settings.index') }}" class="nav-link {{ ($active ?? '') === 'od-settings' ? 'active' : '' }}">
                         <i class="nav-icon fas fa-cog"></i>
-                        <p>Pengaturan OD</p>
+                        <p>Pengaturan</p>
                     </a>
                 </li>
                 @endcan

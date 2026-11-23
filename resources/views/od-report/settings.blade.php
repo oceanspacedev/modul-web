@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Pengaturan OD Report" subtitle="Status dokumen" eyebrow="Report" />
+        <x-page-header title="Pengaturan" subtitle="Status dokumen" eyebrow="Report" />
     </div>
 </section>
 
