@@ -109,15 +109,16 @@ class OdReportService
         $this->autoSavePastDrafts();
 
         $today = CarbonImmutable::today();
-        $week = OdWeek::of($today);
+        // "Minggu ini" selalu Sabtu–Jumat 7 hari (bukan Week 4 gabungan 14 hari) agar tren dibanding minggu lalu adil.
+        $weekStart = $today->subDays(($today->dayOfWeek + 1) % 7);
         $from = $today->subDays(29);
 
         $activities = OdActivity::query()->visibleTo($user)->reported()
-            ->whereDate('date', '>=', $from->min($week->start->subWeek())->min($today->startOfMonth()))
+            ->whereDate('date', '>=', $from->min($weekStart->subWeek())->min($today->startOfMonth()))
             ->get(['id', 'user_id', 'date', 'result']);
 
-        $thisWeek = $activities->filter(fn ($a) => $a->date->betweenIncluded($week->start, $week->end()))->count();
-        $lastWeek = $activities->filter(fn ($a) => $a->date->betweenIncluded($week->start->subWeek(), $week->start->subDay()))->count();
+        $thisWeek = $activities->filter(fn ($a) => $a->date->betweenIncluded($weekStart, $weekStart->addDays(6)))->count();
+        $lastWeek = $activities->filter(fn ($a) => $a->date->betweenIncluded($weekStart->subWeek(), $weekStart->subDay()))->count();
         $month = $this->stats($activities->filter(fn ($a) => $a->date->isSameMonth($today)));
 
         $documents = OdDocument::query()->visibleTo($user)->with('status')->get(['id', 'od_document_status_id']);

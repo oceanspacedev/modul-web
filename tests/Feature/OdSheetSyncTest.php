@@ -117,6 +117,20 @@ class OdSheetSyncTest extends TestCase
         $this->assertSame([], $this->sentBodies()[2]['entries']);
     }
 
+    public function test_fifth_week_goes_to_the_week_four_block(): void
+    {
+        $this->fakeSheet();
+        $staff = $this->staff();
+
+        // 30 Des 2026 (minggu 26 Des - 1 Jan, Rabu 30 Des) tidak membuat Week 5; ikut Week 4 tab Des'26.
+        OdActivity::create([
+            'user_id' => $staff->id, 'date' => '2026-12-30', 'name' => 'Rekap akhir tahun', 'result' => 'Done', 'saved_at' => now(),
+        ]);
+
+        $entry = $this->sentBodies()[0]['entries'][0];
+        $this->assertSame(["Des'26", 4], [$entry['tab'], $entry['wk']]);
+    }
+
     public function test_failed_rows_stay_pending_and_settings_show_the_status(): void
     {
         $staff = $this->staff();
