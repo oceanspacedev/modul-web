@@ -68,7 +68,15 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
-            return back(fallback: route('training.my-trainings'))
+            // Permintaan yang gagal tidak pernah memperbarui URL sebelumnya, jadi "kembali" bisa menunjuk ke
+            // halaman yang baru saja ditolak. Mengarahkan ke sana membuat browser berputar tanpa akhir ketika
+            // izin dicabut; dalam kasus itu barulah pilih halaman yang pasti boleh dibuka.
+            $fallback = route('training.my-trainings');
+            $previous = url()->previous($fallback);
+            $normalize = fn (string $url) => rtrim(preg_replace('/#.*$/', '', $url), '/');
+            $target = $normalize($previous) === $normalize($request->fullUrl()) ? $fallback : $previous;
+
+            return redirect()->to($target)
                 ->with('error', 'Role akun Anda tidak memiliki hak akses (permission) untuk membuka fitur ini.');
         });
     })->create();
