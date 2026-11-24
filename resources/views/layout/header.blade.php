@@ -56,6 +56,17 @@
             </ul>
 
             <ul class="navbar-nav ml-auto align-items-center">
+                @impersonating
+                <li class="nav-item mr-2">
+                    <form action="{{ route('impersonate.leave') }}" method="POST" class="m-0">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-warning btn-sm" title="Kembali ke akun saya">
+                            <i class="fas fa-user-secret"></i><span class="d-none d-md-inline"> Kembali ke akun saya</span>
+                        </button>
+                    </form>
+                </li>
+                @endImpersonating
                 <li class="nav-item dropdown mr-2">
                     <a href="#" class="nav-link topbar-toggle notification-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Notifikasi">
                         <i class="far fa-bell"></i>
@@ -102,12 +113,22 @@
                             @endcan
                             <a href="/panduan" class="dropdown-item"><i class="fas fa-book-open"></i> Panduan Penggunaan</a>
                             <div class="dropdown-divider"></div>
+                            @impersonating
+                            <form action="{{ route('impersonate.leave') }}" method="POST" class="m-0">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="dropdown-item text-warning">
+                                    <i class="fas fa-user-secret text-warning"></i> Kembali ke akun saya
+                                </button>
+                            </form>
+                            @else
                             <form action="/logout" method="POST" class="m-0">
                                 @csrf
                                 <button type="submit" class="dropdown-item text-danger">
                                     <i class="fas fa-sign-out-alt text-danger"></i> Keluar
                                 </button>
                             </form>
+                            @endImpersonating
                         </div>
                     </div>
                 </li>
