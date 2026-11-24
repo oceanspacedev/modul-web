@@ -5,6 +5,7 @@
     $processes = old('proses', [['judul' => '', 'tujuan' => '', 'prioritas' => '', 'sistem' => '']]);
     $steps = ['Data pemohon', 'Dokumen', 'Observasi'];
     $chosen = (int) old('kategori', $selectedCategory);
+    $templateMode = (bool) $categories->firstWhere('id', $chosen)?->hasTemplate();
     $icons = ['SOP' => 'fa-tasks', 'SE' => 'fa-envelope-open-text', 'MEMO' => 'fa-sticky-note', 'IK' => 'fa-tools', 'JD' => 'fa-user-tie', 'PL' => 'fa-bullseye', 'PLAN' => 'fa-bullseye'];
     $required = '<span class="text-danger">*</span>';
 @endphp
@@ -24,7 +25,7 @@
     <div class="container-fluid" style="max-width: 860px;">
         <x-flash />
 
-        <form action="{{ route('document-request.store') }}" method="POST" id="requestForm" class="card setup-wizard" novalidate>
+        <form action="{{ route('document-request.store') }}" method="POST" id="requestForm" class="card setup-wizard" enctype="multipart/form-data" novalidate>
             @csrf
             {{-- Nilai dari server: tanpa JavaScript sekalipun, kiriman ganda dari halaman ini punya kunci yang sama. --}}
             <input type="hidden" name="idempotency_key" id="idempotencyKey" value="{{ old('idempotency_key', $idempotencyKey) }}">
@@ -91,6 +92,16 @@
                                 </select>
                                 <div class="invalid-feedback{{ $errors->has('jabatan') ? ' d-block' : '' }}" data-feedback="jabatan">{{ $errors->first('jabatan') }}</div>
                             </div>
+                            <div class="form-group col-md-6 mb-md-0">
+                                <label for="badan_usaha">Badan usaha {!! $required !!}</label>
+                                <select class="custom-select @error('badan_usaha') is-invalid @enderror" id="badan_usaha" name="badan_usaha" required>
+                                    <option value="">Pilih badan usaha</option>
+                                    @foreach ($businessUnits as $unit)
+                                        <option value="{{ $unit }}" @selected($old('badan_usaha') === $unit)>{{ $unit }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="invalid-feedback{{ $errors->has('badan_usaha') ? ' d-block' : '' }}" data-feedback="badan_usaha">{{ $errors->first('badan_usaha') }}</div>
+                            </div>
                             <div class="form-group col-md-6 mb-0">
                                 <label for="atasan">Atasan langsung <span class="text-muted font-weight-normal">(opsional)</span></label>
                                 <input type="text" class="form-control @error('atasan') is-invalid @enderror" id="atasan" name="atasan" maxlength="100" value="{{ $old('atasan') }}">
@@ -139,7 +150,7 @@
                                 @foreach ($categories as $category)
                                     <label class="choice-card request-category" for="kategori-{{ $category->id }}">
                                         <input type="radio" class="@error('kategori') is-invalid @enderror" id="kategori-{{ $category->id }}" name="kategori" value="{{ $category->id }}" required
-                                            data-needs-observation="{{ $category->needs_observation ? 1 : 0 }}" @checked($chosen === $category->id)>
+                                            data-needs-observation="{{ $category->needs_observation ? 1 : 0 }}" data-template="{{ $category->hasTemplate() ? 1 : 0 }}" @checked($chosen === $category->id)>
                                         <span class="request-category-check"><i class="fas fa-check"></i></span>
                                         <span class="request-category-icon"><i class="fas {{ $icons[strtoupper($category->code)] ?? 'fa-file-alt' }}"></i></span>
                                         <span class="choice-card-title">{{ $category->code }}</span>
@@ -152,13 +163,18 @@
                             @foreach ($categories as $category)
                                 <div class="request-info" data-category-info="{{ $category->id }}" hidden>
                                     <div class="request-info-title"><i class="fas fa-lightbulb"></i> Apa itu {{ $category->name }}?</div>
-                                    @if ($category->description)<p class="mb-2">{{ $category->description }}</p>@endif
-                                    <div class="request-info-meta">
-                                        <small>Tahapan</small>
-                                        {{ implode(' → ', $category->stageNames()) }}
-                                        @if ($category->needs_observation)<span class="d-block">Termasuk observasi langsung oleh tim OD.</span>@endif
-                                    </div>
-                                    @if ($category->hasExample())
+                                    @if ($category->description)<p class="mb-0">{{ $category->description }}</p>@endif
+                                    @if ($category->needs_observation)<p class="request-info-meta mb-0 mt-2">Termasuk observasi langsung oleh tim OD.</p>@endif
+                                    @if ($category->hasTemplate())
+                                        <div class="request-template mt-3">
+                                            <strong>Template {{ $category->name }}</strong>
+                                            <p class="small text-muted mb-2">Unduh template, isi, lalu unggah kembali di kartu dokumen.</p>
+                                            <a href="{{ route('document-request.template', $category) }}" class="btn btn-default btn-sm"><i class="fas fa-download"></i> Unduh template</a>
+                                            @if ($category->hasExample())
+                                                <a href="{{ route('document-request.example', $category) }}" target="_blank" class="btn btn-default btn-sm"><i class="fas fa-eye"></i> Contoh pengisian</a>
+                                            @endif
+                                        </div>
+                                    @elseif ($category->hasExample())
                                         <a href="{{ route('document-request.example', $category) }}" target="_blank" class="btn btn-default btn-sm mt-3"><i class="fas fa-eye"></i> Lihat contoh dokumen</a>
                                     @endif
                                 </div>
@@ -171,12 +187,13 @@
                             <span class="request-section-icon"><i class="fas fa-file-signature"></i></span>
                             <div>
                                 <h3 class="section-title">Detail dokumen</h3>
-                                <p class="request-section-hint">Satu kartu untuk setiap dokumen.</p>
+                                <p class="request-section-hint" data-mode="normal" @if ($templateMode) hidden @endif>Satu kartu untuk setiap dokumen.</p>
+                                <p class="request-section-hint" data-mode="template" @if (! $templateMode) hidden @endif>Isi lengkapnya ada di template. Satu kartu untuk setiap dokumen.</p>
                             </div>
                         </div>
                         <div id="processList">
                             @foreach ($processes as $i => $process)
-                                @include('document-request._process', ['i' => $i, 'process' => $process])
+                                @include('document-request._process', ['i' => $i, 'process' => $process, 'templateMode' => $templateMode])
                             @endforeach
                         </div>
                         @error('proses')<div class="alert alert-danger">{{ $message }}</div>@enderror
@@ -230,7 +247,7 @@
 </section>
 
 <template id="processTemplate">
-    @include('document-request._process', ['i' => '__INDEX__', 'process' => []])
+    @include('document-request._process', ['i' => '__INDEX__', 'process' => [], 'templateMode' => $templateMode])
 </template>
 @endsection
 
@@ -264,9 +281,43 @@
             return needsObservation() ? observationStep : observationStep - 1;
         }
 
+        // Kategori bertemplate (mis. Jobdesk): kartu dokumen berisi keterangan baru/revisi dan template terisi, bukan
+        // uraian, lampiran, dan sistem. Bagian yang tidak dipakai dinonaktifkan supaya tidak divalidasi atau terkirim.
+        function syncMode(root) {
+            const chosen = chosenCategory();
+            const template = !!chosen && chosen.dataset.template === '1';
+            root.querySelectorAll('[data-mode]').forEach(part => {
+                const off = part.dataset.mode !== (template ? 'template' : 'normal');
+                part.hidden = off;
+                if (part.tagName === 'FIELDSET') { part.disabled = off; }
+            });
+            root.querySelectorAll('[data-placeholder-normal]').forEach(input => {
+                input.placeholder = template ? input.dataset.placeholderTemplate : input.dataset.placeholderNormal;
+            });
+        }
+
+        // Lampiran: maksimal 5 file, total 10 MB, hanya Word, PDF, Excel, atau Visio.
+        const lampiranTypes = @json(App\Models\OdDocumentAttachment::LAMPIRAN_EXTENSIONS);
+        const maxFiles = {{ App\Models\OdDocumentAttachment::MAX_FILES }};
+        const maxBytes = {{ App\Models\OdDocumentAttachment::MAX_KB * 1024 }};
+        function checkFiles(input) {
+            const files = [...input.files];
+            let message = '';
+            if (input.hasAttribute('data-lampiran')) {
+                if (files.length > maxFiles) { message = 'Maksimal ' + maxFiles + ' file per dokumen.'; }
+                else if (files.some(f => !lampiranTypes.includes(f.name.split('.').pop().toLowerCase()))) { message = 'Lampiran harus berupa Word, PDF, Excel, atau Visio.'; }
+                else if (files.reduce((sum, f) => sum + f.size, 0) > maxBytes) { message = 'Total lampiran satu dokumen maksimal 10 MB.'; }
+            } else if (files[0] && files[0].size > maxBytes) {
+                message = 'Ukuran template maksimal 10 MB.';
+            }
+            input.setCustomValidity(message);
+            mark(input, !message);
+        }
+
         function syncCategory() {
             const chosen = chosenCategory();
             document.querySelectorAll('[data-category-info]').forEach(info => info.hidden = !chosen || info.dataset.categoryInfo !== chosen.value);
+            syncMode(form);
             const needed = needsObservation();
             observationDate.required = needed;
             items[observationStep].hidden = !needed;
@@ -342,9 +393,13 @@
         document.getElementById('addProcess').addEventListener('click', () => {
             const index = Date.now();
             list.insertAdjacentHTML('beforeend', document.getElementById('processTemplate').innerHTML.replaceAll('__INDEX__', index));
+            syncMode(list.lastElementChild);
             renumber();
         });
         form.querySelectorAll('input[name="kategori"]').forEach(radio => radio.addEventListener('change', syncCategory));
+        list.addEventListener('change', event => {
+            if (event.target.matches('input[type="file"]')) { checkFiles(event.target); }
+        });
         list.addEventListener('click', event => {
             const button = event.target.closest('[data-remove-process]');
             if (button) { button.closest('[data-process]').remove(); renumber(); }

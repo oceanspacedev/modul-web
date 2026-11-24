@@ -74,6 +74,26 @@
                                 </div>
                             </div>
 
+                            <div class="form-group">
+                                <label for="template">Template pengisian <span class="text-muted font-weight-normal">(opsional, maks. 10 MB)</span></label>
+                                @if ($category->hasTemplate())
+                                    <div class="d-flex align-items-center mb-2 small">
+                                        <i class="far fa-file-word mr-1"></i>
+                                        <a href="{{ route('document-request.template', $category) }}" class="text-truncate">{{ $category->template_name }}</a>
+                                        <div class="custom-control custom-checkbox ml-auto">
+                                            <input type="checkbox" class="custom-control-input" id="remove_template" name="remove_template" value="1" @checked(old('remove_template'))>
+                                            <label class="custom-control-label" for="remove_template">Hapus</label>
+                                        </div>
+                                    </div>
+                                @endif
+                                <div class="custom-file">
+                                    <input type="file" class="custom-file-input @error('template') is-invalid @enderror" id="template" name="template" accept=".doc,.docx,.xls,.xlsx,.pdf">
+                                    <label class="custom-file-label" for="template" data-browse="Pilih">{{ $category->hasTemplate() ? 'Ganti file...' : 'Pilih file...' }}</label>
+                                    @error('template')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                                <small class="form-text text-muted">Bila diisi, pemohon mengunduh template ini, mengisinya, lalu mengunggahnya kembali. File contoh menjadi contoh pengisiannya.</small>
+                            </div>
+
                             <div class="form-row">
                                 <div class="form-group col-8">
                                     <label for="pic_user_id">PIC bawaan</label>
@@ -178,9 +198,11 @@
 
         renumber();
 
-        const example = document.getElementById('example');
-        example.addEventListener('change', () => {
-            if (example.files.length) example.nextElementSibling.textContent = example.files[0].name;
+        ['example', 'template'].forEach(id => {
+            const input = document.getElementById(id);
+            input.addEventListener('change', () => {
+                if (input.files.length) input.nextElementSibling.textContent = input.files[0].name;
+            });
         });
     })();
 </script>

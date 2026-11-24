@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\DocumentCategory;
 use App\Models\DocumentRequest;
+use App\Models\DocumentRequestComment;
 use App\Models\OdDocument;
+use App\Models\OdDocumentAttachment;
 use App\Services\DocumentRequestService;
+use App\Services\OdDocumentService;
 use App\Support\OdTeam;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
@@ -15,9 +18,11 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Permintaan Masuk (tim OD): daftar pengajuan dokumen dan halaman untuk memproses tiap proses, jadwal observasi, dan catatan.
+ * Permintaan Masuk (tim OD): daftar pengajuan dokumen dan halaman untuk memproses tiap proses (status, prioritas, PIC,
+ * file rilis), jadwal observasi, catatan internal, komentar untuk pemohon, dan lampiran dari pemohon.
  */
 class OdRequestController extends Controller
 {
@@ -31,7 +36,7 @@ class OdRequestController extends Controller
         $search = mb_strtolower(trim((string) $request->query('search')));
         $filtered = $all
             ->when($search !== '', fn (Collection $c) => $c->filter(fn (DocumentRequest $r) => str_contains(mb_strtolower(implode(' ', [
-                $r->code, $r->nama, $r->divisi, $r->departemen, $r->jabatan, $r->email, $r->whatsapp, ...$r->processes->pluck('title'),
+                $r->code, $r->nama, $r->divisi, $r->departemen, $r->jabatan, $r->email, $r->whatsapp, $r->badan_usaha, ...$r->processes->pluck('title'),
             ])), $search)))
             ->when($request->filled('kategori'), fn (Collection $c) => $c->where('document_category_id', (int) $request->query('kategori')))
             ->when($request->filled('departemen'), fn (Collection $c) => $c->where('departemen', $request->query('departemen')))
@@ -60,12 +65,12 @@ class OdRequestController extends Controller
             'requests' => $requests,
             'sort' => $sort,
             'categories' => $categories,
-            'stageOptions' => [...$categories->flatMap->stageNames()->unique()->values(), OdDocument::STAGE_CANCELLED],
+            'stageOptions' => [...OdDocument::REQUEST_STAGES, OdDocument::STAGE_CANCELLED],
             'stats' => [
                 'total' => $all->count(),
-                'new' => $all->filter(fn ($r) => $r->progress() === 0 && $r->stage() !== OdDocument::STAGE_CANCELLED)->count(),
-                'running' => $all->filter(fn ($r) => $r->progress() > 0 && ! $r->isFinished())->count(),
-                'finished' => $all->filter->isFinished()->count(),
+                'new' => $all->filter(fn ($r) => $r->stage() === OdDocument::STAGE_RECEIVED)->count(),
+                'running' => $all->filter(fn ($r) => $r->stage() === OdDocument::STAGE_PROGRESS)->count(),
+                'finished' => $all->filter(fn ($r) => $r->stage() === OdDocument::STAGE_DONE)->count(),
             ],
         ]);
     }
@@ -73,7 +78,7 @@ class OdRequestController extends Controller
     public function show(Request $request, DocumentRequest $documentRequest): View
     {
         $this->authorizeView($request, $documentRequest);
-        $documentRequest->load(['category.stages', 'processes.status', 'processes.pic', 'processes.builderDraft', 'histories.user', 'user']);
+        $documentRequest->load(['category', 'processes.status', 'processes.pic', 'processes.builderDraft', 'processes.attachments', 'histories.user', 'comments.user', 'user']);
 
         return view('od-report.requests.show', [
             'title' => $documentRequest->code,
@@ -89,13 +94,13 @@ class OdRequestController extends Controller
 
         $data = $request->validate([
             'updated_at' => ['required', 'string'],
+            'aksi' => ['nullable', Rule::in(['proses'])],
             'proses' => ['array'],
-            'proses.*.stage' => ['nullable', Rule::in($documentRequest->category->stageNames())],
+            'proses.*.stage' => ['nullable', Rule::in(OdDocument::REQUEST_STAGES)],
             'proses.*.prioritas' => ['nullable', Rule::in(OdDocument::PRIORITAS)],
             'proses.*.pic_user_id' => ['nullable', 'integer', Rule::in(OdTeam::query()->pluck('id')->all())],
             'proses.*.file' => ['nullable', ...OdDocument::FILE_RULES],
             'jadwal_observasi' => ['nullable', 'date_format:Y-m-d'],
-            'catatan_publik' => ['nullable', 'string', 'max:300'],
             'catatan_admin' => ['nullable', 'string', 'max:2000'],
         ]);
 
@@ -104,8 +109,17 @@ class OdRequestController extends Controller
             return back()->withInput()->with('error', 'Pengajuan ini baru saja diubah anggota tim lain. Muat ulang halaman lalu ulangi perubahan Anda.');
         }
 
+        // Tombol Proses: semua proses yang baru diterima (dan boleh diubah user ini) mulai dikerjakan.
+        if (($data['aksi'] ?? null) === 'proses') {
+            foreach ($documentRequest->processes()->with('status')->get() as $process) {
+                if ($process->stage === OdDocument::STAGE_RECEIVED && ! $process->status?->isCancel() && $process->canBeEditedBy($request->user())) {
+                    $data['proses'][$process->id] = [...($data['proses'][$process->id] ?? []), 'stage' => OdDocument::STAGE_PROGRESS];
+                }
+            }
+        }
+
         // Dokumen yang dirilis harus punya file: file itu yang dikirim ke pemohon.
-        $final = $documentRequest->category->finalStage();
+        $final = OdDocument::STAGE_DONE;
         $missing = $documentRequest->processes()->get()
             ->filter(function (OdDocument $process) use ($data, $final) {
                 $input = $data['proses'][$process->id] ?? [];
@@ -121,6 +135,27 @@ class OdRequestController extends Controller
         $service->update($documentRequest, $data, $request->user());
 
         return to_route('od-report.requests.show', $documentRequest)->with('success', 'Perubahan disimpan.');
+    }
+
+    public function comment(Request $request, DocumentRequest $documentRequest, DocumentRequestService $service): RedirectResponse
+    {
+        $this->authorizeView($request, $documentRequest);
+
+        $data = $request->validate(['body' => ['required', 'string', 'max:'.DocumentRequestComment::MAX_LENGTH]], [], ['body' => 'komentar']);
+        $service->comment($documentRequest, trim($data['body']), $request->user());
+
+        return to_route('od-report.requests.show', $documentRequest)->with('success', 'Komentar terkirim ke pemohon.');
+    }
+
+    /**
+     * Lampiran atau template terisi dari pemohon, untuk tim OD yang bisa melihat pengajuannya.
+     */
+    public function attachment(Request $request, DocumentRequest $documentRequest, OdDocumentAttachment $attachment, OdDocumentService $documents): Response
+    {
+        $this->authorizeView($request, $documentRequest);
+        abort_unless($attachment->document?->document_request_id === $documentRequest->getKey(), 404);
+
+        return $documents->attachmentResponse($attachment);
     }
 
     public function destroy(Request $request, DocumentRequest $documentRequest): RedirectResponse

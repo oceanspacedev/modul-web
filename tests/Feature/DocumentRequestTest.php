@@ -46,6 +46,7 @@ class DocumentRequestTest extends TestCase
             'jabatan' => 'Leader',
             'whatsapp' => '0812-3456-7890',
             'email' => 'Budi@Example.com',
+            'badan_usaha' => 'TEST AREA',
             'proses' => [
                 ['judul' => 'Penerimaan barang', 'tujuan' => 'Supaya penerimaan barang seragam di semua gudang.', 'prioritas' => 'High'],
                 ['judul' => 'Retur barang', 'tujuan' => 'Alur retur sering berbeda antar cabang.', 'prioritas' => 'Urgent', 'sistem' => 'Accurate'],
@@ -74,7 +75,7 @@ class DocumentRequestTest extends TestCase
 
         $documents = OdDocument::orderBy('sort')->get();
         $this->assertSame(['Penerimaan barang', 'Retur barang'], $documents->pluck('title')->all());
-        $this->assertTrue($documents->every(fn ($d) => $d->jenis === 'IK' && $d->stage === 'Diajukan' && $d->pic_user_id === $staff->id));
+        $this->assertTrue($documents->every(fn ($d) => $d->jenis === 'IK' && $d->stage === 'Pengajuan diterima' && $d->pic_user_id === $staff->id));
         $this->assertSame('Urgent', $request->load('processes')->topPriority());
 
         // Pemohon dikabari lewat WhatsApp dengan link lacak.
@@ -221,7 +222,7 @@ class DocumentRequestTest extends TestCase
         $request->update(['catatan_admin' => 'CATATAN RAHASIA TIM']);
 
         $this->get(route('document-request.track', ['kode' => strtolower($request->code)]))->assertOk()
-            ->assertSee('Penerimaan barang')->assertSee('Diajukan')->assertSee('0812')
+            ->assertSee('Penerimaan barang')->assertSee('Pengajuan diterima')->assertSee('0812')
             ->assertDontSee('CATATAN RAHASIA TIM')->assertDontSee('081234567890')->assertDontSee('budi@example.com');
 
         $this->get(route('document-request.track', ['kode' => 'IK-20261118-ZZZZ']))->assertOk()->assertSee('tidak ditemukan');
@@ -240,28 +241,25 @@ class DocumentRequestTest extends TestCase
         $this->actingAs($leader)->put(route('od-report.requests.update', $request), [
             'updated_at' => $request->fresh()->updated_at->toIso8601String(),
             'proses' => [
-                $first->id => ['stage' => 'Release', 'prioritas' => 'High', 'pic_user_id' => $leader->id, 'file' => UploadedFile::fake()->create('ik-penerimaan.pdf', 100, 'application/pdf')],
-                $second->id => ['stage' => 'Drafting', 'prioritas' => 'Medium'],
+                $first->id => ['stage' => 'Selesai', 'prioritas' => 'High', 'pic_user_id' => $leader->id, 'file' => UploadedFile::fake()->create('ik-penerimaan.pdf', 100, 'application/pdf')],
+                $second->id => ['stage' => 'On Progress', 'prioritas' => 'Medium'],
             ],
             'jadwal_observasi' => '2026-11-20',
-            'catatan_publik' => 'Mohon siapkan SOP lama.',
             'catatan_admin' => 'Internal saja',
         ])->assertRedirect(route('od-report.requests.show', $request))->assertSessionHas('success');
 
         $first->refresh();
-        $this->assertSame('Release', $first->stage);
+        $this->assertSame('Selesai', $first->stage);
         $this->assertTrue($first->status->isDone());
         $this->assertSame('2026-11-18', $first->received_at->toDateString());
         $this->assertSame($leader->id, $first->pic_user_id);
         $this->assertSame('Medium', $second->fresh()->prioritas);
 
         $request->refresh()->load('processes.status');
-        $this->assertSame('Drafting', $request->stage());
+        $this->assertSame('On Progress', $request->stage());
         $this->assertSame('2026-11-20', $request->jadwal_observasi->toDateString());
         $this->assertSame(1, $request->releasedCount());
-        $notes = $request->histories()->pluck('note')->filter()->implode(' | ');
-        $this->assertStringContainsString('Mohon siapkan SOP lama.', $notes);
-        $this->assertStringContainsString('Jadwal observasi', $notes);
+        $this->assertStringContainsString('Jadwal observasi', $request->histories()->pluck('note')->filter()->implode(' | '));
 
         // Satu pesan WhatsApp merangkum semua perubahan, lalu file dokumen yang dirilis dikirim sebagai dokumen
         // (selain pesan saat pengajuan dibuat).
@@ -272,12 +270,12 @@ class DocumentRequestTest extends TestCase
         $this->actingAs($leader)->patch(route('od-report.documents.status', $second), ['od_document_status_id' => $cancel->id]);
         $this->get(route('document-request.track', ['kode' => $request->code]))->assertSee('Dibatalkan');
 
-        // Status selesai di Approval Dokumen = tahap Release.
+        // Status selesai di Approval Dokumen = status Selesai.
         $done = OdDocumentStatus::firstOfType(OdDocumentStatus::TYPE_DONE);
         $this->actingAs($leader)->patch(route('od-report.documents.status', $second), [
             'od_document_status_id' => $done->id, 'file' => UploadedFile::fake()->create('ik-retur.pdf', 100, 'application/pdf'),
         ]);
-        $this->assertSame('Release', $second->fresh()->stage);
+        $this->assertSame('Selesai', $second->fresh()->stage);
         $this->assertTrue($request->fresh()->load('processes.status')->isFinished());
 
         // Dokumen dari permintaan tidak bisa dihapus dari Approval Dokumen.

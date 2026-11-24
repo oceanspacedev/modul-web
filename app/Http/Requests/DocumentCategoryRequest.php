@@ -27,6 +27,7 @@ class DocumentCategoryRequest extends FormRequest
             'needs_observation' => $this->boolean('needs_observation'),
             'is_active' => $this->boolean('is_active'),
             'remove_example' => $this->boolean('remove_example'),
+            'remove_template' => $this->boolean('remove_template'),
         ]);
     }
 
@@ -46,6 +47,8 @@ class DocumentCategoryRequest extends FormRequest
             'sort' => ['nullable', 'integer', 'min:0', 'max:999'],
             'example' => ['nullable', ...DocumentCategory::EXAMPLE_RULES],
             'remove_example' => ['boolean'],
+            'template' => ['nullable', ...DocumentCategory::TEMPLATE_RULES],
+            'remove_template' => ['boolean'],
             'stages' => ['required', 'array', 'min:'.DocumentCategory::MIN_STAGES, 'max:'.DocumentCategory::MAX_STAGES],
             'stages.*.id' => ['nullable', 'integer', Rule::exists('document_category_stages', 'id')->where('document_category_id', $category->getKey())],
             'stages.*.name' => ['required', 'string', 'max:40', 'distinct:ignore_case', Rule::notIn([OdDocument::STAGE_CANCELLED])],
@@ -85,7 +88,7 @@ class DocumentCategoryRequest extends FormRequest
             $kept = collect($this->input('stages', []))->pluck('id')->filter()->map(fn ($id) => (int) $id);
             $removed = $category->stages->reject(fn ($stage) => $kept->contains($stage->id));
             foreach ($removed as $stage) {
-                if (OdDocument::withTrashed()->where('jenis', $category->code)->where('stage', $stage->name)->exists()) {
+                if (OdDocument::withTrashed()->where('jenis', $category->code)->whereNull('document_request_id')->where('stage', $stage->name)->exists()) {
                     $validator->errors()->add('stages', "Tahap \"{$stage->name}\" masih dipakai dokumen, jadi tidak bisa dihapus.");
                 }
             }
@@ -104,6 +107,7 @@ class DocumentCategoryRequest extends FormRequest
             'pic_user_id' => 'PIC bawaan',
             'sort' => 'urutan',
             'example' => 'file contoh',
+            'template' => 'file template',
             'stages' => 'tahapan',
             'stages.*.name' => 'judul tahap',
         ];

@@ -5,15 +5,22 @@ namespace App\Http\Requests;
 use App\Models\DocumentCategory;
 use App\Models\DocumentRequest;
 use App\Models\OdDocument;
+use App\Models\OdDocumentAttachment;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * Form Permintaan Dokumen (publik atau login): data pemohon, kategori dokumen, 1–10 item, dan jadwal observasi bila
- * kategorinya butuh observasi.
+ * kategorinya butuh observasi. Item biasa berisi judul, uraian, lampiran opsional (Word, PDF, Excel, Visio), prioritas
+ * dan sistem; item kategori bertemplate (mis. Jobdesk) berisi judul, keterangan baru/revisi, prioritas, dan template
+ * yang sudah diisi.
  */
 class StoreDocumentRequestRequest extends FormRequest
 {
+    private ?DocumentCategory $resolvedCategory = null;
+
     public function authorize(): bool
     {
         return true;
@@ -41,6 +48,8 @@ class StoreDocumentRequestRequest extends FormRequest
     public function rules(): array
     {
         $needsObservation = fn () => (bool) $this->category()?->needs_observation;
+        $template = (bool) $this->category()?->hasTemplate();
+        $maxKb = OdDocumentAttachment::MAX_KB;
 
         return [
             'kategori' => ['required', 'integer', Rule::exists('document_categories', 'id')->where('is_active', true)],
@@ -51,11 +60,19 @@ class StoreDocumentRequestRequest extends FormRequest
             'atasan' => ['nullable', 'string', 'max:100'],
             'whatsapp' => ['required', 'regex:/^\+?\d{9,15}$/'],
             'email' => ['required', 'email', 'max:150'],
+            'badan_usaha' => ['required', 'string', 'max:120', Rule::exists('areas', 'name')],
             'proses' => ['required', 'array', 'min:1', 'max:'.DocumentRequest::MAX_PROCESSES],
             'proses.*.judul' => ['required', 'string', 'max:200'],
-            'proses.*.tujuan' => ['required', 'string', 'min:10', 'max:2000'],
             'proses.*.prioritas' => ['required', Rule::in(OdDocument::PRIORITAS)],
-            'proses.*.sistem' => ['nullable', 'string', 'max:200'],
+            ...($template ? [
+                'proses.*.jenis_pengajuan' => ['required', Rule::in(OdDocument::JENIS_PENGAJUAN)],
+                'proses.*.template' => ['required', 'file', 'extensions:'.implode(',', OdDocumentAttachment::TEMPLATE_EXTENSIONS), "max:{$maxKb}"],
+            ] : [
+                'proses.*.tujuan' => ['required', 'string', 'min:10', 'max:2000'],
+                'proses.*.sistem' => ['nullable', 'string', 'max:200'],
+                'proses.*.lampiran' => ['nullable', 'array', 'max:'.OdDocumentAttachment::MAX_FILES],
+                'proses.*.lampiran.*' => ['file', 'extensions:'.implode(',', OdDocumentAttachment::LAMPIRAN_EXTENSIONS), "max:{$maxKb}"],
+            ]),
             'obs_tanggal_1' => [Rule::requiredIf($needsObservation), 'nullable', 'date_format:Y-m-d', 'after_or_equal:today'],
             'obs_tanggal_2' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:today'],
             'obs_catatan' => ['nullable', 'string', 'max:300'],
@@ -74,9 +91,14 @@ class StoreDocumentRequestRequest extends FormRequest
             'whatsapp' => 'nomor WhatsApp',
             'proses' => 'proses',
             'proses.*.judul' => 'judul',
-            'proses.*.tujuan' => 'tujuan',
+            'proses.*.tujuan' => 'uraian',
             'proses.*.prioritas' => 'prioritas',
             'proses.*.sistem' => 'sistem/alat',
+            'proses.*.lampiran' => 'lampiran',
+            'proses.*.lampiran.*' => 'lampiran',
+            'proses.*.template' => 'template terisi',
+            'proses.*.jenis_pengajuan' => 'keterangan',
+            'badan_usaha' => 'badan usaha',
             'obs_tanggal_1' => 'tanggal observasi pilihan 1',
             'obs_tanggal_2' => 'tanggal observasi pilihan 2',
             'obs_catatan' => 'catatan observasi',
@@ -90,15 +112,37 @@ class StoreDocumentRequestRequest extends FormRequest
     {
         return [
             'whatsapp.regex' => 'Nomor WhatsApp harus 9–15 digit.',
+            'proses.*.lampiran.*.extensions' => 'Lampiran harus berupa Word, PDF, Excel, atau Visio.',
+            'proses.*.lampiran.max' => 'Lampiran maksimal '.OdDocumentAttachment::MAX_FILES.' file per dokumen.',
+            'proses.*.lampiran.*.max' => 'Ukuran lampiran maksimal 10 MB per file.',
+            'proses.*.template.extensions' => 'Template harus berupa Word, Excel, atau PDF.',
+            'proses.*.template.max' => 'Ukuran template maksimal 10 MB.',
             'obs_tanggal_1.after_or_equal' => 'Tanggal observasi tidak boleh di masa lalu.',
             'obs_tanggal_2.after_or_equal' => 'Tanggal observasi tidak boleh di masa lalu.',
         ];
+    }
+
+    /**
+     * Total lampiran per dokumen maksimal 10 MB.
+     *
+     * @return array<int, callable>
+     */
+    public function after(): array
+    {
+        return [function (Validator $validator) {
+            foreach ((array) $this->file('proses', []) as $index => $files) {
+                $total = collect($files['lampiran'] ?? [])->sum(fn ($file) => $file instanceof UploadedFile ? $file->getSize() : 0);
+                if ($total > OdDocumentAttachment::MAX_KB * 1024) {
+                    $validator->errors()->add("proses.{$index}.lampiran", 'Total lampiran satu dokumen maksimal 10 MB.');
+                }
+            }
+        }];
     }
 
     public function category(): ?DocumentCategory
     {
         $id = $this->input('kategori');
 
-        return is_numeric($id) ? DocumentCategory::find($id) : null;
+        return is_numeric($id) ? $this->resolvedCategory ??= DocumentCategory::find($id) : null;
     }
 }

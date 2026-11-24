@@ -32,7 +32,7 @@ class OdDocumentRequest extends FormRequest
             'catatan' => ['nullable', 'string', 'max:300'],
             'file' => ['nullable', ...OdDocument::FILE_RULES],
             // Tahap hanya untuk dokumen dari Permintaan Dokumen, dari tahapan kategorinya.
-            'stage' => ['nullable', Rule::in($document?->category?->stageNames() ?? [])],
+            'stage' => ['nullable', Rule::in($document?->stageNames() ?? [])],
         ];
     }
 

@@ -42,6 +42,7 @@ class DocumentRequestNotificationTest extends TestCase
             'jabatan' => 'Leader',
             'whatsapp' => '081234567890',
             'email' => 'budi@example.com',
+            'badan_usaha' => 'TEST AREA',
             'proses' => [
                 ['judul' => 'Penerimaan barang', 'tujuan' => 'Supaya penerimaan barang seragam.', 'prioritas' => 'High'],
                 ['judul' => 'Retur barang', 'tujuan' => 'Alur retur sering berbeda.', 'prioritas' => 'Urgent'],

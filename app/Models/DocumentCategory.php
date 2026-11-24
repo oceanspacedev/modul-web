@@ -33,6 +33,9 @@ class DocumentCategory extends Model
     /** File contoh yang boleh diunggah: dokumen Office, PDF, atau gambar, maks. 20 MB. */
     public const EXAMPLE_RULES = ['file', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png', 'max:20480'];
 
+    /** Template pengisian (mis. template Jobdesk): Word, Excel, atau PDF, maks. 10 MB. */
+    public const TEMPLATE_RULES = ['file', 'mimes:doc,docx,xls,xlsx,pdf', 'max:10240'];
+
     /** Contoh bawaan aplikasi, dipakai selama kategorinya belum punya file contoh sendiri. */
     private const BUNDLED_EXAMPLES = ['IK' => 'assets/permintaan-dokumen/contoh-ik.pdf'];
 
@@ -199,6 +202,15 @@ class DocumentCategory extends Model
             'jpg', 'jpeg', 'png' => 'image',
             default => 'file',
         };
+    }
+
+    /**
+     * Kategori bertemplate (mis. Jobdesk): pemohon mengunduh template, mengisinya, lalu mengunggahnya kembali. Detail
+     * dokumen cukup judul, keterangan baru/revisi, dan prioritas.
+     */
+    public function hasTemplate(): bool
+    {
+        return filled($this->template_path);
     }
 
     public function label(): string

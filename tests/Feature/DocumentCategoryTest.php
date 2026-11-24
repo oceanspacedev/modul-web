@@ -71,6 +71,7 @@ class DocumentCategoryTest extends TestCase
             'jabatan' => 'Leader',
             'whatsapp' => '081234567890',
             'email' => 'budi@example.com',
+            'badan_usaha' => 'TEST AREA',
             'proses' => [['judul' => 'Admin Gudang', 'tujuan' => 'Uraian tugas admin gudang belum ada.', 'prioritas' => 'High']],
             ...$overrides,
         ];
@@ -185,7 +186,7 @@ class DocumentCategoryTest extends TestCase
         $this->assertModelMissing($ba);
     }
 
-    public function test_request_for_category_without_observation_uses_its_code_stages_and_pic(): void
+    public function test_request_for_category_without_observation_uses_its_code_pic_and_the_request_statuses(): void
     {
         $staff = $this->member(User::OD_STAFF, 'STAFF JD');
         DocumentCategory::where('code', 'JD')->update(['pic_user_id' => $staff->id]);
@@ -202,7 +203,7 @@ class DocumentCategoryTest extends TestCase
 
         $document = $request->processes()->sole();
         $this->assertSame('JD', $document->jenis);
-        $this->assertSame('Diajukan', $document->stage);
+        $this->assertSame(OdDocument::STAGE_RECEIVED, $document->stage);
         $this->assertSame($staff->id, $document->pic_user_id);
 
         $this->get(route('document-request.track', ['kode' => $request->code]))->assertOk()
@@ -211,14 +212,14 @@ class DocumentCategoryTest extends TestCase
         // IK tetap wajib tanggal observasi.
         $this->post(route('document-request.store'), $this->requestPayload('IK', ['idempotency_key' => 'ik-1']))->assertSessionHasErrors('obs_tanggal_1');
 
-        // Tahap di luar tahapan JD ditolak, tahap terakhir JD menutup dokumen.
+        // Permintaan memakai tiga status tetap: tahapan kategori ditolak, Selesai menutup dokumen.
         $leader = $this->member(User::OD_LEADER);
         $form = fn (string $stage) => [
             'updated_at' => $request->fresh()->updated_at->toIso8601String(),
             'proses' => [$document->id => ['stage' => $stage, 'file' => UploadedFile::fake()->create('jd.pdf', 50, 'application/pdf')]],
         ];
-        $this->actingAs($leader)->put(route('od-report.requests.update', $request), $form('Dalam proses observasi'))->assertSessionHasErrors('proses.'.$document->id.'.stage');
-        $this->actingAs($leader)->put(route('od-report.requests.update', $request), $form('Release'))->assertSessionHas('success');
+        $this->actingAs($leader)->put(route('od-report.requests.update', $request), $form('Release'))->assertSessionHasErrors('proses.'.$document->id.'.stage');
+        $this->actingAs($leader)->put(route('od-report.requests.update', $request), $form(OdDocument::STAGE_DONE))->assertSessionHas('success');
         $this->assertTrue($document->fresh()->status->isDone());
         $this->assertSame(100, $request->fresh()->load('category.stages', 'processes.status')->progress());
     }
@@ -253,27 +254,31 @@ class DocumentCategoryTest extends TestCase
         $this->assertSame(0, DocumentRequest::count());
     }
 
-    public function test_renaming_a_stage_moves_documents_and_used_stages_or_codes_are_locked(): void
+    public function test_category_stages_only_move_manual_documents_and_used_codes_are_locked(): void
     {
         $leader = $this->member(User::OD_LEADER);
         $this->post(route('document-request.store'), $this->requestPayload('JD'));
-        $document = OdDocument::sole();
+        $fromRequest = OdDocument::sole();
+        $manual = OdDocument::create([
+            'title' => 'JD manual', 'jenis' => 'JD', 'stage' => 'Diajukan', 'submitted_at' => today(), 'month' => '2026-11',
+            'od_document_status_id' => OdDocumentStatus::firstOfType(OdDocumentStatus::TYPE_OPEN)->id,
+        ]);
         $jd = $this->category('JD');
-        $stages = $jd->stages;
 
-        // Ganti nama tahap "Diajukan" → dokumen di tahap itu ikut berganti.
+        // Ganti nama tahap "Diajukan": dokumen manual di tahap itu ikut berganti, dokumen dari permintaan tetap memakai
+        // status permintaan.
         $renamed = $this->form($jd);
         $renamed['stages'][0]['name'] = 'Diterima';
         $this->actingAs($leader)->put(route('document-category.update', $jd), $renamed)->assertSessionHas('success');
-        $this->assertSame('Diterima', $document->fresh()->stage);
+        $this->assertSame('Diterima', $manual->fresh()->stage);
+        $this->assertSame(OdDocument::STAGE_RECEIVED, $fromRequest->fresh()->stage);
 
         // Form hanya berisi judul: penjelasan tahap yang tidak diganti nama tetap ada, yang diganti nama dikosongkan.
         $jd = $this->category('JD');
         $this->assertNull($jd->stageDescription('Diterima'));
         $this->assertSame(DocumentCategory::DEFAULT_STAGES['Drafting'], $jd->stageDescription('Drafting'));
 
-        // Tahap yang masih dipakai tidak bisa dihapus, kode yang sudah dipakai tidak bisa diubah.
-        $jd = $this->category('JD');
+        // Tahap yang masih dipakai dokumen manual tidak bisa dihapus, kode yang sudah dipakai tidak bisa diubah.
         $withoutFirst = $this->form($jd);
         array_shift($withoutFirst['stages']);
         $this->actingAs($leader)->put(route('document-category.update', $jd), $withoutFirst)->assertSessionHasErrors('stages');
@@ -283,12 +288,11 @@ class DocumentCategoryTest extends TestCase
         $this->actingAs($leader)->delete(route('document-category.destroy', $jd))->assertSessionHas('error');
         $this->assertModelExists($jd);
 
-        // Dokumen yang sudah selesai pindah ke tahap terakhir yang baru.
-        $document->update(['stage' => 'Release', 'od_document_status_id' => OdDocumentStatus::firstOfType(OdDocumentStatus::TYPE_DONE)->id]);
-        $appended = $this->form($jd);
+        // Menambah tahap terakhir tidak mengubah dokumen dari permintaan yang sudah selesai.
+        $fromRequest->update(['stage' => OdDocument::STAGE_DONE, 'od_document_status_id' => OdDocumentStatus::firstOfType(OdDocumentStatus::TYPE_DONE)->id]);
+        $appended = $this->form($this->category('JD'));
         $appended['stages'][] = ['name' => 'Diarsipkan'];
         $this->actingAs($leader)->put(route('document-category.update', $jd), $appended)->assertSessionHas('success');
-        $this->assertSame('Diarsipkan', $document->fresh()->stage);
-        $this->assertCount($stages->count() + 1, $this->category('JD')->stages);
+        $this->assertSame(OdDocument::STAGE_DONE, $fromRequest->fresh()->stage);
     }
 }
