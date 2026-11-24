@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Lab404\Impersonate\Services\ImpersonateManager;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -38,7 +39,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 #[Authorize('restore', 'user', only: ['restore'])]
 class UserController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, ImpersonateManager $impersonate): View
     {
         $archived = $request->query('tab') === 'arsip';
 
@@ -58,6 +59,8 @@ class UserController extends Controller
             'title' => 'User',
             'active' => 'setting',
             'archived' => $archived,
+            // Impersonate bersarang selalu ditolak, jadi jangan tampilkan tombolnya.
+            'impersonating' => $impersonate->isImpersonating(),
             'dndConfigured' => DndUserSyncService::isConfigured(),
             'bulkApprovers' => User::when($selectableApprovers !== null, fn (Builder $query) => $query->whereIn('id', $selectableApprovers))
                 ->orderBy('nama_lengkap')->get(['id', 'nama_lengkap']),

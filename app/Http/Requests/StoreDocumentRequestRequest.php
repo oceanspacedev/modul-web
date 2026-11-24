@@ -25,6 +25,14 @@ class StoreDocumentRequestRequest extends FormRequest
             'whatsapp' => preg_replace('/[\s\-().]/', '', (string) $this->input('whatsapp')),
             'email' => mb_strtolower(trim((string) $this->input('email'))),
         ]);
+
+        // Jadwal observasi hanya diisi pada kategori yang butuh observasi; nilai lama dari langkah yang tersembunyi
+        // jangan membuat pengajuan ditolak tanpa pesan yang terlihat (DocumentRequestService juga mengabaikannya).
+        if ($this->category()?->needs_observation) {
+            return;
+        }
+
+        $this->merge(['obs_tanggal_1' => null, 'obs_tanggal_2' => null, 'obs_catatan' => null]);
     }
 
     /**

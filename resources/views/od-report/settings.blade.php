@@ -21,7 +21,7 @@
                                 <tr>
                                     <th>Nama</th>
                                     <th>Tipe</th>
-                                    <th class="text-right">Dipakai</th>
+                                    <th class="text-right" title="Termasuk dokumen yang sudah diarsipkan">Dipakai</th>
                                     <th class="text-right">Aksi</th>
                                 </tr>
                             </thead>

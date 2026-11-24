@@ -39,4 +39,16 @@ class GuidePageTest extends TestCase
             ->assertSee('Kerjakan Ulang')
             ->assertDontSee('Kuis hanya');
     }
+
+    public function test_guide_documents_impersonation_and_the_return_button(): void
+    {
+        $this->actingAs(User::factory()->staff()->create())->get('/panduan')
+            ->assertOk()
+            // Bagian baru: cara masuk sebagai user lain dan cara kembali ke akun sendiri.
+            ->assertSee('Masuk sebagai user lain (Impersonate)')
+            ->assertSee('Kembali ke akun saya')
+            // Copy Keluar tidak boleh lagi bertentangan dengan keadaan saat impersonate.
+            ->assertSee('posisi itu digantikan tombol')
+            ->assertSee('menu itu tidak menampilkan');
+    }
 }

@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\AiTask;
 use App\Models\DocumentCategory;
 use App\Models\DocumentDraft;
 use App\Models\User;
 use App\Support\DocumentBuilderTemplates;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -125,7 +127,11 @@ class DocumentBuilderTest extends TestCase
             && str_contains($request['contents'][0]['parts'][0]['text'], 'HSE Inspector: memeriksa')
             && str_contains($request['contents'][0]['parts'][0]['text'], '"procedures"'));
 
-        $this->actingAs($member)->get(route('document-builder.progress', $draft))->assertOk()->assertSee('AI sedang menyusun');
+        // Queue sync: AI sudah selesai begitu permintaan dikirim, jadi halaman proses langsung memberi editor.
+        $this->actingAs($member)->get(route('document-builder.progress', $draft))->assertRedirect(route('document-builder.edit', $draft));
+
+        // Polling hanya membaca status, jadi berkali-kali pun hasilnya tetap "done" dan token tetap bersih.
+        $this->actingAs($member)->getJson(route('document-builder.ai-status', $draft))->assertOk()->assertJson(['status' => 'done']);
         $this->actingAs($member)->getJson(route('document-builder.ai-status', $draft))->assertOk()->assertJson(['status' => 'done']);
         $this->assertNull($draft->fresh()->ai_token);
         $this->actingAs($member)->get(route('document-builder.progress', $draft))->assertRedirect(route('document-builder.edit', $draft));
@@ -149,7 +155,54 @@ class DocumentBuilderTest extends TestCase
             ->assertOk()
             ->assertJson(['status' => 'failed'])
             ->assertJsonPath('message', fn ($message) => str_contains($message, 'quota exceeded'));
+
+        // Kegagalan tidak menghapus token: polling berikutnya masih mendapat penyebab yang sama.
+        $this->assertNotNull($draft->fresh()->ai_token);
+        $this->actingAs($member)->getJson(route('document-builder.ai-status', $draft))
+            ->assertOk()->assertJson(['status' => 'failed'])
+            ->assertJsonPath('message', fn ($message) => str_contains($message, 'quota exceeded'));
+
         $this->actingAs($member)->get(route('document-builder.edit', $draft))->assertOk();
+    }
+
+    public function test_the_progress_page_only_waits_while_the_compose_is_still_running(): void
+    {
+        $member = $this->member();
+        $draft = $this->draft($member, 'SOP', ['ai_token' => $token = AiTask::newToken()]);
+
+        $this->actingAs($member)->get(route('document-builder.progress', $draft))
+            ->assertOk()
+            ->assertSee('AI sedang menyusun')
+            // Polling dibatasi waktunya dan berhenti pada jawaban yang bukan JSON (mis. draf terhapus).
+            ->assertSee('maxPolls', false);
+
+        // Polling pertama dan kedua atas proses yang masih berjalan: status dan token tidak berubah.
+        $this->actingAs($member)->getJson(route('document-builder.ai-status', $draft))->assertOk()->assertJson(['status' => 'pending']);
+        $this->actingAs($member)->getJson(route('document-builder.ai-status', $draft))->assertOk()->assertJson(['status' => 'pending']);
+
+        // Membaca status tidak boleh menghabiskan token.
+        $this->assertNotNull($draft->fresh()->ai_token);
+        $this->assertSame('pending', AiTask::status($token)['status']);
+
+        // Lalu job selesai dan membersihkan tokennya sendiri sebelum sempat dipolling.
+        $draft->update(['ai_token' => null, 'content' => ['objective' => 'Isi dari AI.']]);
+        $this->actingAs($member)->getJson(route('document-builder.ai-status', $draft))->assertOk()->assertJson(['status' => 'done']);
+        $this->actingAs($member)->get(route('document-builder.progress', $draft))->assertRedirect(route('document-builder.edit', $draft));
+    }
+
+    public function test_a_finished_compose_is_never_reported_as_expired(): void
+    {
+        $member = $this->member();
+
+        // Token masih ada tapi catatan hasilnya sudah kedaluwarsa, sementara isinya sudah tersusun: penyusunannya berhasil.
+        $stale = $this->draft($member, 'SOP', ['ai_token' => (string) Str::uuid(), 'content' => ['objective' => 'Isi yang sudah tersusun.']]);
+        $this->actingAs($member)->getJson(route('document-builder.ai-status', $stale))->assertOk()->assertJson(['status' => 'done']);
+        $this->actingAs($member)->get(route('document-builder.progress', $stale))->assertRedirect(route('document-builder.edit', $stale));
+
+        // Token kedaluwarsa tanpa isi: memang tidak ada hasil, jadi dilaporkan gagal, tidak dibungkus jadi selesai.
+        $empty = $this->draft($member, 'SOP', ['ai_token' => (string) Str::uuid()]);
+        $this->actingAs($member)->getJson(route('document-builder.ai-status', $empty))->assertNotFound()->assertJson(['status' => 'failed']);
+        $this->actingAs($member)->get(route('document-builder.progress', $empty))->assertOk()->assertSee('AI sedang menyusun');
     }
 
     public function test_manual_mode_only_needs_a_title_while_ai_needs_every_required_answer(): void
@@ -285,5 +338,43 @@ class DocumentBuilderTest extends TestCase
         $this->assertSame('Pengumpulan Laporan Lebih Awal', $draft->title);
         $this->assertSame('Kepala Departemen', $draft->answers['to']);
         $this->assertSame('Laporan bulanan dikumpulkan tanggal 25.', $draft->content['body']);
+    }
+
+    public function test_recompose_keeps_answers_from_steps_that_are_no_longer_in_the_template(): void
+    {
+        $member = $this->member();
+        $draft = $this->draft($member, 'MEMO', [
+            'answers' => [
+                'title' => 'Memo Lama',
+                'to' => 'Kepala Departemen',
+                'lokasi_pengumpulan' => 'Jawaban dari langkah yang sudah dihapus Leader',
+            ],
+        ]);
+
+        // "to" dikirim kosong (langkahnya masih ada di template) dan jawaban langkah lama tidak dikirim sama sekali.
+        $this->actingAs($member)->post(route('document-builder.recompose', $draft), [
+            'mode' => 'manual',
+            'answers' => ['title' => 'Memo Baru', 'message' => 'Isi memo baru'],
+        ])->assertRedirect(route('document-builder.edit', $draft));
+
+        $answers = $draft->fresh()->answers;
+        $this->assertSame('Jawaban dari langkah yang sudah dihapus Leader', $answers['lokasi_pengumpulan']);
+        $this->assertSame('Isi memo baru', $answers['message']);
+        // Kunci template tetap yang menentukan: jawaban yang dikosongkan tidak diam-diam dipertahankan.
+        $this->assertArrayNotHasKey('to', $answers);
+
+        // Susun ulang dengan AI pun tidak boleh membuang jawaban langkah lama.
+        config(['services.gemini.api_key' => 'test-key']);
+        Http::fake(['generativelanguage.googleapis.com/*' => Http::response(self::gemini([
+            'body' => 'Memo baru untuk direksi.',
+            'actions' => ['Kirim memo ke direksi'],
+        ]))]);
+
+        $this->actingAs($member)->post(route('document-builder.recompose', $draft), [
+            'mode' => 'ai',
+            'answers' => ['title' => 'Memo Baru', 'department' => 'HRD', 'to' => 'Direksi', 'message' => 'Memo lintas divisi'],
+        ])->assertRedirect(route('document-builder.progress', $draft));
+
+        $this->assertSame('Jawaban dari langkah yang sudah dihapus Leader', $draft->fresh()->answers['lokasi_pengumpulan']);
     }
 }

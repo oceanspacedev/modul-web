@@ -9,7 +9,8 @@ use Illuminate\Foundation\Queue\Queueable;
 
 /**
  * Mengirim perubahan Daily Report ke spreadsheet Weekly Report. Job tanpa daftar hapus cukup satu di antrean: ia
- * membaca semua perubahan saat dijalankan. Bila perubahan lebih dari satu batch, job mengantre dirinya lagi.
+ * membaca semua perubahan saat dijalankan. Bila perubahan lebih dari satu batch, job mengantre dirinya lagi —
+ * termasuk bila spreadsheet menolak semua barisnya, dengan batas batch tanpa kemajuan.
  */
 class SyncOdReportSheet implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
@@ -22,8 +23,17 @@ class SyncOdReportSheet implements ShouldBeUniqueUntilProcessing, ShouldQueue
     /** @var list<int> */
     public array $backoff = [30, 120];
 
-    /** @param list<string> $delete SYNC ID baris yang harus dikosongkan */
-    public function __construct(public array $delete = []) {}
+    /**
+     * Batch beruntun tanpa satu baris pun tertulis (Web App menolak semuanya) sebelum antrean dihentikan.
+     * Sisanya tetap tertunda dan dicoba lagi oleh job berikutnya atau jadwal od-report:sync-sheet.
+     */
+    public const MAX_ROUNDS_WITHOUT_PROGRESS = 3;
+
+    /**
+     * @param  list<string>  $delete  SYNC ID baris yang harus dikosongkan
+     * @param  int  $stalled  batch beruntun yang sebelumnya ditolak tanpa kemajuan
+     */
+    public function __construct(public array $delete = [], public int $stalled = 0) {}
 
     public function uniqueId(): string
     {
@@ -38,8 +48,15 @@ class SyncOdReportSheet implements ShouldBeUniqueUntilProcessing, ShouldQueue
 
         $result = $sync->run($this->delete);
 
-        if ($result['remaining'] > 0 && $result['written'] > 0) {
-            self::dispatch();
+        if ($result['remaining'] === 0) {
+            return;
+        }
+
+        // Sisa antrean dikirim dengan job berikutnya; kunci unik sudah dilepas sebelum handle() berjalan,
+        // jadi job boleh mengantre dirinya sendiri tanpa mengunci dirinya.
+        $stalled = $result['written'] > 0 ? 0 : $this->stalled + 1;
+        if ($stalled < self::MAX_ROUNDS_WITHOUT_PROGRESS) {
+            self::dispatch([], $stalled);
         }
     }
 }

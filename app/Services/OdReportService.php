@@ -16,11 +16,12 @@ use Illuminate\Support\Collection;
 class OdReportService
 {
     /**
-     * Draft dari hari sebelumnya dianggap sudah disimpan, seperti di aplikasi lama (dijalankan saat membuka OD Report).
+     * Draft dari hari sebelumnya milik user yang bersangkutan dianggap sudah disimpan, seperti di aplikasi lama
+     * (dijalankan saat membuka Daily Report atau Dashboard). Draft anggota lain tidak boleh ikut tersimpan.
      */
-    public function autoSavePastDrafts(): void
+    public function autoSavePastDrafts(User $user): void
     {
-        if (OdActivity::whereNull('saved_at')->whereDate('date', '<', today())->update(['saved_at' => now()])) {
+        if (OdActivity::where('user_id', $user->getKey())->whereNull('saved_at')->whereDate('date', '<', today())->update(['saved_at' => now()])) {
             OdSheetSync::queue();
         }
     }
@@ -106,26 +107,34 @@ class OdReportService
      */
     public function dashboard(User $user): array
     {
-        $this->autoSavePastDrafts();
+        $this->autoSavePastDrafts($user);
 
         $today = CarbonImmutable::today();
+        // Bulan tautan report = bulan minggu OdWeek hari ini, sama dengan default halaman Weekly/Monthly.
+        $bulan = OdWeek::of($today)->month();
+        // Statistik bulan memakai window minggu laporan yang sama dengan halaman Monthly/Weekly, bukan 1–akhir bulan
+        // kalender, supaya angka kartu Dashboard bisa dicek ulang di halaman itu.
+        $weeks = OdWeek::inMonth($bulan);
+        $monthStart = $weeks[0]->start;
+        $monthEnd = end($weeks)->end();
         // "Minggu ini" selalu Sabtu–Jumat 7 hari (bukan Week 4 gabungan 14 hari) agar tren dibanding minggu lalu adil.
         $weekStart = $today->subDays(($today->dayOfWeek + 1) % 7);
         $from = $today->subDays(29);
 
         $activities = OdActivity::query()->visibleTo($user)->reported()
-            ->whereDate('date', '>=', $from->min($weekStart->subWeek())->min($today->startOfMonth()))
+            ->whereDate('date', '>=', $from->min($weekStart->subWeek())->min($monthStart))
             ->get(['id', 'user_id', 'date', 'result']);
 
         $thisWeek = $activities->filter(fn ($a) => $a->date->betweenIncluded($weekStart, $weekStart->addDays(6)))->count();
         $lastWeek = $activities->filter(fn ($a) => $a->date->betweenIncluded($weekStart->subWeek(), $weekStart->subDay()))->count();
-        $month = $this->stats($activities->filter(fn ($a) => $a->date->isSameMonth($today)));
+        $month = $this->stats($activities->filter(fn ($a) => $a->date->betweenIncluded($monthStart, $monthEnd)));
 
         $documents = OdDocument::query()->visibleTo($user)->with('status')->get(['id', 'od_document_status_id']);
         $team = $user->can('manage-od-report') ? OdTeam::members() : collect([$user]);
         $savedToday = OdActivity::reported()->whereDate('date', $today)->distinct()->pluck('user_id');
 
         return [
+            'bulan' => $bulan,
             'thisWeek' => $thisWeek,
             'trend' => $lastWeek ? (int) round(($thisWeek - $lastWeek) / $lastWeek * 100) : ($thisWeek ? 100 : 0),
             'month' => $month,
@@ -133,7 +142,7 @@ class OdReportService
             'doneDocs' => $documents->filter(fn ($d) => $d->status->isDone())->count(),
             'reportedToday' => $team->whereIn('id', $savedToday)->count(),
             'teamSize' => $team->count(),
-            'attention' => $this->attention($user, $today, $month),
+            'attention' => $this->attention($user, $today, $bulan, $month),
             'chart' => collect(range(29, 0))->map(fn ($back) => $today->subDays($back))->map(fn (CarbonImmutable $day) => [
                 'label' => $day->format('d/m'),
                 'done' => $activities->filter(fn ($a) => $a->date->isSameDay($day) && $a->result === OdActivity::RESULT_DONE)->count(),
@@ -148,10 +157,11 @@ class OdReportService
      * Hal yang perlu perhatian (dari aplikasi lama): draft belum disimpan dan laporan hari ini kosong (hanya untuk
      * anggota tim OD, bukan ADMIN yang sekadar bisa membuka OD Report), serta pekerjaan Hold bulan ini.
      *
+     * @param  string  $bulan  bulan report (Y-m) yang sedang dipakai kartu Dashboard
      * @param  array{hold: int}  $month
      * @return list<array{0: string, 1: string}>
      */
-    private function attention(User $user, CarbonImmutable $today, array $month): array
+    private function attention(User $user, CarbonImmutable $today, string $bulan, array $month): array
     {
         $items = [];
 
@@ -166,7 +176,7 @@ class OdReportService
             }
         }
         if ($month['hold']) {
-            $items[] = ["{$month['hold']} pekerjaan berstatus Hold bulan ini", route('od-report.weekly', ['status' => OdActivity::RESULT_HOLD])];
+            $items[] = ["{$month['hold']} pekerjaan berstatus Hold bulan ini", route('od-report.weekly', ['bulan' => $bulan, 'status' => OdActivity::RESULT_HOLD])];
         }
 
         return $items;

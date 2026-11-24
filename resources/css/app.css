@@ -1559,9 +1559,12 @@ a.stat-tile:hover {
     font-size: 0.875rem;
 }
 
-/* Without JS every question shows and the nav buttons are hidden */
+/* Without JS every question shows and the nav buttons are hidden.
+   #prevStep/#nextStep: langkah form Permintaan Dokumen tampil sekaligus, hanya tombol Kirim yang dipakai. */
 .setup-wizard:not(.is-enhanced) #wizardBack,
 .setup-wizard:not(.is-enhanced) #wizardNext,
+.setup-wizard:not(.is-enhanced) #prevStep,
+.setup-wizard:not(.is-enhanced) #nextStep,
 .setup-wizard:not(.is-enhanced) [data-summary],
 .setup-wizard:not(.is-enhanced) .setup-wizard-progress {
     display: none;

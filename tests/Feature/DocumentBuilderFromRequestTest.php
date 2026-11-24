@@ -14,7 +14,7 @@ use Tests\TestCase;
 
 /**
  * Dokumen Builder dari Permintaan Dokumen: data pengajuan mengisi form (tanpa langsung menjalankan AI), ikut dikirim ke
- * AI sebagai konteks, dan satu item permintaan hanya punya satu draf.
+ * AI sebagai konteks, dan satu item permintaan hanya punya satu draf untuk tiap penyusun yang boleh mengelolanya.
  */
 class DocumentBuilderFromRequestTest extends TestCase
 {
@@ -154,5 +154,69 @@ class DocumentBuilderFromRequestTest extends TestCase
             ->assertOk()
             ->assertSee('id="q_purpose" rows="3"', false)
             ->assertSee('Barang masuk tercatat rapi dan cepat</textarea>', false);
+    }
+
+    public function test_a_draft_made_by_another_user_does_not_lock_out_the_pic(): void
+    {
+        $pic = $this->member();
+        $leader = $this->member(User::OD_LEADER);
+        $process = $this->process($pic);
+
+        // Leader menyusun item yang PIC-nya staff.
+        $this->actingAs($leader)->post(route('document-builder.store', $process->category), [
+            'mode' => 'manual', 'permintaan' => $process->id, 'answers' => ['title' => 'Draf Leader'],
+        ])->assertRedirect();
+        $leaderDraft = DocumentDraft::sole();
+
+        // Draf itu hanya bisa dibuka pembuatnya, jadi PIC tidak diberi tautan ke sana dan tidak diarahkan ke sana.
+        $formUrl = route('document-builder.form', ['category' => $process->category, 'permintaan' => $process->id]);
+
+        $this->actingAs($pic)->get(route('document-builder.create'))->assertOk()
+            ->assertDontSee('Lihat draf')
+            ->assertDontSee(route('document-builder.edit', $leaderDraft), false)
+            ->assertSee($formUrl, false);
+
+        $this->actingAs($pic)->get(route('od-report.requests.show', $process->documentRequest))->assertOk()
+            ->assertDontSee('Lihat draf builder')
+            ->assertSee('Susun di Builder');
+
+        // Halaman form memberi PIC drafnya sendiri, bukan bouncing ke draf orang lain.
+        $this->actingAs($pic)->get($formUrl)->assertOk()->assertSee('Dari permintaan');
+
+        $this->actingAs($pic)->post(route('document-builder.store', $process->category), [
+            'mode' => 'manual', 'permintaan' => $process->id, 'answers' => ['title' => 'Draf PIC'],
+        ])->assertSessionHasNoErrors();
+
+        $picDraft = DocumentDraft::latest('id')->firstOrFail();
+        $this->assertNotSame($leaderDraft->id, $picDraft->id);
+        $this->assertSame($pic->id, $picDraft->user_id);
+        $this->assertSame($process->id, $picDraft->od_document_id);
+        $this->assertSame('Draf Leader', $leaderDraft->fresh()->title);
+        $this->actingAs($pic)->get(route('document-builder.edit', $picDraft))->assertOk();
+
+        // Leader masih melihat tautan draf seperti biasa.
+        $this->actingAs($leader)->get(route('document-builder.create'))->assertSee('Lihat draf');
+    }
+
+    public function test_a_foreign_draft_stays_unmanaged_and_is_never_linked_to_the_pic(): void
+    {
+        $pic = $this->member();
+        $leader = $this->member(User::OD_LEADER);
+        $process = $this->process($pic);
+        $draft = DocumentDraft::create([
+            'document_category_id' => $process->category->id, 'user_id' => $leader->id, 'od_document_id' => $process->id, 'title' => 'Draf Leader',
+        ]);
+
+        // Aturan kepemilikan draf tidak dilonggarkan: hanya pembuatnya (atau Leader) yang mengelolanya.
+        $this->assertTrue($draft->canBeManagedBy($leader));
+        $this->assertFalse($draft->canBeManagedBy($pic));
+        $this->actingAs($pic)->get(route('document-builder.edit', $draft))->assertRedirect();
+        $this->actingAs($pic)->get(route('document-builder.show', $draft))->assertRedirect();
+        $this->actingAs($pic)->delete(route('document-builder.destroy', $draft))->assertRedirect();
+        $this->assertNotSoftDeleted($draft);
+
+        // Karena tidak bisa dibuka, tautannya tidak pernah ditawarkan ke PIC.
+        $this->actingAs($pic)->get(route('document-builder.create'))->assertDontSee(route('document-builder.edit', $draft), false);
+        $this->actingAs($pic)->get(route('od-report.requests.show', $process->documentRequest))->assertDontSee(route('document-builder.edit', $draft), false);
     }
 }

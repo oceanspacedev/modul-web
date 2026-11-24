@@ -32,7 +32,7 @@
                                 <td class="align-middle"><span class="badge badge-light border">{{ $process->jenis }}</span></td>
                                 <td class="align-middle small">{{ $process->prioritas ?: '-' }}</td>
                                 <td class="align-middle text-right text-nowrap">
-                                    @if ($process->builderDraft)
+                                    @if ($process->builderDraft && $process->builderDraft->canBeManagedBy(auth()->user()))
                                         <a href="{{ route('document-builder.edit', $process->builderDraft) }}" class="btn btn-default btn-sm"><i class="fas fa-file-alt"></i> Lihat draf</a>
                                     @else
                                         <a href="{{ route('document-builder.form', ['category' => $process->category, 'permintaan' => $process->id]) }}" class="btn btn-primary btn-sm"><i class="fas fa-magic"></i> Susun</a>

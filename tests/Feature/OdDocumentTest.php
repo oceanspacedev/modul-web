@@ -144,6 +144,33 @@ class OdDocumentTest extends TestCase
         $this->assertModelExists($done);
     }
 
+    public function test_archived_documents_still_count_as_using_a_status(): void
+    {
+        $leader = $this->member(User::OD_LEADER);
+        $staff = $this->member(User::OD_STAFF);
+        $done = OdDocumentStatus::firstOfType(OdDocumentStatus::TYPE_DONE);
+
+        $this->document($staff, ['title' => 'SOP Aktif', 'od_document_status_id' => $done->id]);
+        $archived = $this->document($staff, ['title' => 'SOP Arsip', 'od_document_status_id' => $done->id]);
+        $this->actingAs($staff)->delete(route('od-report.documents.destroy', $archived));
+        $this->assertSoftDeleted($archived);
+
+        // Kolom "Dipakai" dan penolakan hapus memakai aturan yang sama: dokumen arsip ikut dihitung.
+        $this->actingAs($leader)->get(route('od-report.settings.index'))->assertOk()
+            ->assertViewHas('statuses', fn ($statuses) => $statuses->firstWhere('id', $done->id)->documents_count === 2);
+        $this->actingAs($leader)->delete(route('od-report.settings.statuses.destroy', $done))
+            ->assertSessionHas('error', 'Status '.$done->name.' masih dipakai dokumen.');
+        $this->assertModelExists($done);
+
+        // Status tanpa dokumen (meski pernah ada) tetap bisa dihapus.
+        $this->actingAs($leader)->post(route('od-report.settings.statuses.store'), ['name' => 'Sementara', 'type' => 'open'])->assertSessionHas('success');
+        $unused = OdDocumentStatus::where('name', 'Sementara')->sole();
+        $this->actingAs($leader)->get(route('od-report.settings.index'))->assertOk()
+            ->assertViewHas('statuses', fn ($statuses) => $statuses->firstWhere('id', $unused->id)->documents_count === 0);
+        $this->actingAs($leader)->delete(route('od-report.settings.statuses.destroy', $unused))->assertSessionHas('success');
+        $this->assertModelMissing($unused);
+    }
+
     public function test_plain_document_can_be_deleted(): void
     {
         $staff = $this->member(User::OD_STAFF);

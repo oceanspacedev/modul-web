@@ -245,7 +245,7 @@ Route::middleware('auth')->group(function () {
         Route::post('sync-dnd/process', [UserSyncController::class, 'process'])->name('dnd.process');
         Route::get('{user}/edit', 'edit')->withTrashed()->name('edit');
         Route::patch('{user}/restore', 'restore')->withTrashed()->name('restore');
-        Route::post('{user}/impersonate', [ImpersonationController::class, 'store'])->name('impersonate');
+        Route::post('{user}/impersonate', [ImpersonationController::class, 'store'])->withTrashed()->name('impersonate');
     });
     Route::resource('user', UserController::class)->except(['show', 'edit']);
 

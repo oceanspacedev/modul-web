@@ -36,8 +36,18 @@ class OdWeeklyExport implements FromArray, WithCustomValueBinder, WithEvents, Wi
 
     /**
      * @param  User  $viewer  user yang mengekspor (Staff hanya datanya sendiri)
+     * @param  string|null  $weekKey  filter minggu di layar Weekly (key minggu); di luar bulan ini berarti semua minggu
+     * @param  string|null  $result  filter status di layar Weekly
+     * @param  string|null  $search  filter nama pekerjaan di layar Weekly
      */
-    public function __construct(private User $viewer, private string $month, private ?int $memberId = null) {}
+    public function __construct(
+        private User $viewer,
+        private string $month,
+        private ?int $memberId = null,
+        private ?string $weekKey = null,
+        private ?string $result = null,
+        private ?string $search = null,
+    ) {}
 
     public function title(): string
     {
@@ -46,18 +56,42 @@ class OdWeeklyExport implements FromArray, WithCustomValueBinder, WithEvents, Wi
         return self::MONTHS[(int) $month - 1].' 1-'.count(OdWeek::inMonth($this->month))." ({$year})";
     }
 
-    public function array(): array
+    /**
+     * Minggu yang diekspor: sama dengan pilihan minggu di layar bila key-nya memang termasuk bulan ini,
+     * selain itu semua minggu bulan ini (lihat OdReportController::weekly()).
+     *
+     * @return list<OdWeek>
+     */
+    private function weeks(): array
     {
         $weeks = OdWeek::inMonth($this->month);
+
+        if ($this->weekKey === null) {
+            return $weeks;
+        }
+
+        $selected = array_values(array_filter($weeks, fn (OdWeek $week) => $week->key() === $this->weekKey));
+
+        return $selected ?: $weeks;
+    }
+
+    public function array(): array
+    {
+        $weeks = $this->weeks();
         $activities = OdActivity::query()->visibleTo($this->viewer)->reported()
-            ->whereBetween('date', [$weeks[0]->start->toDateString(), end($weeks)->end()->toDateString()])
+            ->whereDate('date', '>=', $weeks[0]->start->toDateString())
+            ->whereDate('date', '<=', end($weeks)->end()->toDateString())
             ->when($this->memberId, fn ($q) => $q->where('user_id', $this->memberId))
+            ->when($this->search, fn ($q) => $q->where('name', 'like', '%'.$this->search.'%'))
             ->with('user.position')
             ->get();
 
         $rows = [];
         $memberOrder = OdTeam::query()->pluck('id')->flip();
-        $byWeek = app(OdReportService::class)->weeklyRows($activities)->groupBy(fn ($row) => $row->week->key());
+        // Status disaring setelah barisnya digabung, persis seperti layar.
+        $byWeek = app(OdReportService::class)->weeklyRows($activities)
+            ->when($this->result, fn ($rows) => $rows->where('result', $this->result))
+            ->groupBy(fn ($row) => $row->week->key());
 
         foreach ($weeks as $week) {
             /** @var Collection<int, object> $weekRows */

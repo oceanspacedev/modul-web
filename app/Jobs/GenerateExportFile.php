@@ -174,20 +174,24 @@ class GenerateExportFile extends BackgroundTask
     }
 
     /**
-     * OD Report: isinya mengikuti hak akses user yang mengekspor (Staff hanya datanya sendiri).
-     * filters: month (Y-m), member_id (opsional).
+     * OD Report: isinya mengikuti hak akses user yang mengekspor (Staff hanya datanya sendiri) dan filter yang
+     * sedang aktif di layar. filters: month (Y-m), member_id, week (Y-m-d), status, search (semuanya opsional).
      *
      * @return array{0: OdWeeklyExport|OdAchievementExport|DocumentRequestExport, 1: string, 2: string}
      */
     private function odReport(): array
     {
         $viewer = User::findOrFail($this->userId);
-        $month = $this->filters['month'] ?? today()->format('Y-m');
+        $month = $this->filters['month'] ?? OdWeek::of(today())->month();
         $memberId = $this->filters['member_id'] ?? null;
         $label = OdWeek::monthLabel($month);
 
         return match ($this->type) {
-            self::OD_WEEKLY => [new OdWeeklyExport($viewer, $month, $memberId), "Weekly Report {$label}.xlsx", 'Export Weekly Report selesai'],
+            self::OD_WEEKLY => [
+                new OdWeeklyExport($viewer, $month, $memberId, $this->filters['week'] ?? null, $this->filters['status'] ?? null, $this->filters['search'] ?? null),
+                "Weekly Report {$label}.xlsx",
+                'Export Weekly Report selesai',
+            ],
             self::OD_ACHIEVEMENT => [new OdAchievementExport($viewer, $month, $memberId), 'ACHIEVEMENT BUSDEV '.mb_strtoupper($label).'.xlsx', 'Export Achievement selesai'],
             default => [new DocumentRequestExport($viewer), 'permintaan_dokumen_'.date('Ymd_His').'.xlsx', 'Export Permintaan Dokumen selesai'],
         };

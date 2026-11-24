@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\DocumentCategory;
+use App\Models\DocumentDraft;
 use App\Models\DocumentRequest;
 use App\Models\OdDocument;
 use App\Models\OdDocumentStatus;
@@ -220,6 +221,27 @@ class DocumentCategoryTest extends TestCase
         $this->actingAs($leader)->put(route('od-report.requests.update', $request), $form('Release'))->assertSessionHas('success');
         $this->assertTrue($document->fresh()->status->isDone());
         $this->assertSame(100, $request->fresh()->load('category.stages', 'processes.status')->progress());
+    }
+
+    public function test_a_category_used_only_by_builder_drafts_is_locked_and_says_so(): void
+    {
+        $leader = $this->member(User::OD_LEADER, 'LEADER OD');
+        $used = DocumentCategory::create(['code' => 'BA', 'name' => 'Berita Acara', 'is_active' => true, 'sort' => 99]);
+        $fresh = DocumentCategory::create(['code' => 'SPK', 'name' => 'Surat Perintah Kerja', 'is_active' => true, 'sort' => 98]);
+        DocumentDraft::create(['document_category_id' => $used->id, 'user_id' => $leader->id, 'title' => 'Berita Acara Serah Terima']);
+
+        // Draf Dokumen Builder ikut dihitung di kolom "Dipakai", jadi tombol Hapus tidak menjanjikan hal yang ditolak.
+        $index = $this->actingAs($leader)->get(route('document-category.index'))->assertOk()->getContent();
+        $this->assertStringContainsString('1 draf builder', $index);
+        $this->assertSame(1, preg_match('/<button type="submit"[^>]*disabled[^>]*title="Sudah dipakai \(1 draf builder\), nonaktifkan saja"/', $index));
+
+        $this->actingAs($leader)->delete(route('document-category.destroy', $used))
+            ->assertSessionHas('error', 'Kategori BA sudah dipakai (1 draf builder) sehingga tidak bisa dihapus. Nonaktifkan saja supaya tidak muncul di form.');
+        $this->assertModelExists($used);
+
+        // Kategori yang benar-benar belum dipakai tetap bisa dihapus.
+        $this->actingAs($leader)->delete(route('document-category.destroy', $fresh))->assertSessionHas('success');
+        $this->assertModelMissing($fresh);
     }
 
     public function test_inactive_category_is_hidden_and_rejected(): void

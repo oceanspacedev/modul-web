@@ -168,7 +168,7 @@
                                         @if ($user->last_seen)
                                             <span class="text-sm">{{ $user->last_seen->format('d M Y H:i') }}</span>
                                         @else
-                                            <span class="text-muted text-sm">Inactive</span>
+                                            <span class="text-muted text-sm">Tidak aktif</span>
                                         @endif
                                     </td>
                                     <td class="text-right">
@@ -183,7 +183,7 @@
                                                     </form>
                                                 @endcan
                                             @else
-                                                @if (auth()->user()->isNot($user) && auth()->user()->can('impersonate', $user))
+                                                @if (! $impersonating && auth()->user()->isNot($user) && auth()->user()->can('impersonate', $user))
                                                     <form action="{{ route('user.impersonate', $user) }}" method="POST" class="d-inline m-0"
                                                         onsubmit="return confirm(@js('Masuk sebagai '.$user->nama_lengkap.'?'))">
                                                         @csrf
@@ -207,7 +207,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="13">
+                                    <td colspan="{{ $archived ? 12 : 13 }}">
                                         <x-empty-state icon="fa-users" title="Tidak ada data user" text="Coba ubah filter atau tambahkan user baru." />
                                     </td>
                                 </tr>

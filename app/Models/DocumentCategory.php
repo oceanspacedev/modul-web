@@ -136,11 +136,30 @@ class DocumentCategory extends Model
         return OdDocument::withTrashed()->where('jenis', $this->code)->count();
     }
 
+    /**
+     * Sumber yang memakai kategori ini: dokumen Approval Dokumen, pengajuan Permintaan Dokumen, dan draf Dokumen
+     * Builder. Hanya sumber yang terpakai yang ikut muncul, jadi array kosong berarti kategorinya masih boleh dihapus.
+     *
+     * @return array<string, int>
+     */
+    public function usageCounts(): array
+    {
+        return array_filter([
+            'dokumen' => OdDocument::withTrashed()->where('jenis', $this->code)->count(),
+            'permintaan' => $this->documentRequests()->withTrashed()->count(),
+            'draf builder' => DocumentDraft::withTrashed()->where('document_category_id', $this->getKey())->count(),
+        ]);
+    }
+
+    /** Ringkasan pemakaian untuk pesan, mis. "3 dokumen, 1 draf builder". */
+    public function usageSummary(): string
+    {
+        return collect($this->usageCounts())->map(fn (int $count, string $label) => "{$count} {$label}")->implode(', ');
+    }
+
     public function isInUse(): bool
     {
-        return OdDocument::withTrashed()->where('jenis', $this->code)->exists()
-            || $this->documentRequests()->withTrashed()->exists()
-            || DocumentDraft::withTrashed()->where('document_category_id', $this->id)->exists();
+        return $this->usageCounts() !== [];
     }
 
     public function hasUploadedExample(): bool

@@ -22,6 +22,10 @@ class GenerateDocumentDraft extends AiTask
 
         $draft->update(['content' => (new DocumentBuilderAiService)->compose($draft)]);
 
+        // Isi draf sekarang jadi sumber kebenarannya, jadi token tidak perlu digantung lagi. Hanya dibersihkan kalau
+        // masih token pekerjaan ini; penyusunan baru yang sudah dimulai jangan sampai kehilangan tokennya.
+        DocumentDraft::whereKey($draft->getKey())->where('ai_token', $this->token)->update(['ai_token' => null]);
+
         // Halaman proses sudah tahu alamat editornya; cukup tandai selesai.
         return [];
     }
