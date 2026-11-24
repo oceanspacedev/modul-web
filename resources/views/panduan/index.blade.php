@@ -92,7 +92,7 @@
                         <li><b>Pengaturan</b>: User, Jabatan &amp; Hak Akses, Master Data.</li>
                         <li><b>Sistem</b> (super admin): Horizon dan Log Viewer.</li>
                     </ul>
-                    <div class="pg-note">Menu hanya muncul bila jabatan Anda punya izinnya. Semua dropdown bisa dicari dengan mengetik. Tombol <b>Keluar</b> ada di menu nama Anda (kanan atas).</div>
+                    <div class="pg-note">Menu hanya muncul bila jabatan Anda punya izinnya. Semua dropdown bisa dicari dengan mengetik. Tombol <b>Keluar</b> ada di menu nama Anda (kanan atas); saat Anda masuk sebagai user lain, posisi itu digantikan tombol <b>Kembali ke akun saya</b> (<a href="#login">lihat bagian Masuk &amp; keluar</a>).</div>
                     <h3>Import, export &amp; notifikasi</h3>
                     <p>Import dan export (user, soal kuis, rekap pelatihan, rekap modul, soal &amp; kunci jawaban) diproses di belakang layar, jadi Anda tidak perlu menunggu di halaman. Setelah selesai, hasilnya masuk ke menu <b>Notifikasi</b> (ikon lonceng di kanan atas), dan dikirim juga ke WhatsApp serta email bila No. HP / email Anda terisi. File export diunduh dari menu Notifikasi dan tersedia selama 7 hari.</p>
                     <p><b>Proses AI</b> (membuat atau mengubah soal, Scan Off Cam) juga dikerjakan di belakang layar, tetapi hasilnya muncul di halaman yang sama. Biarkan halaman tetap terbuka sampai selesai; bisa beberapa menit bila materinya besar atau sedang ada proses AI lain yang berjalan.</p>
@@ -115,7 +115,14 @@
                         <li>Klik tombol <b>WhatsApp</b>, isi nomor, klik <b>Kirim OTP</b>.</li>
                         <li>Masukkan kode 6 digit dari WhatsApp. Kode berlaku 5 menit.</li>
                     </ol>
-                    <p><b>Keluar:</b> klik nama Anda di kanan atas → <b>Keluar</b>.</p>
+                    <p><b>Keluar:</b> klik nama Anda di kanan atas → <b>Keluar</b>. Saat Anda sedang masuk sebagai user lain, menu itu tidak menampilkan <b>Keluar</b> melainkan <b>Kembali ke akun saya</b> (lihat di bawah).</p>
+                    <h3>Masuk sebagai user lain (Impersonate)</h3>
+                    <p>Hanya user yang punya hak <b>Masuk sebagai User Lain (Impersonate)</b> — dari jabatannya atau dari kotak hak akses tambahan di form user — dan hanya untuk user yang boleh ia kelola. Tombolnya berupa ikon <i class="fas fa-user-secret"></i> di kolom Aksi pada <b>Pengaturan → User</b>.</p>
+                    <ul>
+                        <li>Selama masuk sebagai user lain, ada tombol kuning <b>Kembali ke akun saya</b> di kanan atas (dan di menu nama Anda). Klik itu untuk kembali ke akun Anda sendiri; <b>Keluar</b> belum tersedia sampai Anda kembali.</li>
+                        <li>Anda tidak bisa masuk sebagai diri sendiri, tidak bisa masuk sebagai user yang sudah diarsipkan, dan tidak bisa masuk sebagai user lain saat sedang menjadi user lain.</li>
+                        <li>Waktu terakhir aktif di daftar user tetap mengikuti akun asal Anda, bukan akun yang sedang Anda pakai.</li>
+                    </ul>
                 </div>
 
                 {{-- 3 --}}

@@ -68,6 +68,16 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
+            // Pesan dari abort(403, ...) / Gate::denyIf(...) sudah spesifik (Bahasa Indonesia); hanya penolakan
+            // bawaan framework yang memakai keterangan umum.
+            $message = trim($e->getMessage());
+            $generic = $message === '' || in_array($message, [
+                'This action is unauthorized.',
+                'User does not have the right permissions.',
+                'User does not have the right roles.',
+                'Sorry, you are not authorized to access this page.',
+            ], true);
+
             // Permintaan yang gagal tidak pernah memperbarui URL sebelumnya, jadi "kembali" bisa menunjuk ke
             // halaman yang baru saja ditolak. Mengarahkan ke sana membuat browser berputar tanpa akhir ketika
             // izin dicabut; dalam kasus itu barulah pilih halaman yang pasti boleh dibuka.
@@ -77,6 +87,6 @@ return Application::configure(basePath: dirname(__DIR__))
             $target = $normalize($previous) === $normalize($request->fullUrl()) ? $fallback : $previous;
 
             return redirect()->to($target)
-                ->with('error', 'Role akun Anda tidak memiliki hak akses (permission) untuk membuka fitur ini.');
+                ->with('error', $generic ? 'Role akun Anda tidak memiliki hak akses (permission) untuk membuka fitur ini.' : $message);
         });
     })->create();

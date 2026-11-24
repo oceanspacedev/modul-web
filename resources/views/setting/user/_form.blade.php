@@ -5,6 +5,10 @@
     $isGlobalAdminRecord = $isEdit && $user->isAdmin() && $user->data_access !== \App\Models\User::DATA_ACCESS_SELECTED;
     $dataAccess = old('data_access', $isEdit && $user->isAdmin() ? $user->data_access : \App\Models\User::DATA_ACCESS_SELECTED);
     $dataAccessAreaIds = collect(old('data_access_areas', $isEdit ? $user->dataAccessAreas->pluck('id')->all() : []))->map(fn ($id) => (string) $id)->all();
+    // Hak impersonate bisa datang dari jabatan ATAU grant langsung; yang dipakai policy adalah hak efektif.
+    $impersonateEfektif = $isEdit && $user->checkPermissionTo(\App\Models\User::IMPERSONATE_PERMISSION);
+    $impersonateDariJabatan = $impersonateEfektif && ! $user->canImpersonateDirectly();
+    $impersonateDitampilkan = $impersonateDariJabatan ? true : old('impersonate', $impersonateEfektif);
 @endphp
 
 <div class="card">
@@ -177,10 +181,16 @@
 
                     <input type="hidden" name="impersonate" value="0">
                     <div class="custom-control custom-checkbox mt-3">
-                        <input type="checkbox" class="custom-control-input" id="impersonate" name="impersonate" value="1" @checked(old('impersonate', $isEdit && $user->canImpersonateDirectly()))>
-                        <label class="custom-control-label" for="impersonate">Impersonate</label>
+                        <input type="checkbox" class="custom-control-input" id="impersonate" name="impersonate" value="1" @checked($impersonateDitampilkan) @disabled($impersonateDariJabatan)>
+                        <label class="custom-control-label" for="impersonate">Masuk sebagai User Lain (Impersonate)</label>
                     </div>
-                    <small class="form-text text-muted">Boleh masuk sebagai user lain yang bisa ia kelola.</small>
+                    <small class="form-text text-muted">
+                        @if ($impersonateDariJabatan)
+                            Hak ini berasal dari jabatan {{ $user->jabatan?->name }} sehingga tidak bisa diubah di sini. Cabut lewat hak akses jabatan.
+                        @else
+                            Boleh masuk sebagai user lain yang bisa ia kelola.
+                        @endif
+                    </small>
 
                     <div class="form-group mt-3 mb-0">
                         <label for="od_access">OD Report</label>

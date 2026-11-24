@@ -23,7 +23,9 @@ class ImpersonationController extends Controller
         $actor = $request->user();
 
         // Gate::before meloloskan super admin, jadi larangan ini dicek di sini juga.
-        Gate::denyIf($this->manager->isImpersonating() || $actor->is($user) || ! $user->canBeImpersonated());
+        Gate::denyIf($this->manager->isImpersonating(), 'Anda sedang masuk sebagai user lain. Kembali ke akun Anda dulu.');
+        Gate::denyIf($actor->is($user), 'Anda tidak dapat masuk sebagai diri sendiri.');
+        Gate::denyIf(! $user->canBeImpersonated(), 'User ini sudah diarsipkan, jadi tidak bisa dimasuki.');
         Gate::authorize('impersonate', $user);
 
         if (! $this->manager->take($actor, $user)) {
@@ -50,7 +52,9 @@ class ImpersonationController extends Controller
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return to_route('login');
+            Log::warning('Impersonate dipaksa berhenti: akun asal tidak aktif lagi', ['impersonator_id' => $impersonatorId, 'user_id' => $impersonated?->getKey()]);
+
+            return to_route('login')->with('error', 'Sesi Anda sebagai user lain berakhir karena akun asal Anda sudah tidak aktif. Silakan masuk kembali.');
         }
 
         $request->session()->regenerate();
