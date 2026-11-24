@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\OdSheetSync;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -28,6 +29,21 @@ class OdActivity extends Model
     ];
 
     protected $guarded = ['id'];
+
+    protected static function booted(): void
+    {
+        // Pekerjaan tersimpan ikut ke spreadsheet Weekly Report; yang sudah pernah terkirim lalu dihapus dikosongkan.
+        static::saved(function (OdActivity $activity) {
+            if (! $activity->isDraft()) {
+                OdSheetSync::queue();
+            }
+        });
+        static::deleted(function (OdActivity $activity) {
+            if ($activity->sheet_hash) {
+                OdSheetSync::queue([OdSheetSync::key($activity)]);
+            }
+        });
+    }
 
     /**
      * @return array<string, string>
