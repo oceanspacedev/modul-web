@@ -147,7 +147,7 @@
                                                 <td class="align-middle pl-0">{{ $position }}</td>
                                                 <td class="pr-0" style="width: 45%;">
                                                     <select name="positions[{{ $position }}]" class="custom-select custom-select-sm" aria-label="Anggota untuk {{ $position }}">
-                                                        <option value="">Lewati</option>
+                                                        <option value="">Otomatis: {{ $import['auto'][$position]?->nama_lengkap ?? 'belum ada (dilewati)' }}</option>
                                                         @foreach ($import['members'] as $member)
                                                             <option value="{{ $member->id }}" @selected($userId === $member->id)>{{ $member->nama_lengkap }}</option>
                                                         @endforeach

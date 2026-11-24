@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\OdActivity;
 use App\Models\OdDocument;
 use App\Models\OdSetting;
+use App\Models\Position;
 use App\Models\User;
 use App\Notifications\BackgroundTaskFinished;
 use App\Services\OdSheetImport;
@@ -119,7 +120,7 @@ class OdSheetImportTest extends TestCase
         $this->assertSame('Menunggu PIC', $activities[1]->kendala);
 
         $this->assertSame([
-            'ORGANIZATION DEVELOPMENT LEADER' => $leader->id,
+            'ORGANIZATION DEVELOPMENT LEADER' => null,
             'ORGANIZATION DEVELOPMENT STAFF' => null,
         ], OdSheetImport::positionMap());
         Notification::assertSentTo($leader, BackgroundTaskFinished::class, fn ($n) => $n->status === BackgroundTaskFinished::STATUS_PARTIAL
@@ -133,6 +134,30 @@ class OdSheetImportTest extends TestCase
         $this->assertSame(5, OdActivity::count());
         $this->assertSame(1, OdActivity::where('user_id', $staff->id)->count());
         $this->assertSame($staff->id, OdSheetImport::positionMap()['ORGANIZATION DEVELOPMENT STAFF']);
+    }
+
+    public function test_positions_follow_od_access_when_job_titles_differ_from_the_sheet(): void
+    {
+        $leader = $this->leader();
+        $leader->update(['position_id' => Position::create(['name' => 'BUSINESS DEVELOPMENT LEADER'])->id]);
+        $staff = $this->staff();
+        $staff->update(['position_id' => Position::create(['name' => 'ORGANIZATION DEVELOPMENT'])->id]);
+        $this->tabs["Jan'26"] = $this->januaryTab();
+
+        $this->actingAs($leader)->get(route('od-report.settings.index'))->assertDontSee('Otomatis');
+
+        $this->importWeekly($leader);
+
+        // Satu OD Leader dan satu OD Staff: POSISI LEADER/STAFF langsung ke mereka tanpa diatur.
+        $this->assertSame(4, OdActivity::where('user_id', $leader->id)->count());
+        $this->assertSame(1, OdActivity::where('user_id', $staff->id)->count());
+        $this->actingAs($leader)->get(route('od-report.settings.index'))
+            ->assertSee('Otomatis: LEADER OD')
+            ->assertSee('Otomatis: STAFF OD');
+
+        // Staff kedua membuat POSISI STAFF ambigu: tidak lagi otomatis, Leader perlu memilih.
+        $this->staff('STAFF LAIN')->update(['position_id' => Position::create(['name' => 'ADMIN DOKUMEN'])->id]);
+        $this->actingAs($leader)->get(route('od-report.settings.index'))->assertSee('Otomatis: belum ada (dilewati)');
     }
 
     public function test_reimport_updates_changed_rows_but_keeps_app_edits_of_unchanged_rows(): void

@@ -24,8 +24,8 @@ use Throwable;
  * Import satu arah Google Sheets → OD Report, dijalankan Leader dari Pengaturan OD (lewat job ImportOdSheet).
  *
  * - Weekly: spreadsheet Weekly Report tim (tab bulan Jan'26, Feb'26, …, blok POSISI + WEEK) → pekerjaan tersimpan
- *   (od_activities). Tanggalnya hari Senin di week itu; user diambil dari POSISI (pemetaan di Pengaturan, atau
- *   anggota tim yang posisinya sama persis).
+ *   (od_activities). Tanggalnya hari Senin di week itu; user diambil dari POSISI (otomatis lewat jabatan atau akses
+ *   OD, atau pilihan Leader di Pengaturan).
  * - Approval: daftar dokumen (Tanggal, Dokumen/Judul, Status, Catatan, …) → dokumen manual di Approval Dokumen.
  *   Jenis dan badan usaha diambil dari kolomnya, atau dari judul (kode -SOP-/-IK-, [CV CS], awalan MSI-001-).
  *
@@ -139,8 +139,8 @@ class OdSheetImport
     }
 
     /**
-     * Pemetaan POSISI (huruf besar) → user_id yang diatur Leader. Posisi yang pernah ditemukan tapi belum dipetakan
-     * bernilai null, supaya muncul di Pengaturan.
+     * Pilihan POSISI (huruf besar) → user_id yang diatur Leader. Posisi yang pernah ditemukan tanpa pilihan bernilai
+     * null (dicocokkan otomatis), supaya tetap muncul di Pengaturan.
      *
      * @return array<string, int|null>
      */
@@ -232,7 +232,7 @@ class OdSheetImport
     {
         $result = ['created' => 0, 'updated' => 0, 'unchanged' => 0, 'months' => [], 'missing' => [], 'unmapped' => [], 'errors' => []];
         $fallback = $this->fetch($spreadsheetId, self::MISSING_TAB);
-        $users = $this->positionUsers();
+        $resolve = $this->positionResolver();
         $seen = [];
 
         $month = CarbonImmutable::createFromFormat('!Y-m', $fromMonth);
@@ -253,13 +253,13 @@ class OdSheetImport
             foreach ($items as $item) {
                 $seen[$item['pos']] = true;
             }
-            $this->saveActivities($month->format('Y-m'), $tab, $items, $users, $result);
+            $this->saveActivities($month->format('Y-m'), $items, $resolve, $result);
         }
 
-        // Posisi yang ditemukan ikut tersimpan agar bisa dipetakan di Pengaturan.
+        // Posisi yang ditemukan ikut tersimpan (null = otomatis) agar tampil di Pengaturan dan bisa diganti.
         $map = self::positionMap();
         foreach (array_keys($seen) as $position) {
-            $map[$position] ??= isset($users[$position]) ? $users[$position]->getKey() : null;
+            $map[$position] ??= null;
         }
         self::savePositionMap($map);
 
@@ -328,33 +328,56 @@ class OdSheetImport
     }
 
     /**
-     * POSISI → anggota tim: pemetaan di Pengaturan, selain itu anggota yang posisinya sama persis (bila hanya satu).
+     * POSISI → anggota tim: pilihan di Pengaturan, selain itu dicocokkan otomatis (autoMatch).
      *
-     * @return array<string, User>
+     * @return \Closure(string): ?User
      */
-    private function positionUsers(): array
+    private function positionResolver(): \Closure
     {
         $members = OdTeam::members()->keyBy('id');
-        $users = $members->groupBy(fn (User $user) => Str::upper(OdTeam::positionOf($user)))
-            ->filter(fn ($group) => $group->count() === 1)
-            ->map->first()
-            ->all();
+        $chosen = self::positionMap();
+        $cache = [];
 
-        foreach (self::positionMap() as $position => $userId) {
-            if ($userId && $members->has($userId)) {
-                $users[$position] = $members[$userId];
+        return function (string $position) use ($members, $chosen, &$cache): ?User {
+            if (! array_key_exists($position, $cache)) {
+                $userId = $chosen[$position] ?? null;
+                $cache[$position] = $userId && $members->has($userId) ? $members[$userId] : self::autoMatch($position, $members);
             }
+
+            return $cache[$position];
+        };
+    }
+
+    /**
+     * Anggota tim untuk POSISI tanpa pilihan manual: yang jabatannya sama persis, selain itu menurut akses OD
+     * (POSISI berisi LEADER → OD Leader, STAFF → OD Staff). Hanya bila tepat satu orang yang cocok.
+     *
+     * @param  Collection<int, User>  $members
+     */
+    public static function autoMatch(string $position, Collection $members): ?User
+    {
+        $only = fn (Collection $users) => $users->count() === 1 ? $users->first() : null;
+
+        $exact = $members->filter(fn (User $user) => Str::upper(OdTeam::positionOf($user)) === $position);
+        if ($exact->isNotEmpty()) {
+            return $only($exact);
         }
 
-        return $users;
+        [$leaders, $staff] = $members->partition(fn (User $user) => $user->can('manage-od-report'));
+
+        return match (true) {
+            Str::contains($position, 'LEADER') => $only($leaders),
+            Str::contains($position, 'STAFF') => $only($staff),
+            default => null,
+        };
     }
 
     /**
      * @param  list<array<string, mixed>>  $items
-     * @param  array<string, User>  $users
+     * @param  \Closure(string): ?User  $resolve
      * @param  array<string, mixed>  $result
      */
-    private function saveActivities(string $month, string $tab, array $items, array $users, array &$result): void
+    private function saveActivities(string $month, array $items, \Closure $resolve, array &$result): void
     {
         $weeks = OdWeek::inMonth($month);
         $sync = app(OdSheetSync::class);
@@ -363,7 +386,7 @@ class OdSheetImport
         $rows = [];
 
         foreach ($items as $item) {
-            $user = $users[$item['pos']] ?? null;
+            $user = $resolve($item['pos']);
             if (! $user) {
                 $result['unmapped'][$item['pos']] = ($result['unmapped'][$item['pos']] ?? 0) + 1;
 

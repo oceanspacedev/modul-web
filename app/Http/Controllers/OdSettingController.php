@@ -41,7 +41,8 @@ class OdSettingController extends Controller
                 'from' => OdSetting::value(OdSetting::IMPORT_WEEKLY_FROM, OdSheetImport::DEFAULT_FROM),
                 'approval' => OdSetting::value(OdSetting::IMPORT_APPROVAL_LINK),
                 'positions' => OdSheetImport::positionMap(),
-                'members' => OdTeam::members(),
+                'members' => $members = OdTeam::members(),
+                'auto' => collect(OdSheetImport::positionMap())->map(fn ($userId, $position) => OdSheetImport::autoMatch($position, $members)),
                 'last' => collect(OdSheetImport::TYPES)->map(fn ($label, $type) => $import->status($type)),
             ],
         ]);
