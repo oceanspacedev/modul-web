@@ -11,7 +11,12 @@
         <x-page-header :title="'Langkah Builder · '.$category->code" subtitle="Pertanyaan yang dijawab saat menyusun dokumen, urut dari atas"
             :breadcrumbs="['Kategori Dokumen' => route('document-category.index'), $category->code => route('document-category.edit', $category), 'Langkah Builder' => null]">
             <x-slot:actions>
-                <a href="{{ route('document-builder.form', $category) }}" class="btn btn-default" target="_blank"><i class="far fa-eye"></i> Lihat Form</a>
+                @if ($category->is_active)
+                    <a href="{{ route('document-builder.form', $category) }}" class="btn btn-default" target="_blank"><i class="far fa-eye"></i> Lihat Form</a>
+                @else
+                    {{-- Form builder menolak kategori nonaktif (404), jadi tautannya tidak boleh ditawarkan. --}}
+                    <button type="button" class="btn btn-default" disabled title="Kategori ini sedang dinonaktifkan sehingga formulirnya tidak bisa dibuka. Aktifkan lagi untuk melihat formulir."><i class="far fa-eye"></i> Lihat Form</button>
+                @endif
             </x-slot:actions>
         </x-page-header>
     </div>

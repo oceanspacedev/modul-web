@@ -113,6 +113,26 @@ class DocumentBuilderStepTest extends TestCase
         Http::assertSent(fn (Request $request) => str_contains($request['contents'][0]['parts'][0]['text'], '- Lokasi Penerapan: Gudang Cikarang'));
     }
 
+    public function test_the_steps_page_never_links_to_the_form_of_an_inactive_category(): void
+    {
+        $leader = $this->member(User::OD_LEADER);
+        $sop = $this->sop();
+
+        $this->actingAs($leader)->get(route('document-category.builder-steps.edit', $sop))
+            ->assertOk()
+            ->assertSee('Lihat Form')
+            ->assertSee(route('document-builder.form', $sop), false);
+
+        // DocumentBuilderController::form menolak kategori nonaktif (404), jadi tautannya diganti tombol mati.
+        $sop->update(['is_active' => false]);
+
+        $this->actingAs($leader)->get(route('document-category.builder-steps.edit', $sop))
+            ->assertOk()
+            ->assertSee('Lihat Form')
+            ->assertDontSee(route('document-builder.form', $sop), false)
+            ->assertSee('sedang dinonaktifkan sehingga formulirnya tidak bisa dibuka');
+    }
+
     public function test_a_category_with_builder_drafts_cannot_be_deleted(): void
     {
         $leader = $this->member(User::OD_LEADER);

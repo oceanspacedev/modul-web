@@ -35,7 +35,15 @@
                     </thead>
                     <tbody>
                         @forelse ($categories as $category)
-                            @php($used = ($documentCounts[$category->code] ?? 0) + $category->document_requests_count)
+                            @php
+                                // Sumber pemakaian harus sama dengan DocumentCategory::isInUse(): draf builder juga mengunci kategori.
+                                $usage = array_filter([
+                                    'dokumen' => $documentCounts[$category->code] ?? 0,
+                                    'permintaan' => $category->document_requests_count,
+                                    'draf builder' => $draftCounts[$category->id] ?? 0,
+                                ]);
+                                $usageText = collect($usage)->map(fn ($count, $label) => "{$count} {$label}")->implode(', ');
+                            @endphp
                             <tr>
                                 <td>
                                     <a href="{{ route('document-category.edit', $category) }}"><strong>{{ $category->code }}</strong></a>
@@ -46,13 +54,19 @@
                                 </td>
                                 <td style="white-space: normal; min-width: 260px;" class="small">{{ implode(' → ', $category->stageNames()) }}</td>
                                 <td>{{ $category->pic?->nama_lengkap ?? '-' }}</td>
-                                <td class="text-right">{{ $documentCounts[$category->code] ?? 0 }} dok</td>
+                                <td class="text-right small">
+                                    @forelse ($usage as $label => $count)
+                                        <div>{{ $count }} {{ $label }}</div>
+                                    @empty
+                                        <span class="text-muted">-</span>
+                                    @endforelse
+                                </td>
                                 <td class="text-right text-nowrap">
                                     <a href="{{ route('document-category.edit', $category) }}" class="btn btn-default btn-xs">Ubah</a>
                                     <form action="{{ route('document-category.destroy', $category) }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Hapus kategori '.$category->code.'?'))">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-default btn-xs text-danger" @disabled($used > 0) title="{{ $used > 0 ? 'Sudah dipakai, nonaktifkan saja' : 'Hapus' }}">Hapus</button>
+                                        <button type="submit" class="btn btn-default btn-xs text-danger" @disabled($usage !== []) title="{{ $usage !== [] ? "Sudah dipakai ({$usageText}), nonaktifkan saja" : 'Hapus' }}">Hapus</button>
                                     </form>
                                 </td>
                             </tr>

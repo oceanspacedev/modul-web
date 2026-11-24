@@ -11,6 +11,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -181,6 +182,36 @@ class DocumentRequestTest extends TestCase
         $this->actingAs($user)->get(route('document-request.create'))->assertOk()
             ->assertSee('<option value="Finance" selected>', false);
         $this->assertMatchesRegularExpression('/<option value="(Staff|Coordinator)" selected>/', $this->actingAs($user)->get(route('document-request.create'))->getContent());
+    }
+
+    public function test_the_wizard_falls_back_to_one_long_form_and_dedupes_on_a_server_made_key(): void
+    {
+        $html = $this->get(route('document-request.create'))->assertOk()->getContent();
+
+        // Kunci idempotensi dibuat saat form ditampilkan, jadi kiriman ganda dari halaman yang sama benar-benar
+        // ditolak service walaupun JavaScript tidak dipakai.
+        $this->assertSame(1, preg_match('/name="idempotency_key" id="idempotencyKey" value="([^"]+)"/', $html, $matched));
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $matched[1]);
+
+        $this->post(route('document-request.store'), $this->payload(['idempotency_key' => $matched[1]]));
+        $this->post(route('document-request.store'), $this->payload(['idempotency_key' => $matched[1]]));
+        $this->assertSame(1, DocumentRequest::count());
+
+        // Konvensi aplikasi: form ditandai .setup-wizard dan JavaScript menambahkan .is-enhanced.
+        $this->assertStringContainsString('id="requestForm" class="card setup-wizard"', $html);
+        $this->assertStringContainsString("form.classList.add('is-enhanced')", $html);
+
+        // Tanpa JavaScript seluruh langkah tampil sekaligus dan tombol Lanjut/Kembali disembunyikan CSS.
+        $css = (string) file_get_contents(resource_path('css/app.css'));
+        $this->assertStringContainsString('.setup-wizard:not(.is-enhanced) #prevStep', $css);
+        $this->assertStringContainsString('.setup-wizard:not(.is-enhanced) #nextStep', $css);
+
+        // Tombol kirim berada di footer, bukan di dalam salah satu langkah, jadi selalu terlihat tanpa JavaScript.
+        $this->assertStringContainsString('id="submitRequest"', Str::of($html)->afterLast('card-footer')->before('</form>')->toString());
+
+        // Tanggal observasi tidak dibuat wajib di markup: server yang tahu kategorinya butuh observasi atau tidak.
+        $this->assertSame(1, preg_match('/<input type="date"[^>]*name="obs_tanggal_1"[^>]*>/', $html, $observation));
+        $this->assertStringNotContainsString('required', $observation[0]);
     }
 
     public function test_tracking_shows_progress_but_never_internal_notes(): void

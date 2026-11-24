@@ -24,9 +24,10 @@
     <div class="container-fluid" style="max-width: 860px;">
         <x-flash />
 
-        <form action="{{ route('document-request.store') }}" method="POST" id="requestForm" class="card" novalidate>
+        <form action="{{ route('document-request.store') }}" method="POST" id="requestForm" class="card setup-wizard" novalidate>
             @csrf
-            <input type="hidden" name="idempotency_key" id="idempotencyKey" value="{{ old('idempotency_key') }}">
+            {{-- Nilai dari server: tanpa JavaScript sekalipun, kiriman ganda dari halaman ini punya kunci yang sama. --}}
+            <input type="hidden" name="idempotency_key" id="idempotencyKey" value="{{ old('idempotency_key', $idempotencyKey) }}">
             <div style="position: absolute; left: -10000px;" aria-hidden="true">
                 <label for="website">Website</label>
                 <input type="text" name="website" id="website" tabindex="-1" autocomplete="off">
@@ -246,6 +247,9 @@
         const observationDate = document.getElementById('obs_tanggal_1');
         let current = 0;
 
+        // Tanpa JavaScript seluruh langkah tampil sekaligus (lihat .setup-wizard:not(.is-enhanced) di app.css).
+        form.classList.add('is-enhanced');
+
         function chosenCategory() {
             return form.querySelector('input[name="kategori"]:checked');
         }
@@ -270,6 +274,7 @@
         }
 
         const keyInput = document.getElementById('idempotencyKey');
+        // Kunci biasanya sudah dibuatkan server; ini cadangan kalau kolomnya kosong.
         if (!keyInput.value) {
             keyInput.value = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
         }

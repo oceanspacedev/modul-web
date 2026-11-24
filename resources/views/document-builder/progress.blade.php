@@ -32,7 +32,12 @@
 <script>
     (function () {
         const messages = ['Membaca jawaban Anda...', 'Merumuskan tujuan dan ruang lingkup...', 'Menyusun isi per bagian...', 'Merapikan bahasa...', 'Hampir selesai...'];
+        const statusUrl = @json(route('document-builder.ai-status', $draft));
+        const editUrl = @json(route('document-builder.edit', $draft));
+        const interval = 2500;
+        const maxPolls = 48; // ± 2 menit; sesudahnya jangan menunggu terus tanpa kepastian
         let tick = 0;
+        let polls = 0;
         const rotate = setInterval(() => {
             tick = Math.min(tick + 1, messages.length - 1);
             document.querySelector('[data-message]').textContent = messages[tick];
@@ -46,15 +51,35 @@
         }
 
         async function poll() {
+            if (++polls > maxPolls) {
+                fail('AI belum juga selesai dalam batas tunggu. Silakan muat ulang halaman ini atau isi dokumen manual.');
+                return;
+            }
+
+            let response;
             try {
-                const response = await fetch(@json(route('document-builder.ai-status', $draft)), { headers: { Accept: 'application/json' } });
-                const result = await response.json();
-                if (result.status === 'done') { window.location = @json(route('document-builder.edit', $draft)); return; }
-                if (result.status === 'failed') { fail(result.message); return; }
+                response = await fetch(statusUrl, { headers: { Accept: 'application/json' } });
             } catch (e) {
                 // Jaringan putus sebentar: coba lagi di putaran berikutnya.
+                setTimeout(poll, interval);
+                return;
             }
-            setTimeout(poll, 2500);
+
+            let result;
+            try {
+                result = await response.json();
+            } catch (e) {
+                // Halaman jawabannya bukan JSON (draf terhapus, sesi berakhir): hentikan polling, jangan muter-muter.
+                fail(response.status === 404
+                    ? 'Draf dokumen ini sudah dihapus atau tidak bisa dibuka lagi.'
+                    : 'Status proses AI tidak bisa dibaca (kesalahan '+response.status+'). Muat ulang halaman ini lalu coba lagi.');
+                return;
+            }
+
+            if (result.status === 'done') { window.location = editUrl; return; }
+            if (result.status === 'failed') { fail(result.message); return; }
+
+            setTimeout(poll, interval);
         }
 
         poll();

@@ -125,13 +125,14 @@ class DocumentBuilderController extends Controller
         $this->authorizeDraft($request, $draft);
         $draft->loadMissing('category');
 
-        $validated = $this->validateAnswers($request, $draft->template());
+        $template = $draft->template();
+        $validated = $this->validateAnswers($request, $template);
 
         $draft->update([
             'title' => $validated['answers']['title'],
             'department' => $validated['answers']['department'] ?? null,
             'company' => $validated['company'] ?? null,
-            'answers' => $validated['answers'],
+            'answers' => $this->mergeAnswers($draft->answers ?? [], $validated['answers'], $template),
         ]);
 
         if ($request->input('mode') !== 'ai') {
@@ -146,7 +147,9 @@ class DocumentBuilderController extends Controller
     {
         $this->authorizeDraft($request, $draft);
 
-        if (! $draft->ai_token) {
+        // Penyusunan yang sudah selesai tidak perlu ditunggu lagi: halaman proses langsung memberi editor,
+        // termasuk untuk draf yang isinya sudah ada tapi belum pernah dipolling.
+        if ($this->composeStatus($draft)['status'] === 'done') {
             return to_route('document-builder.edit', $draft);
         }
 
@@ -161,17 +164,11 @@ class DocumentBuilderController extends Controller
     {
         $this->authorizeDraft($request, $draft);
 
-        $status = $draft->ai_token ? AiTask::status($draft->ai_token) : null;
+        // Status hanya dibaca, tidak pernah mengubah draf: token dibersihkan oleh GenerateDocumentDraft saat isinya
+        // tersimpan, jadi poll kedua atas penyusunan yang berhasil tetap melaporkan "done".
+        $status = $this->composeStatus($draft);
 
-        if (! $status) {
-            return response()->json(['status' => 'failed', 'message' => 'Proses AI tidak ditemukan atau sudah kedaluwarsa. Silakan susun ulang.'], 404);
-        }
-
-        if ($status['status'] !== 'pending') {
-            $draft->update(['ai_token' => null]);
-        }
-
-        return response()->json(['status' => $status['status'], 'message' => $status['message'] ?? null]);
+        return response()->json(['status' => $status['status'], 'message' => $status['message']], $status['http']);
     }
 
     public function show(Request $request, DocumentDraft $draft): View
@@ -336,6 +333,21 @@ class DocumentBuilderController extends Controller
         return $validated;
     }
 
+    /**
+     * Gabungkan jawaban hasil validasi dengan jawaban yang tersimpan. Kunci milik template sekarang selalu ikut
+     * kiriman form (jadi jawaban yang dikosongkan benar-benar hilang), sedangkan jawaban dari langkah yang sudah
+     * dihapus atau diganti namanya OD Leader dipertahankan supaya tidak ikut terhapus saat menyusun ulang.
+     *
+     * @param  array<string, string>  $existing
+     * @param  array<string, string>  $answers
+     * @param  array{questions: list<array{key: string}>}  $template
+     * @return array<string, string>
+     */
+    private function mergeAnswers(array $existing, array $answers, array $template): array
+    {
+        return array_merge(array_diff_key($existing, array_flip(array_column($template['questions'], 'key'))), $answers);
+    }
+
     /** Jalankan AI di antrean (bila diminta dan tersedia), atau langsung ke editor untuk diisi manual. */
     private function startCompose(DocumentDraft $draft, bool $useAi): RedirectResponse
     {
@@ -352,6 +364,35 @@ class DocumentBuilderController extends Controller
         GenerateDocumentDraft::dispatch($token, $draft->id);
 
         return to_route('document-builder.progress', $draft);
+    }
+
+    /**
+     * Status penyusunan AI satu draf, untuk halaman proses maupun polling-nya.
+     *
+     * Token draf hanyalah penunjuk hasil di cache. Hasil yang tidak ada lagi di cache — tokennya dibersihkan job saat
+     * selesai, atau catatannya kedaluwarsa — tidak serta-merta kegagalan: isi draf yang sudah tersusun membuktikan
+     * penyusunannya berhasil.
+     *
+     * @return array{status: string, message: string|null, http: int}
+     */
+    private function composeStatus(DocumentDraft $draft): array
+    {
+        $draft->loadMissing('category');
+        $status = $draft->ai_token ? AiTask::status($draft->ai_token) : null;
+
+        if ($status) {
+            return ['status' => $status['status'], 'message' => $status['message'] ?? null, 'http' => 200];
+        }
+
+        if (! $draft->ai_token || $draft->hasContent()) {
+            return ['status' => 'done', 'message' => null, 'http' => 200];
+        }
+
+        return [
+            'status' => 'failed',
+            'message' => 'Proses AI tidak ditemukan atau sudah kedaluwarsa. Silakan susun ulang.',
+            'http' => 404,
+        ];
     }
 
     private function authorizeDraft(Request $request, DocumentDraft $draft): void

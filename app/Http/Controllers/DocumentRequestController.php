@@ -12,6 +12,7 @@ use App\Services\DocumentRequestService;
 use App\Services\OdDocumentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -34,6 +35,9 @@ class DocumentRequestController extends Controller
             'selectedCategory' => $categories->first(fn (DocumentCategory $c) => strcasecmp($c->code, (string) $request->query('kategori')) === 0)?->id
                 ?? ($categories->count() === 1 ? $categories->first()->id : null),
             'prefill' => $user ? $this->prefill($user) : [],
+            // Kunci dibuat saat form ditampilkan supaya pengiriman ganda dari halaman yang sama (klik dua kali,
+            // tombol kembali) benar-benar ditolak DocumentRequestService, bukan hanya dijaga JavaScript.
+            'idempotencyKey' => (string) Str::uuid(),
         ]);
     }
 

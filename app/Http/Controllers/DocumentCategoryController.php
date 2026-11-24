@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\DocumentCategoryRequest;
 use App\Models\DocumentCategory;
+use App\Models\DocumentDraft;
 use App\Models\DocumentRequestRecipient;
 use App\Models\OdDocument;
 use App\Services\DocumentCategoryService;
@@ -31,6 +32,8 @@ class DocumentCategoryController extends Controller
                 ->when($search !== '', fn ($query) => $query->where(fn ($q) => $q->where('code', 'like', "%{$search}%")->orWhere('name', 'like', "%{$search}%")))
                 ->with(['stages', 'pic'])->withCount(['documentRequests' => fn ($q) => $q->withTrashed()])->get(),
             'documentCounts' => OdDocument::withTrashed()->selectRaw('jenis, count(*) as total')->groupBy('jenis')->pluck('total', 'jenis'),
+            // Draf Dokumen Builder juga mengunci kategori; dihitung sekali di sini supaya daftarnya tidak N+1.
+            'draftCounts' => DocumentDraft::withTrashed()->selectRaw('document_category_id, count(*) as total')->groupBy('document_category_id')->pluck('total', 'document_category_id'),
             'recipients' => DocumentRequestRecipient::orderBy('name')->get(),
             'fallbackWhatsapp' => config('od-report.admin_whatsapp'),
         ]);
@@ -74,7 +77,7 @@ class DocumentCategoryController extends Controller
     public function destroy(DocumentCategory $category): RedirectResponse
     {
         if ($category->isInUse()) {
-            return back()->with('error', "Kategori {$category->code} sudah dipakai dokumen. Nonaktifkan saja supaya tidak muncul di form.");
+            return back()->with('error', "Kategori {$category->code} sudah dipakai ({$category->usageSummary()}) sehingga tidak bisa dihapus. Nonaktifkan saja supaya tidak muncul di form.");
         }
 
         $this->categories->replaceExample($category, null);
