@@ -20,7 +20,7 @@ class OdSettingController extends Controller
     public function index(OdSheetSync $sheet): View
     {
         return view('od-report.settings', [
-            'title' => 'Pengaturan OD Report',
+            'title' => 'Pengaturan',
             'active' => 'od-settings',
             'statuses' => OdDocumentStatus::ordered()->withCount('documents')->get(),
             'sheet' => [

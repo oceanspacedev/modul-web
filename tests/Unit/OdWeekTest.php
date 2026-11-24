@@ -37,4 +37,27 @@ class OdWeekTest extends TestCase
         $this->assertSame(['2026-10-31', '2026-11-07', '2026-11-14', '2026-11-21'], $keys);
         $this->assertSame('2026-11-28', OdWeek::inMonth('2026-12')[0]->key());
     }
+
+    public function test_fifth_week_is_merged_into_week_four(): void
+    {
+        // Desember 2026 punya 5 Rabu; 26 Des - 1 Jan (Rabu 30 Des) ikut Week 4 (19 - 25 Des).
+        foreach (['2026-12-19', '2026-12-25', '2026-12-26', '2027-01-01'] as $day) {
+            $week = OdWeek::of($day);
+            $this->assertSame('2026-12-19', $week->key(), $day);
+            $this->assertSame('2026-12', $week->month(), $day);
+            $this->assertSame(4, $week->number(), $day);
+        }
+
+        $this->assertSame('2027-01-01', OdWeek::of('2026-12-26')->end()->toDateString());
+        $this->assertSame('19 Desember - 01 Januari 2027', OdWeek::of('2026-12-30')->range());
+        $this->assertSame('2027-01-02', OdWeek::of('2027-01-02')->key());
+        $this->assertSame(1, OdWeek::of('2027-01-02')->number());
+
+        $weeks = OdWeek::inMonth('2026-12');
+        $this->assertSame(['2026-11-28', '2026-12-05', '2026-12-12', '2026-12-19'], array_map(fn (OdWeek $w) => $w->key(), $weeks));
+        $this->assertSame('2027-01-02', OdWeek::inMonth('2027-01')[0]->key());
+
+        // Bulan tanpa minggu ke-5 tidak berubah: Week 4 tetap 7 hari.
+        $this->assertSame('2026-11-27', OdWeek::of('2026-11-21')->end()->toDateString());
+    }
 }
