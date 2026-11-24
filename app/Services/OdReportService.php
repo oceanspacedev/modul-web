@@ -20,7 +20,9 @@ class OdReportService
      */
     public function autoSavePastDrafts(): void
     {
-        OdActivity::whereNull('saved_at')->whereDate('date', '<', today())->update(['saved_at' => now()]);
+        if (OdActivity::whereNull('saved_at')->whereDate('date', '<', today())->update(['saved_at' => now()])) {
+            OdSheetSync::queue();
+        }
     }
 
     /**
@@ -107,15 +109,16 @@ class OdReportService
         $this->autoSavePastDrafts();
 
         $today = CarbonImmutable::today();
-        $week = OdWeek::of($today);
+        // "Minggu ini" selalu Sabtu–Jumat 7 hari (bukan Week 4 gabungan 14 hari) agar tren dibanding minggu lalu adil.
+        $weekStart = $today->subDays(($today->dayOfWeek + 1) % 7);
         $from = $today->subDays(29);
 
         $activities = OdActivity::query()->visibleTo($user)->reported()
-            ->whereDate('date', '>=', $from->min($week->start->subWeek())->min($today->startOfMonth()))
+            ->whereDate('date', '>=', $from->min($weekStart->subWeek())->min($today->startOfMonth()))
             ->get(['id', 'user_id', 'date', 'result']);
 
-        $thisWeek = $activities->filter(fn ($a) => $a->date->betweenIncluded($week->start, $week->end()))->count();
-        $lastWeek = $activities->filter(fn ($a) => $a->date->betweenIncluded($week->start->subWeek(), $week->start->subDay()))->count();
+        $thisWeek = $activities->filter(fn ($a) => $a->date->betweenIncluded($weekStart, $weekStart->addDays(6)))->count();
+        $lastWeek = $activities->filter(fn ($a) => $a->date->betweenIncluded($weekStart->subWeek(), $weekStart->subDay()))->count();
         $month = $this->stats($activities->filter(fn ($a) => $a->date->isSameMonth($today)));
 
         $documents = OdDocument::query()->visibleTo($user)->with('status')->get(['id', 'od_document_status_id']);
@@ -170,8 +173,8 @@ class OdReportService
     }
 
     /**
-     * Teks laporan harian siap salin. Leader mendapat format "Afternoon Briefing BusDev" gabungan tim: bagiannya
-     * sendiri diawali nama depan, lalu pekerjaan anggota lain hari itu tanpa nama, nama pekerjaan KAPITAL.
+     * Teks laporan harian siap salin. Leader mendapat teks gabungan tim diawali tanggal: bagiannya sendiri diawali
+     * nama depan, lalu pekerjaan anggota lain hari itu tanpa nama, nama pekerjaan KAPITAL.
      */
     public function dailyText(User $user, CarbonImmutable $date): string
     {
@@ -186,7 +189,7 @@ class OdReportService
             ->map(fn (User $member) => $this->activitiesOn($member, $date))
             ->filter(fn (Collection $list) => $list->isNotEmpty());
 
-        $text = "Afternoon Briefing BusDev\n({$dateLabel})\n\n".strtok($user->nama_lengkap, ' ')."\n".$this->list($mine, true);
+        $text = "({$dateLabel})\n\n".strtok($user->nama_lengkap, ' ')."\n".$this->list($mine, true);
         foreach ($others as $list) {
             $text .= "\n\n".$this->list($list, true);
         }

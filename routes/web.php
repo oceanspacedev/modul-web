@@ -11,6 +11,7 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DocumentRequestController;
 use App\Http\Controllers\DocumentRequestRecipientController;
 use App\Http\Controllers\DokumenTypeController;
+use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\LearningModuleController;
 use App\Http\Controllers\LearningModulePortalController;
 use App\Http\Controllers\LearningModuleQuestionController;
@@ -103,6 +104,7 @@ Route::prefix('training/portal/{token}')
 Route::middleware('auth')->group(function () {
     // # COMMON (EVERY SIGNED-IN USER)
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::delete('impersonate', [ImpersonationController::class, 'destroy'])->name('impersonate.leave');
     Route::view('panduan', 'panduan.index', ['active' => 'panduan', 'title' => 'Panduan Penggunaan'])->name('panduan');
     Route::get('my-trainings', [TrainingPortalController::class, 'myTrainings'])->name('training.my-trainings');
     Route::get('permintaan-saya', [DocumentRequestController::class, 'mine'])->name('document-request.mine');
@@ -169,6 +171,8 @@ Route::middleware('auth')->group(function () {
             Route::post('status', 'storeStatus')->name('statuses.store');
             Route::put('status/{status}', 'updateStatus')->whereNumber('status')->name('statuses.update');
             Route::delete('status/{status}', 'destroyStatus')->whereNumber('status')->name('statuses.destroy');
+            Route::put('google-sheets', 'updateSheet')->name('sheet.update');
+            Route::post('sinkron-sheet', 'syncSheet')->name('sheet-sync');
         });
     });
 
@@ -241,6 +245,7 @@ Route::middleware('auth')->group(function () {
         Route::post('sync-dnd/process', [UserSyncController::class, 'process'])->name('dnd.process');
         Route::get('{user}/edit', 'edit')->withTrashed()->name('edit');
         Route::patch('{user}/restore', 'restore')->withTrashed()->name('restore');
+        Route::post('{user}/impersonate', [ImpersonationController::class, 'store'])->name('impersonate');
     });
     Route::resource('user', UserController::class)->except(['show', 'edit']);
 

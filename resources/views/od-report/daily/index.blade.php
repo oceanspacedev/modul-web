@@ -50,10 +50,15 @@
                     <div class="card">
                         <div class="card-header d-flex align-items-center">
                             <h3 class="card-title">Tersimpan hari ini ({{ $saved->count() }})</h3>
-                            <form action="{{ route('od-report.daily.reopen') }}" method="POST" class="m-0 ml-auto">
-                                @csrf
-                                <button type="submit" class="btn btn-default btn-sm"><i class="fas fa-undo"></i> Buka Kembali</button>
-                            </form>
+                            <div class="ml-auto d-flex gap-2">
+                                @if ($sheetUrl)
+                                    <a href="{{ $sheetUrl }}" target="_blank" rel="noopener" class="btn btn-default btn-sm"><i class="fas fa-table"></i> Spreadsheet</a>
+                                @endif
+                                <form action="{{ route('od-report.daily.reopen') }}" method="POST" class="m-0">
+                                    @csrf
+                                    <button type="submit" class="btn btn-default btn-sm"><i class="fas fa-undo"></i> Buka Kembali</button>
+                                </form>
+                            </div>
                         </div>
                         <div class="card-body p-0">
                             @foreach ($saved as $activity)

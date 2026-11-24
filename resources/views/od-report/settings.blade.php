@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Pengaturan OD Report" subtitle="Status dokumen" eyebrow="Report" />
+        <x-page-header title="Pengaturan" subtitle="Status dokumen" eyebrow="Report" />
     </div>
 </section>
 
@@ -71,6 +71,61 @@
             </div>
 
             <div class="col-lg-5">
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">Google Sheets</h3></div>
+                    <div class="card-body small">
+                        <p class="mb-2">Daily Report yang sudah disimpan otomatis masuk ke spreadsheet Weekly Report.</p>
+
+                        @if ($sheet['enabled'])
+                            <div class="mb-1">Menunggu dikirim: <b>{{ $sheet['pending'] }}</b></div>
+                            @if ($sheet['last'])
+                                <div class="mb-2 {{ $sheet['last']['ok'] ? 'text-success' : 'text-danger' }}">
+                                    {{ $sheet['last']['at']->locale('id')->diffForHumans() }}: {{ $sheet['last']['message'] }}
+                                </div>
+                            @endif
+                            <div class="d-flex gap-2 mb-3">
+                                <a href="{{ $sheet['open'] }}" target="_blank" rel="noopener" class="btn btn-default btn-sm"><i class="fas fa-table"></i> Buka Spreadsheet</a>
+                                <form action="{{ route('od-report.settings.sheet-sync') }}" method="POST" class="m-0">
+                                    @csrf
+                                    <button type="submit" class="btn btn-default btn-sm"><i class="fas fa-sync-alt"></i> Sinkron Sekarang</button>
+                                </form>
+                            </div>
+                        @endif
+
+                        <form action="{{ route('od-report.settings.sheet.update') }}" method="POST" class="m-0">
+                            @csrf
+                            @method('PUT')
+                            <div class="form-group mb-2">
+                                <label for="sheet_link" class="mb-1">Link spreadsheet</label>
+                                <input type="url" id="sheet_link" name="sheet_link" value="{{ old('sheet_link', $sheet['link']) }}" maxlength="300" placeholder="https://docs.google.com/spreadsheets/d/.../edit" class="form-control form-control-sm @error('sheet_link') is-invalid @enderror">
+                                @error('sheet_link')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <div class="form-group mb-2">
+                                <label for="sheet_url" class="mb-1">URL Web App (Apps Script)</label>
+                                <input type="url" id="sheet_url" name="sheet_url" value="{{ old('sheet_url', $sheet['url']) }}" maxlength="300" placeholder="https://script.google.com/macros/s/.../exec" class="form-control form-control-sm @error('sheet_url') is-invalid @enderror">
+                                @error('sheet_url')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <div class="form-group mb-2">
+                                <label for="sheet_from" class="mb-1">Kirim mulai tanggal</label>
+                                <input type="date" id="sheet_from" name="sheet_from" value="{{ old('sheet_from', $sheet['enabled'] ? $sheet['from'] : today()->toDateString()) }}" class="form-control form-control-sm @error('sheet_from') is-invalid @enderror" style="max-width: 180px;">
+                                @error('sheet_from')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <p class="text-muted mb-2">Ganti spreadsheet: atur juga tanggal mulai agar pekerjaan lama tidak ikut terkirim. Kosongkan kedua link untuk mematikan.</p>
+                            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Simpan &amp; Tes Koneksi</button>
+                        </form>
+
+                        <details class="mt-3">
+                            <summary>Cara pasang Apps Script</summary>
+                            <ol class="text-muted pl-3 mt-2 mb-0">
+                                <li>Buka spreadsheet → <b>Ekstensi → Apps Script</b>, tempel isi <code>apps-script.gs</code>, simpan.</li>
+                                <li><b>Deploy → Deployment baru → Aplikasi web</b>. Jalankan sebagai: Saya, Akses: Siapa saja.</li>
+                                <li>Salin URL berakhiran <code>/exec</code> ke kolom di atas.</li>
+                            </ol>
+                            <p class="text-muted mt-2 mb-0">Web App yang sama bisa dipakai untuk spreadsheet baru, asalkan pemilik Apps Script punya akses edit ke spreadsheet itu.</p>
+                        </details>
+                    </div>
+                </div>
+
                 <div class="card card-body small">
                     <p class="mb-2">Jenis dokumen, tahapan dan PIC bawaan diatur di Kategori Dokumen.</p>
                     <a href="{{ route('document-category.index') }}" class="btn btn-default btn-sm align-self-start"><i class="fas fa-tags"></i> Buka Kategori Dokumen</a>

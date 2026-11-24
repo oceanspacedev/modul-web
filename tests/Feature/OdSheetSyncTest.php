@@ -1,0 +1,235 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\OdActivity;
+use App\Models\OdSetting;
+use App\Models\User;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
+use Tests\TestCase;
+
+/**
+ * Sinkron Daily Report → spreadsheet Weekly Report (Apps Script).
+ */
+class OdSheetSyncTest extends TestCase
+{
+    private const URL = 'https://script.google.com/macros/s/TEST/exec';
+
+    private const SHEET_ID = '1gFQgBuIYo_ebic-fP5tLGJgB7pOjW3of2PbwvIIOmwA';
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Rabu, 11 November 2026 (Week 2 November: 7–13 Nov).
+        Carbon::setTestNow('2026-11-11 15:00:00');
+        OdSetting::put([
+            OdSetting::SHEET_URL => self::URL,
+            OdSetting::SHEET_LINK => 'https://docs.google.com/spreadsheets/d/'.self::SHEET_ID.'/edit',
+        ]);
+    }
+
+    private function staff(): User
+    {
+        $user = User::factory()->staff()->create(['nama_lengkap' => 'STAFF OD', 'position_id' => null]);
+        $user->setOdReportAccess(User::OD_STAFF);
+
+        return $user->fresh();
+    }
+
+    /** @var list<string> SYNC ID yang dijawab gagal oleh spreadsheet palsu */
+    private array $failKeys = [];
+
+    private function fakeSheet(): void
+    {
+        Http::fake([self::URL.'*' => function (Request $request) {
+            if ($request->method() === 'GET') {
+                return Http::response(['ok' => true, 'weekly' => 'Weekly Report OD']);
+            }
+
+            $failed = array_values(array_intersect(array_column($request['entries'], 'key'), $this->failKeys));
+
+            return Http::response([
+                'ok' => true, 'a' => count($request['entries']) - count($failed), 'd' => count($request['del']),
+                'fail' => $failed, 'log' => $failed ? 'Analisa JD: rusak' : '',
+            ]);
+        }]);
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function sentBodies(): array
+    {
+        return Http::recorded()->filter(fn ($pair) => $pair[0]->method() === 'POST')
+            ->map(fn ($pair) => $pair[0]->data())->values()->all();
+    }
+
+    public function test_simpan_laporan_writes_saved_activities_to_the_weekly_sheet(): void
+    {
+        $this->fakeSheet();
+        $staff = $this->staff();
+
+        $this->actingAs($staff)->post(route('od-report.daily.store'), [
+            'date' => '2026-11-11', 'name' => 'Review IK gudang', 'result' => 'On Progress', 'kendala' => 'Menunggu PIC',
+        ]);
+        Http::assertNothingSent();   // draft belum dikirim
+
+        $this->actingAs($staff)->post(route('od-report.daily.save'));
+
+        $body = $this->sentBodies()[0];
+        $activity = OdActivity::sole();
+        $this->assertSame(self::SHEET_ID, $body['weeklyId']);
+        $this->assertSame([[
+            'key' => 'mw-'.$activity->id,
+            'pos' => 'ORGANIZATION DEVELOPMENT STAFF',
+            'tab' => "Nov'26",
+            'wk' => 2,
+            'n' => 'Review IK gudang',
+            'r' => 'On Progress',
+            'k' => 'Menunggu PIC',
+            's' => '',
+            'ke' => '',
+        ]], $body['entries']);
+        $this->assertNotNull($activity->sheet_hash);
+
+        // Simpan ulang tanpa perubahan tidak mengirim apa pun lagi.
+        $this->artisan('od-report:sync-sheet')->assertSuccessful();
+        Http::assertSentCount(1);
+    }
+
+    public function test_edit_resends_the_row_and_delete_clears_it(): void
+    {
+        $this->fakeSheet();
+        $staff = $this->staff();
+        $activity = OdActivity::create([
+            'user_id' => $staff->id, 'date' => '2026-11-10', 'name' => 'Drafting SOP', 'result' => 'Done', 'saved_at' => now(),
+        ]);
+        $this->assertSame('Closed', $this->sentBodies()[0]['entries'][0]['r']);
+
+        $this->actingAs($staff)->put(route('od-report.daily.update', $activity), [
+            'date' => '2026-11-10', 'name' => 'Drafting SOP', 'result' => 'Hold',
+        ]);
+        $this->assertSame('Open', $this->sentBodies()[1]['entries'][0]['r']);
+
+        $this->actingAs($staff)->delete(route('od-report.daily.destroy', $activity));
+        $this->assertSame(['mw-'.$activity->id], $this->sentBodies()[2]['del']);
+        $this->assertSame([], $this->sentBodies()[2]['entries']);
+    }
+
+    public function test_fifth_week_goes_to_the_week_four_block(): void
+    {
+        $this->fakeSheet();
+        $staff = $this->staff();
+
+        // 30 Des 2026 (minggu 26 Des - 1 Jan, Rabu 30 Des) tidak membuat Week 5; ikut Week 4 tab Des'26.
+        OdActivity::create([
+            'user_id' => $staff->id, 'date' => '2026-12-30', 'name' => 'Rekap akhir tahun', 'result' => 'Done', 'saved_at' => now(),
+        ]);
+
+        $entry = $this->sentBodies()[0]['entries'][0];
+        $this->assertSame(["Des'26", 4], [$entry['tab'], $entry['wk']]);
+    }
+
+    public function test_failed_rows_stay_pending_and_settings_show_the_status(): void
+    {
+        $staff = $this->staff();
+        $leader = $this->leader();
+
+        $this->fakeSheet();
+        $activity = OdActivity::create([
+            'user_id' => $staff->id, 'date' => '2026-10-30', 'name' => 'Analisa JD', 'result' => 'Done', 'saved_at' => now(),
+        ]);
+        // 30 Okt 2026 masuk minggu 24–30 Okt (Rabu 28 Okt) → tab Okt'26 week 4.
+        $entry = $this->sentBodies()[0]['entries'][0];
+        $this->assertSame(["Okt'26", 4], [$entry['tab'], $entry['wk']]);
+        $this->assertNotNull($activity->fresh()->sheet_hash);
+
+        $this->failKeys = ['mw-'.$activity->id];
+        $activity->update(['name' => 'Analisa JD gudang']);
+        $this->assertSame(sha1(json_encode($entry)), $activity->fresh()->sheet_hash);   // masih isi lama
+
+        $this->actingAs($leader)->get(route('od-report.settings.index'))->assertOk()
+            ->assertSee('Menunggu dikirim: <b>1</b>', false)
+            ->assertSee('Analisa JD: rusak')
+            ->assertSee(self::SHEET_ID);
+    }
+
+    public function test_nothing_is_sent_when_sync_is_not_configured(): void
+    {
+        OdSetting::put([OdSetting::SHEET_URL => null]);
+        Http::fake();
+        $staff = $this->staff();
+
+        OdActivity::create(['user_id' => $staff->id, 'date' => '2026-11-10', 'name' => 'X', 'result' => 'Done', 'saved_at' => now()]);
+
+        Http::assertNothingSent();
+        $this->actingAs($staff)->get(route('od-report.daily.index'))->assertOk()->assertDontSee('docs.google.com');
+    }
+
+    private function leader(): User
+    {
+        $leader = User::factory()->staff()->create();
+        $leader->setOdReportAccess(User::OD_LEADER);
+
+        return $leader->fresh();
+    }
+
+    public function test_leader_sets_the_spreadsheet_in_settings_and_changing_it_resends_from_the_start_date(): void
+    {
+        $this->fakeSheet();
+        $staff = $this->staff();
+        $old = OdActivity::create(['user_id' => $staff->id, 'date' => '2026-11-02', 'name' => 'Lama', 'result' => 'Done', 'saved_at' => now()]);
+        $new = OdActivity::create(['user_id' => $staff->id, 'date' => '2026-11-10', 'name' => 'Baru', 'result' => 'Done', 'saved_at' => now()]);
+        $this->assertNotNull($old->fresh()->sheet_hash);
+        $sentBefore = count($this->sentBodies());
+
+        $newId = '2AbCdEfGhIjKlMnOpQrStUvWxYz0123456789';
+        $this->actingAs($this->leader())->put(route('od-report.settings.sheet.update'), [
+            'sheet_link' => "https://docs.google.com/spreadsheets/d/{$newId}/edit#gid=0",
+            'sheet_url' => self::URL,
+            'sheet_from' => '2026-11-07',
+        ])->assertSessionHas('success', 'Tersimpan dan tersambung ke spreadsheet "Weekly Report OD".');
+
+        $this->assertSame("https://docs.google.com/spreadsheets/d/{$newId}/edit", OdSetting::value(OdSetting::SHEET_LINK));
+        Http::assertSent(fn (Request $r) => $r->method() === 'GET' && $r['w'] === $newId);
+
+        // Spreadsheet baru: hanya pekerjaan sejak tanggal mulai yang dikirim ulang.
+        $body = $this->sentBodies()[$sentBefore];
+        $this->assertSame($newId, $body['weeklyId']);
+        $this->assertSame(['Baru'], array_column($body['entries'], 'n'));
+        $this->assertNull($old->fresh()->sheet_hash);
+        $this->assertNotNull($new->fresh()->sheet_hash);
+    }
+
+    public function test_settings_reject_invalid_links_and_can_turn_sync_off(): void
+    {
+        Http::fake();
+        $leader = $this->leader();
+
+        $this->actingAs($leader)->put(route('od-report.settings.sheet.update'), [
+            'sheet_link' => 'https://example.com/bukan-sheet',
+            'sheet_url' => 'https://script.google.com/macros/s/ABC/dev',
+        ])->assertSessionHasErrors(['sheet_link', 'sheet_url']);
+
+        $this->actingAs($leader)->put(route('od-report.settings.sheet.update'), ['sheet_link' => '', 'sheet_url' => ''])
+            ->assertSessionHas('success', 'Sinkron Google Sheets dimatikan.');
+        $this->assertNull(OdSetting::value(OdSetting::SHEET_URL));
+        Http::assertNothingSent();
+
+        $staff = $this->staff();
+        $this->actingAs($staff)->put(route('od-report.settings.sheet.update'), ['sheet_link' => '', 'sheet_url' => ''])
+            ->assertRedirect();
+        $this->assertSame(0, OdSetting::count());
+    }
+
+    public function test_save_reports_when_the_web_app_cannot_open_the_spreadsheet(): void
+    {
+        Http::fake([self::URL.'*' => Http::response(['ok' => false, 'error' => 'Spreadsheet tidak bisa dibuka: akses ditolak'])]);
+
+        $this->actingAs($this->leader())->put(route('od-report.settings.sheet.update'), [
+            'sheet_link' => self::SHEET_ID,
+            'sheet_url' => self::URL,
+        ])->assertSessionHas('error', 'Tersimpan, tapi belum tersambung: Spreadsheet tidak bisa dibuka: akses ditolak');
+    }
+}

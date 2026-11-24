@@ -128,7 +128,7 @@ class OdActivityTest extends TestCase
             ->assertSee('Drafting IK Retur')->assertDontSee('On Progress</span>', false);
     }
 
-    public function test_leader_daily_text_is_the_team_afternoon_briefing(): void
+    public function test_leader_daily_text_combines_the_team(): void
     {
         $leader = $this->member(User::OD_LEADER, 'SEKAR AYUNING');
         $staff = $this->member(User::OD_STAFF, 'RIZAL HAMDI');
@@ -136,7 +136,7 @@ class OdActivityTest extends TestCase
         $this->activity($staff, '2026-11-11', 'drafting ik retur');
 
         $this->actingAs($leader)->get(route('od-report.daily.index', ['teks' => 1]))->assertOk()
-            ->assertSee('Afternoon Briefing BusDev')->assertSee('SEKAR')->assertSee('1. REVIEW SOP')->assertSee('1. DRAFTING IK RETUR');
+            ->assertDontSee('Afternoon Briefing')->assertSee('(Rabu, 11 November 2026)')->assertSee('SEKAR')->assertSee('1. REVIEW SOP')->assertSee('1. DRAFTING IK RETUR');
 
         $this->actingAs($staff)->get(route('od-report.daily.index', ['teks' => 1]))
             ->assertSee('DAILY REPORT')->assertSee('drafting ik retur')->assertDontSee('REVIEW SOP');

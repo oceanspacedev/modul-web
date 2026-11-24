@@ -183,6 +183,13 @@
                                                     </form>
                                                 @endcan
                                             @else
+                                                @if (auth()->user()->isNot($user) && auth()->user()->can('impersonate', $user))
+                                                    <form action="{{ route('user.impersonate', $user) }}" method="POST" class="d-inline m-0"
+                                                        onsubmit="return confirm(@js('Masuk sebagai '.$user->nama_lengkap.'?'))">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-default btn-xs" title="Masuk sebagai user ini"><i class="fas fa-user-secret"></i></button>
+                                                    </form>
+                                                @endif
                                                 @can('update', $user)
                                                     <a href="{{ route('user.edit', $user) }}" class="btn btn-default btn-xs">Edit</a>
                                                 @endcan
