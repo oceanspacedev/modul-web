@@ -64,8 +64,13 @@ class DocumentBuilderController extends Controller
         if ($request->filled('permintaan')) {
             $process = $this->sourceProcess($request, $category, $request->integer('permintaan'));
 
+            if ($draft = $this->openableDraft($request, $process)) {
+                return to_route('document-builder.edit', $draft)->with('info', 'Item permintaan ini sudah punya draf.');
+            }
+
+            // Draf item ini ada tapi milik pengguna lain, jadi tidak bisa dibuka (403): PIC menyusun versinya sendiri.
             if ($process->builderDraft) {
-                return to_route('document-builder.edit', $process->builderDraft)->with('info', 'Item permintaan ini sudah punya draf.');
+                session()->flash('info', 'Draf item ini dibuat pengguna lain dan hanya bisa dibuka pembuatnya. Silakan susun draf Anda sendiri.');
             }
 
             $badanUsaha = $process->badan_usaha !== '-' ? $process->badan_usaha : null;
@@ -85,8 +90,8 @@ class DocumentBuilderController extends Controller
         abort_unless($category->is_active, 404);
 
         $process = $request->filled('permintaan') ? $this->sourceProcess($request, $category, $request->integer('permintaan')) : null;
-        if ($process?->builderDraft) {
-            return to_route('document-builder.edit', $process->builderDraft)->with('info', 'Item permintaan ini sudah punya draf.');
+        if ($draft = $this->openableDraft($request, $process)) {
+            return to_route('document-builder.edit', $draft)->with('info', 'Item permintaan ini sudah punya draf.');
         }
 
         $template = DocumentBuilderTemplates::for($category);
@@ -288,6 +293,19 @@ class DocumentBuilderController extends Controller
         throw_unless($process->canBeEditedBy($request->user()), AuthorizationException::class);
 
         return $process;
+    }
+
+    /**
+     * Draf terbaru satu item permintaan yang boleh dibuka user ini. Draf buatan pengguna lain tidak pernah ditawarkan
+     * sebagai tautan karena halaman draf hanya untuk pembuatnya (DocumentDraft::canBeManagedBy). Satu item boleh punya
+     * lebih dari satu draf (od_document_id tanpa unique), jadi PIC yang itemnya didrafkan orang lain bisa menyusun
+     * versinya sendiri.
+     */
+    private function openableDraft(Request $request, ?OdDocument $process): ?DocumentDraft
+    {
+        $draft = $process?->builderDraft;
+
+        return $draft && $draft->canBeManagedBy($request->user()) ? $draft : null;
     }
 
     /** @return array{answers: array<string, string>, company?: string|null} */

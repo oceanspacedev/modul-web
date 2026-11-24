@@ -63,12 +63,12 @@
                             <div class="form-group col-md-6">
                                 <label for="nama">Nama lengkap {!! $required !!}</label>
                                 <input type="text" class="form-control @error('nama') is-invalid @enderror" id="nama" name="nama" maxlength="100" required autocomplete="name" value="{{ $old('nama') }}">
-                                @error('nama')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <div class="invalid-feedback{{ $errors->has('nama') ? ' d-block' : '' }}" data-feedback="nama">{{ $errors->first('nama') }}</div>
                             </div>
                             <div class="form-group col-md-6">
                                 <label for="divisi">Divisi / unit kerja {!! $required !!}</label>
                                 <input type="text" class="form-control @error('divisi') is-invalid @enderror" id="divisi" name="divisi" maxlength="120" required value="{{ $old('divisi') }}" placeholder="Contoh: General Affair Aset">
-                                @error('divisi')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <div class="invalid-feedback{{ $errors->has('divisi') ? ' d-block' : '' }}" data-feedback="divisi">{{ $errors->first('divisi') }}</div>
                             </div>
                             <div class="form-group col-md-6">
                                 <label for="departemen">Departemen {!! $required !!}</label>
@@ -78,7 +78,7 @@
                                         <option value="{{ $department }}" @selected($old('departemen') === $department)>{{ $department }}</option>
                                     @endforeach
                                 </select>
-                                @error('departemen')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <div class="invalid-feedback{{ $errors->has('departemen') ? ' d-block' : '' }}" data-feedback="departemen">{{ $errors->first('departemen') }}</div>
                             </div>
                             <div class="form-group col-md-6">
                                 <label for="jabatan">Jabatan {!! $required !!}</label>
@@ -88,7 +88,7 @@
                                         <option value="{{ $jabatan }}" @selected($old('jabatan') === $jabatan)>{{ $jabatan }}</option>
                                     @endforeach
                                 </select>
-                                @error('jabatan')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <div class="invalid-feedback{{ $errors->has('jabatan') ? ' d-block' : '' }}" data-feedback="jabatan">{{ $errors->first('jabatan') }}</div>
                             </div>
                             <div class="form-group col-md-6 mb-0">
                                 <label for="atasan">Atasan langsung <span class="text-muted font-weight-normal">(opsional)</span></label>
@@ -110,12 +110,12 @@
                             <div class="form-group col-md-6 mb-md-0">
                                 <label for="whatsapp">Nomor WhatsApp {!! $required !!}</label>
                                 <input type="tel" class="form-control @error('whatsapp') is-invalid @enderror" id="whatsapp" name="whatsapp" maxlength="30" required inputmode="tel" autocomplete="tel" value="{{ $old('whatsapp') }}" placeholder="081234567890">
-                                @error('whatsapp')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <div class="invalid-feedback{{ $errors->has('whatsapp') ? ' d-block' : '' }}" data-feedback="whatsapp">{{ $errors->first('whatsapp') }}</div>
                             </div>
                             <div class="form-group col-md-6 mb-0">
                                 <label for="email">Email perusahaan {!! $required !!}</label>
                                 <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" maxlength="150" required autocomplete="email" value="{{ $old('email') }}">
-                                @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <div class="invalid-feedback{{ $errors->has('email') ? ' d-block' : '' }}" data-feedback="email">{{ $errors->first('email') }}</div>
                             </div>
                         </div>
                     </div>
@@ -146,7 +146,7 @@
                                     </label>
                                 @endforeach
                             </div>
-                            @error('kategori')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
+                            <div class="invalid-feedback text-danger small mt-2{{ $errors->has('kategori') ? ' d-block' : '' }}" data-feedback="kategori">{{ $errors->first('kategori') }}</div>
 
                             @foreach ($categories as $category)
                                 <div class="request-info" data-category-info="{{ $category->id }}" hidden>
@@ -197,12 +197,12 @@
                             <div class="form-group col-md-6">
                                 <label for="obs_tanggal_1">Pilihan tanggal 1 {!! $required !!}</label>
                                 <input type="date" class="form-control @error('obs_tanggal_1') is-invalid @enderror" id="obs_tanggal_1" name="obs_tanggal_1" min="{{ today()->toDateString() }}" value="{{ old('obs_tanggal_1') }}">
-                                @error('obs_tanggal_1')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <div class="invalid-feedback{{ $errors->has('obs_tanggal_1') ? ' d-block' : '' }}" data-feedback="obs_tanggal_1">{{ $errors->first('obs_tanggal_1') }}</div>
                             </div>
                             <div class="form-group col-md-6">
                                 <label for="obs_tanggal_2">Pilihan tanggal 2 <span class="text-muted font-weight-normal">(opsional)</span></label>
                                 <input type="date" class="form-control @error('obs_tanggal_2') is-invalid @enderror" id="obs_tanggal_2" name="obs_tanggal_2" min="{{ today()->toDateString() }}" value="{{ old('obs_tanggal_2') }}">
-                                @error('obs_tanggal_2')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <div class="invalid-feedback{{ $errors->has('obs_tanggal_2') ? ' d-block' : '' }}" data-feedback="obs_tanggal_2">{{ $errors->first('obs_tanggal_2') }}</div>
                             </div>
                             <div class="form-group col-12 mb-0">
                                 <label for="obs_catatan">Preferensi jam / catatan <span class="text-muted font-weight-normal">(opsional)</span></label>
@@ -291,16 +291,34 @@
             if (scroll) { window.scrollTo({ top: 0, behavior: 'smooth' }); }
         }
 
+        // Aturan browser (email, minlength, tanggal minimum) tidak punya pesan dari server, jadi kotaknya ([data-feedback])
+        // selalu ada dan diisi di sini supaya tombol tidak diam tanpa penjelasan.
+        function clientMessage(field) {
+            if (field.validity.typeMismatch) { return 'Format email belum benar, contoh: nama@perusahaan.com.'; }
+            if (field.validity.rangeUnderflow) { return 'Tanggal tidak boleh sebelum hari ini.'; }
+            if (field.validity.tooShort) { return 'Isi minimal ' + field.minLength + ' karakter (baru ' + field.value.length + ').'; }
+            if (field.validity.valueMissing) { return 'Bagian ini wajib diisi.'; }
+            return field.validationMessage;
+        }
+
+        function mark(field, ok) {
+            field.classList.toggle('is-invalid', !ok);
+            const box = form.querySelector('[data-feedback="'+field.name+'"]');
+            if (!box) { return; }
+            box.textContent = ok ? '' : clientMessage(field);
+            box.classList.toggle('d-block', !ok);
+        }
+
         function valid(index) {
             const fields = [...steps[index].querySelectorAll('input, select, textarea')].filter(f => f.name && f.name !== 'website');
-            let ok = true;
+            let first = null;
             fields.forEach(field => {
                 const fieldOk = field.checkValidity();
-                field.classList.toggle('is-invalid', !fieldOk);
-                if (!fieldOk && ok) { field.focus(); }
-                ok = ok && fieldOk;
+                mark(field, fieldOk);
+                if (!fieldOk && !first) { first = field; }
             });
-            return ok;
+            if (first) { first.focus(); }
+            return !first;
         }
 
         function renumber() {

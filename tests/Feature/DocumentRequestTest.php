@@ -97,6 +97,58 @@ class DocumentRequestTest extends TestCase
         $this->assertSame(0, DocumentRequest::count());
     }
 
+    public function test_the_observation_schedule_is_only_validated_when_the_category_needs_it(): void
+    {
+        $sop = DocumentCategory::where('code', 'SOP')->value('id');
+
+        // Kategori tanpa observasi menyembunyikan langkah jadwal: tanggal lama yang tertinggal di form tidak boleh
+        // membuat pengajuan ditolak pada langkah yang tidak terlihat.
+        $this->post(route('document-request.store'), $this->payload([
+            'kategori' => $sop, 'obs_tanggal_1' => '2026-11-17', 'obs_tanggal_2' => '2026-11-17', 'obs_catatan' => 'Pagi',
+        ]))->assertSessionHasNoErrors();
+
+        $request = DocumentRequest::sole();
+        $this->assertSame($sop, $request->document_category_id);
+        $this->assertNull($request->obs_tanggal_1);
+        $this->assertNull($request->obs_catatan);
+
+        // Kategori dengan observasi (IK) tetap menuntut jadwal yang benar.
+        $this->post(route('document-request.store'), $this->payload(['idempotency_key' => 'kunci-lalu', 'obs_tanggal_1' => '2026-11-17']))
+            ->assertSessionHasErrors('obs_tanggal_1');
+        $this->post(route('document-request.store'), $this->payload(['idempotency_key' => 'kunci-kosong', 'obs_tanggal_1' => null]))
+            ->assertSessionHasErrors('obs_tanggal_1');
+        $this->assertSame(1, DocumentRequest::count());
+
+        $this->post(route('document-request.store'), $this->payload(['idempotency_key' => 'kunci-ik', 'obs_tanggal_2' => '2026-11-21']))
+            ->assertSessionHasNoErrors();
+        $ik = DocumentRequest::latest('id')->firstOrFail();
+        $this->assertSame('2026-11-20', $ik->obs_tanggal_1->toDateString());
+        $this->assertSame('2026-11-21', $ik->obs_tanggal_2->toDateString());
+    }
+
+    public function test_every_client_checked_field_has_a_visible_message_box_in_the_wizard(): void
+    {
+        $html = $this->get(route('document-request.create'))->assertOk()->getContent();
+
+        // Aturan browser (required, type=email, minlength tujuan, radio prioritas wajib, min tanggal) berjalan tanpa
+        // balasan server, jadi kotaknya harus ada sejak halaman pertama dimuat dan diisi oleh JavaScript wizard.
+        foreach (['nama', 'divisi', 'departemen', 'jabatan', 'whatsapp', 'email', 'kategori', 'proses[0][judul]',
+            'proses[0][tujuan]', 'proses[0][prioritas]', 'obs_tanggal_1', 'obs_tanggal_2'] as $field) {
+            $this->assertStringContainsString('data-feedback="'.$field.'"', $html);
+        }
+
+        // Kesalahan dari server masuk ke kotak yang sama dan langsung terlihat, termasuk pada grup radio.
+        $failed = $this->followingRedirects()->post(route('document-request.store'), $this->payload([
+            'idempotency_key' => 'kunci-pesan',
+            'email' => 'bukan-email',
+            'proses' => [['judul' => 'Penerimaan barang', 'tujuan' => 'Penerimaan barang tercatat rapi.', 'prioritas' => '']],
+        ]))->getContent();
+
+        $this->assertMatchesRegularExpression('/<div class="invalid-feedback d-block" data-feedback="email">.+<\/div>/', $failed);
+        $this->assertMatchesRegularExpression('/<div class="invalid-feedback d-block" data-feedback="proses\[0\]\[prioritas\]">.+<\/div>/', $failed);
+        $this->assertSame(0, DocumentRequest::count());
+    }
+
     public function test_logged_in_requester_gets_prefilled_form_and_sees_own_requests(): void
     {
         $user = User::factory()->staff()->create(['nama_lengkap' => 'SITI KARYAWAN', 'email' => 'siti@example.com']);
