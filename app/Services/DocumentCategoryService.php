@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\DocumentCategory;
 use App\Models\OdDocument;
-use App\Models\OdDocumentStatus;
 use App\Support\StorageUrl;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\UploadedFile;
@@ -12,11 +11,13 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Simpan Kategori Dokumen dan tahapannya. Nama tahap disimpan apa adanya di od_documents.stage, jadi tahap yang diganti
- * nama ikut diganti di dokumennya, dan tahap terakhir (= selesai) tetap sejalan dengan status dokumen.
+ * Simpan Kategori Dokumen, tahapannya, file contoh dan file template. Nama tahap disimpan apa adanya di
+ * od_documents.stage, jadi tahap yang diganti nama ikut diganti di dokumennya. Dokumen dari Permintaan Dokumen memakai
+ * status tetap (OdDocument::REQUEST_STAGES) dan tidak terpengaruh tahapan kategori.
  */
 class DocumentCategoryService
 {
@@ -49,7 +50,7 @@ class DocumentCategoryService
         DB::transaction(function () use ($category, $data) {
             $rows = array_values($data['stages']);
             $category->update([
-                ...Arr::except($data, ['stages', 'example', 'remove_example']),
+                ...Arr::except($data, ['stages', 'example', 'remove_example', 'template', 'remove_template']),
                 'sort' => $data['sort'] ?? $category->sort,
             ]);
 
@@ -81,8 +82,6 @@ class DocumentCategoryService
             foreach ($renames as $name => $ids) {
                 $ids->chunk(500)->each(fn ($chunk) => $this->documents($category)->whereIn('id', $chunk)->update(['stage' => $name]));
             }
-
-            $this->syncFinalStage($category, end($rows)['name']);
         });
 
         if (($data['example'] ?? null) instanceof UploadedFile) {
@@ -90,6 +89,46 @@ class DocumentCategoryService
         } elseif (! empty($data['remove_example'])) {
             $this->replaceExample($category, null);
         }
+
+        if (($data['template'] ?? null) instanceof UploadedFile) {
+            $this->replaceTemplate($category, $data['template']);
+        } elseif (! empty($data['remove_template'])) {
+            $this->replaceTemplate($category, null);
+        }
+    }
+
+    /**
+     * Ganti (atau hapus, bila $file null) file template kategori. Ekstensi diambil dari isi file, bukan nama kiriman.
+     */
+    public function replaceTemplate(DocumentCategory $category, ?UploadedFile $file): void
+    {
+        $old = $category->template_path;
+
+        $category->forceFill($file ? [
+            'template_path' => $file->storeAs('kategori-dokumen/template', Str::uuid().'.'.$file->extension()),
+            'template_name' => mb_substr($file->getClientOriginalName(), 0, 200),
+        ] : ['template_path' => null, 'template_name' => null])->save();
+
+        if ($old && $old !== $category->template_path) {
+            Storage::delete($old);
+        }
+    }
+
+    /**
+     * Unduh file template dengan nama aslinya (disk S3 lewat URL sementara).
+     */
+    public function templateResponse(DocumentCategory $category): Response
+    {
+        if (Storage::disk()->providesTemporaryUrls()) {
+            // Nama asli lewat Content-Disposition; tanpa itu file S3 terunduh dengan nama acak.
+            return redirect()->away(Storage::temporaryUrl($category->template_path, now()->addMinutes(10), [
+                'ResponseContentDisposition' => HeaderUtils::makeDisposition('attachment', $category->template_name, Str::ascii($category->template_name) ?: 'file'),
+            ]));
+        }
+
+        abort_unless(Storage::exists($category->template_path), 404);
+
+        return Storage::download($category->template_path, $category->template_name);
     }
 
     /**
@@ -124,31 +163,12 @@ class DocumentCategoryService
     }
 
     /**
-     * Dokumen dari pengajuan: status selesai = tahap terakhir. Setelah tahapan diubah, dokumen yang sudah selesai pindah
-     * ke tahap terakhir yang baru, dan dokumen berjalan yang kini ada di tahap terakhir dianggap selesai.
-     */
-    private function syncFinalStage(DocumentCategory $category, string $final): void
-    {
-        $done = OdDocumentStatus::where('type', OdDocumentStatus::TYPE_DONE)->pluck('id');
-        $open = OdDocumentStatus::where('type', OdDocumentStatus::TYPE_OPEN)->pluck('id');
-
-        $this->documents($category)->whereNotNull('document_request_id')->whereIn('od_document_status_id', $done)
-            ->where('stage', '!=', $final)->update(['stage' => $final]);
-
-        if ($firstDone = OdDocumentStatus::firstOfType(OdDocumentStatus::TYPE_DONE)) {
-            // Dokumen dari permintaan hanya boleh rilis bila sudah punya file.
-            $this->documents($category)->whereNotNull('document_request_id')->whereNotNull('file_path')->whereIn('od_document_status_id', $open)
-                ->where('stage', $final)->update(['od_document_status_id' => $firstDone->getKey(), 'received_at' => today()]);
-        }
-    }
-
-    /**
-     * Query dokumen kategori ini tanpa menyentuh updated_at.
+     * Query dokumen kategori ini (di luar Permintaan Dokumen) tanpa menyentuh updated_at.
      *
      * @return Builder
      */
     private function documents(DocumentCategory $category)
     {
-        return OdDocument::withTrashed()->where('jenis', $category->code)->toBase();
+        return OdDocument::withTrashed()->where('jenis', $category->code)->whereNull('document_request_id')->toBase();
     }
 }

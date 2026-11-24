@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreDocumentRequestRequest;
+use App\Models\Area;
 use App\Models\DocumentCategory;
 use App\Models\DocumentRequest;
 use App\Models\OdDocument;
@@ -24,13 +25,14 @@ class DocumentRequestController extends Controller
 {
     public function create(Request $request): View
     {
-        $user = $request->user()?->loadMissing(['divisi', 'roles', 'approval']);
-        $categories = DocumentCategory::active()->ordered()->with('stages')->get();
+        $user = $request->user()?->loadMissing(['divisi', 'roles', 'approval', 'area']);
+        $categories = DocumentCategory::active()->ordered()->get();
 
         return view('document-request.create', [
             'title' => 'Permintaan Dokumen',
             'active' => 'document-request',
             'categories' => $categories,
+            'businessUnits' => Area::orderBy('name')->pluck('name'),
             // ?kategori=JD memilihkan kategori; satu-satunya kategori aktif langsung terpilih.
             'selectedCategory' => $categories->first(fn (DocumentCategory $c) => strcasecmp($c->code, (string) $request->query('kategori')) === 0)?->id
                 ?? ($categories->count() === 1 ? $categories->first()->id : null),
@@ -43,7 +45,8 @@ class DocumentRequestController extends Controller
 
     /**
      * Data pemohon untuk user yang login: dari akunnya, dan yang tidak ada di akun (departemen, jabatan, atasan) dari
-     * pengajuan terakhirnya, supaya tidak perlu diisi ulang. Tamu mengisi semuanya sendiri.
+     * pengajuan terakhirnya, supaya tidak perlu diisi ulang. Badan usaha dari area karyawan. Tamu mengisi semuanya
+     * sendiri.
      *
      * @return array<string, string|null>
      */
@@ -60,6 +63,7 @@ class DocumentRequestController extends Controller
             'whatsapp' => $user->no_hp,
             'email' => $user->email,
             'atasan' => $user->approval?->nama_lengkap ?? $last?->atasan,
+            'badan_usaha' => $user->area?->name ?? $last?->badan_usaha,
         ];
     }
 
@@ -79,7 +83,7 @@ class DocumentRequestController extends Controller
     {
         $code = strtoupper(trim((string) $request->query('kode')));
         $documentRequest = preg_match(DocumentRequest::CODE_PATTERN, $code)
-            ? DocumentRequest::where('code', $code)->with(['category.stages', 'processes.status', 'histories'])->first()
+            ? DocumentRequest::where('code', $code)->with(['category', 'processes.status', 'histories', 'comments.user'])->first()
             : null;
 
         return view('document-request.track', [
@@ -119,6 +123,16 @@ class DocumentRequestController extends Controller
             'categories' => $categories,
             'cloud' => config('od-report.cloud'),
         ]);
+    }
+
+    /**
+     * Template pengisian kategori bertemplate (mis. Jobdesk) untuk diunduh pemohon.
+     */
+    public function template(DocumentCategory $category, DocumentCategoryService $categories): Response
+    {
+        abort_unless($category->is_active && $category->hasTemplate(), 404);
+
+        return $categories->templateResponse($category);
     }
 
     public function exampleFile(DocumentCategory $category, DocumentCategoryService $categories): Response

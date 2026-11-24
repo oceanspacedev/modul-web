@@ -2,7 +2,7 @@
 
 @php
     $category = $documentRequest?->category;
-    $stageNames = $category?->stageNames() ?? [];
+    $stageNames = App\Models\OdDocument::REQUEST_STAGES;
 @endphp
 
 @section('content')
@@ -103,8 +103,8 @@
                                 <div class="flex-fill rounded {{ $stage !== App\Models\OdDocument::STAGE_CANCELLED && $index <= $process->stageIndex() ? 'bg-success' : 'bg-light' }}" style="height: 6px;" title="{{ $name }}"></div>
                             @endforeach
                         </div>
-                        @if ($stage !== App\Models\OdDocument::STAGE_CANCELLED)
-                            <div class="small text-muted mt-2">{{ $category?->stageDescription($process->stage) }}</div>
+                        @if ($process->jenis_pengajuan)
+                            <div class="small text-muted mt-2">{{ $category?->name }} {{ strtolower($process->jenis_pengajuan) }}</div>
                         @endif
                         @if ($process->isReleased() && $process->hasFile())
                             <a href="{{ $process->fileLink() }}" target="_blank" rel="noopener" class="btn btn-success btn-sm mt-2"><i class="fas fa-file-download"></i> Buka file</a>
@@ -116,26 +116,31 @@
             <div class="card">
                 <div class="card-header"><h3 class="card-title">Riwayat</h3></div>
                 <div class="card-body p-0">
-                    @foreach ($documentRequest->histories as $history)
-                        <div class="px-3 py-2 border-bottom small">
-                            <div class="d-flex justify-content-between gap-2">
-                                <strong>{{ $history->status }}</strong>
-                                <span class="text-muted">{{ $history->created_at->format('d/m/Y H:i') }}</span>
-                            </div>
-                            @if ($history->note)<div>{{ $history->note }}</div>@endif
+                    @foreach ($documentRequest->timeline() as $step)
+                        <div class="px-3 py-2 border-bottom small d-flex justify-content-between gap-2 {{ $step['done'] ? '' : 'text-muted' }}">
+                            <span><i class="{{ $step['done'] ? 'fas fa-check-circle text-success' : 'far fa-circle' }} mr-1"></i> <strong>{{ $step['name'] }}</strong></span>
+                            <span class="text-muted">{{ $step['at']?->format('d/m/Y H:i') ?? '-' }}</span>
                         </div>
                     @endforeach
                 </div>
             </div>
 
-            <details class="card card-body small mb-4">
-                <summary class="font-weight-bold">Arti setiap tahap</summary>
-                <ol class="mt-2 mb-0 pl-3">
-                    @foreach ($category?->stages ?? [] as $item)
-                        <li class="mb-1"><strong>{{ $item->name }}</strong>@if ($item->description): {{ $item->description }}@endif</li>
-                    @endforeach
-                </ol>
-            </details>
+            <div class="card mb-4">
+                <div class="card-header"><h3 class="card-title">Komentar</h3></div>
+                <div class="card-body p-0">
+                    @forelse ($documentRequest->comments as $comment)
+                        <div class="px-3 py-2 border-bottom small">
+                            <div class="d-flex justify-content-between gap-2">
+                                <strong>{{ $comment->user?->nama_lengkap ?? 'Tim OD' }}</strong>
+                                <span class="text-muted">{{ $comment->created_at->format('d/m/Y H:i') }}</span>
+                            </div>
+                            <div style="white-space: pre-line;">{{ $comment->body }}</div>
+                        </div>
+                    @empty
+                        <p class="px-3 py-2 small text-muted mb-0">Belum ada komentar dari tim OD.</p>
+                    @endforelse
+                </div>
+            </div>
         @endif
     </div>
 </section>

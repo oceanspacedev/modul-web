@@ -58,7 +58,7 @@ class DocumentCategoryController extends Controller
             'category' => $category,
             'inUse' => $category->isInUse(),
             'team' => OdTeam::members(),
-            'stageUsage' => OdDocument::withTrashed()->where('jenis', $category->code)
+            'stageUsage' => OdDocument::withTrashed()->where('jenis', $category->code)->whereNull('document_request_id')
                 ->selectRaw('stage, count(*) as total')->groupBy('stage')->pluck('total', 'stage'),
         ]);
     }

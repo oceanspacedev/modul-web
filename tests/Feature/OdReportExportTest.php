@@ -118,15 +118,15 @@ class OdReportExportTest extends TestCase
         foreach (['Penerimaan', 'Retur'] as $i => $title) {
             $request->processes()->create([
                 'title' => $title, 'jenis' => 'IK', 'pic_user_id' => $this->staff->id, 'submitted_at' => today(), 'month' => '2026-11',
-                'stage' => 'Drafting', 'prioritas' => 'High', 'sort' => $i,
+                'stage' => 'On Progress', 'prioritas' => 'High', 'sort' => $i,
                 'od_document_status_id' => OdDocumentStatus::firstOfType(OdDocumentStatus::TYPE_OPEN)->id,
             ]);
         }
 
         $sheet = $this->sheet(new DocumentRequestExport($this->leader));
         $this->assertSame('Kode', $sheet->getCell('A1')->getValue());
-        $this->assertSame(['IK-20261118-AAAA', '081234567890', 'Retur', 'Drafting'], [
-            $sheet->getCell('A3')->getValue(), $sheet->getCell('I3')->getValue(), $sheet->getCell('L3')->getValue(), $sheet->getCell('P3')->getValue(),
+        $this->assertSame(['IK-20261118-AAAA', 'Badan usaha', '081234567890', 'Retur', 'On Progress'], [
+            $sheet->getCell('A3')->getValue(), $sheet->getCell('H1')->getValue(), $sheet->getCell('J3')->getValue(), $sheet->getCell('M3')->getValue(), $sheet->getCell('R3')->getValue(),
         ]);
     }
 

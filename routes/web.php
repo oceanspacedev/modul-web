@@ -63,6 +63,7 @@ Route::controller(DocumentRequestController::class)->prefix('permintaan-dokumen'
     Route::post('/', 'store')->middleware('throttle:document-request')->name('store');
     Route::get('lacak', 'track')->middleware('throttle:document-request-track')->name('track');
     Route::get('contoh/{category?}', 'example')->whereNumber('category')->name('example');
+    Route::get('template/{category}', 'template')->whereNumber('category')->middleware('throttle:document-request-track')->name('template');
     Route::get('contoh/{category}/file', 'exampleFile')->whereNumber('category')->middleware('throttle:document-request-track')->name('example-file');
     // Link file rilis yang dikirim ke pemohon lewat WhatsApp; hanya link bertanda tangan dari aplikasi yang bisa dibuka.
     Route::get('file/{document}', 'file')->whereNumber('document')->middleware(['signed', 'throttle:document-request-track'])->name('file');
@@ -163,6 +164,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('{documentRequest}', 'show')->whereNumber('documentRequest')->name('show');
             Route::put('{documentRequest}', 'update')->whereNumber('documentRequest')->name('update');
+            Route::post('{documentRequest}/komentar', 'comment')->whereNumber('documentRequest')->name('comment');
+            Route::get('{documentRequest}/lampiran/{attachment}', 'attachment')->whereNumber(['documentRequest', 'attachment'])->name('attachment');
             Route::delete('{documentRequest}', 'destroy')->whereNumber('documentRequest')->name('destroy');
         });
 

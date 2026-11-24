@@ -15,9 +15,9 @@ use Symfony\Component\Mime\MimeTypes;
 
 /**
  * Dokumen yang ditangani tim OD (halaman Approval Dokumen). jenis = kode Kategori Dokumen. Dokumen dari Permintaan
- * Dokumen adalah satu "proses" pengajuan: punya document_request_id, tujuan, prioritas, sistem dan stage (tahapan
- * kategorinya) yang terlihat pemohon. Tahap terakhir kategori dan status bertipe done selalu berjalan bersama (lihat
- * applyStage() dan applyStatus()).
+ * Dokumen adalah satu "proses" pengajuan: punya document_request_id, tujuan (uraian), prioritas, sistem, lampiran, dan
+ * stage yang terlihat pemohon (REQUEST_STAGES, sama untuk semua kategori). Tahap terakhir dan status bertipe done
+ * selalu berjalan bersama (lihat applyStage() dan applyStatus()).
  */
 class OdDocument extends Model
 {
@@ -29,6 +29,21 @@ class OdDocument extends Model
     public const PRIORITAS = ['Urgent', 'High', 'Medium', 'Low'];
 
     public const STAGE_CANCELLED = 'Dibatalkan';
+
+    public const STAGE_RECEIVED = 'Pengajuan diterima';
+
+    public const STAGE_PROGRESS = 'On Progress';
+
+    public const STAGE_DONE = 'Selesai';
+
+    /**
+     * Status dokumen dari Permintaan Dokumen, sama untuk semua kategori dan terlihat apa adanya oleh pemohon. Dokumen
+     * OD lain memakai tahapan kategorinya.
+     */
+    public const REQUEST_STAGES = [self::STAGE_RECEIVED, self::STAGE_PROGRESS, self::STAGE_DONE];
+
+    /** Keterangan pengajuan untuk kategori bertemplate (mis. Jobdesk). */
+    public const JENIS_PENGAJUAN = ['Baru', 'Revisi'];
 
     /** File dokumen rilis: PDF atau Office, maks 50 MB. */
     public const FILE_RULES = ['file', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx', 'max:51200'];
@@ -82,6 +97,12 @@ class OdDocument extends Model
         return $this->hasOne(DocumentDraft::class)->latest('id');
     }
 
+    /** @return HasMany<OdDocumentAttachment, $this> */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(OdDocumentAttachment::class)->orderBy('id');
+    }
+
     /** @return HasMany<OdActivity, $this> */
     public function activities(): HasMany
     {
@@ -110,10 +131,27 @@ class OdDocument extends Model
         return $this->document_request_id !== null;
     }
 
-    /** @return list<string> */
+    /**
+     * Dokumen dari permintaan memakai tiga status tetap; dokumen lain memakai tahapan kategorinya.
+     *
+     * @return list<string>
+     */
     public function stageNames(): array
     {
-        return $this->category?->stageNames() ?? [];
+        return $this->isFromRequest() ? self::REQUEST_STAGES : ($this->category?->stageNames() ?? []);
+    }
+
+    public function firstStage(): ?string
+    {
+        return $this->stageNames()[0] ?? null;
+    }
+
+    /** Tahap terakhir = rilis. */
+    public function finalStage(): ?string
+    {
+        $stages = $this->stageNames();
+
+        return $stages ? end($stages) : null;
     }
 
     public function hasFile(): bool
@@ -161,7 +199,7 @@ class OdDocument extends Model
     /** Hasil simpan berupa rilis: tahap terakhir kategori atau status selesai. */
     public function wouldRelease(?string $stage, ?OdDocumentStatus $status): bool
     {
-        $final = $this->category?->finalStage();
+        $final = $this->finalStage();
 
         return ($stage !== null && $final !== null && $stage === $final) || (bool) $status?->isDone();
     }
@@ -176,13 +214,13 @@ class OdDocument extends Model
     /** Sudah di tahap terakhir kategorinya (rilis). */
     public function isReleased(): bool
     {
-        return $this->stage !== null && $this->stage === $this->category?->finalStage();
+        return $this->stage !== null && $this->stage === $this->finalStage();
     }
 
     /** Tahap yang dilihat pemohon: dokumen yang statusnya batal tampil sebagai "Dibatalkan". */
     public function publicStage(): string
     {
-        return $this->status?->isCancel() ? self::STAGE_CANCELLED : ($this->stage ?? $this->category?->firstStage() ?? '-');
+        return $this->status?->isCancel() ? self::STAGE_CANCELLED : ($this->stage ?? $this->firstStage() ?? '-');
     }
 
     /**

@@ -4,8 +4,10 @@ namespace App\Services;
 
 use App\Models\DocumentCategory;
 use App\Models\DocumentRequest;
+use App\Models\DocumentRequestComment;
 use App\Models\DocumentRequestHistory;
 use App\Models\OdDocument;
+use App\Models\OdDocumentAttachment;
 use App\Models\OdDocumentStatus;
 use App\Models\User;
 use App\Notifications\DocumentRequestSubmitted;
@@ -16,8 +18,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Membuat dan memproses Permintaan Dokumen. Setiap item menjadi OdDocument dengan jenis, PIC bawaan dan tahap awal dari
- * Kategori Dokumen yang dipilih pemohon.
+ * Membuat dan memproses Permintaan Dokumen. Setiap item menjadi OdDocument dengan jenis dan PIC bawaan dari Kategori
+ * Dokumen yang dipilih pemohon, berstatus awal Pengajuan diterima, beserta lampiran atau template terisinya.
  */
 class DocumentRequestService
 {
@@ -34,16 +36,17 @@ class DocumentRequestService
         }
 
         try {
-            $category = DocumentCategory::with('stages')->findOrFail($data['kategori']);
-            $firstStage = $category->firstStage();
+            $category = DocumentCategory::findOrFail($data['kategori']);
+            $firstStage = OdDocument::STAGE_RECEIVED;
+            $template = $category->hasTemplate();
 
-            $request = DB::transaction(function () use ($data, $user, $key, $category, $firstStage) {
+            $request = DB::transaction(function () use ($data, $user, $key, $category, $firstStage, $template) {
                 $observation = $category->needs_observation
                     ? collect($data)->only(['obs_tanggal_1', 'obs_tanggal_2', 'obs_catatan'])->all()
                     : ['obs_tanggal_1' => null, 'obs_tanggal_2' => null, 'obs_catatan' => null];
 
                 $request = DocumentRequest::create([
-                    ...collect($data)->only(['nama', 'divisi', 'departemen', 'jabatan', 'atasan', 'whatsapp', 'email'])->all(),
+                    ...collect($data)->only(['nama', 'divisi', 'departemen', 'jabatan', 'atasan', 'whatsapp', 'email', 'badan_usaha'])->all(),
                     ...$observation,
                     'code' => DocumentRequest::generateCode($category->ticketPrefix()),
                     'document_category_id' => $category->getKey(),
@@ -56,20 +59,26 @@ class DocumentRequestService
                 $pic = $category->picUser();
 
                 foreach (array_values($data['proses']) as $index => $process) {
-                    $request->processes()->create([
+                    $document = $request->processes()->create([
                         'title' => $process['judul'],
                         'jenis' => $category->code,
-                        'badan_usaha' => '-',
+                        'badan_usaha' => $data['badan_usaha'],
                         'od_document_status_id' => $open->getKey(),
                         'pic_user_id' => $pic?->getKey(),
                         'submitted_at' => today(),
                         'month' => today()->format('Y-m'),
-                        'tujuan' => $process['tujuan'],
+                        'tujuan' => $template ? null : $process['tujuan'],
+                        'jenis_pengajuan' => $template ? $process['jenis_pengajuan'] : null,
                         'prioritas' => $process['prioritas'],
-                        'sistem' => $process['sistem'] ?? null,
+                        'sistem' => $template ? null : ($process['sistem'] ?? null),
                         'stage' => $firstStage,
                         'sort' => $index + 1,
                     ]);
+
+                    $files = $template ? array_filter([$process['template'] ?? null]) : ($process['lampiran'] ?? []);
+                    foreach ($files as $file) {
+                        $this->documents->addAttachment($document, $file, $template ? OdDocumentAttachment::KIND_TEMPLATE : OdDocumentAttachment::KIND_LAMPIRAN);
+                    }
                 }
 
                 DocumentRequestHistory::create([
@@ -151,11 +160,6 @@ class DocumentRequestService
                 $changes[] = $label;
             }
 
-            if (filled($data['catatan_publik'] ?? null)) {
-                $this->history($request, $by, $request->stage(), $data['catatan_publik']);
-                $changes[] = 'Catatan: '.$data['catatan_publik'];
-            }
-
             $request->catatan_admin = $data['catatan_admin'] ?? null;
             $request->save();
             $request->touch();
@@ -164,6 +168,19 @@ class DocumentRequestService
         if ($changes) {
             DocumentRequestUpdated::send($request, "Ada pembaruan:\n".implode("\n", $changes), $attachments);
         }
+    }
+
+    /**
+     * Komentar tim OD untuk pemohon: tampil di halaman lacak dan dikirim ke WhatsApp pemohon.
+     */
+    public function comment(DocumentRequest $request, string $body, User $by): DocumentRequestComment
+    {
+        $comment = $request->comments()->create(['body' => $body, 'user_id' => $by->getKey()]);
+        $request->touch();
+
+        DocumentRequestUpdated::send($request, "Komentar dari tim OD ({$by->nama_lengkap}):\n{$body}");
+
+        return $comment;
     }
 
     private function history(DocumentRequest $request, User $by, string $status, string $note, ?OdDocument $process = null): void

@@ -7,13 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
  * Pengajuan pembuatan dokumen oleh karyawan (lewat login atau link publik) untuk satu Kategori Dokumen. Setiap item
- * yang diajukan adalah satu OdDocument (relasi processes); status dan progres tiket dihitung dari tahap item-itemnya
- * terhadap tahapan kategori.
+ * yang diajukan adalah satu OdDocument (relasi processes); status dan progres tiket dihitung dari status item-itemnya
+ * (OdDocument::REQUEST_STAGES: Pengajuan diterima → On Progress → Selesai).
  */
 class DocumentRequest extends Model
 {
@@ -84,6 +85,16 @@ class DocumentRequest extends Model
     }
 
     /**
+     * Komentar tim OD untuk pemohon, terbaru dulu.
+     *
+     * @return HasMany<DocumentRequestComment, $this>
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(DocumentRequestComment::class)->latest('created_at')->latest('id');
+    }
+
+    /**
      * Leader melihat semua pengajuan, Staff hanya pengajuan yang salah satu prosesnya PIC-nya dia.
      *
      * @param  Builder<DocumentRequest>  $query
@@ -114,21 +125,46 @@ class DocumentRequest extends Model
     /** @return list<string> */
     public function stageNames(): array
     {
-        return $this->category?->stageNames() ?? [];
+        return OdDocument::REQUEST_STAGES;
     }
 
     /**
-     * Status tiket = tahap proses yang paling tertinggal (proses yang dibatalkan tidak dihitung).
+     * Status tiket: Selesai bila semua proses yang tidak dibatalkan sudah selesai, On Progress begitu ada proses yang
+     * mulai dikerjakan, selain itu Pengajuan diterima.
      */
     public function stage(): string
     {
-        $stages = $this->stageNames();
         $active = $this->activeProcesses();
         if ($active->isEmpty()) {
-            return $this->processes->isEmpty() ? ($stages[0] ?? '-') : OdDocument::STAGE_CANCELLED;
+            return $this->processes->isEmpty() ? OdDocument::STAGE_RECEIVED : OdDocument::STAGE_CANCELLED;
         }
 
-        return $stages[$active->min(fn (OdDocument $p) => $p->stageIndex())] ?? '-';
+        if ($active->every(fn (OdDocument $p) => $p->isReleased())) {
+            return OdDocument::STAGE_DONE;
+        }
+
+        return $active->contains(fn (OdDocument $p) => $p->stageIndex() > 0) ? OdDocument::STAGE_PROGRESS : OdDocument::STAGE_RECEIVED;
+    }
+
+    /**
+     * Riwayat untuk pemohon: tiga status tiket beserta waktu tercapainya (null = belum). Butuh relasi histories.
+     *
+     * @return list<array{name: string, at: ?Carbon, done: bool}>
+     */
+    public function timeline(): array
+    {
+        $index = array_search($this->stage(), OdDocument::REQUEST_STAGES, true);
+        $reached = fn (array $statuses) => $this->histories->whereIn('status', $statuses)->min('created_at');
+
+        return array_map(fn (string $name, int $i) => [
+            'name' => $name,
+            'done' => $index !== false && $i <= $index,
+            'at' => $index === false || $i > $index ? null : match ($i) {
+                0 => $this->created_at,
+                1 => $reached([OdDocument::STAGE_PROGRESS, OdDocument::STAGE_DONE]) ?? $this->updated_at,
+                default => $this->histories->where('status', OdDocument::STAGE_DONE)->max('created_at') ?? $this->updated_at,
+            },
+        ], OdDocument::REQUEST_STAGES, array_keys(OdDocument::REQUEST_STAGES));
     }
 
     /** Progres 0-100 = rata-rata tahap semua proses yang tidak dibatalkan. */

@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Permintaan Masuk" subtitle="Pengajuan IK dari karyawan" eyebrow="Dokumen">
+        <x-page-header title="Permintaan Masuk" subtitle="Pengajuan dokumen dari karyawan" eyebrow="Dokumen">
             <x-slot:actions>
                 @if (Route::has('od-report.export'))
                     <form action="{{ route('od-report.export') }}" method="POST" class="m-0">
@@ -56,8 +56,8 @@
                             <option value="{{ $priority }}" @selected(request('prioritas') === $priority)>{{ $priority }}</option>
                         @endforeach
                     </select>
-                    <select name="tahap" class="custom-select custom-select-sm" style="width: 200px;" onchange="this.form.submit()" aria-label="Tahap">
-                        <option value="">Semua tahap</option>
+                    <select name="tahap" class="custom-select custom-select-sm" style="width: 200px;" onchange="this.form.submit()" aria-label="Status">
+                        <option value="">Semua status</option>
                         @foreach ($stageOptions as $stage)
                             <option value="{{ $stage }}" @selected(request('tahap') === $stage)>{{ $stage }}</option>
                         @endforeach
@@ -90,7 +90,7 @@
                             <tr>
                                 <td><a href="{{ route('od-report.requests.show', $request) }}"><strong>{{ $request->code }}</strong></a>
                                     <div class="small text-muted">{{ $request->category?->code }} · {{ $request->created_at->format('d/m/Y') }}</div></td>
-                                <td>{{ $request->nama }}<div class="small text-muted">{{ $request->departemen }}</div></td>
+                                <td>{{ $request->nama }}<div class="small text-muted">{{ collect([$request->departemen, $request->badan_usaha])->filter()->implode(' · ') }}</div></td>
                                 <td style="white-space: normal; min-width: 200px;">
                                     {{ $request->processes->first()?->title }}
                                     @if ($request->processes->count() > 1)<span class="text-muted small">(+{{ $request->processes->count() - 1 }})</span>@endif

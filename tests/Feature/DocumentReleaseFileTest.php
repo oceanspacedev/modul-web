@@ -39,7 +39,7 @@ class DocumentReleaseFileTest extends TestCase
         $this->post(route('document-request.store'), [
             'kategori' => DocumentCategory::where('code', 'JD')->value('id'),
             'nama' => 'Budi Pemohon', 'divisi' => 'Gudang', 'departemen' => 'Warehouse', 'jabatan' => 'Leader',
-            'whatsapp' => '081234567890', 'email' => 'budi@example.com',
+            'whatsapp' => '081234567890', 'email' => 'budi@example.com', 'badan_usaha' => 'TEST AREA',
             'proses' => [['judul' => 'JD Admin Gudang', 'tujuan' => 'Uraian tugas admin gudang belum ada.', 'prioritas' => 'High']],
         ]);
         $this->request = DocumentRequest::sole();
@@ -90,13 +90,13 @@ class DocumentReleaseFileTest extends TestCase
 
     public function test_release_from_incoming_requests_needs_a_file_and_sends_its_link(): void
     {
-        $this->updateRequest(['stage' => 'Release'])->assertSessionHasErrors('proses.'.$this->document->id.'.file');
-        $this->assertSame('Diajukan', $this->document->fresh()->stage);
+        $this->updateRequest(['stage' => 'Selesai'])->assertSessionHasErrors('proses.'.$this->document->id.'.file');
+        $this->assertSame('Pengajuan diterima', $this->document->fresh()->stage);
 
-        $this->updateRequest(['stage' => 'Release', 'file' => $this->pdf()])->assertSessionHas('success');
+        $this->updateRequest(['stage' => 'Selesai', 'file' => $this->pdf()])->assertSessionHas('success');
 
         $document = $this->document->fresh();
-        $this->assertSame('Release', $document->stage);
+        $this->assertSame('Selesai', $document->stage);
         $this->assertTrue($document->status->isDone());
         $this->assertSame('jd-admin-gudang.pdf', $document->file_name);
         Storage::assertExists($document->file_path);
@@ -115,7 +115,7 @@ class DocumentReleaseFileTest extends TestCase
 
     public function test_file_link_only_works_after_release(): void
     {
-        $this->updateRequest(['stage' => 'Drafting', 'file' => $this->pdf()])->assertSessionHas('success');
+        $this->updateRequest(['stage' => 'On Progress', 'file' => $this->pdf()])->assertSessionHas('success');
         $document = $this->document->fresh();
 
         $this->assertTrue($document->hasFile());
@@ -123,7 +123,7 @@ class DocumentReleaseFileTest extends TestCase
         $this->get(route('document-request.track', ['kode' => $this->request->code]))->assertDontSee('Buka file');
 
         // Sudah punya file: rilis tidak perlu unggah lagi.
-        $this->updateRequest(['stage' => 'Release'])->assertSessionHas('success');
+        $this->updateRequest(['stage' => 'Selesai'])->assertSessionHas('success');
         $this->get($document->fileLink())->assertRedirectContains($document->file_path);
     }
 
@@ -146,7 +146,7 @@ class DocumentReleaseFileTest extends TestCase
             ->assertSessionHasNoErrors();
         $document = $this->document->fresh();
         $this->assertTrue($document->status->isDone());
-        $this->assertSame('Release', $document->stage);
+        $this->assertSame('Selesai', $document->stage);
         $this->assertReleaseSentWithFile($document);
 
         // Tim OD bisa membuka file dari Approval Dokumen.
