@@ -77,6 +77,7 @@ class OdReportWeekMonthDefaultTest extends TestCase
         $this->actingAs($leader)->get(route('dashboard'))->assertOk()
             ->assertSee('1 pekerjaan berstatus Hold bulan ini')
             ->assertSee('/od-report/weekly?bulan=2026-12', false)
-            ->assertSee('/od-report/monthly?bulan=2027-01', false);
+            // Kartu "Penyelesaian bulan ini" menghitung window Desember, jadi tautannya membawa bulan yang sama.
+            ->assertSee('/od-report/monthly?bulan=2026-12', false);
     }
 }

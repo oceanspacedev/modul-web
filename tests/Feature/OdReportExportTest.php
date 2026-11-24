@@ -49,9 +49,9 @@ class OdReportExportTest extends TestCase
         return IOFactory::load(Storage::disk('local')->path('od.xlsx'))->getSheet(0);
     }
 
-    private function activity(User $user, string $date, string $name): void
+    private function activity(User $user, string $date, string $name, string $result = 'Done'): void
     {
-        OdActivity::create(['user_id' => $user->id, 'date' => $date, 'name' => $name, 'result' => 'Done', 'saved_at' => now()]);
+        OdActivity::create(['user_id' => $user->id, 'date' => $date, 'name' => $name, 'result' => $result, 'saved_at' => now()]);
     }
 
     private function document(User $pic, string $title, string $jenis, string $statusType = OdDocumentStatus::TYPE_OPEN): void
@@ -155,5 +155,73 @@ class OdReportExportTest extends TestCase
         Queue::assertPushed(GenerateExportFile::class, fn (GenerateExportFile $job) => $job->type === GenerateExportFile::OD_WEEKLY
             && $job->userId === $this->staff->id
             && $job->filters === ['month' => '2026-11']);
+    }
+
+    public function test_export_carries_the_filters_that_are_active_on_the_weekly_screen(): void
+    {
+        Queue::fake();
+
+        $this->actingAs($this->leader)->post(route('od-report.export'), [
+            'type' => 'weekly', 'bulan' => '2026-11', 'minggu' => '2026-11-14', 'status' => 'Hold', 'search' => 'sop', 'user' => $this->staff->id,
+        ])->assertSessionHas('info');
+
+        Queue::assertPushed(GenerateExportFile::class, fn (GenerateExportFile $job) => $job->filters === [
+            'month' => '2026-11', 'week' => '2026-11-14', 'status' => 'Hold', 'search' => 'sop', 'member_id' => $this->staff->id,
+        ]);
+    }
+
+    public function test_weekly_screen_posts_the_filters_shown_next_to_the_export_button(): void
+    {
+        $this->activity($this->staff, '2026-11-10', 'Drafting IK retur');
+
+        $this->actingAs($this->leader)->get(route('od-report.weekly', [
+            'bulan' => '2026-11', 'minggu' => '2026-11-07', 'status' => 'Done', 'search' => 'retur',
+        ]))->assertOk()
+            ->assertSee('<input type="hidden" name="minggu" value="2026-11-07">', false)
+            ->assertSee('<input type="hidden" name="status" value="Done">', false)
+            ->assertSee('<input type="hidden" name="search" value="retur">', false);
+    }
+
+    public function test_weekly_export_only_contains_the_filtered_week_status_and_search(): void
+    {
+        $this->activity($this->leader, '2026-11-05', 'Review SOP gudang');
+        $this->activity($this->staff, '2026-11-10', 'Drafting IK retur', 'Hold');
+        $this->activity($this->staff, '2026-11-16', 'Drafting SOP baru');
+
+        $week = $this->sheet(new OdWeeklyExport($this->leader, '2026-11', null, '2026-11-14'));
+        $this->assertSame('Week 3 (14 - 20 November 2026)', $week->getCell('B1')->getValue());
+        $this->assertSame('DRAFTING SOP BARU', $week->getCell('B2')->getValue());
+        $this->assertNull($week->getCell('B3')->getValue());
+
+        $hold = $this->sheet(new OdWeeklyExport($this->leader, '2026-11', null, null, 'Hold'));
+        $this->assertSame('Week 2 (07 - 13 November 2026)', $hold->getCell('B1')->getValue());
+        $this->assertSame('DRAFTING IK RETUR', $hold->getCell('B2')->getValue());
+        $this->assertNull($hold->getCell('B3')->getValue());
+
+        $search = $this->sheet(new OdWeeklyExport($this->leader, '2026-11', null, null, null, 'ik'));
+        $this->assertSame('DRAFTING IK RETUR', $search->getCell('B2')->getValue());
+        $this->assertNull($search->getCell('B3')->getValue());
+
+        // Key minggu dari bulan lain tidak dipakai; ekspor kembali ke semua minggu bulan itu.
+        $other = $this->sheet(new OdWeeklyExport($this->leader, '2026-11', null, '2026-12-05'));
+        $this->assertSame('Week 1 (31 Oktober - 06 November 2026)', $other->getCell('B1')->getValue());
+    }
+
+    public function test_export_refuses_a_member_outside_the_od_team(): void
+    {
+        Queue::fake();
+        $outsider = User::factory()->staff()->create(['nama_lengkap' => 'BUKAN TIM OD']);
+
+        $this->actingAs($this->leader)->post(route('od-report.export'), ['type' => 'weekly', 'bulan' => '2026-11', 'user' => $outsider->id])
+            ->assertSessionHasErrors('user');
+
+        Queue::assertNothingPushed();
+
+        // Id anggota tim tetap boleh.
+        $this->actingAs($this->leader)->post(route('od-report.export'), ['type' => 'monthly', 'bulan' => '2026-11', 'user' => $this->staff->id])
+            ->assertSessionHas('info');
+        Queue::assertPushed(GenerateExportFile::class, fn (GenerateExportFile $job) => $job->filters === [
+            'month' => '2026-11', 'member_id' => $this->staff->id,
+        ]);
     }
 }

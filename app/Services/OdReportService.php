@@ -112,17 +112,22 @@ class OdReportService
         $today = CarbonImmutable::today();
         // Bulan tautan report = bulan minggu OdWeek hari ini, sama dengan default halaman Weekly/Monthly.
         $bulan = OdWeek::of($today)->month();
+        // Statistik bulan memakai window minggu laporan yang sama dengan halaman Monthly/Weekly, bukan 1–akhir bulan
+        // kalender, supaya angka kartu Dashboard bisa dicek ulang di halaman itu.
+        $weeks = OdWeek::inMonth($bulan);
+        $monthStart = $weeks[0]->start;
+        $monthEnd = end($weeks)->end();
         // "Minggu ini" selalu Sabtu–Jumat 7 hari (bukan Week 4 gabungan 14 hari) agar tren dibanding minggu lalu adil.
         $weekStart = $today->subDays(($today->dayOfWeek + 1) % 7);
         $from = $today->subDays(29);
 
         $activities = OdActivity::query()->visibleTo($user)->reported()
-            ->whereDate('date', '>=', $from->min($weekStart->subWeek())->min($today->startOfMonth()))
+            ->whereDate('date', '>=', $from->min($weekStart->subWeek())->min($monthStart))
             ->get(['id', 'user_id', 'date', 'result']);
 
         $thisWeek = $activities->filter(fn ($a) => $a->date->betweenIncluded($weekStart, $weekStart->addDays(6)))->count();
         $lastWeek = $activities->filter(fn ($a) => $a->date->betweenIncluded($weekStart->subWeek(), $weekStart->subDay()))->count();
-        $month = $this->stats($activities->filter(fn ($a) => $a->date->isSameMonth($today)));
+        $month = $this->stats($activities->filter(fn ($a) => $a->date->betweenIncluded($monthStart, $monthEnd)));
 
         $documents = OdDocument::query()->visibleTo($user)->with('status')->get(['id', 'od_document_status_id']);
         $team = $user->can('manage-od-report') ? OdTeam::members() : collect([$user]);

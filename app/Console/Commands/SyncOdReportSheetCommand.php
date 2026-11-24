@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\SyncOdReportSheet;
 use App\Services\OdSheetSync;
 use Illuminate\Console\Command;
 use Throwable;
@@ -20,11 +21,16 @@ class SyncOdReportSheetCommand extends Command
             return self::SUCCESS;
         }
 
+        $failed = 0;
+        $stalled = 0;
+
         try {
             do {
                 $result = $sync->run();
                 $this->info("{$result['written']} ditulis, {$result['failed']} gagal, sisa {$result['remaining']}.");
-            } while ($result['remaining'] > 0 && $result['written'] > 0);
+                $failed += $result['failed'];
+                $stalled = $result['written'] > 0 ? 0 : $stalled + 1;
+            } while ($result['remaining'] > 0 && $stalled < SyncOdReportSheet::MAX_ROUNDS_WITHOUT_PROGRESS);
         } catch (Throwable $e) {
             report($e);
             $this->error('Sinkron gagal: '.$e->getMessage());
@@ -32,6 +38,13 @@ class SyncOdReportSheetCommand extends Command
             return self::FAILURE;
         }
 
-        return self::SUCCESS;
+        if ($result['remaining'] > 0) {
+            $this->error("{$result['remaining']} pekerjaan masih ditolak spreadsheet, sinkron dihentikan setelah {$stalled} batch tanpa kemajuan.");
+
+            return self::FAILURE;
+        }
+
+        // Baris yang ditolak tidak pernah tercatat di sheet, jadi perintah ini harus tampak gagal.
+        return $failed > 0 ? self::FAILURE : self::SUCCESS;
     }
 }

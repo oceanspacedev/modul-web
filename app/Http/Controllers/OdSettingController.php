@@ -22,7 +22,8 @@ class OdSettingController extends Controller
         return view('od-report.settings', [
             'title' => 'Pengaturan',
             'active' => 'od-settings',
-            'statuses' => OdDocumentStatus::ordered()->withCount('documents')->get(),
+            // "Dipakai" termasuk dokumen yang diarsipkan: sama dengan aturan penolakan hapus di bawah.
+            'statuses' => OdDocumentStatus::ordered()->withCount(['documents' => fn ($q) => $q->withTrashed()])->get(),
             'sheet' => [
                 'enabled' => $sheet->enabled(),
                 'link' => OdSetting::value(OdSetting::SHEET_LINK),

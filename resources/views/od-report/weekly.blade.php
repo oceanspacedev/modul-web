@@ -12,6 +12,9 @@
                         @csrf
                         <input type="hidden" name="type" value="weekly">
                         <input type="hidden" name="bulan" value="{{ $month }}">
+                        <input type="hidden" name="minggu" value="{{ $weekKey }}">
+                        <input type="hidden" name="status" value="{{ $status }}">
+                        <input type="hidden" name="search" value="{{ $search }}">
                         <input type="hidden" name="user" value="{{ $memberId }}">
                         <button type="submit" class="btn btn-primary"><i class="fas fa-file-excel"></i> Ekspor .xlsx</button>
                     </form>
@@ -39,7 +42,7 @@
                     <select name="status" class="custom-select custom-select-sm" style="width: 150px;" onchange="this.form.submit()" aria-label="Status">
                         <option value="">Semua status</option>
                         @foreach (App\Models\OdActivity::RESULTS as $result)
-                            <option value="{{ $result }}" @selected(request('status') === $result)>{{ $result }}</option>
+                            <option value="{{ $result }}" @selected($status === $result)>{{ $result }}</option>
                         @endforeach
                     </select>
                     <x-search-field placeholder="Cari pekerjaan..." class="ml-auto" style="width: 220px; max-width: 100%;"

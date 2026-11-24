@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\OdReportService;
 use App\Services\OdSheetSync;
 use App\Support\OdTeam;
+use App\Support\OdWeek;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
@@ -87,10 +88,28 @@ class OdDailyController extends Controller
         $data = $request->activityData();
         $this->ensureDocumentVisible($request->user(), $data['od_document_id'] ?? null, $activity->od_document_id);
 
+        // Pindah bulan laporan = pindah tab spreadsheet: baris lama harus dikosongkan lebih dulu, dan itu hanya
+        // perlu untuk baris yang memang sudah tertulis (sheet_hash terisi). Tanggal di bulan yang sama dibiarkan.
+        $moved = $activity->sheet_hash
+            && OdWeek::of($activity->date)->month() !== OdWeek::of($data['date'])->month();
+
+        if ($moved) {
+            // Sekalian dibuka kembali (draft) supaya event saved di bawah tidak menulis barisnya ke tab baru
+            // sebelum baris di tab lama dikosongkan; "Simpan Laporan" yang mengirimnya ke tab bulan baru.
+            $activity->saved_at = null;
+            $activity->sheet_hash = null;
+        }
+
         $activity->update($data);
 
+        if ($moved) {
+            OdSheetSync::queue([OdSheetSync::key($activity)]);
+        }
+
         return redirect()->to($request->input('back') === 'weekly' ? route('od-report.weekly') : route('od-report.daily.index'))
-            ->with('success', 'Aktivitas diperbarui.');
+            ->with('success', $moved
+                ? 'Aktivitas diperbarui. Karena pindah bulan laporan, barisnya di tab lama dikosongkan dan laporannya dibuka kembali — tekan "Simpan Laporan" untuk mengirimnya ke tab bulan baru.'
+                : 'Aktivitas diperbarui.');
     }
 
     public function destroy(Request $request, OdActivity $activity): RedirectResponse

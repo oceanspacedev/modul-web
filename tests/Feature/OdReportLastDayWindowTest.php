@@ -62,11 +62,13 @@ class OdReportLastDayWindowTest extends TestCase
         $this->assertSame('REKAP MINGGU EMPAT', $sheet->getCell('B2')->getValue());
     }
 
-    public function test_last_day_of_the_month_window_is_counted_in_the_monthly_stats(): void
+    public function test_the_month_window_edges_are_counted_in_the_monthly_stats(): void
     {
         $leader = $this->leader();
+        // Bulan laporan = window minggu: 31 Okt – 27 Nov. Kedua batasnya dihitung, 28 Nov sudah masuk Desember.
+        $this->activity($leader, '2026-10-31', 'Awal window');
         $this->activity($leader, '2026-11-27', 'Rekap minggu empat');
-        $this->activity($leader, '2026-11-30', 'Tutup buku November');
+        $this->activity($leader, '2026-11-28', 'Pekerjaan minggu Desember');
 
         $this->actingAs($leader)->get(route('od-report.monthly', ['bulan' => '2026-11']))->assertOk()
             ->assertSee('2 dari 2 selesai')

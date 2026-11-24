@@ -15,7 +15,7 @@
 <div class="row">
     @foreach ([
         ['Aktivitas minggu ini', $od['thisWeek'], ($od['trend'] >= 0 ? '+' : '').$od['trend'].'% dari minggu lalu', route('od-report.weekly', ['bulan' => $od['bulan']])],
-        ['Penyelesaian bulan ini', $od['month']['percent'].'%', $od['month']['done'].' dari '.$od['month']['total'].' selesai', route('od-report.monthly', ['bulan' => now()->format('Y-m')])],
+        ['Penyelesaian bulan ini', $od['month']['percent'].'%', $od['month']['done'].' dari '.$od['month']['total'].' selesai · '.App\Support\OdWeek::monthLabel($od['bulan']), route('od-report.monthly', ['bulan' => $od['bulan']])],
         ['Dokumen berjalan', $od['openDocs'], $od['doneDocs'].' sudah selesai', route('od-report.documents.index')],
         ['Lapor hari ini', $od['reportedToday'].'/'.$od['teamSize'], 'anggota sudah simpan laporan', route('od-report.daily.index')],
     ] as [$label, $value, $hint, $url])
