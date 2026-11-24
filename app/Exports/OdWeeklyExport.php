@@ -50,7 +50,8 @@ class OdWeeklyExport implements FromArray, WithCustomValueBinder, WithEvents, Wi
     {
         $weeks = OdWeek::inMonth($this->month);
         $activities = OdActivity::query()->visibleTo($this->viewer)->reported()
-            ->whereBetween('date', [$weeks[0]->start->toDateString(), end($weeks)->end()->toDateString()])
+            ->whereDate('date', '>=', $weeks[0]->start->toDateString())
+            ->whereDate('date', '<=', end($weeks)->end()->toDateString())
             ->when($this->memberId, fn ($q) => $q->where('user_id', $this->memberId))
             ->with('user.position')
             ->get();

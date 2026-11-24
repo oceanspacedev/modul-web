@@ -28,9 +28,9 @@ class OdDailyController extends Controller
 
     public function index(Request $request): View
     {
-        $this->reports->autoSavePastDrafts();
-
         $user = $request->user();
+        $this->reports->autoSavePastDrafts($user);
+
         $today = CarbonImmutable::today();
         $mine = OdActivity::where('user_id', $user->getKey())->whereDate('date', $today)
             ->with('document')->orderBy('sort')->orderBy('id')->get();
@@ -135,11 +135,24 @@ class OdDailyController extends Controller
             : 'Tidak ada draft untuk disimpan.');
     }
 
-    /** "Buka Kembali": laporan hari ini yang sudah disimpan kembali menjadi draft. */
+    /**
+     * "Buka Kembali": laporan hari ini yang sudah disimpan kembali menjadi draft. Barisnya di spreadsheet Weekly
+     * Report ikut dikosongkan — query builder tidak memicu model event, jadi daftar hapus dikirim sendiri dan
+     * sheet_hash dibersihkan agar baris yang disimpan ulang terkirim lagi sebagai pembaruan.
+     */
     public function reopen(Request $request): RedirectResponse
     {
-        OdActivity::where('user_id', $request->user()->getKey())->whereDate('date', today())
-            ->whereNotNull('saved_at')->update(['saved_at' => null]);
+        $reopened = OdActivity::where('user_id', $request->user()->getKey())->whereDate('date', today())
+            ->whereNotNull('saved_at')->get(['id', 'sheet_hash']);
+
+        if ($reopened->isNotEmpty()) {
+            OdActivity::whereKey($reopened->pluck('id'))->update(['saved_at' => null, 'sheet_hash' => null]);
+
+            $keys = $reopened->whereNotNull('sheet_hash')->map(fn (OdActivity $a) => OdSheetSync::key($a))->values()->all();
+            if ($keys !== []) {
+                OdSheetSync::queue($keys);
+            }
+        }
 
         return to_route('od-report.daily.index')->with('success', 'Laporan hari ini dibuka kembali.');
     }

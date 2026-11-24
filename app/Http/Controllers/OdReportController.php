@@ -32,8 +32,10 @@ class OdReportController extends Controller
         $weekKey = collect($weeks)->contains(fn (OdWeek $w) => $w->key() === $request->query('minggu')) ? $request->query('minggu') : null;
         $range = $weekKey ? [OdWeek::of($weekKey)] : $weeks;
 
+        // whereDate agar hari terakhir window tidak terbuang (kolom date tersimpan "Y-m-d H:i:s").
         $activities = OdActivity::query()->visibleTo($user)->reported()
-            ->whereBetween('date', [$range[0]->start->toDateString(), end($range)->end()->toDateString()])
+            ->whereDate('date', '>=', $range[0]->start->toDateString())
+            ->whereDate('date', '<=', end($range)->end()->toDateString())
             ->when($memberId, fn (Builder $q) => $q->where('user_id', $memberId))
             ->when($request->filled('search'), fn (Builder $q) => $q->where('name', 'like', '%'.$request->string('search')->trim().'%'))
             ->with(['user', 'document'])
@@ -62,7 +64,8 @@ class OdReportController extends Controller
         $start = CarbonImmutable::createFromFormat('Y-m-d', $month.'-01')->startOfDay();
 
         $activities = OdActivity::query()->visibleTo($user)->reported()
-            ->whereBetween('date', [$start->toDateString(), $start->endOfMonth()->toDateString()])
+            ->whereDate('date', '>=', $start->toDateString())
+            ->whereDate('date', '<=', $start->endOfMonth()->toDateString())
             ->when($memberId, fn (Builder $q) => $q->where('user_id', $memberId))
             ->get(['id', 'result']);
 
@@ -90,14 +93,15 @@ class OdReportController extends Controller
     }
 
     /**
-     * Bulan (Y-m) dari ?bulan, dan anggota yang dipilih Leader dari ?user (Staff selalu dirinya sendiri).
+     * Bulan (Y-m) dari ?bulan — default bulan minggu laporan hari ini — dan anggota yang dipilih Leader dari ?user
+     * (Staff selalu dirinya sendiri).
      *
      * @return array{0: string, 1: \Illuminate\Database\Eloquent\Collection<int, User>|Collection<int, User>, 2: ?int}
      */
     private function monthAndMember(Request $request): array
     {
         $user = $request->user();
-        $month = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', (string) $request->query('bulan')) ? $request->query('bulan') : today()->format('Y-m');
+        $month = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', (string) $request->query('bulan')) ? $request->query('bulan') : $this->defaultMonth();
 
         if (! $user->can('manage-od-report')) {
             return [$month, collect([$user]), $user->getKey()];
@@ -109,9 +113,17 @@ class OdReportController extends Controller
         return [$month, $members, $memberId];
     }
 
-    /** 12 bulan terakhir untuk pilihan bulan. @return list<string> */
+    /** Bulan minggu laporan hari ini (Rabu-nya), bukan bulan kalender — 28 Nov 2026 sudah masuk Desember. */
+    private function defaultMonth(): string
+    {
+        return OdWeek::of(today())->month();
+    }
+
+    /** 12 bulan terakhir untuk pilihan bulan, dihitung dari bulan default. @return list<string> */
     private function months(): array
     {
-        return collect(range(0, 11))->map(fn ($back) => today()->startOfMonth()->subMonths($back)->format('Y-m'))->all();
+        $default = CarbonImmutable::createFromFormat('Y-m-d', $this->defaultMonth().'-01')->startOfDay();
+
+        return collect(range(0, 11))->map(fn ($back) => $default->subMonths($back)->format('Y-m'))->all();
     }
 }
