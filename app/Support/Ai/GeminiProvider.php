@@ -53,9 +53,12 @@ class GeminiProvider extends AiProvider
                 : new AiException('Gagal memuat model Gemini: '.$this->errorMessage($response));
         }
 
+        // Hanya model Gemini penghasil teks; generateContent juga dipakai model musik (Lyria), gambar, suara dan lainnya.
         return collect($response->json('models', []))
             ->filter(fn (array $model) => in_array('generateContent', $model['supportedGenerationMethods'] ?? [], true))
             ->mapWithKeys(fn (array $model) => [str_replace('models/', '', $model['name']) => $model['displayName'] ?? $model['name']])
+            ->filter(fn (string $label, string $id) => str_starts_with($id, 'gemini-')
+                && ! preg_match('/(tts|image|audio|live|embedding|robotics|computer-use)/', $id))
             ->sortKeys()
             ->all();
     }

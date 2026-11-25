@@ -213,7 +213,9 @@
             });
         });
         choices.forEach(choice => choice.addEventListener('change', () => showPanel(choice.value)));
+        // Dropdown model: sebagian browser hanya mengirim "change", bukan "input".
         form.addEventListener('input', refreshSave);
+        form.addEventListener('change', refreshSave);
 
         // Setelah validasi gagal, biarkan isian apa adanya (termasuk kolom model) agar pesan error terlihat.
         if (hasErrors) {

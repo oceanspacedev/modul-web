@@ -141,6 +141,9 @@ class AiSettingsTest extends TestCase
             'generativelanguage.googleapis.com/v1beta/models*' => Http::response(['models' => [
                 ['name' => 'models/gemini-3.5-flash', 'displayName' => 'Gemini 3.5 Flash', 'supportedGenerationMethods' => ['generateContent']],
                 ['name' => 'models/text-embedding', 'displayName' => 'Embedding', 'supportedGenerationMethods' => ['embedContent']],
+                ['name' => 'models/lyria-3-clip-preview', 'displayName' => 'Lyria 3 Clip', 'supportedGenerationMethods' => ['generateContent']],
+                ['name' => 'models/gemini-3.5-flash-preview-tts', 'displayName' => 'Gemini TTS', 'supportedGenerationMethods' => ['generateContent']],
+                ['name' => 'models/gemini-3.5-flash-image', 'displayName' => 'Gemini Image', 'supportedGenerationMethods' => ['generateContent']],
             ]]),
             'api.openai.com/v1/models' => Http::response(['data' => [
                 ['id' => 'gpt-5', 'created' => 2], ['id' => 'whisper-1', 'created' => 3], ['id' => 'gpt-image-1', 'created' => 4],
