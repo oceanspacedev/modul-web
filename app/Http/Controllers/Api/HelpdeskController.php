@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendHelpdeskWebhook;
 use App\Models\DocumentCategory;
 use App\Models\DocumentRequest;
 use App\Services\Helpdesk\FormSchema;
 use App\Services\Helpdesk\TicketIntake;
 use App\Services\Helpdesk\TicketSnapshot;
+use App\Support\HelpdeskConnection;
+use App\Support\OutboundUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -25,6 +28,10 @@ class HelpdeskController extends Controller
                 'key' => $category->code,
                 'name' => $category->name,
                 'active' => (bool) $category->is_active,
+                // Kartu pilihan kategori di helpdesk (kontrak §3.2 v1.1), sama dengan kartu di form web.
+                'description' => (string) ($category->description ?? ''),
+                'needs_observation' => (bool) $category->needs_observation,
+                'has_template' => $category->hasTemplate(),
             ])->values(),
         ]);
     }
@@ -62,6 +69,35 @@ class HelpdeskController extends Controller
         }
 
         return response()->json(['data' => TicketSnapshot::for($documentRequest)]);
+    }
+
+    /**
+     * PUT {base}/webhook (kontrak §4.1): helpdesk mendaftarkan URL dan rahasia webhook-nya sendiri setelah kode koneksi
+     * dipakai, jadi admin tidak perlu menyalinnya ke .env. Pendaftaran berikutnya menimpa yang lama.
+     */
+    public function registerWebhook(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'url' => ['required', 'string', 'max:500', 'url:http,https', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (is_string($value) && ($problem = OutboundUrl::problem($value)) !== null) {
+                    $fail($problem);
+                }
+            }],
+            'secret' => ['required', 'string', 'min:16', 'max:500'],
+        ]);
+
+        HelpdeskConnection::registerWebhook($data['url'], $data['secret']);
+
+        return response()->json(['data' => ['registered' => true, 'url' => $data['url']]]);
+    }
+
+    /**
+     * POST {base}/webhook/test (kontrak §4.2): kirim event "ping" ke webhook helpdesk sekarang juga dan laporkan
+     * hasilnya, supaya helpdesk bisa membuktikan arah sistem ini → helpdesk tanpa membuat tiket.
+     */
+    public function testWebhook(): JsonResponse
+    {
+        return response()->json(['data' => SendHelpdeskWebhook::ping()]);
     }
 
     private function notFound(string $message): JsonResponse

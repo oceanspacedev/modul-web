@@ -14,4 +14,6 @@ Route::prefix('helpdesk/v1')->name('api.helpdesk.')
         Route::get('forms/{categoryKey}', 'form')->name('forms.show');
         Route::post('tickets', 'store')->name('tickets.store');
         Route::get('tickets/{ref}', 'show')->name('tickets.show');
+        Route::put('webhook', 'registerWebhook')->name('webhook.register');
+        Route::post('webhook/test', 'testWebhook')->name('webhook.test');
     });

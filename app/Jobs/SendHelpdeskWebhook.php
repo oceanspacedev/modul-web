@@ -5,14 +5,19 @@ namespace App\Jobs;
 use App\Models\DocumentRequest;
 use App\Models\OdDocument;
 use App\Services\Helpdesk\TicketSnapshot;
+use App\Support\HelpdeskConnection;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * Webhook ticket.updated ke helpdesk (kontrak integrasi §4) untuk Permintaan Dokumen yang berasal dari helpdesk.
@@ -48,15 +53,31 @@ class SendHelpdeskWebhook implements ShouldBeUniqueUntilProcessing, ShouldQueue
     }
 
     /**
-     * Kirim (setelah transaksi selesai) bila pengajuannya dari helpdesk dan webhook sudah diatur.
+     * Kirim (setelah transaksi selesai) bila pengajuan warisan memakai nomor tiket helpdesk dan webhook sudah diatur.
      */
     public static function forRequest(?DocumentRequest $request): void
     {
-        if (! $request?->isFromHelpdesk() || ! self::configured()) {
+        if (! $request?->isFromHelpdesk() || blank($request->helpdesk_ticket_number) || ! self::configured()) {
             return;
         }
 
-        self::dispatch($request->getKey())->afterCommit();
+        $id = (int) $request->getKey();
+
+        // Antrean sync (lokal/dev): kegagalan helpdesk tidak boleh menggagalkan aksi tim OD yang sudah tersimpan.
+        // Kegagalannya tetap tercatat (lastDelivery) dan dilaporkan; di antrean sungguhan job diulang dengan jeda.
+        if (config('queue.connections.'.config('queue.default').'.driver') === 'sync') {
+            DB::afterCommit(function () use ($id): void {
+                try {
+                    self::dispatchSync($id);
+                } catch (Throwable $exception) {
+                    report($exception);
+                }
+            });
+
+            return;
+        }
+
+        self::dispatch($id)->afterCommit();
     }
 
     public static function forDocument(OdDocument $document): void
@@ -68,7 +89,7 @@ class SendHelpdeskWebhook implements ShouldBeUniqueUntilProcessing, ShouldQueue
 
     public static function configured(): bool
     {
-        return filled(config('services.helpdesk.webhook_url')) && filled(config('services.helpdesk.webhook_secret'));
+        return HelpdeskConnection::webhookConfigured();
     }
 
     /**
@@ -99,7 +120,7 @@ class SendHelpdeskWebhook implements ShouldBeUniqueUntilProcessing, ShouldQueue
         }
 
         $request = DocumentRequest::withTrashed()->find($this->documentRequestId);
-        if (! $request?->isFromHelpdesk()) {
+        if (! $request?->isFromHelpdesk() || blank($request->helpdesk_ticket_number)) {
             return;
         }
 
@@ -111,19 +132,71 @@ class SendHelpdeskWebhook implements ShouldBeUniqueUntilProcessing, ShouldQueue
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         $timestamp = (string) now()->getTimestamp();
 
-        Http::withHeaders([
-            'X-Helpdesk-Timestamp' => $timestamp,
-            'X-Helpdesk-Signature' => self::signature($timestamp, $body),
-            'Accept' => 'application/json',
-        ])
-            ->withBody($body, 'application/json')
-            ->timeout(15)
-            ->post((string) config('services.helpdesk.webhook_url'))
-            ->throw();
+        try {
+            Http::withHeaders([
+                'X-Helpdesk-Timestamp' => $timestamp,
+                'X-Helpdesk-Signature' => self::signature($timestamp, $body),
+                'Accept' => 'application/json',
+            ])
+                ->withBody($body, 'application/json')
+                ->timeout(15)
+                ->withoutRedirecting()
+                ->post((string) HelpdeskConnection::webhookUrl())
+                ->throw();
+        } catch (Throwable $exception) {
+            HelpdeskConnection::recordDelivery(match (true) {
+                $exception instanceof RequestException => 'Helpdesk membalas HTTP '.$exception->response->status().($exception->response->status() === 401 ? ' (rahasia webhook tidak cocok).' : '.'),
+                $exception instanceof ConnectionException => 'Helpdesk tidak dapat dihubungi.',
+                default => class_basename($exception).': '.$exception->getMessage(),
+            });
+
+            throw $exception;
+        }
+
+        HelpdeskConnection::recordDelivery(null);
+    }
+
+    /**
+     * Kirim event "ping" bertanda tangan ke webhook helpdesk (kontrak §4.2), dipakai tes menyeluruh dari helpdesk.
+     * Langsung dalam request, tanpa antrean dan tanpa pengulangan: hasilnya dikembalikan apa adanya.
+     *
+     * @return array{delivered: bool, event_id: string, status: ?int, error: ?string}
+     */
+    public static function ping(): array
+    {
+        $eventId = (string) Str::uuid();
+        if (! self::configured()) {
+            return ['delivered' => false, 'event_id' => $eventId, 'status' => null, 'error' => 'Webhook helpdesk belum terdaftar.'];
+        }
+
+        // "data" berupa objek kosong: helpdesk mewajibkan field itu ada, dan tipe selain ticket.updated diabaikan.
+        $body = json_encode(['event_id' => $eventId, 'type' => 'ping', 'occurred_at' => now()->toIso8601String(), 'data' => ['ping' => true]], JSON_THROW_ON_ERROR);
+        $timestamp = (string) now()->getTimestamp();
+
+        try {
+            $response = Http::withHeaders([
+                'X-Helpdesk-Timestamp' => $timestamp,
+                'X-Helpdesk-Signature' => self::signature($timestamp, $body),
+                'Accept' => 'application/json',
+            ])->withBody($body, 'application/json')->timeout(10)->withoutRedirecting()->post((string) HelpdeskConnection::webhookUrl());
+        } catch (ConnectionException) {
+            HelpdeskConnection::recordDelivery('Helpdesk tidak dapat dihubungi.');
+
+            return ['delivered' => false, 'event_id' => $eventId, 'status' => null, 'error' => 'Helpdesk tidak dapat dihubungi dari sistem ini.'];
+        }
+
+        $error = match (true) {
+            $response->successful() => null,
+            $response->status() === 401 => 'Helpdesk menolak tanda tangan (rahasia webhook tidak cocok).',
+            default => 'Helpdesk membalas HTTP '.$response->status().'.',
+        };
+        HelpdeskConnection::recordDelivery($error);
+
+        return ['delivered' => $error === null, 'event_id' => $eventId, 'status' => $response->status(), 'error' => $error];
     }
 
     public static function signature(string $timestamp, string $body): string
     {
-        return 'sha256='.hash_hmac('sha256', "{$timestamp}.{$body}", (string) config('services.helpdesk.webhook_secret'));
+        return 'sha256='.hash_hmac('sha256', "{$timestamp}.{$body}", (string) HelpdeskConnection::webhookSecret());
     }
 }

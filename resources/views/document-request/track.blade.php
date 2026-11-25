@@ -8,7 +8,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Lacak Permintaan Dokumen" subtitle="Masukkan kode tiket, mis. IK-20261118-AB12" eyebrow="Permintaan Dokumen">
+        <x-page-header title="Lacak Permintaan Dokumen" subtitle="Masukkan kode tiket, mis. IK-20261118-AB12 atau HD-2026-00012" eyebrow="Permintaan Dokumen">
             <x-slot:actions>
                 <a href="{{ route('document-request.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Ajukan baru</a>
             </x-slot:actions>
@@ -37,7 +37,7 @@
 
         <form action="{{ route('document-request.track') }}" method="GET" class="card">
             <div class="card-body d-flex gap-2">
-                <input type="text" name="kode" class="form-control" value="{{ $code }}" placeholder="KODE-YYYYMMDD-XXXX" aria-label="Kode tiket" required style="text-transform: uppercase;">
+                <input type="text" name="kode" class="form-control" value="{{ $code }}" placeholder="KODE-YYYYMMDD-XXXX / HD-YYYY-NNNNN" aria-label="Kode tiket" required style="text-transform: uppercase;">
                 <button type="submit" class="btn btn-primary">Lacak</button>
             </div>
             <div class="card-footer small" id="myTickets" hidden>Pengajuan di perangkat ini: <span></span></div>
@@ -57,7 +57,9 @@
                 <div class="card-body">
                     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
                         <div>
-                            <div class="text-muted small">{{ $documentRequest->code }} · {{ $category?->label() }}</div>
+                            <div class="text-muted small">
+                                {{ $documentRequest->code }} · {{ $category?->label() }}@if ($documentRequest->helpdesk_ticket_number) · Helpdesk {{ $documentRequest->helpdesk_ticket_number }}@endif
+                            </div>
                             <h3 class="h5 mb-1">{{ $documentRequest->stage() }}</h3>
                             <div class="small text-muted">
                                 {{ $documentRequest->nama }} · {{ $documentRequest->departemen }} · WA {{ $documentRequest->maskedWhatsapp() }} · {{ $documentRequest->maskedEmail() }}

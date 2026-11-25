@@ -82,9 +82,12 @@ class DocumentRequestController extends Controller
     public function track(Request $request): View
     {
         $code = strtoupper(trim((string) $request->query('kode')));
-        $documentRequest = preg_match(DocumentRequest::CODE_PATTERN, $code)
-            ? DocumentRequest::where('code', $code)->with(['category', 'processes.status', 'histories', 'comments.user'])->first()
-            : null;
+        $relations = ['category', 'processes.status', 'histories', 'comments.user'];
+        $documentRequest = match (true) {
+            preg_match(DocumentRequest::CODE_PATTERN, $code) === 1 => DocumentRequest::where('code', $code)->with($relations)->first(),
+            preg_match('/^HD-\d{4}-\d{4,10}$/', $code) === 1 => DocumentRequest::where('helpdesk_ticket_number', $code)->with($relations)->first(),
+            default => null,
+        };
 
         return view('document-request.track', [
             'title' => 'Lacak Permintaan Dokumen',

@@ -30,6 +30,9 @@ class DocumentRequest extends Model
         'Online / Marcomm',
         'Retail',
         'Distribution Sales',
+        'Business Development',
+        'General Affair',
+        'Executive Office',
     ];
 
     public const JABATAN = ['Staff', 'Leader', 'Coordinator', 'Manager', 'Chief'];

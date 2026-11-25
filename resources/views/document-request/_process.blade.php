@@ -2,7 +2,7 @@
      $templateMode = kategori terpilih bertemplate (mis. Jobdesk). Bagian [data-mode] yang tidak dipakai disembunyikan dan
      dinonaktifkan supaya tidak ikut terkirim; JavaScript form menyesuaikannya saat kategori diganti. --}}
 @php
-    $priorityColors = ['Urgent' => '#b91c1c', 'High' => '#dc2626', 'Medium' => '#d97706', 'Low' => '#059669'];
+    $priorityColors = ['Urgent' => '#dc2626', 'High' => '#ea580c', 'Medium' => '#ca8a04', 'Low' => '#059669'];
     $templateMode ??= false;
     $lampiranError = $errors->first("proses.$i.lampiran*");
 @endphp

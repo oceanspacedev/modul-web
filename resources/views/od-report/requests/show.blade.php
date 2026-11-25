@@ -210,6 +210,10 @@
                                     {{ $r->nama }} @if ($r->user)<span class="badge badge-light">akun</span>@endif
                                     <div class="small text-muted">{{ collect([$r->jabatan, $r->divisi, $r->departemen, $r->badan_usaha])->filter()->implode(' · ') }}</div>
                                 </dd>
+                                @if ($r->helpdesk_ticket_number)
+                                    <dt>Tiket Helpdesk</dt>
+                                    <dd>{{ $r->helpdesk_ticket_number }}</dd>
+                                @endif
                                 @if ($r->atasan)
                                     <dt>Atasan</dt>
                                     <dd>{{ $r->atasan }}</dd>

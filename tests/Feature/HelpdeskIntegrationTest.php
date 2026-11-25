@@ -10,6 +10,7 @@ use App\Models\OdDocument;
 use App\Models\OdDocumentAttachment;
 use App\Models\OdDocumentStatus;
 use App\Models\User;
+use App\Services\Helpdesk\FormSchema;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\UploadedFile;
@@ -58,7 +59,6 @@ class HelpdeskIntegrationTest extends TestCase
     {
         return [
             'idempotency_key' => 'hd-kunci-1',
-            'helpdesk_ticket_number' => 'HD-2026-0001',
             'category_key' => $category,
             'title' => 'Permintaan IK gudang',
             'reporter' => [
@@ -78,7 +78,6 @@ class HelpdeskIntegrationTest extends TestCase
                 'badan_usaha' => 'TEST AREA',
                 'proses' => [
                     ['judul' => 'Penerimaan barang', 'tujuan' => 'Supaya penerimaan barang seragam.', 'prioritas' => 'High'],
-                    ['judul' => 'Retur barang', 'tujuan' => 'Alur retur sering berbeda.', 'prioritas' => 'Urgent'],
                 ],
                 'obs_tanggal_1' => '2026-11-20',
                 ...$answers,
@@ -153,7 +152,16 @@ class HelpdeskIntegrationTest extends TestCase
 
         $data = $this->api()->get('/api/helpdesk/v1/categories')->assertOk()->json('data');
 
-        $this->assertContains(['key' => 'IK', 'name' => DocumentCategory::where('code', 'IK')->value('name'), 'active' => true], $data);
+        $ik = DocumentCategory::where('code', 'IK')->first();
+        $this->assertContains([
+            'key' => 'IK',
+            'name' => $ik->name,
+            'active' => true,
+            'description' => (string) $ik->description,
+            'needs_observation' => true,
+            'has_template' => false,
+        ], $data);
+        $this->assertNotSame('', self::find($data, 'IK')['description']);
         $this->assertNotContains('SOP', array_column($data, 'key'));
         $this->assertSame(DocumentCategory::active()->count(), count($data));
     }
@@ -168,11 +176,14 @@ class HelpdeskIntegrationTest extends TestCase
 
         $fields = $form['fields'];
         // Nama dan WhatsApp diambil dari identitas pelapor, bukan field form.
-        $this->assertSame(['email', 'divisi', 'departemen', 'jabatan', 'atasan', 'badan_usaha', 'proses', 'obs_info', 'obs_tanggal_1', 'obs_tanggal_2', 'obs_catatan'], array_column($fields, 'key'));
+        $this->assertSame(['proses', 'nama', 'divisi', 'departemen', 'jabatan', 'badan_usaha', 'atasan', 'whatsapp', 'email', 'obs_tanggal_1', 'obs_tanggal_2', 'obs_catatan'], array_column($fields, 'key'));
+        $this->assertSame('reporter.phone', self::find($fields, 'whatsapp')['prefill']);
+        $this->assertSame('reporter.name', self::find($fields, 'nama')['prefill']);
+        $this->assertTrue(self::find($fields, 'nama')['required']);
         $this->assertSame('reporter.email', self::find($fields, 'email')['prefill']);
         $this->assertSame('reporter.unit', self::find($fields, 'divisi')['prefill']);
-        $this->assertSame('reporter.job_title', self::find($fields, 'jabatan')['prefill']);
-        $this->assertSame('reporter.business_entity', self::find($fields, 'badan_usaha')['prefill']);
+        $this->assertSame('reporter.job_level', self::find($fields, 'jabatan')['prefill']);
+        $this->assertSame('ticket.business_entity', self::find($fields, 'badan_usaha')['prefill']);
         $this->assertSame(DocumentRequest::DEPARTMENTS, array_column(self::find($fields, 'departemen')['options'], 'value'));
         $this->assertSame(['TEST AREA'], array_column(self::find($fields, 'badan_usaha')['options'], 'value'));
         $this->assertFalse(self::find($fields, 'atasan')['required']);
@@ -181,7 +192,8 @@ class HelpdeskIntegrationTest extends TestCase
 
         $proses = self::find($fields, 'proses');
         $this->assertSame('repeater', $proses['type']);
-        $this->assertSame([1, DocumentRequest::MAX_PROCESSES], [$proses['min_items'], $proses['max_items']]);
+        $this->assertSame([1, FormSchema::MAX_DOCUMENTS], [$proses['min_items'], $proses['max_items']]);
+        $this->assertSame(1, FormSchema::MAX_DOCUMENTS);
         $this->assertSame(['judul', 'prioritas', 'tujuan', 'sistem', 'lampiran'], array_column($proses['fields'], 'key'));
         $this->assertSame(OdDocument::PRIORITAS, array_column(self::find($proses['fields'], 'prioritas')['options'], 'value'));
         $this->assertSame([
@@ -191,6 +203,72 @@ class HelpdeskIntegrationTest extends TestCase
             'max_total_kb' => OdDocumentAttachment::MAX_KB,
         ], self::find($proses['fields'], 'lampiran')['rules']);
         $this->assertSame(['min' => 10, 'max' => 2000], self::find($proses['fields'], 'tujuan')['rules']);
+    }
+
+    public function test_form_steps_mirror_the_web_wizard(): void
+    {
+        $form = $this->api()->get('/api/helpdesk/v1/forms/IK')->assertOk()->json('data');
+
+        $this->assertSame(['dokumen', 'pemohon', 'observasi'], array_column($form['steps'], 'key'));
+        $this->assertSame(['Dokumen', 'Data pemohon', 'Jadwal observasi'], array_column($form['steps'], 'title'));
+        $this->assertTrue($form['steps'][0]['category_picker']);
+        $this->assertArrayNotHasKey('category_picker', $form['steps'][1]);
+        $this->assertSame([['key' => 'detail', 'title' => 'Detail dokumen', 'help' => 'Satu pengajuan untuk satu dokumen. Butuh dokumen lain? Kirim pengajuan baru.']], $form['steps'][0]['sections']);
+        $this->assertSame(['identitas', 'kontak'], array_column($form['steps'][1]['sections'], 'key'));
+        $this->assertSame(['Identitas', 'Kontak'], array_column($form['steps'][1]['sections'], 'title'));
+        $this->assertSame('jadwal', $form['steps'][2]['sections'][0]['key']);
+        $this->assertStringContainsString('Tim OD akan mengamati langsung proses kerja.', $form['steps'][2]['sections'][0]['help']);
+
+        $placement = collect($form['fields'])->mapWithKeys(fn (array $field) => [$field['key'] => "{$field['step']}/{$field['section']}"])->all();
+        $this->assertSame([
+            'proses' => 'dokumen/detail',
+            'nama' => 'pemohon/identitas',
+            'divisi' => 'pemohon/identitas',
+            'departemen' => 'pemohon/identitas',
+            'jabatan' => 'pemohon/identitas',
+            'badan_usaha' => 'pemohon/identitas',
+            'atasan' => 'pemohon/identitas',
+            'whatsapp' => 'pemohon/kontak',
+            'email' => 'pemohon/kontak',
+            'obs_tanggal_1' => 'observasi/jadwal',
+            'obs_tanggal_2' => 'observasi/jadwal',
+            'obs_catatan' => 'observasi/jadwal',
+        ], $placement);
+
+        $this->assertSame(['Pagi', 'Siang', 'Di lokasi kerja'], self::find($form['fields'], 'obs_catatan')['suggestions']);
+        $this->assertSame('Contoh: General Affair Aset', self::find($form['fields'], 'divisi')['placeholder']);
+
+        // Judul dan petunjuk observasi hanya muncul sekali (dari seksi), sama seperti form web.
+        $this->assertSame([], array_column(array_filter($form['fields'], fn (array $field) => $field['type'] === 'info'), 'key'));
+        $this->assertSame(1, substr_count(json_encode($form, JSON_UNESCAPED_UNICODE), 'Tim OD akan'));
+
+        // Field di dalam repeater tidak punya langkah sendiri.
+        $this->assertArrayNotHasKey('step', self::find($form['fields'], 'proses')['fields'][0]);
+
+        // Kategori bertemplate: petunjuk detail dokumen sama dengan form web.
+        $this->jobdeskWithTemplate();
+        $jd = $this->api()->get('/api/helpdesk/v1/forms/JD')->assertOk()->json('data');
+        $this->assertSame('Isi lengkapnya ada di template. Satu pengajuan untuk satu dokumen. Butuh dokumen lain? Kirim pengajuan baru.', $jd['steps'][0]['sections'][0]['help']);
+        $this->assertSame(['dokumen', 'pemohon'], array_values(array_unique(array_column($jd['fields'], 'step'))));
+    }
+
+    public function test_steps_before_the_category_picker_are_identical_for_every_category(): void
+    {
+        $this->jobdeskWithTemplate();
+        $categories = DocumentCategory::active()->pluck('code');
+        $this->assertGreaterThan(1, $categories->count());
+
+        $pemohon = $categories->map(function (string $code) {
+            $form = $this->api()->get("/api/helpdesk/v1/forms/{$code}")->assertOk()->json('data');
+
+            return [
+                'step' => $form['steps'][1],
+                'fields' => array_values(array_filter($form['fields'], fn (array $field) => $field['step'] === 'pemohon')),
+            ];
+        })->unique(fn (array $part) => json_encode($part));
+
+        $this->assertCount(1, $pemohon);
+        $this->assertSame(['nama', 'divisi', 'departemen', 'jabatan', 'badan_usaha', 'atasan', 'whatsapp', 'email'], array_column($pemohon->first()['fields'], 'key'));
     }
 
     public function test_form_for_a_normal_and_a_template_category(): void
@@ -205,7 +283,7 @@ class HelpdeskIntegrationTest extends TestCase
         $this->assertSame(['judul', 'prioritas', 'jenis_pengajuan', 'template'], array_column($proses, 'key'));
         $this->assertSame(OdDocument::JENIS_PENGAJUAN, array_column(self::find($proses, 'jenis_pengajuan')['options'], 'value'));
         $this->assertSame(['accept' => OdDocumentAttachment::TEMPLATE_EXTENSIONS, 'max_kb' => OdDocumentAttachment::MAX_KB], self::find($proses, 'template')['rules']);
-        $this->assertContains(route('document-request.template', $jd), array_column($form['downloads'], 'url'));
+        $this->assertContains(['label' => 'Template JD', 'url' => route('document-request.template', $jd)], $form['downloads']);
     }
 
     public function test_unknown_or_inactive_category_form_is_not_found(): void
@@ -224,29 +302,39 @@ class HelpdeskIntegrationTest extends TestCase
 
         $request = DocumentRequest::sole();
         $this->assertSame(DocumentRequest::SOURCE_HELPDESK, $request->source);
-        $this->assertSame('HD-2026-0001', $request->helpdesk_ticket_number);
+        $this->assertNull($request->helpdesk_ticket_number);
         $this->assertSame($employee->id, $request->user_id);
         $this->assertSame('Budi Pelapor', $request->nama);
         $this->assertSame('081234567890', $request->whatsapp);
         $this->assertSame('budi@example.com', $request->email);
         $this->assertSame('2026-11-20', $request->obs_tanggal_1->toDateString());
-        $this->assertSame(['Penerimaan barang', 'Retur barang'], OdDocument::orderBy('sort')->pluck('title')->all());
+        $this->assertSame(['Penerimaan barang'], OdDocument::orderBy('sort')->pluck('title')->all());
 
         $response->assertJsonPath('data.ref', $request->code)
             ->assertJsonPath('data.status', ['code' => 'open', 'label' => 'Pengajuan diterima'])
             ->assertJsonPath('data.items.0.title', 'Penerimaan barang')
             ->assertJsonPath('data.items.0.status.code', 'open')
             ->assertJsonPath('data.timeline.0.label', 'Pengajuan diterima')
-            ->assertJsonStructure(['data' => ['ref', 'url', 'status', 'summary', 'items', 'timeline', 'comments', 'files', 'updated_at']]);
+            ->assertJsonStructure(['data' => ['ref', 'url', 'track_url', 'status', 'summary', 'items', 'timeline', 'comments', 'files', 'updated_at']]);
+        $this->assertSame(rtrim(config('app.url'), '/').'/permintaan-dokumen/lacak?kode='.DocumentRequest::sole()->code, $response->json('data.track_url'));
+        $this->get($response->json('data.track_url'))->assertOk()->assertSee(DocumentRequest::sole()->code);
 
-        // Pemohon dikabari helpdesk, bukan aplikasi ini (WhatsApp maupun notifikasi akun).
-        $this->assertSame(0, $this->requesterMessages());
-        $this->assertSame(0, $employee->notifications()->count());
+        // Pemohon dikabari langsung oleh Modul BUSDEV (WhatsApp dan notifikasi akun).
+        $this->assertSame(1, $this->requesterMessages());
+        $this->assertSame(1, $employee->notifications()->count());
         $this->assertSame([], $this->webhooks());
 
         // Kiriman ulang dengan kunci sama (meski isiannya kini tidak valid) mengembalikan tiket yang sama.
         $this->submit($this->ticket(answers: ['proses' => []]))->assertOk()->assertJsonPath('data.ref', $request->code);
         $this->assertSame(1, DocumentRequest::count());
+
+        // Pengajuan warisan yang masih membawa nomor tiket helpdesk tetap bisa dilacak lewat nomor HD.
+        $this->submit($this->ticket(overrides: ['idempotency_key' => 'hd-kunci-legacy', 'helpdesk_ticket_number' => 'HD-2026-0001']))->assertCreated();
+        $legacy = DocumentRequest::orderByDesc('id')->firstOrFail();
+        $this->get(route('document-request.track', ['kode' => 'HD-2026-0001']))
+            ->assertOk()
+            ->assertSee($legacy->code)
+            ->assertSee('Helpdesk HD-2026-0001');
     }
 
     public function test_submit_without_a_known_nik_is_a_guest_request(): void
@@ -274,6 +362,54 @@ class HelpdeskIntegrationTest extends TestCase
         // Kategori tanpa observasi: tanggal yang ikut terkirim diabaikan.
         $this->submit($this->ticket('SOP', ['obs_tanggal_1' => '2026-11-01']))->assertCreated();
         $this->assertNull(DocumentRequest::sole()->obs_tanggal_1);
+    }
+
+    public function test_a_reporter_without_a_phone_fills_the_whatsapp_field_in_the_form(): void
+    {
+        // Helpdesk tidak punya nomor pelapor dan pelapor belum mengisinya: error menunjuk ke field form, bukan ke
+        // identitas yang tidak bisa diubah pelapor.
+        $payload = $this->ticket();
+        $payload['reporter']['phone'] = '';
+        $this->submit($payload)->assertUnprocessable()->assertJsonValidationErrors('answers.whatsapp');
+        $this->assertSame(0, DocumentRequest::count());
+
+        // Nomor dari isian form dipakai, dan menang atas nomor identitas.
+        $this->submit($this->ticket(answers: ['whatsapp' => '0813-1111-2222'], overrides: ['idempotency_key' => 'hd-kunci-wa', 'reporter' => ['name' => 'Budi Pelapor', 'phone' => '']]))->assertCreated();
+        $this->assertSame('081311112222', DocumentRequest::sole()->whatsapp);
+
+        $this->submit($this->ticket(answers: ['whatsapp' => 'abc'], overrides: ['idempotency_key' => 'hd-kunci-wa2']))
+            ->assertUnprocessable()->assertJsonValidationErrors('answers.whatsapp');
+    }
+
+    public function test_the_name_answer_wins_over_the_reporter_name(): void
+    {
+        // Pelapor baru di helpdesk: nama diisi di form, reporter.name hanya cadangan.
+        $this->submit($this->ticket(answers: ['nama' => 'Sari Pemohon Baru'], overrides: ['reporter' => ['name' => '', 'phone' => '0812-3456-7890']]))
+            ->assertCreated();
+        $this->assertSame('Sari Pemohon Baru', DocumentRequest::sole()->nama);
+
+        // Error nama dikembalikan ke field form bila dikirim lewat answers, ke reporter.name bila tidak.
+        $this->submit($this->ticket(answers: ['nama' => ''], overrides: ['idempotency_key' => 'hd-kunci-2', 'reporter' => ['name' => '', 'phone' => '0812-3456-7890']]))
+            ->assertUnprocessable()->assertJsonValidationErrors(['answers.nama'])->assertJsonMissingValidationErrors(['reporter.name']);
+        $this->submit($this->ticket(overrides: ['idempotency_key' => 'hd-kunci-3', 'reporter' => ['name' => '', 'phone' => '0812-3456-7890']]))
+            ->assertUnprocessable()->assertJsonValidationErrors(['reporter.name']);
+    }
+
+    public function test_a_helpdesk_submission_carries_exactly_one_document(): void
+    {
+        $two = [
+            ['judul' => 'Penerimaan barang', 'tujuan' => 'Supaya penerimaan barang seragam.', 'prioritas' => 'High'],
+            ['judul' => 'Retur barang', 'tujuan' => 'Alur retur sering berbeda.', 'prioritas' => 'Urgent'],
+        ];
+
+        $this->submit($this->ticket(answers: ['proses' => $two]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['answers.proses' => 'Satu pengajuan lewat helpdesk hanya untuk satu dokumen.']);
+        $this->submit($this->ticket(answers: ['proses' => []]))->assertUnprocessable()->assertJsonValidationErrors(['answers.proses']);
+        $this->assertSame(0, DocumentRequest::count());
+
+        $this->submit($this->ticket())->assertCreated();
+        $this->assertSame(1, DocumentRequest::sole()->processes()->count());
     }
 
     public function test_submit_with_attachments_and_template_files(): void
@@ -305,7 +441,10 @@ class HelpdeskIntegrationTest extends TestCase
     public function test_snapshot_maps_item_statuses_to_the_ticket_status(): void
     {
         $code = $this->submit($this->ticket())->assertCreated()->json('data.ref');
-        [$first, $second] = OdDocument::orderBy('sort')->get()->all();
+        // Lewat helpdesk hanya satu dokumen; dokumen kedua ditambahkan langsung untuk menguji status gabungan.
+        $first = OdDocument::sole();
+        $second = $first->replicate();
+        $second->forceFill(['title' => 'Retur barang', 'sort' => $first->sort + 1])->save();
         $show = fn () => $this->api()->get("/api/helpdesk/v1/tickets/{$code}")->assertOk();
 
         $show()->assertJsonPath('data.status.code', 'open');
@@ -350,11 +489,27 @@ class HelpdeskIntegrationTest extends TestCase
         $this->api()->get('/api/helpdesk/v1/tickets/IK-20261118-XXXX')->assertNotFound();
     }
 
-    public function test_od_changes_send_a_signed_webhook_and_no_requester_message(): void
+    public function test_od_changes_send_a_signed_webhook_for_legacy_tickets_and_direct_whatsapp_for_passthrough(): void
     {
-        $code = $this->submit($this->ticket())->assertCreated()->json('data.ref');
-        $request = DocumentRequest::sole();
+        // Pass-through tanpa helpdesk_ticket_number: pemohon dikabari langsung lewat WhatsApp, tanpa webhook ke helpdesk.
+        $this->submit($this->ticket(overrides: ['idempotency_key' => 'hd-passthrough']))->assertCreated();
+        $passthrough = DocumentRequest::sole();
         $leader = $this->leader();
+        $passthroughFirst = $passthrough->processes()->first();
+
+        Carbon::setTestNow('2026-11-18 10:30:00');
+        $this->actingAs($leader)->put(route('od-report.requests.update', $passthrough), [
+            'updated_at' => $passthrough->fresh()->updated_at->toIso8601String(),
+            'proses' => [$passthroughFirst->id => ['stage' => OdDocument::STAGE_PROGRESS]],
+        ])->assertSessionHasNoErrors();
+        $this->actingAs($leader)->post(route('od-report.requests.comment', $passthrough), ['body' => 'Kabar langsung WA.'])->assertSessionHasNoErrors();
+
+        $this->assertSame([], $this->webhooks());
+        $this->assertSame(3, $this->requesterMessages());
+
+        // Tiket warisan dengan helpdesk_ticket_number tetap mengirim webhook.
+        $code = $this->submit($this->ticket(overrides: ['helpdesk_ticket_number' => 'HD-2026-0001']))->assertCreated()->json('data.ref');
+        $request = DocumentRequest::orderByDesc('id')->firstOrFail();
         $first = $request->processes()->first();
 
         Carbon::setTestNow('2026-11-18 11:00:00');
@@ -389,13 +544,11 @@ class HelpdeskIntegrationTest extends TestCase
         ])->assertSessionHasNoErrors();
         $this->assertCount(3, $this->webhooks());
         $this->assertSame('cancelled', json_decode($this->webhooks()[2]->body(), true)['data']['items'][0]['status']['code']);
-
-        $this->assertSame(0, $this->requesterMessages());
     }
 
     public function test_webhook_failures_are_retried_and_skipped_when_not_configured(): void
     {
-        $this->submit($this->ticket())->assertCreated();
+        $this->submit($this->ticket(overrides: ['helpdesk_ticket_number' => 'HD-2026-0001']))->assertCreated();
         $request = DocumentRequest::sole();
         $leader = $this->leader();
 
@@ -423,7 +576,7 @@ class HelpdeskIntegrationTest extends TestCase
 
     public function test_title_edits_and_deletion_are_sent_to_helpdesk(): void
     {
-        $this->submit($this->ticket())->assertCreated();
+        $this->submit($this->ticket(overrides: ['helpdesk_ticket_number' => 'HD-2026-0001']))->assertCreated();
         $request = DocumentRequest::sole();
         $leader = $this->leader();
         $first = $request->processes()->with('status')->first();
@@ -477,12 +630,12 @@ class HelpdeskIntegrationTest extends TestCase
         $this->assertTrue(Http::recorded()->contains(fn (array $pair) => str_contains($pair[0]->url(), 'whatsapp.test')
             && ($pair[0]->data()['recipient']['value'] ?? null) === '081111111111'
             && str_contains($pair[0]->data()['message']['text'] ?? '', "Pengajuan Dokumen Baru {$code}")));
-        $this->assertSame(0, $this->requesterMessages());
+        $this->assertSame(1, $this->requesterMessages());
     }
 
     public function test_document_edits_with_a_stage_change_send_one_webhook(): void
     {
-        $this->submit($this->ticket())->assertCreated();
+        $this->submit($this->ticket(overrides: ['helpdesk_ticket_number' => 'HD-2026-0001']))->assertCreated();
         $first = DocumentRequest::sole()->processes()->first();
 
         $this->actingAs($this->leader())->put(route('od-report.documents.update', $first), [
@@ -496,7 +649,7 @@ class HelpdeskIntegrationTest extends TestCase
 
     public function test_release_file_replacement_without_stage_change_sends_one_webhook(): void
     {
-        $this->submit($this->ticket())->assertCreated();
+        $this->submit($this->ticket(overrides: ['helpdesk_ticket_number' => 'HD-2026-0001']))->assertCreated();
         $first = DocumentRequest::sole()->processes()->first();
         $leader = $this->leader();
         $done = OdDocumentStatus::firstOfType(OdDocumentStatus::TYPE_DONE);

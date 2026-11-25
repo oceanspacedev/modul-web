@@ -42,6 +42,9 @@ class TicketSnapshot
         return [
             'ref' => $request->code,
             'url' => route('document-request.track', ['kode' => $request->code]),
+            // Halaman lacak publik: helpdesk mengarahkan pemohon ke sini setelah pengajuan berhasil. Dibangun dari
+            // APP_URL (alamat yang dibuka pemohon), bukan host yang dipakai helpdesk memanggil API (bisa alamat internal).
+            'track_url' => rtrim((string) config('app.url'), '/').route('document-request.track', ['kode' => $request->code], false),
             'status' => self::status($request, $processes),
             'summary' => self::summary($request, $processes),
             'items' => $processes->map(fn (OdDocument $process) => [

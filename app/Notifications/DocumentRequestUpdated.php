@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Notification as NotificationFacade;
 /**
  * Kabar ke pemohon Permintaan Dokumen: pengajuan diterima atau tahap proses berubah. WhatsApp dikirim ke nomor yang
  * diisi di form (pemohon publik tidak punya akun); pemohon yang login juga mendapatkannya di menu Notifikasi.
- * Tidak dikirim untuk pengajuan dari helpdesk (helpdesk yang mengabari pelapornya).
  */
 class DocumentRequestUpdated extends Notification implements ShouldQueue
 {
@@ -31,11 +30,6 @@ class DocumentRequestUpdated extends Notification implements ShouldQueue
      */
     public static function send(DocumentRequest $request, string $message, array $attachments = []): void
     {
-        // Pengajuan dari helpdesk: pelapor dikabari helpdesk lewat webhook, jangan dobel.
-        if ($request->isFromHelpdesk()) {
-            return;
-        }
-
         $notification = new self($request->code, $message, $attachments);
 
         NotificationFacade::route('whatsapp', $request->whatsapp)->notify($notification);

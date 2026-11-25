@@ -154,5 +154,6 @@ class AppServiceProvider extends ServiceProvider
         // Log Viewer (/log-viewer) exposes stack traces and request data, so administrators only.
         Gate::define('viewLogViewer', fn (User $user) => $user->isAdministrator());
         Gate::define('manage-ai-settings', fn (User $user) => $user->isAdministrator());
+        Gate::define('manage-helpdesk-settings', fn (User $user) => $user->isAdministrator());
     }
 }
