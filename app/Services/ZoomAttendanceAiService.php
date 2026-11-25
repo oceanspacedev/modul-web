@@ -3,29 +3,25 @@
 namespace App\Services;
 
 use App\Enums\CameraStatus;
+use App\Support\Ai\AiClient;
+use App\Support\Ai\AiSettings;
 use App\Support\Meetings\MeetingNameMatcher;
 use Exception;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class ZoomAttendanceAiService
 {
-    protected ?string $apiKey;
+    protected AiClient $ai;
 
-    protected string $model;
-
+    /** Provider, API key dan model diambil dari Pengaturan AI (cadangan: .env). */
     public function __construct(?string $apiKey = null)
     {
-        $this->apiKey = $apiKey ?: config('services.gemini.api_key');
-        $this->model = config('services.gemini.model', 'gemini-3.5-flash-lite');
+        $this->ai = AiClient::current($apiKey);
     }
 
-    /**
-     * Check if Gemini API key is configured
-     */
     public function isConfigured(): bool
     {
-        return ! empty($this->apiKey);
+        return $this->ai->isConfigured();
     }
 
     /**
@@ -40,7 +36,7 @@ class ZoomAttendanceAiService
     public function detectCameraStatus(array $images, array $registeredParticipants, string $platform = 'Meeting'): array
     {
         if (! $this->isConfigured()) {
-            throw new Exception('GEMINI_API_KEY belum dikonfigurasi di file .env!');
+            throw new Exception(AiSettings::notConfiguredMessage());
         }
 
         if (empty($images)) {
@@ -67,8 +63,7 @@ class ZoomAttendanceAiService
             'text' => $promptText,
         ];
 
-        // Call Gemini Vision API
-        $response = $this->callGeminiApi($parts);
+        $response = $this->ai->generate($parts, ['temperature' => 0.2, 'timeout' => 180]);
 
         // Parse and enhance results
         $results = $this->parseResponse($response, $registeredParticipants);
@@ -187,76 +182,11 @@ class ZoomAttendanceAiService
     }
 
     /**
-     * Call Google Gemini API with fallback models
-     */
-    protected function callGeminiApi(array $parts): array
-    {
-        $modelsToTry = array_unique([
-            $this->model,
-            'gemini-2.5-flash',
-            'gemini-1.5-flash',
-            'gemini-2.0-flash',
-            'gemini-3.5-flash-lite',
-            'gemini-flash-latest',
-        ]);
-
-        $lastError = null;
-
-        foreach ($modelsToTry as $modelName) {
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key=".urlencode($this->apiKey);
-
-            $payload = [
-                'contents' => [
-                    [
-                        'role' => 'user',
-                        'parts' => $parts,
-                    ],
-                ],
-                'generationConfig' => [
-                    'response_mime_type' => 'application/json',
-                    'temperature' => 0.2,
-                ],
-            ];
-
-            try {
-                $response = Http::timeout(180)
-                    ->withHeaders(['Content-Type' => 'application/json'])
-                    ->post($url, $payload);
-
-                if ($response->successful()) {
-                    return $response->json();
-                }
-
-                $errBody = $response->json();
-                $errMsg = $errBody['error']['message'] ?? $response->body();
-                $lastError = "Gemini API ({$modelName}) Error: ".$errMsg;
-                Log::warning("Gemini model {$modelName} failed for Zoom inspection: ".$errMsg);
-
-                if (str_contains($errMsg, 'API_KEY_INVALID') || str_contains($errMsg, 'API key not valid')) {
-                    throw new Exception('API Key Gemini tidak valid. Silakan periksa kembali GEMINI_API_KEY Anda di file .env.');
-                }
-            } catch (Exception $e) {
-                if (str_contains($e->getMessage(), 'API Key Gemini tidak valid')) {
-                    throw $e;
-                }
-                $lastError = $e->getMessage();
-            }
-        }
-
-        throw new Exception($lastError ?: 'Gagal menghubungi layanan Google Gemini Vision. Pastikan koneksi internet stabil.');
-    }
-
-    /**
-     * Parse the Gemini JSON response and count, per person, in how many screenshots they appeared and in how many
+     * Parse the AI JSON response and count, per person, in how many screenshots they appeared and in how many
      * their camera was on. One row per matched participant; unmatched meeting names get one row per name.
      */
-    protected function parseResponse(array $response, array $registeredParticipants): array
+    protected function parseResponse(string $rawText, array $registeredParticipants): array
     {
-        $rawText = $response['candidates'][0]['content']['parts'][0]['text'] ?? null;
-        if (! $rawText) {
-            throw new Exception('Google Gemini tidak mengembalikan respons teks visual yang valid.');
-        }
-
         // Clean json backticks if any
         $cleanJson = trim($rawText);
         if (str_starts_with($cleanJson, '```json')) {
@@ -271,7 +201,7 @@ class ZoomAttendanceAiService
 
         $decoded = json_decode($cleanJson, true);
         if (! is_array($decoded) || ! isset($decoded['screenshots']) || ! is_array($decoded['screenshots'])) {
-            Log::error('Failed to parse Gemini meeting camera JSON: '.$cleanJson);
+            Log::error('Failed to parse AI meeting camera JSON: '.$cleanJson);
             throw new Exception('Format respons dari AI tidak dapat diproses. Silakan coba kembali dengan screenshot yang lebih jelas.');
         }
 

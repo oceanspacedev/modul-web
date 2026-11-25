@@ -1011,7 +1011,7 @@
                     </div>
 
                     @unless($canScanCameraWithAi)
-                        <p class="text-xs text-muted mb-0">Pindai screenshot dengan AI belum tersedia. Hubungi admin untuk mengaktifkannya.@if($hasAdministratorAccess) (Atur GEMINI_API_KEY di server.)@endif</p>
+                        <p class="text-xs text-muted mb-0">Pindai screenshot dengan AI belum tersedia. Hubungi admin untuk mengaktifkannya.@if($hasAdministratorAccess) (Atur di <a href="{{ route('ai-settings.index') }}">Pengaturan AI</a>.)@endif</p>
                     @endunless
                 </div>
 

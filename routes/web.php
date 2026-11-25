@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AiSettingController;
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
@@ -251,6 +252,13 @@ Route::middleware('auth')->group(function () {
         Route::post('{user}/impersonate', [ImpersonationController::class, 'store'])->withTrashed()->name('impersonate');
     });
     Route::resource('user', UserController::class)->except(['show', 'edit']);
+
+    // # AI SETTINGS (admin)
+    Route::controller(AiSettingController::class)->prefix('pengaturan-ai')->name('ai-settings.')->middleware('can:manage-ai-settings')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::put('/', 'update')->name('update');
+        Route::post('{provider}/models', 'models')->whereIn('provider', ['gemini', 'openai', 'anthropic'])->name('models');
+    });
 
     // # ROLES & PERMISSIONS
     Route::middleware('can:manage-roles')->group(function () {

@@ -13,6 +13,7 @@ use App\Models\LearningModule;
 use App\Models\LearningModuleItem;
 use App\Models\LearningModuleQuestion;
 use App\Services\MaterialQuizService;
+use App\Support\Ai\AiSettings;
 use App\Support\QuizImage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -42,7 +43,8 @@ class LearningModuleQuestionController extends Controller
             'questions' => $module->questions,
             'aiItems' => $module->availableItems()->filter(fn (LearningModuleItem $item) => GenerateLearningModuleQuestions::supports($item)),
             'unsupportedAiItems' => $module->availableItems()->reject(fn (LearningModuleItem $item) => GenerateLearningModuleQuestions::supports($item)),
-            'isGeminiConfigured' => ! empty(config('services.gemini.api_key')),
+            'isGeminiConfigured' => AiSettings::isConfigured(),
+            'aiReadsVideo' => AiSettings::provider()->supportsVideo(),
         ]);
     }
 
@@ -125,8 +127,8 @@ class LearningModuleQuestionController extends Controller
             'custom_prompt' => 'nullable|string|max:1000',
         ]);
 
-        if (empty(config('services.gemini.api_key'))) {
-            return response()->json(['success' => false, 'message' => 'GEMINI_API_KEY belum dikonfigurasi.'], 422);
+        if (! AiSettings::isConfigured()) {
+            return response()->json(['success' => false, 'message' => AiSettings::notConfiguredMessage()], 422);
         }
 
         $token = (string) Str::uuid();
@@ -173,8 +175,8 @@ class LearningModuleQuestionController extends Controller
             ? $validated['item_ids']
             : $module->availableItems()->filter(fn (LearningModuleItem $item) => GenerateLearningModuleQuestions::supports($item))->pluck('id')->all();
 
-        if (empty(config('services.gemini.api_key'))) {
-            return response()->json(['success' => false, 'message' => 'GEMINI_API_KEY belum dikonfigurasi.'], 422);
+        if (! AiSettings::isConfigured()) {
+            return response()->json(['success' => false, 'message' => AiSettings::notConfiguredMessage()], 422);
         }
 
         $token = (string) Str::uuid();

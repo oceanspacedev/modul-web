@@ -220,7 +220,7 @@ class MeetingCameraFromMonitoringTest extends TestCase
             ->assertSee('Belum ada status kamera yang terekam')
             ->assertSee('id="btnLoadMonitorCamera"', false)
             ->assertDontSee('Disarankan')
-            ->assertSee('Pindai screenshot dengan AI belum tersedia')->assertSee('Atur GEMINI_API_KEY di server.')
+            ->assertSee('Pindai screenshot dengan AI belum tersedia')->assertSee(route('ai-settings.index').'">Pengaturan AI</a>.)', false)
             ->assertSee('Isi Sendiri')->assertSee('id="btnDirectManualInput"', false)
             ->assertSee('const HAS_MONITOR_DATA = false;', false);
 

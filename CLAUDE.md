@@ -30,7 +30,7 @@ CI (`.github/workflows/ci.yml`) runs on PHP 8.3/8.4/8.5: `composer validate --st
 ## Tests
 
 - `tests/TestCase.php` uses `RefreshDatabase` and seeds `Tests\Support\TestDatabaseSeeder` (area/divisi id 1, roles and permissions, an `admin` user). It **refuses to run** unless the DB is in-memory SQLite (set in `phpunit.xml`), so don't point tests at MySQL.
-- `Http::preventStrayRequests()` is on and the WhatsApp gateway is faked to `whatsapp.test`; any other outgoing HTTP (e.g. Gemini) must be faked in the test.
+- `Http::preventStrayRequests()` is on and the WhatsApp gateway is faked to `whatsapp.test`; any other outgoing HTTP (e.g. Gemini, OpenAI, Anthropic) must be faked in the test.
 - Queue is `sync` in tests, so background jobs run inline.
 - Nearly all coverage is feature tests in `tests/Feature/` (training lifecycle, quiz modes, portal journey, imports/exports, AI, security).
 
@@ -60,12 +60,12 @@ Online trainings store `meeting_link` and `meeting_platform` (`zoom`, `google_me
 ### Background work and memory limits
 - Web requests are capped at **128MB** (`public/index.php`). Anything heavy (Excel import/export, AI, DnD sync) must go to a queued job in `app/Jobs`, not run in the request.
 - `BackgroundTask` is the base for heavy imports/exports. It runs on the `heavy` queue on the AI connection, is unique per user and kind, and reports back through the `BackgroundTaskFinished` notification (in-app inbox, WhatsApp, email).
-- `AiTask` is the base for Gemini jobs whose result the page polls. It creates a cache token (`newToken()`), the job writes its result to the cache, and the page polls an `ai-status/{token}` route. Payloads are encrypted.
+- `AiTask` is the base for AI jobs whose result the page polls. It creates a cache token (`newToken()`), the job writes its result to the cache, and the page polls an `ai-status/{token}` route. Payloads are encrypted.
 - `config('queue.ai_connection')` resolves to `redis-long` in production (redis) and to the default connection locally or in tests. Horizon (`config/horizon.php`) runs `supervisor-1` (default, 128MB), `supervisor-ai` (ai, 256MB) and `supervisor-heavy` (heavy, 512MB). The `WorkerStarting` listener applies the supervisor memory as PHP `memory_limit`.
 
 ### External integrations
 - **WhatsApp** (WAGHub): `WhatsAppService`, `Notifications/Channels/WhatsAppChannel`, `Support/WhatsAppNumber`. Used for OTP login, training invitations, reminders and task notifications.
-- **Gemini**: `GeminiQuestionService` (generate and revise quiz questions from material), `ZoomAttendanceAiService` (detect Zoom off-cam participants), `MaterialQuizService`.
+- **AI (Gemini, OpenAI, Anthropic)**: admins pick the provider, API key (encrypted in `ai_settings`) and model per provider at Pengaturan AI (`AiSettingController`, gate `manage-ai-settings`); `GEMINI_API_KEY` / `GEMINI_MODEL` in `.env` are only the fallback. All calls go through `App\Support\Ai\AiClient` (provider classes in `app/Support/Ai`, registered in `AiProviders`). Material is built as Gemini-shaped parts (`text`, `inline_data`, `file_data`) and each provider translates them; only Gemini reads video. Check `AiSettings::isConfigured()`, never the config key. Users: `GeminiQuestionService` (generate and revise quiz questions from material), `DocumentBuilderAiService`, `ZoomAttendanceAiService` (detect off-cam participants).
 - **DnD** (sibling HR app): `DndUserSyncService` / `SyncDndUsersCommand` sync employees nightly (`DND_SYNC_TIME`).
 - Uploads go to `FILESYSTEM_DISK` (`public` or `s3`, never `local`). Build URLs through `Support/StorageUrl`.
 

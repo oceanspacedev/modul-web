@@ -246,8 +246,17 @@
                 @endcan
                 @endcanany
 
-                @canany(['viewHorizon', 'viewLogViewer'])
+                @canany(['viewHorizon', 'viewLogViewer', 'manage-ai-settings'])
                 <li class="nav-header">Sistem</li>
+
+                @can('manage-ai-settings')
+                <li class="nav-item">
+                    <a href="{{ route('ai-settings.index') }}" class="nav-link {{ ($active ?? '') === 'ai-settings' ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-robot"></i>
+                        <p>Pengaturan AI</p>
+                    </a>
+                </li>
+                @endcan
 
                 @can('viewHorizon')
                 <li class="nav-item">
