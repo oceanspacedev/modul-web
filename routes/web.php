@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AiSettingController;
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
@@ -176,6 +177,7 @@ Route::middleware('auth')->group(function () {
             Route::delete('status/{status}', 'destroyStatus')->whereNumber('status')->name('statuses.destroy');
             Route::put('google-sheets', 'updateSheet')->name('sheet.update');
             Route::post('sinkron-sheet', 'syncSheet')->name('sheet-sync');
+            Route::put('import-sheet/{type}', 'importSheet')->whereIn('type', ['weekly', 'approval'])->name('sheet-import');
         });
     });
 
@@ -251,6 +253,14 @@ Route::middleware('auth')->group(function () {
         Route::post('{user}/impersonate', [ImpersonationController::class, 'store'])->withTrashed()->name('impersonate');
     });
     Route::resource('user', UserController::class)->except(['show', 'edit']);
+
+    // # AI SETTINGS (admin)
+    Route::controller(AiSettingController::class)->prefix('pengaturan-ai')->name('ai-settings.')->middleware('can:manage-ai-settings')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::put('/', 'update')->name('update');
+        Route::post('{provider}/models', 'models')->whereIn('provider', ['gemini', 'openai', 'anthropic'])->name('models');
+        Route::post('{provider}/chat', 'chat')->whereIn('provider', ['gemini', 'openai', 'anthropic'])->middleware('throttle:20,1')->name('chat');
+    });
 
     // # ROLES & PERMISSIONS
     Route::middleware('can:manage-roles')->group(function () {

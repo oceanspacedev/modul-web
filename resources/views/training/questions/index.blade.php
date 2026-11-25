@@ -274,7 +274,7 @@
     @include('training.questions.partials.import-document-modal')
 @endif
 
-<!-- AI QUESTION GENERATOR MODAL (GEMINI) -->
+<!-- AI QUESTION GENERATOR MODAL -->
 <div class="modal fade modal-center" id="aiGenerateModal" tabindex="-1" role="dialog" aria-labelledby="aiGenerateModalLabel" aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
         <div class="modal-content">
@@ -418,12 +418,12 @@
                                         <textarea id="aiCustomPrompt" class="form-control form-control-sm" rows="2" placeholder="Tulis catatan atau instruksi tambahan jika ada..."></textarea>
                                     </div>
 
-                                    <!-- GEMINI API KEY STATUS / OVERRIDE -->
+                                    <!-- AI API KEY STATUS / OVERRIDE -->
                                     <div class="p-3 rounded border bg-light">
                                         @if($isGeminiConfigured)
                                             <div class="d-flex align-items-center justify-content-between small">
                                                 <span class="text-success">
-                                                    <i class="fas fa-check-circle"></i> API key AI terhubung (.env)
+                                                    <i class="fas fa-check-circle"></i> AI terhubung ({{ \App\Support\Ai\AiSettings::provider()->label() }})
                                                 </span>
                                                 <a href="javascript:void(0)" id="btnToggleApiKeyInput">Ubah key</a>
                                             </div>
@@ -759,7 +759,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ===============================================================
-    // AI QUESTION GENERATOR LOGIC (GEMINI)
+    // AI QUESTION GENERATOR LOGIC
     // ===============================================================
     var aiModal = $('#aiGenerateModal');
     var aiStepConfig = document.getElementById('aiStepConfig');

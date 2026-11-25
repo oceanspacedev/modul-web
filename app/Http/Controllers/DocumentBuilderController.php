@@ -8,6 +8,7 @@ use App\Models\DocumentCategory;
 use App\Models\DocumentDraft;
 use App\Models\OdDocument;
 use App\Models\OdDocumentStatus;
+use App\Support\Ai\AiSettings;
 use App\Support\DocumentBuilderContent;
 use App\Support\DocumentBuilderTemplates;
 use App\Support\DocumentDraftWord;
@@ -259,7 +260,7 @@ class DocumentBuilderController extends Controller
             'template' => DocumentBuilderTemplates::for($category),
             'answers' => $answers,
             'company' => $company,
-            'aiReady' => filled(config('services.gemini.api_key')),
+            'aiReady' => AiSettings::isConfigured(),
         ]);
     }
 
@@ -355,8 +356,8 @@ class DocumentBuilderController extends Controller
             return to_route('document-builder.edit', $draft)->with('success', 'Draf dibuat. Silakan isi setiap bagian.');
         }
 
-        if (! filled(config('services.gemini.api_key'))) {
-            return to_route('document-builder.edit', $draft)->with('error', 'AI belum dikonfigurasi (GEMINI_API_KEY). Silakan isi dokumen secara manual.');
+        if (! AiSettings::isConfigured()) {
+            return to_route('document-builder.edit', $draft)->with('error', 'AI belum diatur di Pengaturan AI. Silakan isi dokumen secara manual.');
         }
 
         $token = AiTask::newToken();

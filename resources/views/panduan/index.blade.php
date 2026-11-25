@@ -15,7 +15,7 @@
     .pg-card p, .pg-card li { color: var(--gray-700); font-size: .875rem; line-height: 1.65; }
     .pg-card ol, .pg-card ul { padding-left: 20px; }
     .pg-card li { margin-bottom: 4px; }
-    .pg-card a:not(.btn) { color: var(--primary-600); }
+    .pg-card a:not(.btn) { color: var(--primary-700); }
     .pg-shot { margin: 14px 0; border: 1px solid var(--ring); border-radius: var(--radius-lg); overflow: hidden; background: var(--gray-50); }
     .pg-shot img { width: 100%; display: block; }
     .pg-shot figcaption { font-size: .75rem; color: var(--gray-500); padding: 6px 12px; border-top: 1px solid var(--ring); background: #fff; }
@@ -367,7 +367,7 @@
                         <tr><td>Upload gagal / "413 Request Entity Too Large"</td><td>File terlalu besar untuk server. Hubungi administrator.</td></tr>
                         <tr><td>Tombol posttest video belum muncul</td><td>Tonton video sampai selesai.</td></tr>
                         <tr><td>Pretest/posttest tidak muncul</td><td>Kuis belum punya soal. Tambahkan minimal 1 soal.</td></tr>
-                        <tr><td>Soal AI gagal dibuat</td><td>API key AI belum diatur atau dokumen tidak terbaca. Hubungi administrator.</td></tr>
+                        <tr><td>Soal AI gagal dibuat</td><td>API key AI belum diatur di <b>Pengaturan AI</b>, provider yang dipilih tidak bisa membaca materinya (video hanya bisa dibaca Gemini), atau dokumen tidak terbaca. Hubungi administrator.</td></tr>
                         <tr><td>Soal AI atau Scan Off Cam memuat sangat lama / tidak selesai</td><td>Prosesnya menunggu giliran di antrean; satu proses AI dikerjakan dalam satu waktu. Bila lebih dari 15 menit, minta administrator memastikan antrean (<b>Horizon</b>) berjalan, lalu ulangi.</td></tr>
                         <tr><td>Soal hasil Import Excel belum muncul</td><td>Import berjalan di belakang layar. Tunggu kabarnya di menu <b>Notifikasi</b>, lalu muat ulang halaman soal. Bila notifikasinya "Import soal gagal", perbaiki baris yang disebut dan impor ulang.</td></tr>
                         <tr><td>Import soal ditolak</td><td>Notifikasi "Import soal gagal" (Excel) atau pesan merah (Import Teks Cepat) menyebut nomor baris/soal dan sebabnya. Yang paling sering: baris pertama bukan judul kolom template, kunci jawaban bukan huruf pilihan yang terisi, dua pilihan berisi teks sama, atau soal pilihan ganda tanpa baris KUNCI. Tidak ada soal yang tersimpan sampai seluruh file/teks benar.</td></tr>

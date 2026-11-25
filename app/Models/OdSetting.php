@@ -16,6 +16,15 @@ class OdSetting extends Model
 
     public const SHEET_FROM = 'sheets.from';
 
+    /** Import dari Google Sheets: link sumber, bulan awal Weekly, dan pemetaan POSISI → user (JSON). */
+    public const IMPORT_WEEKLY_LINK = 'import.weekly.link';
+
+    public const IMPORT_WEEKLY_FROM = 'import.weekly.from';
+
+    public const IMPORT_APPROVAL_LINK = 'import.approval.link';
+
+    public const IMPORT_POSITIONS = 'import.positions';
+
     private const CACHE_KEY = 'od-settings';
 
     protected $primaryKey = 'key';

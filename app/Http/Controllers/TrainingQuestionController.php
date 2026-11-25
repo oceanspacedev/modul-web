@@ -15,6 +15,7 @@ use App\Models\Document;
 use App\Models\Training;
 use App\Models\TrainingQuestion;
 use App\Services\TrainingDocumentQuestionImporter;
+use App\Support\Ai\AiSettings;
 use App\Support\QuizImage;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -42,7 +43,7 @@ class TrainingQuestionController extends Controller
     {
         $training->load(['questions', 'documents.versions']);
         $allDocuments = Document::with('dokumentype')->orderBy('name')->get();
-        $isGeminiConfigured = ! empty(config('services.gemini.api_key'));
+        $isGeminiConfigured = AiSettings::isConfigured();
         $canImportDocumentQuestions = $request->user()->checkPermissionTo('manage-documents');
         $quizDocuments = $canImportDocumentQuestions
             ? Document::hasQuizQuestions()
@@ -302,11 +303,11 @@ class TrainingQuestionController extends Controller
 
     private function geminiNotConfigured(?string $apiKey): ?JsonResponse
     {
-        if (filled($apiKey) || filled(config('services.gemini.api_key'))) {
+        if (AiSettings::isConfigured() || (filled($apiKey) && filled(AiSettings::model()))) {
             return null;
         }
 
-        return response()->json(['success' => false, 'message' => 'GEMINI_API_KEY belum dikonfigurasi. Silakan masukkan API Key Gemini di pengaturan atau file .env!'], 422);
+        return response()->json(['success' => false, 'message' => AiSettings::notConfiguredMessage()], 422);
     }
 
     /**

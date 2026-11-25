@@ -3,11 +3,12 @@
 namespace App\Services;
 
 use App\Models\DocumentDraft;
+use App\Support\Ai\AiSettings;
 use App\Support\DocumentBuilderContent;
 use Exception;
 
 /**
- * Menyusun isi Dokumen Builder dengan Gemini dari jawaban form bertahap. Memakai pemanggil Gemini yang sama dengan
+ * Menyusun isi Dokumen Builder dengan AI dari jawaban form bertahap. Memakai pemanggil AI yang sama dengan
  * pembuat soal (model cadangan, pesan error API key), hanya prompt dan bentuk hasilnya yang berbeda.
  */
 class DocumentBuilderAiService extends GeminiQuestionService
@@ -20,11 +21,11 @@ class DocumentBuilderAiService extends GeminiQuestionService
     public function compose(DocumentDraft $draft): array
     {
         if (! $this->isConfigured()) {
-            throw new Exception('GEMINI_API_KEY belum dikonfigurasi.');
+            throw new Exception(AiSettings::notConfiguredMessage());
         }
 
         $template = $draft->template();
-        $response = $this->callGeminiApi([['text' => $this->prompt($draft, $template)]]);
+        $response = $this->callAi([['text' => $this->prompt($draft, $template)]]);
         $decoded = $this->decodeJsonText($response);
 
         if (! is_array($decoded)) {

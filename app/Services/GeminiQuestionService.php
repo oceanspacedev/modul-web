@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Document;
 use App\Models\Video;
+use App\Support\Ai\AiClient;
+use App\Support\Ai\AiSettings;
 use Exception;
 use GuzzleHttp\Psr7\Utils;
 use Illuminate\Support\Facades\Http;
@@ -29,29 +31,35 @@ class GeminiQuestionService
     /** Batas tunggu Gemini selesai memproses video upload: 120 x 5 detik. */
     protected const VIDEO_POLL_ATTEMPTS = 120;
 
+    protected AiClient $ai;
+
+    /** API key provider aktif; dipakai juga untuk unggah video ke Gemini Files API. */
     protected ?string $apiKey;
 
-    protected string $model;
-
+    /**
+     * Provider, API key dan model diambil dari Pengaturan AI (cadangan: .env). $apiKey menggantikan key tersimpan.
+     */
     public function __construct(?string $apiKey = null)
     {
-        $this->apiKey = $apiKey ?: config('services.gemini.api_key');
-        $this->model = config('services.gemini.model', 'gemini-3.5-flash-lite');
+        $this->ai = AiClient::current($apiKey);
+        $this->apiKey = $this->ai->apiKey();
     }
 
-    /**
-     * Check if API key is configured
-     */
     public function isConfigured(): bool
     {
-        return ! empty($this->apiKey);
+        return $this->ai->isConfigured();
     }
 
     /**
-     * Video yang bisa dibaca AI: file upload, atau link YouTube publik. Link Drive/Vimeo tidak bisa diakses Gemini.
+     * Video yang bisa dibaca AI: hanya bila provider aktif Gemini, dan berupa file upload atau link YouTube publik.
+     * Link Drive/Vimeo tidak bisa diakses Gemini.
      */
     public static function supportsVideo(Video $video): bool
     {
+        if (! AiSettings::provider()->supportsVideo()) {
+            return false;
+        }
+
         return $video->isFile() ? filled($video->video_file) : $video->youtubeId() !== null;
     }
 
@@ -74,13 +82,13 @@ class GeminiQuestionService
         ?string $customPrompt = null
     ): array {
         if (! $this->isConfigured()) {
-            throw new Exception('GEMINI_API_KEY belum dikonfigurasi. Silakan masukkan API Key Gemini di pengaturan atau file .env!');
+            throw new Exception(AiSettings::notConfiguredMessage());
         }
 
         return $this->withMaterial($documents, function (array $parts, bool $hasVideo) use ($count, $type, $difficulty, $customPrompt) {
             $parts[] = ['text' => $this->buildPromptText($count, $type, $difficulty, $customPrompt)];
 
-            return $this->parseResponse($this->callGeminiApi($parts, $hasVideo), $type);
+            return $this->parseResponse($this->callAi($parts, $hasVideo), $type);
         });
     }
 
@@ -96,6 +104,15 @@ class GeminiQuestionService
     {
         if (empty($sources)) {
             throw new Exception('Tidak ada dokumen yang dipilih sebagai acuan materi.');
+        }
+
+        $provider = $this->ai->provider();
+        if (! $provider->supportsVideo()) {
+            foreach ($sources as $source) {
+                if ($source instanceof Video) {
+                    throw new Exception("{$provider->label()} tidak bisa membaca video \"{$source->title}\". Pilih dokumen saja, atau ganti ke Gemini di Pengaturan AI.");
+                }
+            }
         }
 
         $parts = [];
@@ -465,72 +482,19 @@ class GeminiQuestionService
     }
 
     /**
-     * Call Gemini API endpoint with model fallback
+     * Kirim materi + prompt ke provider AI aktif (dengan model cadangan) dan kembalikan teks jawabannya.
+     *
+     * @throws Exception
      */
-    protected function callGeminiApi(array $parts, bool $hasVideo = false): array
+    protected function callAi(array $parts, bool $hasVideo = false): string
     {
-        $modelsToTry = array_unique([
-            $this->model,
-            'gemini-3.5-flash-lite',
-            'gemini-3.5-flash',
-            'gemini-3-flash-preview',
-            'gemini-flash-latest',
-            'gemini-3.8-flash',
-        ]);
-
-        $lastError = null;
-
-        foreach ($modelsToTry as $modelName) {
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key=".urlencode($this->apiKey);
-
-            $payload = [
-                'contents' => [
-                    [
-                        'role' => 'user',
-                        'parts' => $parts,
-                    ],
-                ],
-                'generationConfig' => [
-                    'response_mime_type' => 'application/json',
-                    'temperature' => 0.3,
-                    // Resolusi rendah memangkas token video kira-kira 3x; isi materi tetap terbaca dari audio dan teks layar.
-                    ...($hasVideo ? ['media_resolution' => 'MEDIA_RESOLUTION_LOW'] : []),
-                ],
-            ];
-
-            try {
-                $response = Http::timeout(300)
-                    ->withHeaders(['Content-Type' => 'application/json'])
-                    ->post($url, $payload);
-
-                if ($response->successful()) {
-                    return $response->json();
-                }
-
-                $errBody = $response->json();
-                $errMsg = $errBody['error']['message'] ?? $response->body();
-                $lastError = "Gemini API ({$modelName}) Error: ".$errMsg;
-                Log::warning("Gemini model {$modelName} failed: ".$errMsg);
-
-                // If error is invalid API key, stop trying other models
-                if (str_contains($errMsg, 'API_KEY_INVALID') || str_contains($errMsg, 'API key not valid')) {
-                    throw new Exception('API Key Gemini tidak valid. Silakan periksa kembali GEMINI_API_KEY Anda.');
-                }
-            } catch (Exception $e) {
-                if (str_contains($e->getMessage(), 'API Key Gemini tidak valid')) {
-                    throw $e;
-                }
-                $lastError = $e->getMessage();
-            }
-        }
-
-        throw new Exception($lastError ?: 'Gagal menghubungi layanan Google Gemini. Silakan coba beberapa saat lagi.');
+        return $this->ai->generate($parts, ['temperature' => 0.3, 'timeout' => 300, 'has_video' => $hasVideo]);
     }
 
     /**
-     * Parse and validate Gemini JSON response
+     * Parse and validate the AI JSON response
      */
-    protected function parseResponse(array $response, string $type): array
+    protected function parseResponse(string $response, string $type): array
     {
         $decoded = $this->decodeJsonText($response);
         if (! $decoded || ! isset($decoded['questions']) || ! is_array($decoded['questions'])) {
@@ -574,7 +538,7 @@ class GeminiQuestionService
     public function reviseQuestion(array $question, string $part, ?string $instruction = null, array $sources = [], array $otherQuestions = []): array
     {
         if (! $this->isConfigured()) {
-            throw new Exception('GEMINI_API_KEY belum dikonfigurasi. Silakan masukkan API Key Gemini di pengaturan atau file .env!');
+            throw new Exception(AiSettings::notConfiguredMessage());
         }
 
         $type = ($question['type'] ?? 'multiple_choice') === 'essay' ? 'essay' : 'multiple_choice';
@@ -596,7 +560,7 @@ class GeminiQuestionService
             for ($attempt = 0; $attempt < ($part === 'all' ? 2 : 1); $attempt++) {
                 $prompt = $this->buildRevisePromptText($current, $part, $instruction, ! empty($materialParts), $otherQuestions, $similarTo);
                 ['question' => $revised, 'duplicate_of' => $duplicateOf] = $this->mergeRevision(
-                    $current, $this->callGeminiApi([...$materialParts, ['text' => $prompt]], $hasVideo), $part, $type
+                    $current, $this->callAi([...$materialParts, ['text' => $prompt]], $hasVideo), $part, $type
                 );
 
                 // Teksnya mirip, atau AI sendiri melaporkan maknanya sama dengan soal lain (dicocokkan ke daftar yang
@@ -622,7 +586,7 @@ class GeminiQuestionService
      *
      * @throws Exception
      */
-    protected function mergeRevision(array $current, array $response, string $part, string $type): array
+    protected function mergeRevision(array $current, string $response, string $part, string $type): array
     {
         $decoded = $this->decodeJsonText($response);
         $decoded = isset($decoded['questions'][0]) ? $decoded['questions'][0] : $decoded;
@@ -743,17 +707,10 @@ class GeminiQuestionService
     }
 
     /**
-     * Ambil teks JSON dari respons Gemini (buang pagar ```json bila ada) lalu decode.
-     *
-     * @throws Exception
+     * Decode teks JSON dari jawaban AI (buang pagar ```json bila ada).
      */
-    protected function decodeJsonText(array $response): mixed
+    protected function decodeJsonText(string $rawText): mixed
     {
-        $rawText = $response['candidates'][0]['content']['parts'][0]['text'] ?? null;
-        if (! $rawText) {
-            throw new Exception('Google Gemini tidak mengembalikan respons teks yang valid.');
-        }
-
         $cleanJson = trim($rawText);
         if (str_starts_with($cleanJson, '```json')) {
             $cleanJson = substr($cleanJson, 7);
@@ -767,7 +724,7 @@ class GeminiQuestionService
 
         $decoded = json_decode($cleanJson, true);
         if ($decoded === null) {
-            Log::error('Failed to parse Gemini JSON: '.$cleanJson);
+            Log::error('Failed to parse AI JSON: '.$cleanJson);
         }
 
         return $decoded;

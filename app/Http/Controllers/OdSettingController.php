@@ -2,22 +2,25 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ImportOdSheet;
 use App\Models\OdActivity;
 use App\Models\OdDocumentStatus;
 use App\Models\OdSetting;
+use App\Services\OdSheetImport;
 use App\Services\OdSheetSync;
+use App\Support\OdTeam;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * Pengaturan OD Report (Leader): daftar status dokumen dan sinkron Google Sheets. Jenis, tahapan dan PIC bawaan
- * diatur di Kategori Dokumen.
+ * Pengaturan OD Report (Leader): daftar status dokumen, sinkron Google Sheets, dan import dari Google Sheets. Jenis,
+ * tahapan dan PIC bawaan diatur di Kategori Dokumen.
  */
 class OdSettingController extends Controller
 {
-    public function index(OdSheetSync $sheet): View
+    public function index(OdSheetSync $sheet, OdSheetImport $import): View
     {
         return view('od-report.settings', [
             'title' => 'Pengaturan',
@@ -33,7 +36,56 @@ class OdSettingController extends Controller
                 'pending' => $sheet->enabled() ? $sheet->pending()->count() : 0,
                 'last' => $sheet->status(),
             ],
+            'import' => [
+                'weekly' => OdSetting::value(OdSetting::IMPORT_WEEKLY_LINK),
+                'from' => OdSetting::value(OdSetting::IMPORT_WEEKLY_FROM, OdSheetImport::DEFAULT_FROM),
+                'approval' => OdSetting::value(OdSetting::IMPORT_APPROVAL_LINK),
+                'positions' => OdSheetImport::positionMap(),
+                'members' => $members = OdTeam::members(),
+                'auto' => collect(OdSheetImport::positionMap())->map(fn ($userId, $position) => OdSheetImport::autoMatch($position, $members)),
+                'last' => collect(OdSheetImport::TYPES)->map(fn ($label, $type) => $import->status($type)),
+            ],
         ]);
+    }
+
+    /**
+     * Simpan link (untuk Weekly juga bulan awal dan pemetaan POSISI), lalu jalankan import di belakang layar. Aman
+     * diulang: baris yang sudah pernah di-import diperbarui, bukan digandakan.
+     */
+    public function importSheet(Request $request, string $type): RedirectResponse
+    {
+        $data = $request->validateWithBag("import-{$type}", [
+            'link' => ['required', 'string', 'max:300', function (string $attribute, mixed $value, \Closure $fail) {
+                if (! OdSheetSync::parseSpreadsheetId($value)) {
+                    $fail('Link spreadsheet tidak valid. Salin dari kolom alamat browser.');
+                }
+            }],
+            'from' => [Rule::requiredIf($type === OdSheetImport::WEEKLY), 'nullable', 'date_format:Y-m'],
+            'positions' => ['nullable', 'array'],
+            'positions.*' => ['nullable', 'integer', Rule::in(OdTeam::query()->pluck('id')->all())],
+        ], [
+            'positions.*.in' => 'Pilih anggota tim OD.',
+        ], [
+            'link' => 'link spreadsheet',
+            'from' => 'bulan awal',
+        ]);
+
+        OdSetting::put([OdSheetImport::linkSetting($type) => trim($data['link'])]);
+
+        if ($type === OdSheetImport::WEEKLY) {
+            OdSetting::put([OdSetting::IMPORT_WEEKLY_FROM => $data['from']]);
+            $map = OdSheetImport::positionMap();
+            foreach ($data['positions'] ?? [] as $position => $userId) {
+                if (array_key_exists($position, $map)) {
+                    $map[$position] = $userId ? (int) $userId : null;
+                }
+            }
+            OdSheetImport::savePositionMap($map);
+        }
+
+        ImportOdSheet::dispatch($request->user()->getKey(), $type);
+
+        return back()->with('success', 'Import '.OdSheetImport::TYPES[$type].' berjalan di belakang layar. Hasilnya dikirim ke menu Notifikasi.');
     }
 
     /**

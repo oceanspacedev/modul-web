@@ -51,7 +51,7 @@
 .video-thumb-tag.is-top { top: 8px; left: 8px; background: #ffffff; color: var(--gray-950); box-shadow: 0 0 0 1px var(--ring); }
 .video-thumb-tag.is-bottom { bottom: 8px; right: 8px; }
 .video-card-title a { color: var(--gray-950); }
-.video-card-title a:hover { color: var(--primary-600); text-decoration: none; }
+.video-card-title a:hover { color: var(--primary-700); text-decoration: none; }
 .video-search { width: 260px; margin: 0; }
 @media (max-width: 575.98px) {
     .video-search { width: 100%; }

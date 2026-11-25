@@ -24,6 +24,7 @@ use App\Models\TrainingQuizResult;
 use App\Models\TrainingWaLog;
 use App\Models\User;
 use App\Services\WhatsAppService;
+use App\Support\Ai\AiSettings;
 use App\Support\QuizRules;
 use App\Support\TrainingEvaluationForm;
 use Illuminate\Database\Eloquent\Builder;
@@ -267,7 +268,7 @@ class TrainingController extends Controller
             'showMeetingActivity' => $showMeetingActivity,
             'hasMeetingCameraData' => $hasMeetingCameraData,
             'canMonitorCamera' => $training->hasLiveMeetingMonitoring(),
-            'canScanCameraWithAi' => filled(config('services.gemini.api_key')),
+            'canScanCameraWithAi' => AiSettings::isConfigured(),
             'hasAdministratorAccess' => $request->user()->isAdministrator(),
             'cameraStatusLabels' => collect(CameraStatus::cases())->mapWithKeys(fn (CameraStatus $status) => [$status->value => $status->label()])->all(),
             'allDocuments' => $allDocuments,
@@ -1066,8 +1067,8 @@ class TrainingController extends Controller
             'images.*' => 'required|string', // base64 strings compressed client-side
         ]);
 
-        if (empty(config('services.gemini.api_key'))) {
-            return response()->json(['success' => false, 'message' => 'GEMINI_API_KEY belum dikonfigurasi di file .env!'], 422);
+        if (! AiSettings::isConfigured()) {
+            return response()->json(['success' => false, 'message' => AiSettings::notConfiguredMessage()], 422);
         }
 
         $token = AiTask::newToken();

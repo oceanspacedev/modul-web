@@ -221,7 +221,7 @@
                 {{-- STEP 1: CONFIG --}}
                 <div id="aiStepConfig">
                     @unless($isGeminiConfigured)
-                        <div class="alert alert-warning">GEMINI_API_KEY belum dikonfigurasi di server, fitur AI belum bisa dipakai.</div>
+                        <div class="alert alert-warning">AI belum diatur, fitur AI belum bisa dipakai. Admin dapat mengaturnya di Pengaturan AI.</div>
                     @endunless
 
                     <label class="mb-2">Materi acuan</label>
@@ -243,11 +243,15 @@
                         <div class="custom-control custom-checkbox mb-1">
                             <input type="checkbox" class="custom-control-input" disabled>
                             <label class="custom-control-label text-muted">
-                                {{ $item->title() }} <small>(link Drive/Vimeo tidak bisa dibaca AI; gunakan file upload atau YouTube publik)</small>
+                                {{ $item->title() }} <small>({{ $aiReadsVideo ? 'link Drive/Vimeo tidak bisa dibaca AI; gunakan file upload atau YouTube publik' : 'video hanya bisa dibaca Gemini' }})</small>
                             </label>
                         </div>
                     @endforeach
-                    <small class="text-muted d-block mt-1 mb-3">Video akan diunggah ke Gemini lalu dianalisis; prosesnya bisa memakan beberapa menit.</small>
+                    @if($aiReadsVideo)
+                        <small class="text-muted d-block mt-1 mb-3">Video akan diunggah ke Gemini lalu dianalisis; prosesnya bisa memakan beberapa menit.</small>
+                    @else
+                        <div class="mb-3"></div>
+                    @endif
 
                     <div class="row">
                         <div class="col-md-4 form-group">
