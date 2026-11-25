@@ -24,32 +24,38 @@ class AiSettingController extends Controller
 
     public function index(): View
     {
+        $active = AiSettings::provider();
+
         return view('ai-settings.index', [
             'title' => 'Pengaturan AI',
             'active' => 'ai-settings',
-            'activeProvider' => AiSettings::provider()->key(),
+            'activeProvider' => $active->key(),
+            'activeLabel' => $active->label(),
+            'activeModel' => AiSettings::model($active),
             'configured' => AiSettings::isConfigured(),
             'providers' => collect(AiProviders::all())->map(fn (AiProvider $provider) => [
                 'provider' => $provider,
                 'maskedKey' => self::mask(AiSettings::storedApiKey($provider)),
                 'source' => AiSettings::source($provider),
-                'model' => AiSettings::storedModel($provider),
+                'model' => AiSettings::model($provider),
             ]),
         ]);
     }
 
     /**
-     * Simpan pengaturan semua provider, lalu cek API key provider aktif dengan memuat daftar modelnya.
-     * API key kosong = key lama dipertahankan; centang "Hapus key" untuk menghapusnya.
+     * Simpan provider yang dipilih beserta API key dan modelnya, lalu cek key-nya dengan memuat daftar model.
+     * Pengaturan provider lain tidak berubah. API key kosong = key lama dipertahankan; "Hapus key" menghapusnya.
      */
     public function update(Request $request): RedirectResponse
     {
         $providers = AiProviders::all();
         $secretFields = array_map(fn (string $key) => "{$key}_api_key", array_keys($providers));
+        $provider = AiProviders::find($request->input('provider'));
 
         $rules = ['provider' => ['required', Rule::in(array_keys($providers))]];
-        $attributes = ['provider' => 'provider aktif'];
-        foreach ($providers as $key => $provider) {
+        $attributes = ['provider' => 'provider'];
+        if ($provider) {
+            $key = $provider->key();
             $rules["{$key}_api_key"] = ['nullable', 'string', 'max:500'];
             $rules["{$key}_model"] = ['nullable', 'string', 'max:120', 'regex:'.self::MODEL_PATTERN];
             $rules["{$key}_forget"] = ['nullable', 'boolean'];
@@ -58,8 +64,7 @@ class AiSettingController extends Controller
         }
 
         $validator = Validator::make($request->all(), $rules, [], $attributes);
-        $validator->after(function ($validator) use ($request) {
-            $provider = AiProviders::find($request->input('provider'));
+        $validator->after(function ($validator) use ($request, $provider) {
             if (! $provider) {
                 return;
             }
@@ -69,7 +74,7 @@ class AiSettingController extends Controller
                 || (! $request->boolean("{$key}_forget") && filled(AiSettings::storedApiKey($provider)))
                 || filled($provider->envApiKey());
             if (! $hasKey) {
-                $validator->errors()->add("{$key}_api_key", "Isi API key {$provider->label()} untuk provider aktif.");
+                $validator->errors()->add("{$key}_api_key", "Isi API key {$provider->label()}.");
             }
             if (blank($request->input("{$key}_model")) && blank($provider->defaultModel())) {
                 $validator->errors()->add("{$key}_model", "Pilih model {$provider->label()}.");
@@ -82,14 +87,15 @@ class AiSettingController extends Controller
         }
 
         $data = $validator->validated();
-        $values = [AiSetting::PROVIDER => $data['provider']];
-        foreach (array_keys($providers) as $key) {
-            if ($request->boolean("{$key}_forget")) {
-                $values[AiSetting::apiKeyKey($key)] = null;
-            } elseif (filled($data["{$key}_api_key"] ?? null)) {
-                $values[AiSetting::apiKeyKey($key)] = $data["{$key}_api_key"];
-            }
-            $values[AiSetting::modelKey($key)] = $data["{$key}_model"] ?? null;
+        $key = $provider->key();
+        $values = [
+            AiSetting::PROVIDER => $key,
+            AiSetting::modelKey($key) => $data["{$key}_model"] ?? null,
+        ];
+        if ($request->boolean("{$key}_forget")) {
+            $values[AiSetting::apiKeyKey($key)] = null;
+        } elseif (filled($data["{$key}_api_key"] ?? null)) {
+            $values[AiSetting::apiKeyKey($key)] = $data["{$key}_api_key"];
         }
         AiSetting::put($values);
 

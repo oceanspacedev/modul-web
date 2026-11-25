@@ -82,6 +82,38 @@ class AiSettingsTest extends TestCase
         $this->assertSame('env', AiSettings::source());
     }
 
+    public function test_saving_one_provider_leaves_the_others_untouched(): void
+    {
+        Http::fake(['api.anthropic.com/v1/models*' => Http::response(['data' => [['id' => 'claude-opus-5-5']]])]);
+        AiSetting::put(['openai.api_key' => 'sk-openai', 'openai.model' => 'gpt-test']);
+
+        $this->actingAs($this->admin)->put(route('ai-settings.update'), [
+            'provider' => 'anthropic',
+            'anthropic_api_key' => 'sk-ant',
+            'anthropic_model' => 'claude-opus-5-5',
+            // Isian provider lain (mis. dari browser tanpa JS) diabaikan.
+            'openai_model' => '',
+            'openai_forget' => '1',
+        ])->assertSessionHas('success');
+
+        $this->assertSame('anthropic', AiSettings::provider()->key());
+        $this->assertSame('sk-openai', AiSetting::secret('openai.api_key'));
+        $this->assertSame('gpt-test', AiSetting::value('openai.model'));
+    }
+
+    public function test_settings_page_shows_the_three_steps_for_each_provider(): void
+    {
+        AiSetting::put(['provider' => 'openai', 'openai.api_key' => 'sk-openai-9876', 'openai.model' => 'gpt-test']);
+
+        $this->actingAs($this->admin)->get(route('ai-settings.index'))
+            ->assertOk()
+            ->assertSeeInOrder(['Pilih provider', 'API key', 'Tes API key', 'Pilih model'])
+            ->assertSee('Saat ini: <b>OpenAI</b> · gpt-test', false)
+            ->assertSee('data-ai-panel="openai" data-has-key="1"', false)
+            ->assertSee('data-ai-panel="anthropic" data-has-key="0"', false)
+            ->assertDontSee('sk-openai-9876');
+    }
+
     public function test_active_provider_needs_a_key_and_model_and_the_key_is_not_flashed_back(): void
     {
         Http::fake();
