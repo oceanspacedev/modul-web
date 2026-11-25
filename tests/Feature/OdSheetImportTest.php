@@ -157,7 +157,8 @@ class OdSheetImportTest extends TestCase
 
         // Staff kedua membuat POSISI STAFF ambigu: tidak lagi otomatis, Leader perlu memilih.
         $this->staff('STAFF LAIN')->update(['position_id' => Position::create(['name' => 'ADMIN DOKUMEN'])->id]);
-        $this->actingAs($leader)->get(route('od-report.settings.index'))->assertSee('Otomatis: belum ada');
+        $this->actingAs($leader)->get(route('od-report.settings.index'))->assertSee('Otomatis: belum ada')
+            ->assertSee('1 belum ada orangnya');
     }
 
     public function test_reimport_updates_changed_rows_but_keeps_app_edits_of_unchanged_rows(): void

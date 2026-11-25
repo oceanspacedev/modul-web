@@ -147,7 +147,10 @@
                                 @if ($bag->has($field))<div class="text-danger mt-1">{{ $bag->first($field) }}</div>@endif
                             @endforeach
 
-                            @if ($type === App\Services\OdSheetImport::WEEKLY)
+                            @if ($type === App\Services\OdSheetImport::WEEKLY && $import['positions'])
+                                @php($unmatched = collect($import['positions'])->filter(fn ($userId, $position) => ! $userId && ! $import['auto'][$position])->count())
+                                <details class="mt-2" @if ($bag->has('positions.*')) open @endif>
+                                    <summary class="text-muted">Atur posisi @if ($unmatched)<span class="text-danger">· {{ $unmatched }} belum ada orangnya</span>@endif</summary>
                                 @foreach ($import['positions'] as $position => $userId)
                                     <div class="d-flex align-items-center gap-2 mt-2">
                                         <span class="text-muted text-truncate flex-shrink-0" style="width: 130px;" title="{{ $position }}">{{ str_replace('ORGANIZATION DEVELOPMENT', 'OD', $position) }}</span>
@@ -161,6 +164,7 @@
                                         </div>
                                     </div>
                                 @endforeach
+                                </details>
                             @endif
 
                             @if ($last = $import['last'][$type])
