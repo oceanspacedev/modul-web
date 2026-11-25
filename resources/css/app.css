@@ -1599,13 +1599,44 @@ a.stat-tile:hover {
 }
 
 @media (max-width: 575.98px) {
+    .request-stepper {
+        gap: 0.375rem;
+    }
+
+    .request-stepper li {
+        gap: 0.375rem;
+    }
+
+    .request-stepper button {
+        gap: 0.375rem;
+        min-width: 0;
+        flex-shrink: 1;
+    }
+
+    .request-stepper-dot {
+        width: 1.625rem;
+        height: 1.625rem;
+        font-size: 0.75rem;
+    }
+
+    .request-stepper-text {
+        min-width: 0;
+    }
+
     .request-stepper small {
         display: none;
     }
 
     .request-stepper-label {
-        font-size: 0.8125rem;
+        font-size: 0.75rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
+}
+
+select.is-invalid + .select2-container .select2-selection {
+    border-color: var(--danger-600);
 }
 
 .setup-wizard-summary {

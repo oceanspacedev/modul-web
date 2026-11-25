@@ -161,23 +161,25 @@
                             <div class="invalid-feedback text-danger small mt-2{{ $errors->has('kategori') ? ' d-block' : '' }}" data-feedback="kategori">{{ $errors->first('kategori') }}</div>
 
                             @foreach ($categories as $category)
-                                <div class="request-info" data-category-info="{{ $category->id }}" hidden>
-                                    <div class="request-info-title"><i class="fas fa-lightbulb"></i> Apa itu {{ $category->name }}?</div>
-                                    @if ($category->description)<p class="mb-0">{{ $category->description }}</p>@endif
-                                    @if ($category->needs_observation)<p class="request-info-meta mb-0 mt-2">Termasuk observasi langsung oleh tim OD.</p>@endif
-                                    @if ($category->hasTemplate())
-                                        <div class="request-template mt-3">
-                                            <strong>Template {{ $category->name }}</strong>
-                                            <p class="small text-muted mb-2">Unduh template, isi, lalu unggah kembali di kartu dokumen.</p>
-                                            <a href="{{ route('document-request.template', $category) }}" class="btn btn-default btn-sm"><i class="fas fa-download"></i> Unduh template</a>
-                                            @if ($category->hasExample())
-                                                <a href="{{ route('document-request.example', $category) }}" target="_blank" class="btn btn-default btn-sm"><i class="fas fa-eye"></i> Contoh pengisian</a>
-                                            @endif
-                                        </div>
-                                    @elseif ($category->hasExample())
-                                        <a href="{{ route('document-request.example', $category) }}" target="_blank" class="btn btn-default btn-sm mt-3"><i class="fas fa-eye"></i> Lihat contoh dokumen</a>
-                                    @endif
-                                </div>
+                                @if ($category->description || $category->needs_observation || $category->hasTemplate() || $category->hasExample())
+                                    <div class="request-info" data-category-info="{{ $category->id }}" hidden>
+                                        <div class="request-info-title"><i class="fas fa-lightbulb"></i> Apa itu {{ $category->name }}?</div>
+                                        @if ($category->description)<p class="mb-0">{{ $category->description }}</p>@endif
+                                        @if ($category->needs_observation)<p class="request-info-meta mb-0 mt-2">Termasuk observasi langsung oleh tim OD.</p>@endif
+                                        @if ($category->hasTemplate())
+                                            <div class="request-template mt-3">
+                                                <strong>Template {{ $category->name }}</strong>
+                                                <p class="small text-muted mb-2">Unduh template, isi, lalu unggah kembali di kartu dokumen.</p>
+                                                <a href="{{ route('document-request.template', $category) }}" class="btn btn-default btn-sm"><i class="fas fa-download"></i> Unduh template</a>
+                                                @if ($category->hasExample())
+                                                    <a href="{{ route('document-request.example', $category) }}" target="_blank" class="btn btn-default btn-sm"><i class="fas fa-eye"></i> Contoh pengisian</a>
+                                                @endif
+                                            </div>
+                                        @elseif ($category->hasExample())
+                                            <a href="{{ route('document-request.example', $category) }}" target="_blank" class="btn btn-default btn-sm mt-3"><i class="fas fa-eye"></i> Lihat contoh dokumen</a>
+                                        @endif
+                                    </div>
+                                @endif
                             @endforeach
                         @endif
                     </div>

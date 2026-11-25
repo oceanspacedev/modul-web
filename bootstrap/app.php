@@ -14,6 +14,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
@@ -48,8 +49,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectUsersTo(fn (Request $request) => $request->user()?->homeUrl() ?? route('login'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // API helpdesk selalu dijawab JSON, juga bila klien tidak mengirim Accept: application/json.
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->expectsJson(),
+            fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
 
         // Kiriman peserta yang melebihi batas ukuran server (foto presensi terlalu besar): kembali ke portal dengan

@@ -12,6 +12,7 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DocumentRequestController;
 use App\Http\Controllers\DocumentRequestRecipientController;
 use App\Http\Controllers\DokumenTypeController;
+use App\Http\Controllers\HelpdeskSettingController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\LearningModuleController;
 use App\Http\Controllers\LearningModulePortalController;
@@ -260,6 +261,13 @@ Route::middleware('auth')->group(function () {
         Route::put('/', 'update')->name('update');
         Route::post('{provider}/models', 'models')->whereIn('provider', ['gemini', 'openai', 'anthropic'])->name('models');
         Route::post('{provider}/chat', 'chat')->whereIn('provider', ['gemini', 'openai', 'anthropic'])->middleware('throttle:20,1')->name('chat');
+    });
+
+    // # HELPDESK SETTINGS (admin): kode koneksi integrasi helpdesk
+    Route::controller(HelpdeskSettingController::class)->prefix('pengaturan-helpdesk')->name('helpdesk-settings.')->middleware('can:manage-helpdesk-settings')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('kode', 'issue')->name('issue');
+        Route::delete('/', 'disconnect')->name('disconnect');
     });
 
     // # ROLES & PERMISSIONS

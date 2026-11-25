@@ -95,6 +95,8 @@ class AppServiceProvider extends ServiceProvider
 
         // Form Permintaan Dokumen publik: kirim dan lacak dibatasi per IP.
         RateLimiter::for('document-request', fn (Request $request) => Limit::perMinutes(10, 20)->by('document-request:'.$request->ip()));
+        // API helpdesk: satu klien (server helpdesk), dibatasi per alamat IP.
+        RateLimiter::for('helpdesk-api', fn (Request $request) => Limit::perMinute(120)->by('helpdesk-api:'.$request->ip()));
         RateLimiter::for('document-request-track', fn (Request $request) => Limit::perMinute(60)->by('document-request-track:'.$request->ip()));
 
         // The participant portal polls its status every 5 seconds.
@@ -152,5 +154,6 @@ class AppServiceProvider extends ServiceProvider
         // Log Viewer (/log-viewer) exposes stack traces and request data, so administrators only.
         Gate::define('viewLogViewer', fn (User $user) => $user->isAdministrator());
         Gate::define('manage-ai-settings', fn (User $user) => $user->isAdministrator());
+        Gate::define('manage-helpdesk-settings', fn (User $user) => $user->isAdministrator());
     }
 }
