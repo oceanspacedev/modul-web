@@ -135,6 +135,46 @@ class AiSettingController extends Controller
         ]);
     }
 
+    /**
+     * "Coba chat": kirim percakapan singkat ke provider dengan key dan model di form (belum perlu disimpan), supaya
+     * admin melihat sendiri AI-nya benar-benar menjawab. Hanya teks pendek, jadi tidak lewat queue.
+     */
+    public function chat(Request $request, string $provider): JsonResponse
+    {
+        $provider = AiProviders::find($provider) ?? abort(404);
+        $data = $request->validate([
+            'api_key' => ['nullable', 'string', 'max:500'],
+            'model' => ['required', 'string', 'max:120', 'regex:'.self::MODEL_PATTERN],
+            'message' => ['required', 'string', 'max:2000'],
+            'history' => ['nullable', 'array', 'max:20'],
+            'history.*.role' => ['required', Rule::in(['user', 'assistant'])],
+            'history.*.text' => ['required', 'string', 'max:8000'],
+        ], [], ['message' => 'pesan', 'model' => 'model']);
+
+        $apiKey = trim((string) ($data['api_key'] ?? '')) ?: AiSettings::apiKey($provider);
+        if (blank($apiKey)) {
+            return response()->json(['message' => "Isi API key {$provider->label()} dulu."], 422);
+        }
+
+        $messages = [
+            ...array_map(fn (array $message) => ['role' => $message['role'], 'text' => $message['text']], $data['history'] ?? []),
+            ['role' => 'user', 'text' => $data['message']],
+        ];
+
+        $started = microtime(true);
+        try {
+            $reply = trim($provider->chat($messages, $apiKey, $data['model']));
+        } catch (Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        if ($reply === '') {
+            return response()->json(['message' => "{$provider->label()} tidak mengembalikan jawaban."], 422);
+        }
+
+        return response()->json(['reply' => $reply, 'ms' => (int) round((microtime(true) - $started) * 1000)]);
+    }
+
     private static function mask(?string $key): ?string
     {
         return filled($key) ? '••••'.substr($key, -4) : null;

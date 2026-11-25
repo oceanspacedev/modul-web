@@ -65,17 +65,34 @@ class GeminiProvider extends AiProvider
 
     public function generate(array $parts, string $apiKey, string $model, array $options = []): string
     {
-        $response = Http::timeout($options['timeout'] ?? 300)
+        return $this->send($apiKey, $model, $options['timeout'] ?? 300, [
+            'contents' => [['role' => 'user', 'parts' => $parts]],
+            'generationConfig' => [
+                'response_mime_type' => 'application/json',
+                'temperature' => $options['temperature'] ?? 0.3,
+                // Resolusi rendah memangkas token video kira-kira 3x; isi materi tetap terbaca dari audio dan teks layar.
+                ...(! empty($options['has_video']) ? ['media_resolution' => 'MEDIA_RESOLUTION_LOW'] : []),
+            ],
+        ]);
+    }
+
+    public function chat(array $messages, string $apiKey, string $model): string
+    {
+        return $this->send($apiKey, $model, self::CHAT_TIMEOUT, [
+            'system_instruction' => ['parts' => [['text' => self::CHAT_SYSTEM]]],
+            'contents' => array_map(fn (array $message) => [
+                'role' => $message['role'] === 'assistant' ? 'model' : 'user',
+                'parts' => [['text' => $message['text']]],
+            ], $messages),
+        ]);
+    }
+
+    /** @throws AiException|Exception */
+    private function send(string $apiKey, string $model, int $timeout, array $payload): string
+    {
+        $response = Http::timeout($timeout)
             ->withHeaders(['Content-Type' => 'application/json'])
-            ->post(self::API_BASE."/v1beta/models/{$model}:generateContent?key=".urlencode($apiKey), [
-                'contents' => [['role' => 'user', 'parts' => $parts]],
-                'generationConfig' => [
-                    'response_mime_type' => 'application/json',
-                    'temperature' => $options['temperature'] ?? 0.3,
-                    // Resolusi rendah memangkas token video kira-kira 3x; isi materi tetap terbaca dari audio dan teks layar.
-                    ...(! empty($options['has_video']) ? ['media_resolution' => 'MEDIA_RESOLUTION_LOW'] : []),
-                ],
-            ]);
+            ->post(self::API_BASE."/v1beta/models/{$model}:generateContent?key=".urlencode($apiKey), $payload);
 
         if (! $response->successful()) {
             $message = $this->errorMessage($response);

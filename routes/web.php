@@ -259,6 +259,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', 'index')->name('index');
         Route::put('/', 'update')->name('update');
         Route::post('{provider}/models', 'models')->whereIn('provider', ['gemini', 'openai', 'anthropic'])->name('models');
+        Route::post('{provider}/chat', 'chat')->whereIn('provider', ['gemini', 'openai', 'anthropic'])->middleware('throttle:20,1')->name('chat');
     });
 
     // # ROLES & PERMISSIONS

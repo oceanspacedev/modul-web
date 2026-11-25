@@ -20,7 +20,9 @@
             @endif
         </p>
 
-        <form action="{{ route('ai-settings.update') }}" method="POST" id="ai-settings-form" class="m-0" style="max-width: 640px;">
+        <div class="row">
+        <div class="col-xl-7">
+        <form action="{{ route('ai-settings.update') }}" method="POST" id="ai-settings-form" class="m-0">
             @csrf
             @method('PUT')
 
@@ -46,7 +48,7 @@
             @foreach ($providers as $key => $item)
                 @php($provider = $item['provider'])
                 <div data-ai-panel="{{ $key }}" data-has-key="{{ $item['source'] ? '1' : '0' }}" data-current-model="{{ $item['model'] }}"
-                    data-models-url="{{ route('ai-settings.models', $key) }}">
+                    data-label="{{ $provider->label() }}" data-models-url="{{ route('ai-settings.models', $key) }}" data-chat-url="{{ route('ai-settings.chat', $key) }}">
 
                     {{-- Langkah 2 --}}
                     <div class="card">
@@ -97,8 +99,45 @@
             <button type="submit" class="btn btn-primary" data-ai-save><i class="fas fa-save"></i> Simpan</button>
             <span class="small text-muted ml-2" data-ai-next></span>
         </form>
+        </div>
+
+        {{-- Coba chat: memakai provider, key dan model yang sedang dipilih di form (belum perlu disimpan). --}}
+        <div class="col-xl-5">
+            <div class="card ai-chat" id="ai-chat" hidden>
+                <div class="card-header d-flex align-items-center">
+                    <h3 class="card-title"><i class="far fa-comments mr-1"></i> Coba chat</h3>
+                    <button type="button" class="btn btn-link btn-sm ml-auto p-0" data-chat-clear>Bersihkan</button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="small text-muted px-3 pt-2" data-chat-target></div>
+                    <div class="ai-chat-log px-3 py-2" data-chat-log aria-live="polite"></div>
+                </div>
+                <div class="card-footer">
+                    <form class="d-flex m-0" data-chat-form>
+                        <input type="text" class="form-control form-control-sm" maxlength="2000" autocomplete="off" aria-label="Pesan" data-chat-input>
+                        <button type="submit" class="btn btn-primary btn-sm ml-2" aria-label="Kirim" data-chat-send><i class="fas fa-paper-plane"></i></button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        </div>
     </div>
 </section>
+
+<style>
+    @media (min-width: 1200px) {
+        .ai-chat { position: sticky; top: 1rem; }
+    }
+    .ai-chat-log { height: 360px; overflow-y: auto; }
+    .ai-chat-empty { color: var(--gray-500); font-size: 0.8125rem; text-align: center; margin-top: 140px; }
+    .ai-chat-msg { max-width: 85%; margin-bottom: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 12px; font-size: 0.875rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .ai-chat-msg.is-user { margin-left: auto; background: var(--primary-50); color: var(--gray-950); }
+    .ai-chat-msg.is-ai { background: var(--gray-100); color: var(--gray-950); }
+    .ai-chat-msg.is-error { background: var(--danger-50); color: var(--danger-700); }
+    .ai-chat-msg.is-waiting { color: var(--gray-500); }
+    .ai-chat-meta { display: block; margin-top: 0.25rem; color: var(--gray-500); font-size: 0.6875rem; }
+    .ai-chat-note { margin: 0.25rem 0 0.75rem; color: var(--gray-500); font-size: 0.75rem; text-align: center; }
+</style>
 
 <script>
     (function () {
@@ -129,6 +168,7 @@
             } else {
                 setNext(ready ? '' : 'pilih model.');
             }
+            updateChat();
         }
 
         function hideModels(panel) {
@@ -203,6 +243,119 @@
                 button.disabled = false;
             }
         }
+
+        // ---- Coba chat ----
+        const chat = document.getElementById('ai-chat');
+        const chatLog = chat.querySelector('[data-chat-log]');
+        const chatTarget = chat.querySelector('[data-chat-target]');
+        const chatForm = chat.querySelector('[data-chat-form]');
+        const chatInput = chat.querySelector('[data-chat-input]');
+        const chatSend = chat.querySelector('[data-chat-send]');
+        let history = [];
+        let chatSignature = null;
+        let chatBusy = false;
+
+        // Provider, key dan model yang sedang dipilih di form; null bila model belum bisa dipilih.
+        function chatConfig() {
+            const panel = panelOf(selected());
+            if (!panel || panel.querySelector('[data-ai-step-model]').hidden || modelField(panel).value === '') {
+                return null;
+            }
+
+            return {
+                panel: panel,
+                label: panel.dataset.label,
+                model: modelField(panel).value,
+                apiKey: panel.querySelector('[data-ai-key]').value,
+            };
+        }
+
+        function chatBubble(kind, text, meta) {
+            chatLog.querySelector('.ai-chat-empty')?.remove();
+            const bubble = document.createElement('div');
+            bubble.className = 'ai-chat-msg is-' + kind;
+            bubble.textContent = text;
+            if (meta) {
+                const small = document.createElement('span');
+                small.className = 'ai-chat-meta';
+                small.textContent = meta;
+                bubble.appendChild(small);
+            }
+            chatLog.appendChild(bubble);
+            chatLog.scrollTop = chatLog.scrollHeight;
+
+            return bubble;
+        }
+
+        function resetChat(note) {
+            history = [];
+            chatLog.replaceChildren();
+            const empty = document.createElement('div');
+            empty.className = 'ai-chat-empty';
+            empty.textContent = note;
+            chatLog.appendChild(empty);
+        }
+
+        function updateChat() {
+            const config = chatConfig();
+            const signature = config ? [config.panel.dataset.aiPanel, config.model, config.apiKey].join('|') : null;
+
+            chatInput.disabled = chatSend.disabled = !config || chatBusy;
+            chatInput.placeholder = config ? 'Tulis pesan...' : 'Pilih model dulu (langkah 3)';
+            chatTarget.textContent = config ? config.label + ' · ' + config.model : '';
+
+            // Ganti provider, key atau model: percakapan dimulai lagi supaya yang dites jelas.
+            if (signature !== chatSignature) {
+                chatSignature = signature;
+                resetChat(config ? 'Kirim pesan untuk mengecek AI benar-benar menjawab.' : 'Selesaikan langkah 1-3 untuk mencoba chat.');
+            }
+        }
+
+        chatForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            const config = chatConfig();
+            const message = chatInput.value.trim();
+            if (!config || !message || chatBusy) {
+                return;
+            }
+
+            chatBubble('user', message);
+            chatInput.value = '';
+            chatBusy = true;
+            updateChat();
+            const waiting = chatBubble('waiting', 'Menunggu jawaban...');
+
+            try {
+                const response = await fetch(config.panel.dataset.chatUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': token },
+                    body: JSON.stringify({ api_key: config.apiKey, model: config.model, message: message, history: history }),
+                });
+                const data = await response.json().catch(() => ({}));
+                waiting.remove();
+                if (!response.ok) {
+                    const firstError = data.errors ? Object.values(data.errors)[0][0] : null;
+                    throw new Error(firstError || data.message || 'Gagal menghubungi AI (kesalahan ' + response.status + ').');
+                }
+
+                chatBubble('ai', data.reply, config.model + ' · ' + (data.ms / 1000).toFixed(1) + ' dtk');
+                history.push({ role: 'user', text: message }, { role: 'assistant', text: data.reply });
+                history = history.slice(-20);
+            } catch (error) {
+                waiting.remove();
+                chatBubble('error', error.message);
+            } finally {
+                chatBusy = false;
+                updateChat();
+                chatInput.focus();
+            }
+        });
+
+        chat.querySelector('[data-chat-clear]').addEventListener('click', function () {
+            chatSignature = null;
+            updateChat();
+        });
+        chat.hidden = false;
 
         panels.forEach(function (panel) {
             panel.querySelector('[data-ai-test]').addEventListener('click', () => test(panel));

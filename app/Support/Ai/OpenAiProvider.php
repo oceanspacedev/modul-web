@@ -55,13 +55,29 @@ class OpenAiProvider extends AiProvider
         );
 
         // Tanpa temperature: model reasoning OpenAI hanya menerima nilai bawaan.
-        $response = Http::timeout($options['timeout'] ?? 300)
-            ->withToken($apiKey)
-            ->post(self::API_BASE.'/chat/completions', [
-                'model' => $model,
-                'messages' => [['role' => 'user', 'content' => $content]],
-                'response_format' => ['type' => 'json_object'],
-            ]);
+        return $this->send($apiKey, $options['timeout'] ?? 300, [
+            'model' => $model,
+            'messages' => [['role' => 'user', 'content' => $content]],
+            'response_format' => ['type' => 'json_object'],
+        ]);
+    }
+
+    public function chat(array $messages, string $apiKey, string $model): string
+    {
+        return $this->send($apiKey, self::CHAT_TIMEOUT, [
+            'model' => $model,
+            'messages' => [
+                ['role' => 'system', 'content' => self::CHAT_SYSTEM],
+                ...array_map(fn (array $message) => ['role' => $message['role'], 'content' => $message['text']], $messages),
+            ],
+        ]);
+    }
+
+    /** @throws AiException|Exception */
+    private function send(string $apiKey, int $timeout, array $payload): string
+    {
+        $model = $payload['model'];
+        $response = Http::timeout($timeout)->withToken($apiKey)->post(self::API_BASE.'/chat/completions', $payload);
 
         if (! $response->successful()) {
             throw $response->status() === 401 ? $this->invalidKey() : new Exception("OpenAI ({$model}): ".$this->errorMessage($response));

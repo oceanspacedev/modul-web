@@ -40,6 +40,19 @@ abstract class AiProvider
      */
     abstract public function generate(array $parts, string $apiKey, string $model, array $options = []): string;
 
+    /**
+     * Percakapan teks biasa untuk "Coba chat" di Pengaturan AI: memastikan API key dan model benar-benar menjawab.
+     *
+     * @param  array<int, array{role: 'user'|'assistant', text: string}>  $messages  dimulai dan diakhiri pesan user
+     *
+     * @throws AiException|\Exception
+     */
+    abstract public function chat(array $messages, string $apiKey, string $model): string;
+
+    protected const CHAT_SYSTEM = 'Kamu asisten uji coba di halaman Pengaturan AI aplikasi Modul. Jawab singkat dan jelas dalam Bahasa Indonesia.';
+
+    protected const CHAT_TIMEOUT = 60;
+
     /** Hanya Gemini yang bisa membaca video (file upload dan link YouTube). */
     public function supportsVideo(): bool
     {

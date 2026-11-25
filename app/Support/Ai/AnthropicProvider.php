@@ -51,12 +51,29 @@ class AnthropicProvider extends AiProvider
         );
 
         // Tanpa temperature: model Claude terbaru menolak parameter sampling.
-        $response = $this->client($apiKey, $options['timeout'] ?? 300)->post(self::API_BASE.'/messages', [
+        return $this->send($apiKey, $options['timeout'] ?? 300, [
             'model' => $model,
             'max_tokens' => 16000,
             'system' => 'Balas hanya dengan JSON murni sesuai format yang diminta, tanpa teks lain.',
             'messages' => [['role' => 'user', 'content' => $content]],
         ]);
+    }
+
+    public function chat(array $messages, string $apiKey, string $model): string
+    {
+        return $this->send($apiKey, self::CHAT_TIMEOUT, [
+            'model' => $model,
+            'max_tokens' => 2048,
+            'system' => self::CHAT_SYSTEM,
+            'messages' => array_map(fn (array $message) => ['role' => $message['role'], 'content' => $message['text']], $messages),
+        ]);
+    }
+
+    /** @throws AiException|Exception */
+    private function send(string $apiKey, int $timeout, array $payload): string
+    {
+        $model = $payload['model'];
+        $response = $this->client($apiKey, $timeout)->post(self::API_BASE.'/messages', $payload);
 
         if (! $response->successful()) {
             throw $response->status() === 401 ? $this->invalidKey() : new Exception("Claude ({$model}): ".$this->errorMessage($response));
