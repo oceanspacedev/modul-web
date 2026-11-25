@@ -126,62 +126,55 @@
                     </div>
                 </div>
 
-                <div class="card">
-                    <div class="card-header"><h3 class="card-title">Import dari Google Sheets</h3></div>
-                    <div class="card-body small">
-                        <p class="text-muted mb-2">Akses sheet: "Siapa saja yang memiliki link". Aman diulang, baris yang sama diperbarui.</p>
-
-                        @foreach (App\Services\OdSheetImport::TYPES as $type => $label)
-                            @php($bag = $errors->getBag("import-{$type}"))
-                            <form action="{{ route('od-report.settings.sheet-import', $type) }}" method="POST" class="{{ $loop->last ? 'm-0' : 'mb-3 pb-3 border-bottom' }}">
-                                @csrf
-                                @method('PUT')
-                                <label for="import_{{ $type }}" class="mb-1">{{ $label }}</label>
-                                <input type="url" id="import_{{ $type }}" name="link" value="{{ $bag->any() ? old('link') : $import[$type] }}" required maxlength="300" placeholder="https://docs.google.com/spreadsheets/d/.../edit" class="form-control form-control-sm @if ($bag->has('link')) is-invalid @endif">
-                                @if ($bag->has('link'))<div class="invalid-feedback">{{ $bag->first('link') }}</div>@endif
-
-                                @if ($type === App\Services\OdSheetImport::WEEKLY && $import['positions'])
-                                    <table class="table table-sm table-borderless mt-2 mb-0">
-                                        @foreach ($import['positions'] as $position => $userId)
-                                            <tr>
-                                                <td class="align-middle pl-0">{{ $position }}</td>
-                                                <td class="pr-0" style="width: 45%;">
-                                                    <select name="positions[{{ $position }}]" class="custom-select custom-select-sm" aria-label="Anggota untuk {{ $position }}">
-                                                        <option value="">Otomatis: {{ $import['auto'][$position]?->nama_lengkap ?? 'belum ada (dilewati)' }}</option>
-                                                        @foreach ($import['members'] as $member)
-                                                            <option value="{{ $member->id }}" @selected($userId === $member->id)>{{ $member->nama_lengkap }}</option>
-                                                        @endforeach
-                                                    </select>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </table>
-                                @endif
-
-                                <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
-                                    @if ($type === App\Services\OdSheetImport::WEEKLY)
-                                        <label for="import_from" class="mb-0">Mulai</label>
-                                        <input type="month" id="import_from" name="from" value="{{ $bag->any() ? old('from') : $import['from'] }}" required class="form-control form-control-sm @if ($bag->has('from')) is-invalid @endif" style="max-width: 160px;">
-                                    @endif
-                                    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-file-import"></i> Import</button>
-                                </div>
-                                @foreach (['from', 'positions.*'] as $field)
-                                    @if ($bag->has($field))<div class="text-danger small mt-1">{{ $bag->first($field) }}</div>@endif
-                                @endforeach
-
-                                @if ($last = $import['last'][$type])
-                                    <div class="mt-2 {{ $last['ok'] ? 'text-success' : 'text-danger' }}">
-                                        {{ $last['at']->locale('id')->diffForHumans() }}: {{ $last['message'] }}
-                                    </div>
-                                @endif
-                            </form>
-                        @endforeach
-                    </div>
-                </div>
-
                 <div class="card card-body small">
                     <p class="mb-2">Jenis dokumen, tahapan dan PIC bawaan diatur di Kategori Dokumen.</p>
                     <a href="{{ route('document-category.index') }}" class="btn btn-default btn-sm align-self-start"><i class="fas fa-tags"></i> Buka Kategori Dokumen</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h3 class="card-title">Import Google Sheets</h3></div>
+            <div class="card-body small">
+                <div class="row">
+                    @foreach (App\Services\OdSheetImport::TYPES as $type => $label)
+                        @php($bag = $errors->getBag("import-{$type}"))
+                        <form action="{{ route('od-report.settings.sheet-import', $type) }}" method="POST" class="col-lg-6 mb-3 mb-lg-0">
+                            @csrf
+                            @method('PUT')
+                            <label for="import_{{ $type }}" class="mb-1">{{ $label }}</label>
+                            <div class="d-flex gap-2">
+                                <input type="url" id="import_{{ $type }}" name="link" value="{{ $bag->any() ? old('link') : $import[$type] }}" required maxlength="300" placeholder="Link Google Sheets" title="Akses sheet: siapa saja yang memiliki link" class="form-control form-control-sm @if ($bag->has('link')) is-invalid @endif">
+                                @if ($type === App\Services\OdSheetImport::WEEKLY)
+                                    <input type="month" name="from" value="{{ $bag->any() ? old('from') : $import['from'] }}" required title="Mulai bulan" aria-label="Mulai bulan" class="form-control form-control-sm @if ($bag->has('from')) is-invalid @endif" style="max-width: 150px;">
+                                @endif
+                                <button type="submit" class="btn btn-primary btn-sm text-nowrap"><i class="fas fa-file-import"></i> Import</button>
+                            </div>
+                            @foreach (['link', 'from', 'positions.*'] as $field)
+                                @if ($bag->has($field))<div class="text-danger mt-1">{{ $bag->first($field) }}</div>@endif
+                            @endforeach
+
+                            @if ($type === App\Services\OdSheetImport::WEEKLY)
+                                @foreach ($import['positions'] as $position => $userId)
+                                    <div class="d-flex align-items-center gap-2 mt-2">
+                                        <span class="text-muted text-truncate flex-shrink-0" style="width: 150px;" title="{{ $position }}">{{ str_replace('ORGANIZATION DEVELOPMENT', 'OD', $position) }}</span>
+                                        <select name="positions[{{ $position }}]" class="custom-select custom-select-sm" aria-label="Anggota untuk {{ $position }}">
+                                            <option value="">Otomatis: {{ $import['auto'][$position]?->nama_lengkap ?? 'belum ada' }}</option>
+                                            @foreach ($import['members'] as $member)
+                                                <option value="{{ $member->id }}" @selected($userId === $member->id)>{{ $member->nama_lengkap }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                @endforeach
+                            @endif
+
+                            @if ($last = $import['last'][$type])
+                                <div class="mt-2 {{ $last['ok'] ? 'text-muted' : 'text-danger' }}">
+                                    {{ $last['at']->locale('id')->diffForHumans() }} · {{ $last['message'] }}
+                                </div>
+                            @endif
+                        </form>
+                    @endforeach
                 </div>
             </div>
         </div>

@@ -157,7 +157,7 @@ class OdSheetImportTest extends TestCase
 
         // Staff kedua membuat POSISI STAFF ambigu: tidak lagi otomatis, Leader perlu memilih.
         $this->staff('STAFF LAIN')->update(['position_id' => Position::create(['name' => 'ADMIN DOKUMEN'])->id]);
-        $this->actingAs($leader)->get(route('od-report.settings.index'))->assertSee('Otomatis: belum ada (dilewati)');
+        $this->actingAs($leader)->get(route('od-report.settings.index'))->assertSee('Otomatis: belum ada');
     }
 
     public function test_reimport_updates_changed_rows_but_keeps_app_edits_of_unchanged_rows(): void
@@ -202,7 +202,7 @@ class OdSheetImportTest extends TestCase
         $this->importWeekly($leader);
 
         $this->assertSame(0, OdActivity::count());
-        Notification::assertSentTo($leader, BackgroundTaskFinished::class, fn ($n) => str_contains($n->message, 'Bulan: tidak ada'));
+        Notification::assertSentTo($leader, BackgroundTaskFinished::class, fn ($n) => str_contains($n->message, 'tab bulan tidak ditemukan'));
     }
 
     public function test_leader_imports_approval_documents_and_reimport_does_not_duplicate(): void
@@ -267,7 +267,7 @@ class OdSheetImportTest extends TestCase
 
         $this->actingAs($leader)->get(route('od-report.settings.index'))
             ->assertOk()
-            ->assertSee('Import dari Google Sheets')
+            ->assertSee('Import Google Sheets')
             ->assertSee('value="2026-01"', false);
         Http::assertNothingSent();
     }

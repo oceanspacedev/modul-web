@@ -55,22 +55,26 @@ class ImportOdSheet extends BackgroundTask
         }
 
         $label = $this->type === OdSheetImport::WEEKLY ? 'pekerjaan' : 'dokumen';
-        $count = fn (int $value) => number_format($value, 0, ',', '.');
-        $message = "{$count($result['created'])} {$label} baru, {$count($result['updated'])} diperbarui, {$count($result['unchanged'])} tidak berubah.";
+        $number = fn (int $value) => number_format($value, 0, ',', '.');
+        $parts = ["{$number($result['created'])} {$label} baru", "{$number($result['updated'])} diperbarui"];
 
         $errors = $result['errors'];
         foreach ($result['unmapped'] ?? [] as $position => $count) {
-            $errors[] = "{$count} pekerjaan dilewati: posisi {$position} belum dipetakan ke anggota tim.";
+            $errors[] = "{$count} pekerjaan dilewati: posisi {$position} belum ada orangnya.";
         }
-        if ($result['unmapped'] ?? []) {
-            $message .= ' '.array_sum($result['unmapped']).' dilewati (posisi belum dipetakan).';
-        }
-        if ($result['skipped'] ?? 0) {
-            $message .= " {$result['skipped']} baris dilewati.";
+        $skipped = array_sum($result['unmapped'] ?? []) + ($result['skipped'] ?? 0);
+        if ($skipped) {
+            $parts[] = "{$number($skipped)} dilewati";
         }
         if ($this->type === OdSheetImport::WEEKLY) {
-            $message .= ' Bulan: '.($result['months'] ? implode(', ', $result['months']) : 'tidak ada').'.';
+            $months = $result['months'];
+            $parts[] = match (count($months)) {
+                0 => 'tab bulan tidak ditemukan',
+                1 => $months[0],
+                default => $months[0].' – '.end($months),
+            };
         }
+        $message = implode(' · ', $parts);
 
         $import->remember($this->type, $errors === [], $message);
 
