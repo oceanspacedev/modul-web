@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\SendHelpdeskWebhook;
 use App\Models\DocumentRequestHistory;
 use App\Models\OdDocument;
 use App\Models\OdDocumentAttachment;
@@ -126,7 +127,11 @@ class OdDocumentService
         ]);
         $document->documentRequest->touch();
 
+        // $notify = false: pemanggil (DocumentRequestService::update) mengirim satu kabar dan satu webhook untuk semua
+        // perubahan sekaligus.
         if ($notify) {
+            SendHelpdeskWebhook::forRequest($document->documentRequest);
+
             $attachment = $document->isReleased() ? $document->whatsAppAttachment() : null;
             DocumentRequestUpdated::send(
                 $document->documentRequest,

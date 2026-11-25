@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\SendHelpdeskWebhook;
 use App\Models\DocumentCategory;
 use App\Models\DocumentRequest;
 use App\Models\DocumentRequestComment;
@@ -26,12 +27,13 @@ class DocumentRequestService
     public function __construct(private OdDocumentService $documents) {}
 
     /**
-     * @param  array<string, mixed>  $data  data tervalidasi dari StoreDocumentRequestRequest
+     * @param  array<string, mixed>  $data  data tervalidasi dari StoreDocumentRequestRequest; API helpdesk menambahkan
+     *                                      source dan helpdesk_ticket_number
      */
     public function create(array $data, ?User $user): DocumentRequest
     {
         $key = $data['idempotency_key'] ?? null;
-        if ($key && ($existing = DocumentRequest::where('idempotency_key', $key)->first())) {
+        if ($key && ($existing = DocumentRequest::withTrashed()->where('idempotency_key', $key)->first())) {
             return $existing;
         }
 
@@ -52,6 +54,8 @@ class DocumentRequestService
                     'document_category_id' => $category->getKey(),
                     'user_id' => $user?->getKey(),
                     'idempotency_key' => $key ?: (string) Str::uuid(),
+                    'source' => $data['source'] ?? DocumentRequest::SOURCE_WEB,
+                    'helpdesk_ticket_number' => $data['helpdesk_ticket_number'] ?? null,
                     'tanggal' => today(),
                 ]);
 
@@ -92,7 +96,7 @@ class DocumentRequestService
             });
         } catch (UniqueConstraintViolationException $e) {
             // Kiriman ganda yang datang bersamaan: kembalikan pengajuan yang sudah tersimpan.
-            if ($key && ($existing = DocumentRequest::where('idempotency_key', $key)->first())) {
+            if ($key && ($existing = DocumentRequest::withTrashed()->where('idempotency_key', $key)->first())) {
                 return $existing;
             }
             throw $e;
@@ -168,6 +172,9 @@ class DocumentRequestService
         if ($changes) {
             DocumentRequestUpdated::send($request, "Ada pembaruan:\n".implode("\n", $changes), $attachments);
         }
+
+        // PIC, prioritas, tahap, dan jadwal bisa berubah tanpa kabar ke pemohon; helpdesk tetap butuh snapshot baru.
+        SendHelpdeskWebhook::forRequest($request);
     }
 
     /**
@@ -179,6 +186,7 @@ class DocumentRequestService
         $request->touch();
 
         DocumentRequestUpdated::send($request, "Komentar dari tim OD ({$by->nama_lengkap}):\n{$body}");
+        SendHelpdeskWebhook::forRequest($request);
 
         return $comment;
     }

@@ -55,4 +55,13 @@ return [
         'sync_time' => env('DND_SYNC_TIME', '01:00'),
     ],
 
+    // Integrasi helpdesk (Permintaan Dokumen): token Bearer yang dipakai helpdesk memanggil /api/helpdesk/v1, serta URL
+    // dan rahasia HMAC webhook ticket.updated ke helpdesk. Token kosong = API menolak semua panggilan; URL/rahasia
+    // kosong = webhook tidak dikirim.
+    'helpdesk' => [
+        'api_token' => env('HELPDESK_API_TOKEN'),
+        'webhook_url' => env('HELPDESK_WEBHOOK_URL'),
+        'webhook_secret' => env('HELPDESK_WEBHOOK_SECRET'),
+    ],
+
 ];

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\OdDocumentRequest;
+use App\Jobs\SendHelpdeskWebhook;
 use App\Models\DocumentCategory;
 use App\Models\OdDocument;
 use App\Models\OdDocumentStatus;
@@ -127,11 +128,17 @@ class OdDocumentController extends Controller
         }
 
         if ($document->isFromRequest() && $stage && $stage !== $document->stage) {
-            $this->documents->changeStage($document, $stage, $user);
+            $changed = $this->documents->changeStage($document, $stage, $user);
         } elseif ($status->isNot($document->status)) {
-            $this->documents->changeStatus($document, $status, $user);
+            $changed = $this->documents->changeStatus($document, $status, $user);
         } else {
             $document->save();
+            $changed = false;
+        }
+
+        // Tahap yang berubah sudah mengirim webhook; judul atau file item pengajuan helpdesk bisa berubah tanpa itu.
+        if (! $changed) {
+            SendHelpdeskWebhook::forDocument($document);
         }
 
         return to_route('od-report.documents.index')->with('success', 'Dokumen diperbarui.');
@@ -154,7 +161,10 @@ class OdDocumentController extends Controller
             $this->documents->attachFile($document, $request->file('file'));
         }
 
-        $this->documents->changeStatus($document, $status, $request->user());
+        if (! $this->documents->changeStatus($document, $status, $request->user())) {
+            // File baru tanpa perubahan tahap tetap dikabarkan ke helpdesk.
+            SendHelpdeskWebhook::forDocument($document);
+        }
 
         return back()->with('success', 'Status "'.$document->title.'" menjadi '.$document->status->name.'.');
     }

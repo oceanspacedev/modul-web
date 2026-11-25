@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendHelpdeskWebhook;
 use App\Models\DocumentCategory;
 use App\Models\DocumentRequest;
 use App\Models\DocumentRequestComment;
@@ -164,6 +165,8 @@ class OdRequestController extends Controller
 
         $documentRequest->processes()->each(fn (OdDocument $p) => $p->delete());
         $documentRequest->delete();
+        // Helpdesk menerima snapshot terakhir berstatus dibatalkan.
+        SendHelpdeskWebhook::forRequest($documentRequest);
 
         return to_route('od-report.requests.index')->with('success', "Pengajuan {$documentRequest->code} dihapus.");
     }

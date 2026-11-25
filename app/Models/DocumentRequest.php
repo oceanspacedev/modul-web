@@ -36,6 +36,11 @@ class DocumentRequest extends Model
 
     public const MAX_PROCESSES = 10;
 
+    public const SOURCE_WEB = 'web';
+
+    /** Pengajuan yang masuk lewat API helpdesk: pemohon dikabari helpdesk, bukan aplikasi ini. */
+    public const SOURCE_HELPDESK = 'helpdesk';
+
     /** Huruf kode tiket tanpa karakter yang mudah tertukar (0/O, 1/I). */
     private const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -104,6 +109,11 @@ class DocumentRequest extends Model
         if (! $user->can('manage-od-report')) {
             $query->whereHas('processes', fn (Builder $q) => $q->where('pic_user_id', $user->getKey()));
         }
+    }
+
+    public function isFromHelpdesk(): bool
+    {
+        return $this->source === self::SOURCE_HELPDESK;
     }
 
     public static function generateCode(string $prefix = 'DOK'): string
