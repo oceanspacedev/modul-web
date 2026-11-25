@@ -15,7 +15,7 @@
     .pg-card p, .pg-card li { color: var(--gray-700); font-size: .875rem; line-height: 1.65; }
     .pg-card ol, .pg-card ul { padding-left: 20px; }
     .pg-card li { margin-bottom: 4px; }
-    .pg-card a:not(.btn) { color: var(--primary-600); }
+    .pg-card a:not(.btn) { color: var(--primary-700); }
     .pg-shot { margin: 14px 0; border: 1px solid var(--ring); border-radius: var(--radius-lg); overflow: hidden; background: var(--gray-50); }
     .pg-shot img { width: 100%; display: block; }
     .pg-shot figcaption { font-size: .75rem; color: var(--gray-500); padding: 6px 12px; border-top: 1px solid var(--ring); background: #fff; }

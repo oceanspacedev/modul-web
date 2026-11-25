@@ -1255,7 +1255,7 @@ document.addEventListener('DOMContentLoaded', function() {
             el.textContent = value;
             el.style.transition = 'color 0.3s';
             const orig = el.style.color;
-            el.style.color = 'var(--primary-600)';
+            el.style.color = 'var(--primary-700)';
             setTimeout(function() { el.style.color = orig; }, 600);
         }
     }

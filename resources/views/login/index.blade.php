@@ -25,13 +25,14 @@
             --gray-500: #71717a;
             --gray-700: #3f3f46;
             --gray-950: #09090b;
-            --primary-500: #ff6bb5;
-            --primary-600: #ff4da6;
-            --primary-700: #e6007a;
-            --primary-800: #c20067;
+            --primary-500: #3ddf67;
+            --primary-600: #00d639;
+            --primary-700: #00852e;
+            --primary-800: #006b25;
+            --on-primary: #09090b;
             --danger-600: #dc2626;
             --ring-input: rgba(9, 9, 11, 0.1);
-            --focus-ring: 0 0 0 1px #ff4da6, 0 0 0 4px rgba(255, 77, 166, 0.2);
+            --focus-ring: 0 0 0 1px #00d639, 0 0 0 4px rgba(0, 214, 57, 0.2);
         }
 
         *, *::before, *::after {
@@ -279,8 +280,8 @@
             width: 8px;
             height: 5px;
             margin-top: -2px;
-            border-left: 2px solid #ffffff;
-            border-bottom: 2px solid #ffffff;
+            border-left: 2px solid var(--on-primary);
+            border-bottom: 2px solid var(--on-primary);
             transform: rotate(-45deg) scale(0);
             transition: transform 0.1s ease;
         }
@@ -313,11 +314,11 @@
             gap: 8px;
             width: 100%;
             height: 40px;
-            border: 1px solid var(--primary-700);
+            border: 1px solid var(--primary-600);
             border-radius: 8px;
-            background-color: var(--primary-700);
+            background-color: var(--primary-600);
             background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0));
-            color: #ffffff;
+            color: var(--on-primary);
             font-family: inherit;
             font-size: 14px;
             font-weight: 500;
@@ -327,13 +328,13 @@
         }
 
         .btn-primary-action:hover:not(:disabled) {
-            background-color: var(--primary-800);
-            border-color: var(--primary-800);
+            background-color: var(--primary-500);
+            border-color: var(--primary-500);
         }
 
         .btn-primary-action:active:not(:disabled) {
-            background-color: var(--primary-800);
-            border-color: var(--primary-800);
+            background-color: var(--primary-500);
+            border-color: var(--primary-500);
             box-shadow: inset 0 1px 2px rgba(9, 9, 11, 0.2);
         }
 

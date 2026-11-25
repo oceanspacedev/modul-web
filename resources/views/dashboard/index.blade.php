@@ -466,7 +466,7 @@ $(document).ready(function() {
             labels: odChart.map(function (d) { return d.label; }),
             datasets: [
                 { label: 'Done', data: odChart.map(function (d) { return d.done; }), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,.08)', pointRadius: 2, lineTension: .3 },
-                { label: 'Proses', data: odChart.map(function (d) { return d.open; }), borderColor: '#e6007a', backgroundColor: 'rgba(230,0,122,.06)', pointRadius: 2, lineTension: .3 },
+                { label: 'Proses', data: odChart.map(function (d) { return d.open; }), borderColor: '#00852e', backgroundColor: 'rgba(0,133,46,.06)', pointRadius: 2, lineTension: .3 },
             ],
         },
         options: {
@@ -484,7 +484,7 @@ $(document).ready(function() {
     @if ($data)
     @if ($show['trainings'])
     // -------------------------------------------------------------
-    // 1. Chart Peserta Pelatihan (Bar Chart - primary pink)
+    // 1. Chart Peserta Pelatihan (Bar Chart - primary green)
     // -------------------------------------------------------------
     var ctxPelatihan = document.getElementById('chartPelatihan');
     if (ctxPelatihan) {
@@ -498,9 +498,9 @@ $(document).ready(function() {
                 datasets: [{
                     label: 'Jumlah Peserta',
                     data: dataPelatihan,
-                    backgroundColor: '#ff4da6',
+                    backgroundColor: '#00d639',
                     borderWidth: 0,
-                    hoverBackgroundColor: '#e6007a',
+                    hoverBackgroundColor: '#00852e',
                     maxBarThickness: 40,
                     borderRadius: 6
                 }]
@@ -545,7 +545,7 @@ $(document).ready(function() {
 
     @if ($show['videos'])
     // -------------------------------------------------------------
-    // 3. Chart Popularitas Video (Horizontal Bar - primary pink)
+    // 3. Chart Popularitas Video (Horizontal Bar - primary green)
     // -------------------------------------------------------------
     var ctxVideo = document.getElementById('chartVideoViews');
     if (ctxVideo) {
@@ -559,9 +559,9 @@ $(document).ready(function() {
                 datasets: [{
                     label: 'Total Views',
                     data: dataVideo,
-                    backgroundColor: '#ff4da6',
+                    backgroundColor: '#00d639',
                     borderWidth: 0,
-                    hoverBackgroundColor: '#e6007a',
+                    hoverBackgroundColor: '#00852e',
                     maxBarThickness: 24,
                     borderRadius: 6
                 }]
@@ -620,7 +620,7 @@ $(document).ready(function() {
                 datasets: [{
                     data: dataContent,
                     backgroundColor: [
-                        '#ff4da6', // video - primary
+                        '#00d639', // video - primary
                         '#a1a1aa', // dokumen - zinc 400
                         '#d4d4d8'  // pelatihan - zinc 300
                     ],

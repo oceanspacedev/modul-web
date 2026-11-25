@@ -32,7 +32,7 @@
     background: rgba(9, 9, 11, 0.2);
 }
 .video-mini-title { color: var(--gray-950); }
-.video-mini-link:hover .video-mini-title { color: var(--primary-600); }
+.video-mini-link:hover .video-mini-title { color: var(--primary-700); }
 .comment-body { white-space: pre-line; }
 </style>
 
