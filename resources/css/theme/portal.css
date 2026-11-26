@@ -68,6 +68,30 @@
     .portal-header-side > .portal-header-name {
         max-width: 40vw;
     }
+
+    .portal-brand-sub {
+        display: none;
+    }
+
+    .portal-header,
+    .quiz-header {
+        padding: 0.625rem 0;
+        margin-bottom: 1rem;
+    }
+
+    .quiz-header-inner {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .quiz-header-title {
+        flex: 1 1 200px;
+        min-width: 0;
+    }
+
+    .quiz-header-meta {
+        margin-left: auto;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {

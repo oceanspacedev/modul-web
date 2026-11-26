@@ -34,7 +34,7 @@
         <div class="row">
             <div class="col-xl-7">
                 @if ($code)
-                    <div class="card card-outline card-success">
+                    <div class="card">
                         <div class="card-header"><h3 class="card-title"><i class="fas fa-key mr-2"></i>Kode koneksi</h3></div>
                         <div class="card-body">
                             <div class="input-group">
@@ -66,24 +66,26 @@
                             Tidak ada yang perlu diubah di .env.
                         </p>
 
-                        <form action="{{ route('helpdesk-settings.issue') }}" method="POST" class="d-inline"
-                            @if ($connected) onsubmit="return confirm('Buat kode baru? Kode lama tetap berlaku {{ \App\Support\HelpdeskConnection::GRACE_HOURS }} jam atau sampai kode baru ditempel di helpdesk.')" @endif>
-                            @csrf
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-key mr-1"></i>{{ $connected ? 'Buat kode koneksi baru' : 'Buat kode koneksi' }}
-                            </button>
-                        </form>
-
-                        @if ($tokenSource === 'app')
-                            <form action="{{ route('helpdesk-settings.disconnect') }}" method="POST" class="d-inline ml-2"
-                                onsubmit="return confirm('Putuskan koneksi helpdesk? Pengajuan baru dari helpdesk akan ditolak sampai kode baru dipakai.')">
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <form action="{{ route('helpdesk-settings.issue') }}" method="POST" class="m-0"
+                                @if ($connected) onsubmit="return confirm('Buat kode baru? Kode lama tetap berlaku {{ \App\Support\HelpdeskConnection::GRACE_HOURS }} jam atau sampai kode baru ditempel di helpdesk.')" @endif>
                                 @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-outline-danger">
-                                    <i class="fas fa-unlink mr-1"></i>Putuskan
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-key mr-1"></i>{{ $connected ? 'Buat kode koneksi baru' : 'Buat kode koneksi' }}
                                 </button>
                             </form>
-                        @endif
+
+                            @if ($tokenSource === 'app')
+                                <form action="{{ route('helpdesk-settings.disconnect') }}" method="POST" class="m-0"
+                                    onsubmit="return confirm('Putuskan koneksi helpdesk? Pengajuan baru dari helpdesk akan ditolak sampai kode baru dipakai.')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-outline-danger">
+                                        <i class="fas fa-unlink mr-1"></i>Putuskan
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>

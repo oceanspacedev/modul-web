@@ -45,10 +45,10 @@
             <div class="card-header"><h3 class="card-title">Aktivitas OD terbaru</h3></div>
             <div class="card-body p-0">
                 @forelse ($od['recentActivities'] as $activity)
-                    <div class="px-3 py-2 border-bottom small">
-                        <div class="d-flex justify-content-between gap-2">
-                            <span>{{ $activity->name }}</span>
-                            <span class="badge {{ $activity->badgeClass() }}">{{ $activity->result }}</span>
+                    <div class="dash-row px-3 py-2 small">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <span class="min-w-0 text-break">{{ $activity->name }}</span>
+                            <span class="badge {{ $activity->badgeClass() }} flex-shrink-0">{{ $activity->result }}</span>
                         </div>
                         <span class="text-muted">{{ $activity->date->format('d/m') }} · {{ $activity->user->nama_lengkap }}</span>
                     </div>

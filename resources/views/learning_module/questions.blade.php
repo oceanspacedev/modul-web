@@ -8,7 +8,7 @@
 
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Soal Pretest & Posttest" :subtitle="$subtitle" :breadcrumbs="$module->adminBreadcrumbs('Soal')">
+        <x-page-header class="text-break" title="Soal Pretest & Posttest" :subtitle="$subtitle" :breadcrumbs="$module->adminBreadcrumbs('Soal')">
             <x-slot:actions>
                 <a href="{{ $module->isOwned() ? $module->managementUrl() : route('learning-module.show', $module) }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
                 <div class="dropdown">
@@ -89,7 +89,7 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <p class="section-title mb-3" style="white-space: pre-line;">{{ $q->question }}</p>
+                        <p class="section-title mb-3 text-break" style="white-space: pre-line;">{{ $q->question }}</p>
                         @if($q->imageUrl())
                             <a href="{{ $q->imageUrl() }}" target="_blank" rel="noopener" class="d-inline-block mb-3">
                                 <img src="{{ $q->imageUrl() }}" alt="Gambar soal" class="quiz-img">
@@ -100,7 +100,7 @@
                                 @php $isKey = $q->correct_answer === $letter; @endphp
                                 <div class="col-md-6 mb-2">
                                     <div class="d-flex align-items-start justify-content-between gap-2 px-3 py-2 border rounded {{ $isKey ? 'bg-soft-success' : '' }}">
-                                        <span>
+                                        <span class="flex-grow-1 min-w-0 text-break">
                                             <strong>{{ strtoupper($letter) }}.</strong> {{ $text }}
                                             @if($q->optionImageUrl($letter))
                                                 <a href="{{ $q->optionImageUrl($letter) }}" target="_blank" rel="noopener" class="d-block mt-1">
@@ -109,14 +109,14 @@
                                             @endif
                                         </span>
                                         @if($isKey)
-                                            <span class="badge badge-success">Kunci jawaban</span>
+                                            <span class="badge badge-success flex-shrink-0">Kunci jawaban</span>
                                         @endif
                                     </div>
                                 </div>
                             @endforeach
                         </div>
                         @if($q->explanation)
-                            <div class="small text-muted mt-3 pt-2 border-top">
+                            <div class="small text-muted mt-3 pt-2 border-top text-break">
                                 <strong>Pembahasan:</strong> {{ $q->explanation }}
                             </div>
                         @endif
@@ -195,7 +195,7 @@
                         huruf pilihan yang terisi atau teks yang sama persis dengan salah satu pilihan; satu baris yang tidak jelas
                         membatalkan seluruh file.
                     </p>
-                    <input type="file" name="file" class="form-control-file" accept=".xlsx,.xls,.csv" required>
+                    <input type="file" name="file" class="form-control-file mw-100" accept=".xlsx,.xls,.csv" required>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
@@ -228,7 +228,7 @@
                     @forelse($aiItems as $item)
                         <div class="custom-control custom-checkbox mb-1">
                             <input type="checkbox" class="custom-control-input ai-item" id="ai_item_{{ $item->id }}" value="{{ $item->id }}" checked>
-                            <label class="custom-control-label" for="ai_item_{{ $item->id }}">
+                            <label class="custom-control-label text-break" for="ai_item_{{ $item->id }}">
                                 <i class="fas {{ $item->isVideo() ? 'fa-play-circle' : 'fa-file-alt' }} text-muted mr-1"></i>
                                 {{ $item->title() }}
                             </label>
@@ -242,7 +242,7 @@
                     @foreach($unsupportedAiItems as $item)
                         <div class="custom-control custom-checkbox mb-1">
                             <input type="checkbox" class="custom-control-input" disabled>
-                            <label class="custom-control-label text-muted">
+                            <label class="custom-control-label text-muted text-break">
                                 {{ $item->title() }} <small>({{ $aiReadsVideo ? 'link Drive/Vimeo tidak bisa dibaca AI; gunakan file upload atau YouTube publik' : 'video hanya bisa dibaca Gemini' }})</small>
                             </label>
                         </div>
@@ -511,7 +511,7 @@ $(function () {
             form.elements.question.value = q.question || '';
             form.elements.explanation.value = q.explanation || '';
             letters.forEach(function (letter) { form.elements['option_' + letter].value = q['option_' + letter] || ''; });
-            form.elements.correct_answer.value = q.correct_answer || 'a';
+            $(form.elements.correct_answer).val(q.correct_answer || 'a').trigger('change');
         }
     });
     @endif

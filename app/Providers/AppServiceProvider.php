@@ -10,6 +10,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Queue\Events\WorkerStarting;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -35,6 +36,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Paginator::useBootstrapFour();
+
         $this->configureModels();
         $this->configureRateLimiting();
         $this->configureAuthorization();
@@ -127,6 +130,8 @@ class AppServiceProvider extends ServiceProvider
             if (! $user) {
                 return;
             }
+
+            $user->loadMissing('roles');
 
             $attributes = request()->attributes;
             if (! $attributes->has('notification-summary')) {

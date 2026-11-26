@@ -41,7 +41,7 @@
             @endif
 
             <div class="game-eyebrow">{{ $phaseLabel }}</div>
-            <h2 class="game-title">{{ $module->title }}</h2>
+            <h2 class="game-title text-break">{{ $module->title }}</h2>
             <p class="game-lead">
                 @if($isPretest)
                     Pretest mengukur pemahaman awal Anda. Jawab sebisanya, materi terbuka setelah pretest selesai.
@@ -187,7 +187,7 @@
         });
 
         function showBanner(kind, html) {
-            banner.className = 'game-feedback is-' + kind;
+            banner.className = 'game-feedback flex-wrap is-' + kind;
             banner.innerHTML = html;
             banner.style.display = 'inline-flex';
         }

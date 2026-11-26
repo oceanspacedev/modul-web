@@ -14,7 +14,7 @@
         ],
     ])
 @else
-    <div class="list-group-item d-flex align-items-center justify-content-between gap-2">
+    <div class="list-group-item d-flex flex-wrap align-items-center justify-content-between gap-2">
         <div class="min-w-0">
             <div class="text-sm font-weight-bold">Akses Presensi</div>
             <div class="text-muted text-xs">Presensi tidak dipakai di pelatihan ini</div>
@@ -28,14 +28,14 @@
 
 <!-- SYARAT SCREENSHOT -->
 @if($training->has_attendance)
-<div class="list-group-item d-flex align-items-center justify-content-between gap-2">
+<div class="list-group-item d-flex flex-wrap align-items-center justify-content-between gap-2">
     <div class="min-w-0">
         <div class="text-sm font-weight-bold">Bukti Foto{{ $training->isOnline() ? ' / SS' : '' }}</div>
         <div class="text-muted text-xs">
             {{ $training->require_attendance_proof ? ($training->isOnline() ? 'Wajib upload foto selfie/meeting' : 'Wajib upload foto kehadiran') : 'Presensi tanpa upload foto' }}
         </div>
     </div>
-    <form action="/training/{{ $training->id }}/toggle-proof" method="POST" class="m-0">
+    <form action="/training/{{ $training->id }}/toggle-proof" method="POST" class="m-0 flex-shrink-0">
         @csrf
         <button type="submit" class="btn btn-default btn-xs text-nowrap">
             {{ $training->require_attendance_proof ? 'Jadikan Opsional' : 'Wajibkan Foto' }}

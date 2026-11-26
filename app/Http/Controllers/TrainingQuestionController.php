@@ -41,7 +41,7 @@ class TrainingQuestionController extends Controller
      */
     public function index(Request $request, Training $training): View
     {
-        $training->load(['questions', 'documents.versions']);
+        $training->load(['questions', 'documents.versions', 'documents.dokumentype']);
         $allDocuments = Document::with('dokumentype')->orderBy('name')->get();
         $isGeminiConfigured = AiSettings::isConfigured();
         $canImportDocumentQuestions = $request->user()->checkPermissionTo('manage-documents');

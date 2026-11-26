@@ -106,11 +106,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<div class="custom-control custom-checkbox min-w-0">' +
                     '<input type="checkbox" value="' + id + '" class="custom-control-input participant-checkbox" id="user_' + id + '"' + (selected.has(id) ? ' checked' : '') + '>' +
                     '<label class="custom-control-label" for="user_' + id + '">' +
-                        '<strong class="d-block text-dark">' + escapeHtml(user[1]) + '</strong>' +
-                        '<span class="text-muted small">' + escapeHtml(DIVISI_NAMES[user[4]] || 'Divisi Umum') + '</span>' +
+                        '<strong class="d-block text-dark text-break">' + escapeHtml(user[1]) + '</strong>' +
+                        '<span class="text-muted small text-break">' + escapeHtml(DIVISI_NAMES[user[4]] || 'Divisi Umum') + '</span>' +
                     '</label>' +
                 '</div>' +
-                (user[5] ? '' : '<span class="badge badge-secondary ml-2" title="Nomor WhatsApp belum diisi">Tanpa WA</span>') +
+                (user[5] ? '' : '<span class="badge badge-secondary flex-shrink-0 ml-2" title="Nomor WhatsApp belum diisi">Tanpa WA</span>') +
             '</div>';
         }).join('') : '<div class="text-center text-muted small py-4">Tidak ada user yang cocok.</div>';
 

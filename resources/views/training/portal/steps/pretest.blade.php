@@ -5,7 +5,7 @@
 @if($training->has_pretest)
 <!-- PRETEST -->
 <div class="content-card" id="pretestCard">
-    <div class="content-card-header">
+    <div class="content-card-header flex-wrap">
         <span><span class="badge badge-primary mr-1">Langkah {{ $stepNumber['pretest'] }}</span> Pretest</span>
         <span class="text-muted small">{{ $pretestQuestionCount }} Pertanyaan</span>
     </div>
@@ -23,7 +23,7 @@
             </span>
         </div>
 
-        <div class="d-flex justify-content-center gap-2">
+        <div class="d-flex justify-content-center flex-wrap gap-2">
             <a href="/training/portal/{{ $participant->token }}/pretest/result" class="btn btn-default">
                 Lihat Hasil
             </a>

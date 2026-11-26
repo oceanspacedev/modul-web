@@ -54,16 +54,16 @@
                             <div class="form-group">
                                 <label for="example">File contoh <span class="text-muted font-weight-normal">(maks. 20 MB)</span></label>
                                 @if ($category->hasExample())
-                                    <div class="d-flex align-items-center mb-2 small">
-                                        <i class="far fa-file mr-1"></i>
-                                        <a href="{{ route('document-request.example', $category) }}" target="_blank" class="text-truncate">{{ $category->exampleFileName() }}</a>
+                                    <div class="d-flex align-items-center gap-2 mb-2 small">
+                                        <i class="far fa-file flex-shrink-0"></i>
+                                        <a href="{{ route('document-request.example', $category) }}" target="_blank" class="text-truncate min-w-0">{{ $category->exampleFileName() }}</a>
                                         @if ($category->hasUploadedExample())
-                                            <div class="custom-control custom-checkbox ml-auto">
+                                            <div class="custom-control custom-checkbox ml-auto flex-shrink-0">
                                                 <input type="checkbox" class="custom-control-input" id="remove_example" name="remove_example" value="1" @checked(old('remove_example'))>
                                                 <label class="custom-control-label" for="remove_example">Hapus</label>
                                             </div>
                                         @else
-                                            <span class="text-muted ml-auto">bawaan</span>
+                                            <span class="text-muted ml-auto flex-shrink-0">bawaan</span>
                                         @endif
                                     </div>
                                 @endif
@@ -77,10 +77,10 @@
                             <div class="form-group">
                                 <label for="template">Template pengisian <span class="text-muted font-weight-normal">(opsional, maks. 10 MB)</span></label>
                                 @if ($category->hasTemplate())
-                                    <div class="d-flex align-items-center mb-2 small">
-                                        <i class="far fa-file-word mr-1"></i>
-                                        <a href="{{ route('document-request.template', $category) }}" class="text-truncate">{{ $category->template_name }}</a>
-                                        <div class="custom-control custom-checkbox ml-auto">
+                                    <div class="d-flex align-items-center gap-2 mb-2 small">
+                                        <i class="far fa-file-word flex-shrink-0"></i>
+                                        <a href="{{ route('document-request.template', $category) }}" class="text-truncate min-w-0">{{ $category->template_name }}</a>
+                                        <div class="custom-control custom-checkbox ml-auto flex-shrink-0">
                                             <input type="checkbox" class="custom-control-input" id="remove_template" name="remove_template" value="1" @checked(old('remove_template'))>
                                             <label class="custom-control-label" for="remove_template">Hapus</label>
                                         </div>
@@ -134,17 +134,19 @@
                             @foreach ($errors->get('stages') as $message)
                                 <div class="alert alert-danger m-3">{{ $message }}</div>
                             @endforeach
-                            <table class="table mb-0">
-                                <tbody id="stageList">
-                                    @foreach ($stages as $key => $stage)
-                                        @include('document-category._stage', ['key' => $key, 'stage' => $stage, 'used' => $usageById[$stage['id'] ?? 0] ?? 0])
-                                    @endforeach
-                                </tbody>
-                            </table>
+                            <div class="table-responsive">
+                                <table class="table mb-0">
+                                    <tbody id="stageList">
+                                        @foreach ($stages as $key => $stage)
+                                            @include('document-category._stage', ['key' => $key, 'stage' => $stage, 'used' => $usageById[$stage['id'] ?? 0] ?? 0])
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                        <div class="card-footer d-flex justify-content-between">
+                        <div class="card-footer d-flex flex-wrap justify-content-between align-items-center gap-2">
                             <button type="button" class="btn btn-default btn-sm" id="addStage"><i class="fas fa-plus"></i> Tambah tahap</button>
-                            <div>
+                            <div class="d-flex flex-wrap gap-2">
                                 <a href="{{ route('document-category.index') }}" class="btn btn-default btn-sm">Kembali</a>
                                 <button type="submit" class="btn btn-primary btn-sm">Simpan</button>
                             </div>

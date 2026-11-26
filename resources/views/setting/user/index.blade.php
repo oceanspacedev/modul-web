@@ -30,7 +30,11 @@
                     <a href="{{ route('user.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Tambah User</a>
                 </x-slot:actions>
             </x-page-header>
+        </div>
+    </section>
 
+    <section class="content">
+        <div class="container-fluid">
             <x-flash />
 
             <ul class="nav nav-tabs mb-3">
@@ -112,7 +116,7 @@
                     </div>
                 @endunless
 
-                <div class="card-body table-responsive p-0">
+                <div class="card-body table-responsive p-0{{ $users->isEmpty() ? ' table-empty-wrap' : '' }}">
                     <table class="table table-hover text-nowrap mb-0">
                         <thead>
                             <tr>
@@ -207,8 +211,10 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="{{ $archived ? 12 : 13 }}">
-                                        <x-empty-state icon="fa-users" title="Tidak ada data user" text="Coba ubah filter atau tambahkan user baru." />
+                                    <td colspan="{{ $archived ? 12 : 13 }}" class="text-wrap table-empty-cell">
+                                        <div class="table-empty-sticky">
+                                            <x-empty-state icon="fa-users" title="Tidak ada data user" text="Coba ubah filter atau tambahkan user baru." />
+                                        </div>
                                     </td>
                                 </tr>
                             @endforelse
@@ -330,6 +336,11 @@
 @endsection
 
 @section('footer')
+<style>
+    .table-empty-wrap { container-type: inline-size; }
+    .table-empty-wrap .table tbody td.table-empty-cell { padding: 0 !important; }
+    .table-empty-sticky { position: sticky; left: 0; width: min(100%, 100vw); width: 100cqi; max-width: 100%; }
+</style>
 <script>
     $(function () {
         function selectedIds() {

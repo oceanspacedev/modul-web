@@ -16,7 +16,7 @@
     <div class="container-fluid">
         @if (filled($cloud['url']))
             <div class="alert alert-light border">
-                <strong>Dokumen yang sudah rilis</strong> ada di <a href="{{ $cloud['url'] }}" target="_blank" rel="noopener">{{ $cloud['url'] }}</a>
+                <strong>Dokumen yang sudah rilis</strong> ada di <a href="{{ $cloud['url'] }}" target="_blank" rel="noopener" class="text-break">{{ $cloud['url'] }}</a>
                 @if ($cloud['user']) · user <code>{{ $cloud['user'] }}</code>@endif
                 @if ($cloud['password']) · password <code>{{ $cloud['password'] }}</code>@endif
             </div>
@@ -25,7 +25,7 @@
         @if ($categories->count() > 1)
             <ul class="nav nav-pills mb-3">
                 @foreach ($categories as $item)
-                    <li class="nav-item"><a class="nav-link {{ $item->is($category) ? 'active' : '' }}" href="{{ route('document-request.example', $item) }}">{{ $item->code }}</a></li>
+                    <li class="nav-item mw-100"><a class="nav-link mw-100 text-break {{ $item->is($category) ? 'active' : '' }}" href="{{ route('document-request.example', $item) }}">{{ $item->code }}</a></li>
                 @endforeach
             </ul>
         @endif
@@ -45,7 +45,7 @@
                 @default
                     <div class="card-body text-center py-5">
                         <i class="far fa-file-alt fa-3x text-muted mb-3"></i>
-                        <p class="mb-3">{{ $category->exampleFileName() }}</p>
+                        <p class="mb-3 text-break">{{ $category->exampleFileName() }}</p>
                         <a href="{{ $category->exampleUrl() }}" class="btn btn-primary" download="{{ $category->exampleFileName() }}"><i class="fas fa-download"></i> Unduh contoh</a>
                     </div>
             @endswitch

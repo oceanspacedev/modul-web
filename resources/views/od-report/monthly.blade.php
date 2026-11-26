@@ -26,7 +26,7 @@
 
         <div class="card">
             <div class="card-header filter-toolbar">
-                <form action="{{ route('od-report.monthly') }}" method="GET" class="d-flex flex-wrap align-items-center gap-2 m-0">
+                <form action="{{ route('od-report.monthly') }}" method="GET" class="d-flex flex-wrap align-items-center gap-2 w-100 m-0">
                     @include('od-report._period-filter')
                 </form>
             </div>

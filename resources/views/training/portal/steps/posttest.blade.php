@@ -5,7 +5,7 @@
 <!-- KUIS EVALUASI (POSTTEST) -->
 @if($training->has_posttest)
 <div class="content-card" id="quizCard">
-    <div class="content-card-header">
+    <div class="content-card-header flex-wrap">
         <span><span class="badge badge-primary mr-1">Langkah {{ $stepNumber['posttest'] }}</span> {{ $training->has_pretest ? 'Posttest' : 'Kuis Evaluasi' }}</span>
         <span class="text-muted small">{{ $training->questionsFor('posttest')->count() }} Pertanyaan</span>
     </div>
@@ -23,7 +23,7 @@
             </span>
         </div>
 
-        <div class="d-flex justify-content-center gap-2">
+        <div class="d-flex justify-content-center flex-wrap gap-2">
             <a href="/training/portal/{{ $participant->token }}/result" class="btn btn-default">
                 Lihat Pembahasan
             </a>

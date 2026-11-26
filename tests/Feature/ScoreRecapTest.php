@@ -2,15 +2,20 @@
 
 namespace Tests\Feature;
 
+use App\Exports\LearningModuleScoresSheet;
 use App\Exports\ScoreRecapExport;
 use App\Exports\TrainingScoresSheet;
+use App\Models\Document;
 use App\Models\LearningModule;
 use App\Models\LearningModuleAttempt;
+use App\Models\LearningModuleItem;
 use App\Models\Training;
 use App\Models\TrainingEvaluation;
 use App\Models\User;
 use App\Models\Video;
 use App\Services\MaterialQuizService;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use Tests\TestCase;
@@ -226,5 +231,67 @@ class ScoreRecapTest extends TestCase
         $this->actingAs($this->admin)->post(route('score-recap.export'), [
             'from' => now()->toDateString(), 'to' => now()->subDay()->toDateString(), 'sections' => ['trainings'],
         ])->assertSessionHasErrors('to');
+    }
+
+    public function test_learning_module_scores_sheet_does_not_lazy_load_relations_with_attached_materials(): void
+    {
+        $video = Video::create(['title' => 'Video APD', 'video_type' => 'link', 'video_link' => 'https://youtu.be/dQw4w9WgXcQ']);
+        $document = Document::create(['name' => 'Dokumen APD', 'divisi_id' => 1, 'document_type' => 1, 'path' => 'apd.pdf']);
+
+        $standalone = LearningModule::create([
+            'title' => 'Modul Materi Lengkap',
+            'passing_score' => 70,
+            'has_pretest' => true,
+            'has_posttest' => true,
+        ]);
+        $standalone->items()->create([
+            'materialable_type' => LearningModuleItem::TYPE_VIDEO,
+            'materialable_id' => $video->id,
+            'sort_order' => 0,
+        ]);
+        $standalone->items()->create([
+            'materialable_type' => LearningModuleItem::TYPE_DOCUMENT,
+            'materialable_id' => $document->id,
+            'sort_order' => 1,
+        ]);
+        $standaloneQuestion = $standalone->questions()->create([
+            'question' => 'Wajib APD?', 'option_a' => 'Ya', 'option_b' => 'Tidak', 'correct_answer' => 'a',
+        ]);
+        LearningModuleAttempt::record($standalone, $this->budi, LearningModuleAttempt::PHASE_PRETEST, [$standaloneQuestion->id => 'a']);
+
+        $documentQuiz = app(MaterialQuizService::class)->sync($document, ['pretest' => true, 'posttest' => true]);
+        $documentQuestion = $documentQuiz->questions()->create([
+            'question' => 'Standar APD?', 'option_a' => 'SNI', 'option_b' => 'Bebas', 'correct_answer' => 'a',
+        ]);
+        LearningModuleAttempt::record($documentQuiz, $this->siti, LearningModuleAttempt::PHASE_PRETEST, [$documentQuestion->id => 'a']);
+
+        $videoQuiz = LearningModule::where('title', 'Video K3')->sole();
+        $videoQuestionId = $videoQuiz->questions()->value('id');
+        LearningModuleAttempt::record($videoQuiz, $this->budi, LearningModuleAttempt::PHASE_PRETEST, [$videoQuestionId => 'a']);
+
+        Model::preventLazyLoading(true);
+        Model::handleLazyLoadingViolationUsing(null);
+
+        try {
+            $rows = (new LearningModuleScoresSheet(
+                now()->subDay()->startOfDay()->toImmutable(),
+                now()->endOfDay()->toImmutable(),
+                ['standalone', 'video', 'document'],
+            ))->array();
+        } finally {
+            Model::handleLazyLoadingViolationUsing(function (Model $model, string $relation) {
+                Log::warning('Lazy loaded ['.$relation.'] on model ['.$model::class.'].');
+            });
+        }
+
+        $summary = array_map(fn (array $row) => [$row[0], $row[1], $row[4], $row[7], $row[9], $row[12]], $rows);
+
+        $this->assertSame([
+            ['Kuis Dokumen', 'Dokumen APD', 'SITI', 100.0, '-', 'Mempelajari Materi'],
+            ['Modul Belajar', 'Modul Materi Lengkap', 'BUDI', 100.0, '-', 'Mempelajari Materi'],
+            ['Modul Belajar', 'Modul SOP', 'BUDI', 0.0, 100.0, 'Lulus'],
+            ['Kuis Video', 'Video K3', 'BUDI', 100.0, '-', 'Mempelajari Materi'],
+            ['Kuis Video', 'Video K3', 'SITI', '-', 0.0, 'Belum Lulus'],
+        ], $summary);
     }
 }

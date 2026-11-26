@@ -23,7 +23,12 @@
             var touched = false;
             usedIn.addEventListener('change', function () { touched = true; });
             type.addEventListener('change', function () {
-                if (!touched) usedIn.value = type.value === 'essay' ? 'posttest' : 'both';
+                if (!touched) {
+                    usedIn.value = type.value === 'essay' ? 'posttest' : 'both';
+                    if (window.jQuery && window.jQuery(usedIn).hasClass('select2-hidden-accessible')) {
+                        window.jQuery(usedIn).trigger('change.select2');
+                    }
+                }
             });
         });
         </script>

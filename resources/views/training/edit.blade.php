@@ -116,7 +116,7 @@
                             <h3 class="card-title">
                                 Peserta <span class="text-danger">*</span> <span class="badge badge-secondary"><span id="selectedCountBadge">0</span> dipilih</span>
                             </h3>
-                            <div class="card-tools d-flex gap-1">
+                            <div class="card-tools d-flex flex-wrap gap-1">
                                 <button type="button" id="btnSelectAll" class="btn btn-xs btn-default">Pilih semua</button>
                                 <button type="button" id="btnDeselectAll" class="btn btn-xs btn-default">Kosongkan</button>
                             </div>
@@ -143,6 +143,7 @@
                                 </label>
                             </div>
                             <div class="custom-control custom-switch">
+                                <input type="hidden" name="require_attendance_proof" value="0">
                                 <input type="checkbox" class="custom-control-input" id="require_attendance_proof" name="require_attendance_proof" value="1" {{ old('require_attendance_proof', $training->require_attendance_proof) ? 'checked' : '' }}>
                                 <label class="custom-control-label" for="require_attendance_proof">
                                     Wajib upload bukti screenshot

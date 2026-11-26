@@ -6,13 +6,15 @@
             <input type="hidden" name="stages[{{ $key }}][id]" value="{{ $stage['id'] }}">
         @endif
         <input type="text" class="form-control form-control-sm @error("stages.$key.name") is-invalid @enderror" name="stages[{{ $key }}][name]" maxlength="40" required
-            value="{{ $stage['name'] ?? '' }}" placeholder="Judul tahap" aria-label="Judul tahap">
+            value="{{ $stage['name'] ?? '' }}" placeholder="Judul tahap" aria-label="Judul tahap" style="min-width: 140px;">
         @error("stages.$key.name")<div class="invalid-feedback">{{ $message }}</div>@enderror
     </td>
-    <td class="text-right text-nowrap align-middle" style="width: 170px;">
-        @if ($used)<span class="small text-muted mr-1" title="Dokumen di tahap ini">{{ $used }} dok</span>@endif
-        <button type="button" class="btn btn-default btn-xs" data-move="up" title="Naik" aria-label="Naik"><i class="fas fa-arrow-up"></i></button>
-        <button type="button" class="btn btn-default btn-xs" data-move="down" title="Turun" aria-label="Turun"><i class="fas fa-arrow-down"></i></button>
-        <button type="button" class="btn btn-default btn-xs text-danger" data-remove title="Hapus" aria-label="Hapus"><i class="fas fa-times"></i></button>
+    <td class="text-right text-nowrap align-middle" style="width: 1%;">
+        <div class="d-inline-flex align-items-center gap-1">
+            @if ($used)<span class="small text-muted mr-1" title="Dokumen di tahap ini">{{ $used }} dok</span>@endif
+            <button type="button" class="btn btn-default btn-xs" data-move="up" title="Naik" aria-label="Naik"><i class="fas fa-arrow-up"></i></button>
+            <button type="button" class="btn btn-default btn-xs" data-move="down" title="Turun" aria-label="Turun"><i class="fas fa-arrow-down"></i></button>
+            <button type="button" class="btn btn-default btn-xs text-danger" data-remove title="Hapus" aria-label="Hapus"><i class="fas fa-times"></i></button>
+        </div>
     </td>
 </tr>

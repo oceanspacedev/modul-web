@@ -401,7 +401,7 @@
 /* ---------- Select2 (default theme) ---------- */
 /* Only what app.css (FORMS) leaves out; the dropdown, search field and disabled states live there. */
 :where([data-theme="dark"]) .select2-container--default .select2-search--inline .select2-search__field::placeholder {
-    color: var(--gray-400);
+    color: var(--gray-500);
 }
 
 :where([data-theme="dark"]) .select2-container--default .select2-results__group {

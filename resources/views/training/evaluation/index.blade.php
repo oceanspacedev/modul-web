@@ -316,6 +316,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         Object.keys(fields).forEach(function (name) { fields[name].value = data[name] || ''; });
         type.value = data.type || 'scale';
+        if (typeof $ !== 'undefined' && $(type).hasClass('select2-hidden-accessible')) {
+            $(type).trigger('change.select2');
+        }
         document.getElementById('eq_required').checked = 'is_required' in data ? !!data.is_required : true;
         showFieldsForType();
     }

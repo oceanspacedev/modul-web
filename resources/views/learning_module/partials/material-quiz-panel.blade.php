@@ -17,7 +17,7 @@
             <span class="text-muted small font-weight-normal ml-1">KKM {{ $quiz->passing_score }}</span>
         </h3>
         @if($canManage)
-            <div class="d-flex gap-1">
+            <div class="d-flex flex-wrap gap-1">
                 <a href="{{ $quiz->url('questions.index') }}" class="btn btn-default btn-xs">Kelola Soal</a>
                 <a href="{{ $quiz->url('results') }}" class="btn btn-default btn-xs">Rekap Nilai</a>
             </div>
@@ -33,7 +33,7 @@
 
         @if($quiz->has_pretest)
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                <div>
+                <div class="min-w-0">
                     <strong>Pretest</strong>
                     @if($progress->pretest)
                         <span class="text-muted small ml-1">nilai awal {{ $progress->pretest->score }} &middot; {{ $limitLabel($progress->remainingAttempts('pretest')) }}</span>
@@ -51,7 +51,7 @@
 
         @if($quiz->has_posttest)
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <div>
+                <div class="min-w-0">
                     <strong>Posttest</strong>
                     @if($progress->bestPosttest())
                         <span class="text-muted small ml-1">

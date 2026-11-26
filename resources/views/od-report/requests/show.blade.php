@@ -68,9 +68,9 @@
                             </div>
 
                             @if ($r->processes->count() > 1)
-                                <div class="d-flex align-items-center gap-2 mb-2">
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                                     <strong>Dokumen ({{ $r->processes->count() }})</strong>
-                                    <select class="custom-select custom-select-sm ml-auto" id="applyStage" aria-label="Status untuk semua dokumen" style="width: 210px;">
+                                    <select class="custom-select custom-select-sm ml-sm-auto" id="applyStage" aria-label="Status untuk semua dokumen" style="width: 210px; max-width: 100%;">
                                         <option value="">Terapkan status ke semua…</option>
                                         @foreach ($stageNames as $name)
                                             <option value="{{ $name }}">{{ $name }}</option>
@@ -84,9 +84,9 @@
                                 @php($template = $process->attachments->firstWhere('kind', App\Models\OdDocumentAttachment::KIND_TEMPLATE))
                                 @php($lampiran = $process->attachments->where('kind', App\Models\OdDocumentAttachment::KIND_LAMPIRAN))
                                 <div class="ticket-doc" data-process>
-                                    <div class="d-flex justify-content-between gap-2 mb-2">
-                                        <strong>@if ($r->processes->count() > 1){{ $loop->iteration }}. @endif{{ $process->title }}</strong>
-                                        <span class="badge {{ $stageBadge($process->publicStage()) }}">{{ $process->publicStage() }}</span>
+                                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                        <strong class="min-w-0 text-break">@if ($r->processes->count() > 1){{ $loop->iteration }}. @endif{{ $process->title }}</strong>
+                                        <span class="badge flex-shrink-0 {{ $stageBadge($process->publicStage()) }}">{{ $process->publicStage() }}</span>
                                     </div>
 
                                     @if ($process->jenis_pengajuan)
@@ -95,17 +95,17 @@
                                     @endif
                                     @if ($process->tujuan)
                                         <div class="ticket-field-label">Uraian</div>
-                                        <div class="ticket-field-value mb-3" style="white-space: pre-line;">{{ $process->tujuan }}</div>
+                                        <div class="ticket-field-value text-break mb-3" style="white-space: pre-line;">{{ $process->tujuan }}</div>
                                     @endif
                                     @if ($process->sistem)
-                                        <p class="small text-muted mb-3">Sistem/alat: {{ $process->sistem }}</p>
+                                        <p class="small text-muted mb-3 text-break">Sistem/alat: {{ $process->sistem }}</p>
                                     @endif
 
                                     @if ($template || $lampiran->isNotEmpty())
                                         <div class="ticket-field-label">{{ $template ? 'Template terisi' : 'Lampiran' }}</div>
                                         <div class="d-flex flex-wrap gap-2 mb-3">
                                             @foreach (array_filter([$template, ...$lampiran]) as $file)
-                                                <a href="{{ route('od-report.requests.attachment', [$r, $file]) }}" class="ticket-file">
+                                                <a href="{{ route('od-report.requests.attachment', [$r, $file]) }}" class="ticket-file mw-100 text-break flex-wrap">
                                                     <i class="fas {{ $file->icon() }}"></i> {{ $file->name }} <span class="text-muted">{{ $file->sizeLabel() }}</span>
                                                 </a>
                                             @endforeach
@@ -153,14 +153,14 @@
                                     @if ($editable || $process->hasFile())
                                         <div class="d-flex flex-wrap align-items-center gap-2 small">
                                             @if ($process->hasFile())
-                                                <a href="{{ route('od-report.documents.file', $process) }}" target="_blank"><i class="fas fa-paperclip"></i> Dokumen rilis: {{ $process->file_name }}</a>
+                                                <a href="{{ route('od-report.documents.file', $process) }}" target="_blank" class="text-break"><i class="fas fa-paperclip"></i> Dokumen rilis: {{ $process->file_name }}</a>
                                             @endif
                                             @if ($editable)
                                                 {{-- Muncul saat status Selesai dipilih: file dokumen yang dikirim ke WhatsApp pemohon. --}}
-                                                <span data-release-file hidden>
+                                                <span data-release-file class="mw-100" hidden>
                                                     <span class="text-muted mr-1">{{ $process->hasFile() ? 'Ganti dokumen rilis (opsional)' : 'Dokumen rilis' }}</span>
                                                     <input type="file" name="proses[{{ $process->id }}][file]" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-                                                        class="d-inline-block form-control-sm w-auto @error("proses.{$process->id}.file") is-invalid @enderror" aria-label="Dokumen rilis {{ $process->title }}">
+                                                        class="d-inline-block form-control-sm w-auto mw-100 @error("proses.{$process->id}.file") is-invalid @enderror" aria-label="Dokumen rilis {{ $process->title }}">
                                                 </span>
                                             @endif
                                         </div>
@@ -185,11 +185,11 @@
                             <div class="card-body p-0 border-top">
                                 @foreach ($r->comments as $comment)
                                     <div class="px-3 py-2 border-bottom small">
-                                        <div class="d-flex justify-content-between gap-2">
+                                        <div class="d-flex flex-wrap justify-content-between gap-2">
                                             <strong>{{ $comment->user?->nama_lengkap ?? 'Tim OD' }}</strong>
                                             <span class="text-muted">{{ $comment->created_at->format('d/m/Y H:i') }}</span>
                                         </div>
-                                        <div style="white-space: pre-line;">{{ $comment->body }}</div>
+                                        <div class="text-break" style="white-space: pre-line;">{{ $comment->body }}</div>
                                     </div>
                                 @endforeach
                             </div>
@@ -206,7 +206,7 @@
                                 <dt>Prioritas</dt>
                                 <dd>@if ($priority)<span class="badge {{ App\Models\DocumentRequest::priorityBadgeClass($priority) }}">{{ $priority }}</span>@else - @endif</dd>
                                 <dt>Dari</dt>
-                                <dd>
+                                <dd class="text-break">
                                     {{ $r->nama }} @if ($r->user)<span class="badge badge-light">akun</span>@endif
                                     <div class="small text-muted">{{ collect([$r->jabatan, $r->divisi, $r->departemen, $r->badan_usaha])->filter()->implode(' · ') }}</div>
                                 </dd>
@@ -221,7 +221,7 @@
                                 <dt>Nomor WhatsApp pemohon</dt>
                                 <dd><a href="{{ $r->whatsappLink() }}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> {{ $r->whatsapp }}</a></dd>
                                 <dt>Email</dt>
-                                <dd><a href="mailto:{{ $r->email }}">{{ $r->email }}</a></dd>
+                                <dd class="text-break"><a href="mailto:{{ $r->email }}">{{ $r->email }}</a></dd>
                                 <dt>Dibuat pada</dt>
                                 <dd>{{ $r->created_at->format('d/m/Y H:i') }}</dd>
                                 <dt>Diperbarui pada</dt>
@@ -243,7 +243,7 @@
                                             <button type="button" class="btn btn-default btn-xs" data-use-date="{{ $r->obs_tanggal_2->toDateString() }}">Pilihan 2 ({{ $r->obs_tanggal_2->format('d/m') }})</button>
                                         @endif
                                     </div>
-                                    @if ($r->obs_catatan)<small class="form-text text-muted">Catatan pemohon: {{ $r->obs_catatan }}</small>@endif
+                                    @if ($r->obs_catatan)<small class="form-text text-muted text-break">Catatan pemohon: {{ $r->obs_catatan }}</small>@endif
                                 </div>
                             @else
                                 <input type="hidden" name="jadwal_observasi" value="{{ $r->jadwal_observasi?->toDateString() }}">
@@ -261,12 +261,12 @@
                         <div class="card-body p-0">
                             @foreach ($r->histories as $history)
                                 <div class="px-3 py-2 border-bottom small">
-                                    <div class="d-flex justify-content-between gap-2">
+                                    <div class="d-flex flex-wrap justify-content-between gap-2">
                                         <strong>{{ $history->status }}</strong>
                                         <span class="text-muted">{{ $history->created_at->format('d/m H:i') }}</span>
                                     </div>
-                                    @if ($history->process && $r->processes->count() > 1)<div class="text-muted">{{ $history->process->title }}</div>@endif
-                                    @if ($history->note)<div>{{ $history->note }}</div>@endif
+                                    @if ($history->process && $r->processes->count() > 1)<div class="text-muted text-break">{{ $history->process->title }}</div>@endif
+                                    @if ($history->note)<div class="text-break">{{ $history->note }}</div>@endif
                                     @if ($history->user)<div class="text-muted">{{ $history->user->nama_lengkap }}</div>@endif
                                 </div>
                             @endforeach
@@ -296,7 +296,11 @@
 
     document.getElementById('applyStage')?.addEventListener('change', function () {
         if (!this.value) return;
-        document.querySelectorAll('[data-stage]:not([disabled])').forEach(select => { select.value = this.value; syncFile(select); });
+        document.querySelectorAll('[data-stage]:not([disabled])').forEach(select => {
+            select.value = this.value;
+            if (window.jQuery) { $(select).trigger('change.select2'); }
+            syncFile(select);
+        });
     });
     document.querySelectorAll('[data-use-date]').forEach(button => button.addEventListener('click', () => {
         document.getElementById('jadwal_observasi').value = button.dataset.useDate;

@@ -66,7 +66,7 @@ class LearningModuleScoresSheet implements FromArray, ShouldAutoSize, WithCustom
                 }
             })
             ->whereHas('attempts', fn ($query) => $query->whereBetween('submitted_at', [$this->from, $this->to]))
-            ->with('items')
+            ->with('items.materialable')
             ->orderBy('title')
             ->get();
 

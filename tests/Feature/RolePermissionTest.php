@@ -320,4 +320,31 @@ class RolePermissionTest extends TestCase
             ->assertOk()
             ->assertSee($editUrl);
     }
+
+    public function test_appshell_brand_links_and_public_nav_are_rendered_accurately()
+    {
+        $this->get('/video')
+            ->assertOk()
+            ->assertSee('Galeri Video')
+            ->assertSee('Permintaan Dokumen')
+            ->assertSee('class="nav-link is-active"', false);
+
+        $noDashboardRole = Role::create(['name' => 'PESERTA KHUSUS', 'guard_name' => 'web', 'level' => 4]);
+        $noDashboardRole->syncPermissions(['view-my-trainings']);
+        $limitedUser = User::factory()->jabatan('PESERTA KHUSUS')->create();
+
+        $this->actingAs($limitedUser)
+            ->get(route('training.my-trainings'))
+            ->assertOk()
+            ->assertSee('href="'.route('training.my-trainings').'" class="topbar-brand"', false)
+            ->assertSee('href="'.route('training.my-trainings').'" class="brand-link"', false)
+            ->assertDontSee('href="'.route('dashboard').'" class="brand-link"', false);
+
+        $this->actingAs($this->admin())
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('href="'.route('dashboard').'" class="brand-link"', false)
+            ->assertSee('Pengaturan OD')
+            ->assertSee('class="sidebar-close', false);
+    }
 }

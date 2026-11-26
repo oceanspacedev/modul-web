@@ -70,7 +70,7 @@
                 <h3 class="card-title">
                     Daftar Pertanyaan <span class="badge badge-secondary">{{ $questions->count() }} soal</span>
                 </h3>
-                <div class="card-tools d-flex align-items-center gap-2">
+                <div class="card-tools d-flex align-items-center flex-wrap gap-2">
                     @if($training->isPhaseActive('posttest'))
                         <span class="badge badge-success">Kuis terbuka untuk peserta</span>
                     @else
@@ -106,7 +106,7 @@
                 @endphp
                 <div class="card mb-3">
                     <div class="card-header">
-                        <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center flex-wrap gap-2">
                             <strong>Pertanyaan #{{ $index + 1 }}</strong>
                             @if($isEssay)
                                 <span class="badge badge-secondary">Essay / Uraian</span>
@@ -134,7 +134,7 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <p class="section-title mb-3">{{ $q->question }}</p>
+                        <p class="section-title mb-3 text-break">{{ $q->question }}</p>
                         @if($q->imageUrl())
                             <a href="{{ $q->imageUrl() }}" target="_blank" rel="noopener" class="d-inline-block mb-3">
                                 <img src="{{ $q->imageUrl() }}" alt="Gambar soal" class="quiz-img">
@@ -144,7 +144,7 @@
                         @if($isEssay)
                             <div class="p-3 border rounded bg-light small">
                                 <span class="text-muted d-block mb-1">Pedoman / kunci acuan jawaban</span>
-                                <div class="text-dark">{{ $q->correct_answer ?: '(Belum ada kunci acuan khusus. Penilaian bersifat deskriptif sesuai jawaban peserta)' }}</div>
+                                <div class="text-dark text-break">{{ $q->correct_answer ?: '(Belum ada kunci acuan khusus. Penilaian bersifat deskriptif sesuai jawaban peserta)' }}</div>
                             </div>
                         @else
                             <div class="row small">
@@ -152,9 +152,9 @@
                                     @php
                                         $isKey = (strtolower((string)$q->correct_answer) === $optKey);
                                     @endphp
-                                    <div class="col-md-6 mb-2">
-                                        <div class="d-flex align-items-start justify-content-between gap-2 px-3 py-2 border rounded {{ $isKey ? 'bg-soft-success' : '' }}">
-                                            <span>
+                                    <div class="col-md-6 mb-2 min-w-0">
+                                        <div class="d-flex align-items-start justify-content-between gap-2 px-3 py-2 border rounded min-w-0 {{ $isKey ? 'bg-soft-success' : '' }}">
+                                            <span class="min-w-0 text-break">
                                                 <strong>{{ strtoupper($optKey) }}.</strong> {{ $optVal }}
                                                 @if($q->optionImageUrl($optKey))
                                                     <a href="{{ $q->optionImageUrl($optKey) }}" target="_blank" rel="noopener" class="d-block mt-1">
@@ -163,7 +163,7 @@
                                                 @endif
                                             </span>
                                             @if($isKey)
-                                                <span class="badge badge-success">Kunci jawaban</span>
+                                                <span class="badge badge-success flex-shrink-0">Kunci jawaban</span>
                                             @endif
                                         </div>
                                     </div>
@@ -172,7 +172,7 @@
                         @endif
 
                         @if($q->explanation)
-                            <div class="small text-muted mt-3 pt-2 border-top">
+                            <div class="small text-muted mt-3 pt-2 border-top text-break">
                                 <strong>Catatan pembahasan:</strong> {{ $q->explanation }}
                             </div>
                         @endif
@@ -275,8 +275,8 @@
 @endif
 
 <!-- AI QUESTION GENERATOR MODAL -->
-<div class="modal fade modal-center" id="aiGenerateModal" tabindex="-1" role="dialog" aria-labelledby="aiGenerateModalLabel" aria-hidden="true" data-backdrop="static">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+<div class="modal fade modal-full" id="aiGenerateModal" tabindex="-1" role="dialog" aria-labelledby="aiGenerateModalLabel" aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <!-- MODAL HEADER -->
             <div class="modal-header">
@@ -285,7 +285,8 @@
             </div>
 
             <!-- MODAL BODY -->
-            <div class="modal-body bg-light" style="min-height: 480px;">
+            <div class="modal-body">
+                <div class="modal-full-inner">
                 <!-- ALERT ERROR -->
                 <div id="aiAlertError" class="alert alert-danger alert-dismissible fade show d-none mb-3" role="alert">
                     <span id="aiAlertErrorText"></span>
@@ -355,16 +356,16 @@
                                     <div class="form-group">
                                         <label class="d-block">Jumlah Soal</label>
                                         <div class="btn-group btn-group-toggle segmented w-100" data-toggle="buttons">
-                                            <label class="btn btn-sm active" style="flex: 1;">
+                                            <label class="btn btn-sm flex-fill active">
                                                 <input type="radio" name="ai_question_count" value="5" checked> 5 Soal
                                             </label>
-                                            <label class="btn btn-sm" style="flex: 1;">
+                                            <label class="btn btn-sm flex-fill">
                                                 <input type="radio" name="ai_question_count" value="10"> 10 Soal
                                             </label>
-                                            <label class="btn btn-sm" style="flex: 1;">
+                                            <label class="btn btn-sm flex-fill">
                                                 <input type="radio" name="ai_question_count" value="15"> 15 Soal
                                             </label>
-                                            <label class="btn btn-sm" style="flex: 1;">
+                                            <label class="btn btn-sm flex-fill">
                                                 <input type="radio" name="ai_question_count" value="custom"> Kustom
                                             </label>
                                         </div>
@@ -382,7 +383,7 @@
                                     <div class="form-group">
                                         <label class="d-block">Tipe Soal</label>
                                         <div class="row">
-                                            <div class="col-6">
+                                            <div class="col-12 col-sm-6 mb-2 mb-sm-0">
                                                 <div class="border rounded px-3 py-2">
                                                     <div class="custom-control custom-radio">
                                                         <input type="radio" id="ai_type_mc" name="ai_question_type" value="multiple_choice" class="custom-control-input" checked>
@@ -390,7 +391,7 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="col-6">
+                                            <div class="col-12 col-sm-6">
                                                 <div class="border rounded px-3 py-2">
                                                     <div class="custom-control custom-radio">
                                                         <input type="radio" id="ai_type_essay" name="ai_question_type" value="essay" class="custom-control-input">
@@ -443,7 +444,7 @@
                     </div>
 
                     <!-- TRIGGER BUTTON -->
-                    <div class="d-flex justify-content-end gap-2 mt-3">
+                    <div class="d-flex justify-content-end flex-wrap gap-2 mt-3">
                         <button type="button" class="btn btn-default" data-dismiss="modal">Tutup</button>
                         <button type="button" id="btnTriggerAiGenerate" class="btn btn-primary">
                             <i class="fas fa-magic"></i> Mulai Generate Soal
@@ -468,7 +469,7 @@
 
                 <!-- STEP 3: REVIEW & EDIT GENERATED QUESTIONS -->
                 <div id="aiStepReview" class="d-none">
-                    <div class="d-flex align-items-center justify-content-between mb-3 py-2 px-3 border rounded" style="background-color: var(--surface);">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 py-2 px-3 border rounded" style="background-color: var(--surface);">
                         <strong>Hasil Soal AI (<span id="aiReviewCountText">0</span> Soal)</strong>
                         <div class="d-flex align-items-center gap-2">
                             <button type="button" class="btn btn-xs btn-default" id="btnAiSelectAll">Pilih Semua</button>
@@ -477,12 +478,12 @@
                     </div>
 
                     <!-- CONTAINER LIST SOAL -->
-                    <div id="aiQuestionsContainer" style="max-height: 520px; overflow-y: auto; padding-right: 4px;">
+                    <div id="aiQuestionsContainer">
                         <!-- JS WILL POPULATE CARDS HERE -->
                     </div>
 
                     <!-- FOOTER ACTIONS FOR REVIEW -->
-                    <div class="d-flex align-items-center justify-content-between mt-3 pt-3 border-top">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-3 pt-3 border-top">
                         <button type="button" class="btn btn-default" id="btnAiBackToConfig">
                             <i class="fas fa-arrow-left"></i> Kembali
                         </button>
@@ -493,6 +494,7 @@
                             </button>
                         </div>
                     </div>
+                </div>
                 </div>
             </div>
         </div>
@@ -564,6 +566,19 @@
 </div>
 
 <!-- 2. IMPORT TEXT MODAL (COPY-PASTE CEPAT) -->
+<style>
+    .paste-textarea-responsive {
+        height: 480px;
+        min-height: 440px;
+        resize: vertical;
+    }
+    @media (max-width: 767.98px) {
+        .paste-textarea-responsive {
+            height: 240px;
+            min-height: 180px;
+        }
+    }
+</style>
 <div class="modal fade" id="importTextModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
         <div class="modal-content">
@@ -577,13 +592,13 @@
                     <div class="row">
                         <!-- KOLOM KIRI: TEXTAREA -->
                         <div class="col-lg-8 mb-3 mb-lg-0">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                                 <label for="pasteTextarea" class="mb-0">Teks Soal</label>
                                 <button type="button" class="btn btn-default btn-xs" id="btnInsertSample">
                                     Isi Contoh
                                 </button>
                             </div>
-                            <textarea name="raw_text" id="pasteTextarea" class="form-control text-monospace" style="height: 480px !important; min-height: 440px !important; resize: vertical;" placeholder="Tempelkan teks soal kuis Anda di sini..." required>{{ old('raw_text') }}</textarea>
+                            <textarea name="raw_text" id="pasteTextarea" class="form-control text-monospace paste-textarea-responsive" placeholder="Tempelkan teks soal kuis Anda di sini..." required>{{ old('raw_text') }}</textarea>
                         </div>
 
                         <!-- KOLOM KANAN: PANDUAN FORMAT -->
@@ -1004,7 +1019,7 @@ document.addEventListener('DOMContentLoaded', function () {
             card.setAttribute('data-type', isEssay ? 'essay' : 'multiple_choice');
 
             var cardHtml = '<div class="card-header">' +
-                '<div class="d-flex align-items-center gap-2">' +
+                '<div class="d-flex align-items-center flex-wrap gap-2">' +
                     '<div class="custom-control custom-checkbox">' +
                         '<input type="checkbox" class="custom-control-input ai-include-cb" id="ai_inc_' + index + '" checked>' +
                         '<label class="custom-control-label text-dark" for="ai_inc_' + index + '">Soal #' + (index + 1) + '</label>' +
@@ -1175,7 +1190,11 @@ document.addEventListener('DOMContentLoaded', function () {
             if (part !== 'question') {
                 form.elements.option_f.value = q.option_f || '';
             }
-            form.querySelector('.select-key').value = q.correct_answer || 'a';
+            var keySelect = form.querySelector('.select-key');
+            keySelect.value = q.correct_answer || 'a';
+            if (typeof $ !== 'undefined' && $(keySelect).hasClass('select2-hidden-accessible')) {
+                $(keySelect).trigger('change.select2');
+            }
         },
         extra: function(form) {
             var apiKey = document.getElementById('aiApiKeyOverride');
@@ -1194,7 +1213,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function updateSaveCount() {
         var count = document.querySelectorAll('.ai-include-cb:checked').length;
-        aiSelectedToSaveCount.textContent = count;
+        var countEl = document.getElementById('aiSelectedToSaveCount');
+        if (countEl) countEl.textContent = count;
         var saveBtn = document.getElementById('btnSaveAiBatch');
         if (saveBtn) {
             saveBtn.disabled = (count === 0);
@@ -1269,6 +1289,12 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        function restoreSaveBatchButton() {
+            btn.disabled = false;
+            btn.innerHTML = 'Simpan <span id="aiSelectedToSaveCount">0</span> Soal';
+            updateSaveCount();
+        }
+
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm mr-1"></span> Menyimpan...';
 
@@ -1283,7 +1309,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 questions: payload
             })
         })
-        .then(function(res) { return res.json(); })
+        .then(function(res) {
+            return res.text().then(function(text) {
+                var data = null;
+                try {
+                    data = text ? JSON.parse(text) : {};
+                } catch (e) {
+                    data = null;
+                }
+                if (!res.ok || !data) {
+                    var msg = (data && data.message) ? data.message : ('HTTP ' + res.status);
+                    throw new Error(msg);
+                }
+                return data;
+            });
+        })
         .then(function(data) {
             if (data.success) {
                 aiModal.modal('hide');
@@ -1294,14 +1334,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             } else {
                 alert('Gagal menyimpan soal: ' + (data.message || 'Terjadi kesalahan'));
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-save mr-1"></i> Simpan Soal ke Kuis Pelatihan';
+                restoreSaveBatchButton();
             }
         })
         .catch(function(err) {
             alert('Gagal menyimpan: ' + err.message);
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-save mr-1"></i> Simpan Soal ke Kuis Pelatihan';
+            restoreSaveBatchButton();
         });
     });
 

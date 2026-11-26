@@ -6,8 +6,8 @@
         <a class="training-back-link" href="{{ route('training.show', $training) }}">
             <i class="fas fa-arrow-left" aria-hidden="true"></i> Detail pelatihan
         </a>
-        <h1 class="training-title">Aktivitas {{ $training->meetingPlatformLabel() ?? 'Meeting' }}</h1>
-        <p class="training-session-meta">{{ $training->title }} · {{ $training->training_date->translatedFormat('j F Y') }}</p>
+        <h1 class="training-title text-break">Aktivitas {{ $training->meetingPlatformLabel() ?? 'Meeting' }}</h1>
+        <p class="training-session-meta text-break"><span class="min-w-0 text-break">{{ $training->title }} · {{ $training->training_date->translatedFormat('j F Y') }}</span></p>
     </div>
 </section>
 
@@ -16,6 +16,9 @@
         <x-flash />
 
         <section class="card" aria-labelledby="meeting-monitor-title">
+            <div class="card-header">
+                <h2 class="card-title" id="meeting-monitor-title">Monitoring {{ $provider?->label() ?? 'meeting' }}</h2>
+            </div>
             <div class="card-body" data-meeting-monitor
                 data-join-url="{{ route('training.meeting.join', $training) }}"
                 data-start-url="{{ route('training.meeting.monitors.start', $training) }}"
@@ -23,7 +26,6 @@
                 data-end-url="{{ route('training.meeting.monitors.end', [$training, '__MONITOR__']) }}"
                 data-csrf-token="{{ csrf_token() }}"
                 data-display-name="{{ auth()->user()->nama_lengkap ?: 'Petugas OD' }}">
-                <h2 class="h5" id="meeting-monitor-title">Monitoring {{ $provider?->label() ?? 'meeting' }}</h2>
                 @if($meetingAccount && ! $provider->supportsMonitoring())
                     <p class="mb-2">Akun penyelenggara <strong>{{ $meetingAccount->name }}</strong></p>
                     <p class="text-muted">Jam masuk dan keluar peserta ditarik dari catatan {{ $provider->label() }}. Tarik data setelah rapat berakhir; penarikan ulang tidak menggandakan data. Informasikan kepada peserta bahwa kehadirannya dicatat.</p>
@@ -34,12 +36,12 @@
                 @elseif($meetingAccount)
                     <p class="mb-2">Akun penyelenggara <strong>{{ $meetingAccount->name }}</strong></p>
                     <p class="text-muted">Masuk sebelum peserta dan biarkan halaman ini terbuka selama pelatihan. Informasikan kepada peserta bahwa jam masuk, jam keluar, status kamera, dan chat ke semua peserta dicatat.</p>
-                    <form data-meeting-join method="POST" class="form-inline align-items-end">
-                        <div class="form-group d-block mr-sm-2 mb-2">
+                    <form data-meeting-join method="POST" class="form-inline align-items-end flex-wrap gap-2 mb-2">
+                        <div class="form-group d-block mb-0">
                             <label for="meeting-passcode" class="d-block font-weight-normal mb-1">Passcode rapat</label>
                             <input id="meeting-passcode" class="form-control" data-meeting-passcode type="password" autocomplete="off" maxlength="255" placeholder="Jika diperlukan">
                         </div>
-                        <button type="submit" class="btn btn-primary mb-2">Mulai Monitoring</button>
+                        <button type="submit" class="btn btn-primary mb-0">Mulai Monitoring</button>
                     </form>
                     <button type="button" class="btn btn-outline-danger btn-sm mb-2" data-meeting-leave hidden>Selesai Monitoring</button>
                     <p data-meeting-status role="status" class="mb-2">Siap bergabung.</p>
@@ -53,12 +55,14 @@
         </section>
 
         <section class="card" id="meeting-log" aria-labelledby="meeting-log-title">
+            <div class="card-header">
+                <h2 class="card-title" id="meeting-log-title">Riwayat aktivitas</h2>
+            </div>
             <div class="card-body">
-                <h2 class="h5" id="meeting-log-title">Riwayat aktivitas</h2>
-                <form action="{{ route('training.meeting.show', $training) }}#meeting-log" method="GET" class="form-inline mb-3">
+                <form action="{{ route('training.meeting.show', $training) }}#meeting-log" method="GET" class="form-inline flex-wrap gap-2 mb-3">
                     @if(count($meetingOptions) > 1)
-                        <label class="mr-2" for="meeting-history">Rapat</label>
-                        <select id="meeting-history" class="form-control mr-2" name="meeting">
+                        <label class="mb-0" for="meeting-history">Rapat</label>
+                        <select id="meeting-history" data-native-select class="form-control" name="meeting">
                             @foreach($meetingOptions as $option)
                                 <option value="{{ $option }}" @selected($option === $meetingCode)>{{ $option }}{{ $option === $currentMeeting ? ' (tautan aktif)' : '' }}</option>
                             @endforeach
@@ -67,7 +71,7 @@
                         <input type="hidden" name="meeting" value="{{ $meetingCode }}">
                     @endif
                     <label class="sr-only" for="meeting-participant-name">Nama di meeting</label>
-                    <input id="meeting-participant-name" class="form-control mr-2" name="nama" value="{{ $participantName }}" maxlength="120" placeholder="Cari nama di meeting">
+                    <input id="meeting-participant-name" class="form-control" name="nama" value="{{ $participantName }}" maxlength="120" placeholder="Cari nama di meeting">
                     <button type="submit" class="btn btn-default">Cari</button>
                 </form>
                 <div id="meeting-activity-content" data-url="{{ route('training.meeting.activity', [$training, 'meeting' => $meetingCode, ...request()->only(['nama', 'aktivitas', 'chat'])]) }}">
@@ -77,8 +81,10 @@
         </section>
 
         <section class="card" id="meeting-chat" aria-labelledby="meeting-chat-title">
+            <div class="card-header">
+                <h2 class="card-title" id="meeting-chat-title">Chat publik</h2>
+            </div>
             <div class="card-body">
-                <h2 class="h5" id="meeting-chat-title">Chat publik</h2>
                 @if($meetingAccount && $provider->supportsMonitoring())
                     <p class="text-muted">Chat ke semua peserta tercatat otomatis selama monitoring berjalan. Impor file TXT hanya untuk sesi yang tidak dimonitor, karena chat yang sudah tercatat akan muncul dua kali.</p>
                 @endif
@@ -87,8 +93,13 @@
                         @csrf
                         <input type="hidden" name="account_revision" value="{{ $monitorRevision }}">
                         <label for="meeting-chat-file" class="d-block">File TXT chat dari sesi ini</label>
-                        <input type="file" id="meeting-chat-file" name="chat_file" accept=".txt,text/plain" required class="mb-2">
-                        <button type="submit" class="btn btn-default btn-sm">Impor Chat</button>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <div class="custom-file" style="max-width: 360px;">
+                                <input type="file" id="meeting-chat-file" name="chat_file" accept=".txt,text/plain" required class="custom-file-input" onchange="var lbl = this.nextElementSibling; if (lbl && this.files && this.files[0]) lbl.textContent = this.files[0].name;">
+                                <label class="custom-file-label" for="meeting-chat-file">Pilih file chat (.txt)...</label>
+                            </div>
+                            <button type="submit" class="btn btn-default btn-sm">Impor Chat</button>
+                        </div>
                     </form>
                 @endif
                 <div id="meeting-chat-content" data-url="{{ route('training.meeting.chat.index', [$training, 'meeting' => $meetingCode, ...request()->only(['chat'])]) }}">

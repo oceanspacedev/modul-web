@@ -93,7 +93,7 @@
                                         <div class="small text-muted">Selesai {{ $document->received_at->format('d/m/Y') }}</div>
                                     @endif
                                 </td>
-                                <td class="small" style="white-space: pre-line; min-width: 180px; max-width: 280px;">{{ $document->catatan ?: '-' }}</td>
+                                <td class="small text-break" style="white-space: pre-line; min-width: 180px; max-width: 280px;">{{ $document->catatan ?: '-' }}</td>
                                 <td>
                                     @if ($canEdit)
                                         <form action="{{ route('od-report.documents.status', $document) }}" method="POST" class="m-0">
@@ -156,7 +156,7 @@
             <div class="modal-body">
                 <p class="mb-2"><strong id="releaseDocument"></strong></p>
                 <label for="releaseFile">File dokumen</label>
-                <input type="file" class="form-control-file" id="releaseFile" name="file" required accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                <input type="file" class="form-control-file mw-100" id="releaseFile" name="file" required accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
                 <small class="form-text text-muted">PDF, Word, Excel, PowerPoint. Maks 50 MB. File dikirim ke pemohon lewat WhatsApp.</small>
             </div>
             <div class="modal-footer">
@@ -210,7 +210,11 @@
             this.form.submit();
         });
         $('#releaseModal').on('hidden.bs.modal', function () {
-            if (pending) { pending.value = pending.dataset.current; pending = null; }
+            if (pending) {
+                pending.value = pending.dataset.current;
+                $(pending).trigger('change.select2');
+                pending = null;
+            }
         });
         $('#releaseForm').on('submit', function () { pending = null; });
     });

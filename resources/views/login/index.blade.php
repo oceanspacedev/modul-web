@@ -23,12 +23,12 @@
             --gray-200: #e4e4e7;
             --gray-300: #d4d4d8;
             --gray-400: #a1a1aa;
-            --gray-500: #71717a;
+            --gray-500: #67676f;
             --gray-700: #3f3f46;
             --gray-950: #09090b;
             --primary-500: #3ddf67;
             --primary-600: #00d639;
-            --primary-700: #00852e;
+            --primary-700: #007829;
             --primary-800: #006b25;
             --on-primary: #09090b;
             --danger-600: #dc2626;
@@ -203,7 +203,7 @@
         }
 
         .form-input::placeholder {
-            color: var(--gray-400);
+            color: var(--gray-500);
         }
 
         .form-input:focus {
@@ -258,6 +258,11 @@
             background: var(--gray-50);
         }
 
+        [data-theme="dark"] .input-toggle-password:hover,
+        [data-theme="dark"] .btn-social:hover {
+            background: var(--gray-100);
+        }
+
         .otp-input-box {
             width: 100%;
             height: 48px;
@@ -281,8 +286,8 @@
             box-shadow: var(--focus-ring);
         }
 
-        [data-theme="dark"] .otp-input-box::placeholder {
-            color: var(--gray-400);
+        .otp-input-box::placeholder {
+            color: var(--gray-500);
         }
 
         /* Browser autofill paints its own light fill; keep the dark surface and light text in dark mode. */
@@ -509,8 +514,8 @@
         /* Theme toggle, pinned to the top-right corner. Shows the icon of the theme the click switches TO. */
         .theme-toggle {
             position: fixed;
-            top: 16px;
-            right: 16px;
+            top: calc(16px + env(safe-area-inset-top, 0px));
+            right: calc(16px + env(safe-area-inset-right, 0px));
             z-index: 10;
             display: inline-flex;
             align-items: center;
@@ -629,7 +634,8 @@
                             <button type="button"
                                     id="togglePasswordBtn"
                                     class="input-toggle-password"
-                                    title="Lihat/Sembunyikan password">
+                                    title="Lihat/Sembunyikan password"
+                                    aria-label="Lihat atau sembunyikan kata sandi">
                                 <i class="fas fa-eye" id="togglePasswordIcon"></i>
                             </button>
                         </div>

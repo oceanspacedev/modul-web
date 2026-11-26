@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $phase === 'pretest' ? 'Hasil Pretest' : 'Hasil Kuis' }} - {{ $training->title }}</title>
     @include('layout.partials.portal-head')
+    <style>
+        .result-breakdown-item + .result-breakdown-item {
+            border-top: 1px solid var(--ring);
+        }
+        @media (min-width: 576px) {
+            .result-breakdown-item + .result-breakdown-item {
+                border-top: 0;
+                border-left: 1px solid var(--ring);
+            }
+        }
+    </style>
 </head>
 <body>
     @include('layout.partials.theme-toggle', ['class' => 'portal-theme-toggle is-floating'])
@@ -48,36 +59,36 @@
         <!-- SCORE SUMMARY -->
         <div class="content-card text-center p-4">
             <span class="eyebrow d-block mb-1">Hasil Evaluasi Kuis</span>
-            <h1 class="h4 mb-4">{{ $training->title }}</h1>
+            <h1 class="h4 mb-4 text-break">{{ $training->title }}</h1>
 
             @php
                 $hasEssay = ($questions->where('type', 'essay')->count() > 0);
                 $mcCount = $questions->where('type', '!=', 'essay')->count();
             @endphp
 
-            <div class="d-inline-block px-5 py-3 border rounded-lg bg-light mb-4">
+            <div class="d-inline-block mw-100 px-3 px-sm-5 py-3 border rounded-lg bg-light mb-4">
                 <span class="text-xs text-muted d-block mb-1">
                     {{ $hasEssay && $quizResult->essay_status !== 'graded' ? 'Nilai sementara (pilihan ganda)' : 'Nilai akhir' }}
                 </span>
                 <span class="score-display d-block">{{ $quizResult->score }}</span>
                 @if($hasEssay && $quizResult->essay_status !== 'graded')
-                    <span class="badge badge-warning mt-2">
+                    <span class="badge badge-warning badge-wrap mt-2">
                         <i class="fas fa-hourglass-half mr-1"></i> Soal Essay sedang menunggu penilaian pemateri
                     </span>
                 @elseif($hasEssay && $quizResult->essay_status === 'graded')
-                    <span class="badge badge-success mt-2">
+                    <span class="badge badge-success badge-wrap mt-2">
                         <i class="fas fa-check-circle mr-1"></i> Nilai akhir gabungan Pilihan Ganda & Essay
                     </span>
                 @endif
             </div>
 
-            <div class="row mx-auto py-3 border rounded-lg text-sm mb-4">
-                <div class="col-4 border-right">
+            <div class="row mx-auto border rounded-lg text-sm mb-4">
+                <div class="col-12 col-sm-4 py-3 result-breakdown-item">
                     <span class="text-muted text-xs d-block">Soal Pilihan Ganda</span>
                     <strong>{{ $quizResult->correct_answers }} / {{ $mcCount }} Benar</strong>
                     <span class="text-xs text-muted d-block">Nilai: {{ $quizResult->mc_score ?? $quizResult->score }}</span>
                 </div>
-                <div class="col-4 border-right">
+                <div class="col-12 col-sm-4 py-3 result-breakdown-item">
                     <span class="text-muted text-xs d-block">Status Soal Essay</span>
                     @if($hasEssay)
                         @if($quizResult->essay_status === 'graded')
@@ -92,7 +103,7 @@
                         <span class="text-xs text-muted d-block">Tidak Ada Essay</span>
                     @endif
                 </div>
-                <div class="col-4">
+                <div class="col-12 col-sm-4 py-3 result-breakdown-item">
                     <span class="text-muted text-xs d-block">Total Seluruh Soal</span>
                     <strong>{{ $quizResult->total_questions }} Soal</strong>
                     <span class="text-xs text-muted d-block">{{ $mcCount }} PG + {{ $questions->count() - $mcCount }} Essay</span>
@@ -102,7 +113,7 @@
             @if($quizResult->essay_feedback)
                 <div class="alert alert-light text-left mb-4 mx-auto" style="max-width: 600px;">
                     <strong><i class="fas fa-comment-dots mr-1"></i> Catatan Evaluasi dari Pemateri:</strong>
-                    <p class="mb-0 mt-1">{{ $quizResult->essay_feedback }}</p>
+                    <p class="mb-0 mt-1 text-break">{{ $quizResult->essay_feedback }}</p>
                 </div>
             @endif
 
@@ -140,17 +151,17 @@
                 $isCorrect = $ansData['is_correct'] ?? false;
             @endphp
             <div class="p-3 mb-3 rounded-lg border {{ $isEssay ? '' : ($isCorrect ? 'bg-soft-success' : 'bg-soft-danger') }}" style="color: inherit !important;">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div>
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                    <div class="min-w-0">
                         <span class="badge {{ $isEssay ? 'badge-primary' : ($isCorrect ? 'badge-success' : 'badge-danger') }} mr-1">
                             Soal {{ $index + 1 }} {{ $isEssay ? '(Essay)' : '' }}
                         </span>
-                        <strong class="d-block mt-2">{{ $q->question }}</strong>
+                        <strong class="d-block mt-2 text-break">{{ $q->question }}</strong>
                         @if($q->imageUrl())
                             <img src="{{ $q->imageUrl() }}" alt="Gambar soal" class="quiz-img mt-2">
                         @endif
                     </div>
-                    <div>
+                    <div class="flex-shrink-0">
                         @if($isEssay)
                             <span class="badge badge-secondary">Tersimpan</span>
                         @else
@@ -165,15 +176,15 @@
                     @if($isEssay)
                         <div class="mb-2">
                             <span class="text-muted d-block">Jawaban Anda:</span>
-                            <div class="p-2 bg-white rounded border mt-1 text-dark" style="white-space: pre-wrap;">{{ $userAns ?: '(Tidak ada jawaban)' }}</div>
+                            <div class="p-2 bg-white rounded border mt-1 text-dark text-break" style="white-space: pre-wrap;">{{ $userAns ?: '(Tidak ada jawaban)' }}</div>
                         </div>
                         @if($q->correct_answer)
-                            <div class="mb-1 text-muted">
+                            <div class="mb-1 text-muted text-break">
                                 <strong>Pedoman / Acuan Jawaban:</strong> {{ $q->correct_answer }}
                             </div>
                         @endif
                     @else
-                        <div class="mb-1">
+                        <div class="mb-1 text-break">
                             Jawaban Anda: 
                             <strong class="{{ $isCorrect ? 'text-success' : 'text-danger' }}">
                                 {{ strtoupper($userAns ?? '-') }}. {{ $q->{'option_' . $userAns} ?? '-' }}
@@ -183,7 +194,7 @@
                             @endif
                         </div>
                         @if(!$isCorrect && $q->correct_answer)
-                        <div class="mb-1 text-success">
+                        <div class="mb-1 text-success text-break">
                             Kunci Jawaban: <strong>{{ strtoupper($q->correct_answer) }}. {{ $q->{'option_' . $q->correct_answer} ?? '-' }}</strong>
                             @if($q->optionImageUrl($q->correct_answer))
                                 <img src="{{ $q->optionImageUrl($q->correct_answer) }}" alt="Gambar kunci jawaban" class="quiz-img quiz-opt-img mt-1">
@@ -193,7 +204,7 @@
                     @endif
 
                     @if($q->explanation)
-                    <div class="text-muted text-xs mt-2 pt-2 border-top font-italic">
+                    <div class="text-muted text-xs mt-2 pt-2 border-top font-italic text-break">
                         Catatan: {{ $q->explanation }}
                     </div>
                     @endif

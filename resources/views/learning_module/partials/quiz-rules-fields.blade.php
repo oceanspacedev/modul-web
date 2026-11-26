@@ -45,7 +45,7 @@
     $quizShuffle = (bool) $quizValue('shuffle_questions', true, $quiz?->shuffle_questions);
 @endphp
 <div class="{{ $quizAsCard ? 'card' : 'border rounded p-3 mb-3 bg-light' }} quiz-rules-fields">
-    <div class="{{ $quizAsCard ? 'card-header' : 'd-flex justify-content-between align-items-center mb-1' }}">
+    <div class="{{ $quizAsCard ? 'card-header' : 'd-flex flex-wrap justify-content-between align-items-center gap-2 mb-1' }}">
         @if($quizAsCard)
             <h3 class="card-title">Aturan Kuis</h3>
         @else
@@ -67,7 +67,7 @@
 
     @foreach($quizPhases as $phase => $rule)
         <div class="quiz-rule {{ $rule['on'] ? 'is-on' : '' }}">
-            <div class="quiz-rule-head">
+            <div class="quiz-rule-head flex-wrap">
                 <input type="hidden" name="quiz[{{ $phase }}]" value="0">
                 <div class="custom-control custom-switch">
                     <input type="checkbox" class="custom-control-input quiz-toggle" id="quiz_{{ $phase }}" name="quiz[{{ $phase }}]" value="1" @checked($rule['on'])>

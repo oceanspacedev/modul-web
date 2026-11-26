@@ -12,7 +12,11 @@
     <section class="content-header">
         <div class="container-fluid">
             <x-page-header title="Notifikasi" subtitle="Hasil import, export, dan proses lain yang berjalan di belakang layar." />
+        </div>
+    </section>
 
+    <section class="content">
+        <div class="container-fluid">
             <x-flash />
 
             <div class="card">
@@ -48,7 +52,7 @@
                                     </details>
                                 @endif
                             </div>
-                            <div class="notification-actions">
+                            <div class="notification-actions flex-wrap">
                                 @if (! empty($data['download_path']))
                                     <a href="{{ route('notifications.download', $notification->id) }}" class="btn btn-primary btn-sm">
                                         <i class="fas fa-download"></i> Unduh

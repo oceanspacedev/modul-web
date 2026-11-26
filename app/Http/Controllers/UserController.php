@@ -117,7 +117,7 @@ class UserController extends Controller
             return to_route('user.index')->with('error', 'Tidak bisa mengedit user yang diarsipkan, aktifkan terlebih dahulu');
         }
 
-        $user->load(['roles', 'dataAccessAreas']);
+        $user->load(['roles', 'permissions', 'dataAccessAreas']);
 
         return view('setting.user.edit', $this->formData($request->user(), $user));
     }

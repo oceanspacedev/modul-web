@@ -5,7 +5,7 @@
 <!-- FORM EVALUASI PELATIHAN -->
 @if($training->hasEvaluationForm())
 <div class="content-card" id="evaluationCard">
-    <div class="content-card-header">
+    <div class="content-card-header flex-wrap">
         <span><span class="badge badge-primary mr-1">Langkah {{ $stepNumber['evaluation'] }}</span> Evaluasi Pelatihan</span>
         @if($evaluation)
             <span class="badge badge-success">Terisi</span>

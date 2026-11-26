@@ -88,7 +88,7 @@
                     </p>
                 </div>
 
-                <div class="card-footer d-flex justify-content-between gap-2">
+                <div class="card-footer d-flex flex-wrap justify-content-between gap-2">
                     <button type="button" class="btn btn-default" id="wizardBack">Kembali</button>
                     <div class="d-flex gap-2">
                         <button type="button" class="btn btn-primary" id="wizardNext">Lanjut</button>

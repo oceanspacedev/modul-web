@@ -8,7 +8,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header :title="$user->nama_lengkap" :subtitle="($user->divisi->name ?? '-').' · '.($user->jabatan->name ?? '-').' · '.$module->title" :breadcrumbs="$module->adminBreadcrumbs('Riwayat Peserta')">
+        <x-page-header class="text-break" :title="$user->nama_lengkap" :subtitle="($user->divisi->name ?? '-').' · '.($user->jabatan->name ?? '-').' · '.$module->title" :breadcrumbs="$module->adminBreadcrumbs('Riwayat Peserta')">
             <x-slot:actions>
                 <a href="{{ $module->url('results') }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
             </x-slot:actions>
@@ -47,7 +47,7 @@
                 <div class="stat-tile">
                     <div class="min-w-0">
                         <p class="stat-tile-label">Status</p>
-                        <p class="stat-tile-value">{{ $progress->statusLabel() }}</p>
+                        <p class="stat-tile-value text-break" style="font-size: clamp(1rem, 4vw, 1.5rem);">{{ $progress->statusLabel() }}</p>
                     </div>
                 </div>
             </div>
@@ -61,9 +61,9 @@
                 @forelse($attempts as $attempt)
                     <div class="border rounded mb-3">
                         <a class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-3 text-dark" data-toggle="collapse" href="#attempt_{{ $attempt->id }}" role="button">
-                            <span>
+                            <span class="d-flex flex-wrap align-items-baseline gap-2 min-w-0">
                                 <strong>{{ ($attempt->isPretest() ? 'Pretest' : 'Posttest').' ke-'.$attempt->attempt_number }}</strong>
-                                <span class="text-muted small ml-2">{{ $attempt->submitted_at->format('d M Y H:i') }}</span>
+                                <span class="text-muted small">{{ $attempt->submitted_at->format('d M Y H:i') }}</span>
                             </span>
                             <span class="d-inline-flex align-items-center gap-2">
                                 <span class="text-muted small">{{ $attempt->correct_answers }}/{{ $attempt->total_questions }} benar</span>

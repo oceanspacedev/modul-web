@@ -49,7 +49,7 @@
                         </div>
                         <div class="card-footer d-flex flex-wrap align-items-center gap-2">
                             <span class="small text-warning" data-dirty-note hidden><i class="fas fa-circle" style="font-size: .5rem;"></i> Belum disimpan</span>
-                            <div class="ml-auto">
+                            <div class="ml-auto d-flex flex-wrap align-items-center gap-2">
                                 @if ($template['customized'])
                                     <button type="submit" form="resetForm" class="btn btn-link btn-sm text-muted" onclick="return confirm('Kembalikan langkah ke bawaan? Perubahan sekarang dihapus.')">Kembalikan ke bawaan</button>
                                 @endif
@@ -86,40 +86,29 @@
 </template>
 
 <style>
-    .step-item { border-bottom: 1px solid #eef0f2; }
+    .step-item { border-bottom: 1px solid var(--ring); }
     .step-summary { display: flex; align-items: flex-start; gap: .75rem; padding: .85rem 1.25rem; }
-    .step-num { flex: 0 0 28px; height: 28px; border-radius: 50%; background: #f1f3f5; color: #495057; font-size: .8rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+    .step-num { flex: 0 0 28px; height: 28px; border-radius: 50%; background: var(--gray-100); color: var(--gray-700); font-size: .8rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
     .step-text { flex: 1 1 auto; min-width: 0; }
     .step-label { font-weight: 600; display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
     .step-label .badge { font-weight: 500; font-size: .7rem; }
-    .badge-danger-soft { background: #fdecef; color: #c2185b; }
-    .step-hint { font-size: .85rem; color: #6c757d; margin-top: 2px; }
-    .step-example { font-size: .8rem; color: #adb5bd; font-style: italic; margin-top: 1px; }
+    .badge-danger-soft { background: var(--danger-50); color: var(--danger-700); }
+    .step-hint { font-size: .85rem; color: var(--gray-500); margin-top: 2px; }
+    .step-example { font-size: .8rem; color: var(--gray-500); font-style: italic; margin-top: 1px; }
     .step-actions { display: flex; gap: .25rem; flex-shrink: 0; }
     .step-actions .btn { width: 32px; padding-left: 0; padding-right: 0; }
-    .step-editor { display: none; margin: 0 1.25rem 1rem 3.7rem; padding: 1rem; background: #f8f9fa; border-radius: .5rem; }
+    .step-editor { display: none; margin: 0 1.25rem 1rem 3.7rem; padding: 1rem; background: var(--gray-100); border: 1px solid var(--ring); border-radius: var(--radius-lg); }
     .step-item.is-editing .step-editor { display: block; }
-    .step-item.is-editing .step-summary { background: #fff7fb; }
-    .step-item.is-editing [data-edit] { color: var(--on-solid) !important; background: #e83e8c !important; border-color: #e83e8c !important; }
+    .step-item.is-editing .step-summary { background: var(--primary-50); }
+    .step-item.is-editing [data-edit] { color: var(--on-primary) !important; background: var(--primary-600) !important; border-color: var(--primary-600) !important; }
     .step-field-label { font-size: .8rem; font-weight: 600; margin-bottom: .25rem; }
-    .step-add { display: block; width: 100%; padding: .75rem; border: 0; background: none; color: #e83e8c; font-weight: 600; text-align: left; padding-left: 1.25rem; }
-    .step-add:hover:not(:disabled) { background: #fff7fb; }
-    .step-add:disabled { color: #adb5bd; }
-    /* Dark theme: the Bootstrap grays and pink tints above have no token with the same light value, so they are overridden here. */
-    [data-theme="dark"] .step-item { border-bottom-color: var(--gray-200); }
-    [data-theme="dark"] .step-num { background: var(--gray-200); color: var(--gray-800); }
-    [data-theme="dark"] .badge-danger-soft { background: var(--danger-50); color: var(--danger-700); }
-    [data-theme="dark"] .step-hint,
-    [data-theme="dark"] .step-example { color: var(--gray-500); }
-    [data-theme="dark"] .step-editor { background: var(--gray-100); }
-    [data-theme="dark"] .step-item.is-editing .step-summary,
-    [data-theme="dark"] .step-add:hover:not(:disabled) { background: rgba(232, 62, 140, .12); }
-    [data-theme="dark"] .step-add { color: #f472b6; }
-    [data-theme="dark"] .step-add:disabled { color: var(--gray-400); }
-    @media (max-width: 576px) {
-        .step-summary { flex-wrap: wrap; }
+    .step-add { display: block; width: 100%; padding: .75rem 1.25rem; border: 0; background: none; color: var(--primary-700); font-weight: 600; text-align: left; }
+    .step-add:hover:not(:disabled) { background: var(--primary-50); }
+    .step-add:disabled { color: var(--gray-400); }
+    @media (max-width: 575.98px) {
+        .step-summary { flex-wrap: wrap; padding: .85rem 1rem; }
         .step-actions { width: 100%; justify-content: flex-end; }
-        .step-editor { margin-left: 1.25rem; }
+        .step-editor { margin: 0 1rem 1rem; }
     }
 </style>
 @endsection

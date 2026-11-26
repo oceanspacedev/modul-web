@@ -22,7 +22,7 @@
 
         @if (session('submitted') && $documentRequest)
             <div class="alert alert-success">
-                <strong>Pengajuan terkirim.</strong> Simpan kode <strong>{{ $documentRequest->code }}</strong> untuk melacak.
+                <strong>Pengajuan terkirim.</strong> Simpan kode <strong class="text-break">{{ $documentRequest->code }}</strong> untuk melacak.
                 <div class="mt-2 d-flex flex-wrap gap-2">
                     <button type="button" class="btn btn-light btn-sm" data-copy="{{ route('document-request.track', ['kode' => $documentRequest->code]) }}"><i class="far fa-copy"></i> Salin link lacak</button>
                     @if ($adminWhatsapp)
@@ -36,15 +36,15 @@
         @endif
 
         <form action="{{ route('document-request.track') }}" method="GET" class="card">
-            <div class="card-body d-flex gap-2">
-                <input type="text" name="kode" class="form-control" value="{{ $code }}" placeholder="KODE-YYYYMMDD-XXXX / HD-YYYY-NNNNN" aria-label="Kode tiket" required style="text-transform: uppercase;">
-                <button type="submit" class="btn btn-primary">Lacak</button>
+            <div class="card-body d-flex flex-wrap flex-sm-nowrap gap-2">
+                <input type="text" name="kode" class="form-control flex-fill min-w-0" value="{{ $code }}" placeholder="KODE-YYYYMMDD-XXXX / HD-YYYY-NNNNN" aria-label="Kode tiket" required style="text-transform: uppercase;">
+                <button type="submit" class="btn btn-primary flex-shrink-0">Lacak</button>
             </div>
             <div class="card-footer small" id="myTickets" hidden>Pengajuan di perangkat ini: <span></span></div>
         </form>
 
         @if ($code !== '' && ! $documentRequest)
-            <div class="alert alert-warning">Kode <strong>{{ $code }}</strong> tidak ditemukan. Periksa kembali penulisannya.</div>
+            <div class="alert alert-warning">Kode <strong class="text-break">{{ $code }}</strong> tidak ditemukan. Periksa kembali penulisannya.</div>
         @endif
 
         @if ($documentRequest)
@@ -56,16 +56,16 @@
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
-                        <div>
-                            <div class="text-muted small">
+                        <div class="min-w-0">
+                            <div class="text-muted small text-break">
                                 {{ $documentRequest->code }} · {{ $category?->label() }}@if ($documentRequest->helpdesk_ticket_number) · Helpdesk {{ $documentRequest->helpdesk_ticket_number }}@endif
                             </div>
                             <h3 class="h5 mb-1">{{ $documentRequest->stage() }}</h3>
-                            <div class="small text-muted">
+                            <div class="small text-muted text-break">
                                 {{ $documentRequest->nama }} · {{ $documentRequest->departemen }} · WA {{ $documentRequest->maskedWhatsapp() }} · {{ $documentRequest->maskedEmail() }}
                             </div>
                         </div>
-                        <div class="text-right">
+                        <div class="text-sm-right">
                             <div class="h4 mb-0">{{ $progress }}%</div>
                             <div class="small text-muted">{{ $released }} dari {{ $documentRequest->processes->count() }} dokumen selesai</div>
                         </div>
@@ -86,9 +86,9 @@
 
             @if ($released && filled($cloud['url']))
                 <div class="alert alert-success">
-                    <strong>Dokumen sudah rilis.</strong> Unduh di <a href="{{ $cloud['url'] }}" target="_blank" rel="noopener" class="alert-link">{{ $cloud['url'] }}</a>
-                    @if ($cloud['user']) · user <code>{{ $cloud['user'] }}</code>@endif
-                    @if ($cloud['password']) · password <code>{{ $cloud['password'] }}</code>@endif
+                    <strong>Dokumen sudah rilis.</strong> Unduh di <a href="{{ $cloud['url'] }}" target="_blank" rel="noopener" class="alert-link text-break">{{ $cloud['url'] }}</a>
+                    @if ($cloud['user']) · user <code class="text-break">{{ $cloud['user'] }}</code>@endif
+                    @if ($cloud['password']) · password <code class="text-break">{{ $cloud['password'] }}</code>@endif
                 </div>
             @endif
 
@@ -96,17 +96,17 @@
                 @php($stage = $process->publicStage())
                 <div class="card">
                     <div class="card-body">
-                        <div class="d-flex justify-content-between gap-2">
-                            <strong>{{ $loop->iteration }}. {{ $process->title }}</strong>
-                            <span class="badge {{ $process->isReleased() ? 'badge-success' : ($stage === App\Models\OdDocument::STAGE_CANCELLED ? 'badge-secondary' : 'badge-info') }}">{{ $stage }}</span>
+                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                            <strong class="min-w-0 text-break">{{ $loop->iteration }}. {{ $process->title }}</strong>
+                            <span class="badge flex-shrink-0 {{ $process->isReleased() ? 'badge-success' : ($stage === App\Models\OdDocument::STAGE_CANCELLED ? 'badge-secondary' : 'badge-info') }}">{{ $stage }}</span>
                         </div>
                         <div class="d-flex gap-1 mt-2" aria-hidden="true">
                             @foreach ($stageNames as $index => $name)
-                                <div class="flex-fill rounded {{ $stage !== App\Models\OdDocument::STAGE_CANCELLED && $index <= $process->stageIndex() ? 'bg-success' : 'bg-light' }}" style="height: 6px;" title="{{ $name }}"></div>
+                                <div class="flex-fill rounded {{ $stage !== App\Models\OdDocument::STAGE_CANCELLED && $index <= $process->stageIndex() ? 'bg-success' : 'bg-gray-100' }}" style="height: 6px;" title="{{ $name }}"></div>
                             @endforeach
                         </div>
                         @if ($process->jenis_pengajuan)
-                            <div class="small text-muted mt-2">{{ $category?->name }} {{ strtolower($process->jenis_pengajuan) }}</div>
+                            <div class="small text-muted mt-2 text-break">{{ $category?->name }} {{ strtolower($process->jenis_pengajuan) }}</div>
                         @endif
                         @if ($process->isReleased() && $process->hasFile())
                             <a href="{{ $process->fileLink() }}" target="_blank" rel="noopener" class="btn btn-success btn-sm mt-2"><i class="fas fa-file-download"></i> Buka file</a>
@@ -119,7 +119,7 @@
                 <div class="card-header"><h3 class="card-title">Riwayat</h3></div>
                 <div class="card-body p-0">
                     @foreach ($documentRequest->timeline() as $step)
-                        <div class="px-3 py-2 border-bottom small d-flex justify-content-between gap-2 {{ $step['done'] ? '' : 'text-muted' }}">
+                        <div class="px-3 py-2 border-bottom small d-flex flex-wrap justify-content-between gap-2 {{ $step['done'] ? '' : 'text-muted' }}">
                             <span><i class="{{ $step['done'] ? 'fas fa-check-circle text-success' : 'far fa-circle' }} mr-1"></i> <strong>{{ $step['name'] }}</strong></span>
                             <span class="text-muted">{{ $step['at']?->format('d/m/Y H:i') ?? '-' }}</span>
                         </div>
@@ -132,11 +132,11 @@
                 <div class="card-body p-0">
                     @forelse ($documentRequest->comments as $comment)
                         <div class="px-3 py-2 border-bottom small">
-                            <div class="d-flex justify-content-between gap-2">
-                                <strong>{{ $comment->user?->nama_lengkap ?? 'Tim OD' }}</strong>
+                            <div class="d-flex flex-wrap justify-content-between gap-2">
+                                <strong class="min-w-0 text-break">{{ $comment->user?->nama_lengkap ?? 'Tim OD' }}</strong>
                                 <span class="text-muted">{{ $comment->created_at->format('d/m/Y H:i') }}</span>
                             </div>
-                            <div style="white-space: pre-line;">{{ $comment->body }}</div>
+                            <div class="text-break" style="white-space: pre-line;">{{ $comment->body }}</div>
                         </div>
                     @empty
                         <p class="px-3 py-2 small text-muted mb-0">Belum ada komentar dari tim OD.</p>

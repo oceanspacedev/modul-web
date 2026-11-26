@@ -26,11 +26,15 @@
 <body class="hold-transition @auth sidebar-mini layout-fixed @else layout-top-nav @endauth">
     @auth
     <script>
-        // Sidebar yang diciutkan tetap ciut setelah pindah halaman. Dipasang sebelum halaman digambar (selagi
-        // hold-transition aktif) supaya tidak berkedip lebar lalu menciut. Disimpan oleh public/script.js.
+        // Sidebar yang diciutkan tetap ciut setelah pindah halaman, dan di layar sempit (< 992px) langsung
+        // tersembunyi sebelum halaman digambar supaya tidak sempat berkedip menutupi konten.
         try {
-            if (window.matchMedia('(min-width: 992px)').matches && localStorage.getItem('sidebar-collapsed') === '1') {
-                document.body.classList.add('sidebar-collapse');
+            if (window.matchMedia('(min-width: 992px)').matches) {
+                if (localStorage.getItem('sidebar-collapsed') === '1') {
+                    document.body.classList.add('sidebar-collapse');
+                }
+            } else {
+                document.body.classList.add('sidebar-closed', 'sidebar-collapse');
             }
         } catch (e) {}
     </script>
@@ -50,30 +54,36 @@
         <nav class="main-header navbar navbar-expand navbar-light">
             <ul class="navbar-nav align-items-center">
                 <li class="nav-item">
-                    <a class="nav-link topbar-toggle" data-widget="pushmenu" href="#" role="button" aria-label="Buka/tutup menu">
-                        <i class="fas fa-bars"></i>
+                    <a class="nav-link topbar-toggle" data-widget="pushmenu" data-auto-collapse-size="0" href="#" role="button" aria-label="Buka/tutup menu">
+                        <i class="fas fa-bars" aria-hidden="true"></i>
+                    </a>
+                </li>
+                <li class="nav-item d-lg-none">
+                    <a href="{{ $authUser->homeUrl() }}" class="topbar-brand">
+                        <img src="{{ asset('images/logo.svg') }}" alt="" class="brand-logo">
+                        <span class="topbar-brand-text">Modul</span>
                     </a>
                 </li>
             </ul>
 
-            <ul class="navbar-nav ml-auto align-items-center">
+            <ul class="navbar-nav ml-auto align-items-center topbar-actions">
                 @impersonating
-                <li class="nav-item mr-2">
+                <li class="nav-item">
                     <form action="{{ route('impersonate.leave') }}" method="POST" class="m-0">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="btn btn-warning btn-sm" title="Kembali ke akun saya">
-                            <i class="fas fa-user-secret"></i><span class="d-none d-md-inline"> Kembali ke akun saya</span>
+                        <button type="submit" class="btn btn-warning btn-sm topbar-impersonate-btn" title="Kembali ke akun saya" aria-label="Kembali ke akun saya">
+                            <i class="fas fa-user-secret" aria-hidden="true"></i><span class="d-none d-md-inline"> Kembali ke akun saya</span>
                         </button>
                     </form>
                 </li>
                 @endImpersonating
-                <li class="nav-item mr-1">
+                <li class="nav-item">
                     @include('layout.partials.theme-toggle', ['class' => 'nav-link topbar-toggle'])
                 </li>
-                <li class="nav-item dropdown mr-2">
+                <li class="nav-item dropdown">
                     <a href="#" class="nav-link topbar-toggle notification-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Notifikasi">
-                        <i class="far fa-bell"></i>
+                        <i class="far fa-bell" aria-hidden="true"></i>
                         <span class="notification-badge" data-notification-count @if ($unreadNotificationCount === 0) hidden @endif>{{ $unreadNotificationCount > 99 ? '99+' : $unreadNotificationCount }}</span>
                     </a>
                     <div class="dropdown-menu dropdown-menu-right notification-menu">
@@ -86,14 +96,16 @@
                                 </form>
                             @endif
                         </div>
-                        @forelse ($latestNotifications as $notification)
-                            <a href="{{ route('notifications.index') }}" class="dropdown-item notification-menu-item {{ $notification->read_at ? '' : 'is-unread' }}">
-                                <span class="notification-menu-title text-truncate">{{ $notification->data['title'] ?? 'Notifikasi' }}</span>
-                                <span class="notification-menu-meta">{{ $notification->created_at->diffForHumans() }}</span>
-                            </a>
-                        @empty
-                            <div class="notification-menu-empty">Belum ada notifikasi.</div>
-                        @endforelse
+                        <div class="notification-menu-list">
+                            @forelse ($latestNotifications as $notification)
+                                <a href="{{ route('notifications.index') }}" class="dropdown-item notification-menu-item {{ $notification->read_at ? '' : 'is-unread' }}">
+                                    <span class="notification-menu-title text-truncate">{{ $notification->data['title'] ?? 'Notifikasi' }}</span>
+                                    <span class="notification-menu-meta">{{ $notification->created_at->diffForHumans() }}</span>
+                                </a>
+                            @empty
+                                <div class="notification-menu-empty">Belum ada notifikasi.</div>
+                            @endforelse
+                        </div>
                         <a href="{{ route('notifications.index') }}" class="dropdown-item notification-menu-footer">Lihat semua notifikasi</a>
                     </div>
                 </li>
@@ -101,7 +113,7 @@
                     <a href="#" class="nav-link user-menu-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         <span class="avatar">{{ $initials ?: 'U' }}</span>
                         <span class="user-menu-name d-none d-sm-inline">{{ $authUser->nama_lengkap ?? $authUser->username }}</span>
-                        <i class="fas fa-chevron-down"></i>
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
                     </a>
                     <div class="dropdown-menu dropdown-menu-right user-menu">
                         <div class="user-menu-header">
@@ -139,33 +151,32 @@
             </ul>
         </nav>
         @else
-        <nav class="main-header navbar navbar-expand navbar-light">
-            <div class="container">
-                <a href="/video" class="navbar-brand d-flex align-items-center" style="gap: 10px;">
+        <nav class="main-header navbar navbar-expand navbar-light public-header">
+            <div class="container public-header-inner">
+                <a href="/video" class="navbar-brand public-brand">
                     <img src="{{ asset('images/logo.svg') }}" alt="" class="brand-logo">
-                    <span class="text-heading font-weight-bold text-dark" style="font-size: 0.9375rem;">Modul</span>
+                    <span class="topbar-brand-text">Modul</span>
                 </a>
 
-                <ul class="navbar-nav ml-auto align-items-center" style="gap: 8px;">
-                    <li class="nav-item d-none d-sm-block">
-                        <a href="/video" class="nav-link {{ ($active ?? '') === 'video' ? 'text-dark' : '' }}">
+                <ul class="navbar-nav public-nav">
+                    <li class="nav-item">
+                        <a href="/video" class="nav-link {{ ($active ?? '') === 'video' ? 'is-active' : '' }}" @if(($active ?? '') === 'video') aria-current="page" @endif>
                             Galeri Video
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ route('document-request.create') }}" class="nav-link {{ ($active ?? '') === 'document-request' ? 'text-dark' : '' }}">
+                        <a href="{{ route('document-request.create') }}" class="nav-link {{ ($active ?? '') === 'document-request' ? 'is-active' : '' }}" @if(($active ?? '') === 'document-request') aria-current="page" @endif>
                             Permintaan Dokumen
                         </a>
                     </li>
-                    <li class="nav-item">
-                        @include('layout.partials.theme-toggle', ['class' => 'nav-link topbar-toggle'])
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ route('login') }}" class="btn btn-primary btn-sm">
-                            Masuk
-                        </a>
-                    </li>
                 </ul>
+
+                <div class="public-actions">
+                    @include('layout.partials.theme-toggle', ['class' => 'nav-link topbar-toggle'])
+                    <a href="{{ route('login') }}" class="btn btn-primary btn-sm">
+                        Masuk
+                    </a>
+                </div>
             </div>
         </nav>
         @endauth

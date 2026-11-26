@@ -50,8 +50,8 @@
                         <h3 class="card-title">Fitur yang Dapat Diakses</h3>
                         <p class="section-subtitle">Centang fitur yang ingin diberikan kepada role ini.</p>
                     </div>
-                    <div>
-                        <button type="button" class="btn btn-default btn-sm mr-1" id="btnSelectAll">
+                    <div class="d-flex flex-wrap gap-1">
+                        <button type="button" class="btn btn-default btn-sm" id="btnSelectAll">
                             <i class="fas fa-check-square"></i> Pilih Semua
                         </button>
                         <button type="button" class="btn btn-default btn-sm" id="btnUnselectAll">
@@ -64,12 +64,12 @@
                         @foreach($permissionGroups as $groupName => $group)
                             <div class="col-lg-6 mb-4">
                                 <div class="border rounded p-3 h-100">
-                                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
-                                        <div class="d-flex align-items-center">
+                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2 pb-2 border-bottom">
+                                        <div class="d-flex align-items-center min-w-0">
                                             <i class="{{ $group['icon'] }} text-muted mr-2"></i>
                                             <strong>{{ $groupName }}</strong>
                                         </div>
-                                        <button type="button" class="btn btn-link btn-xs p-0 select-group-btn" data-group="{{ Str::slug($groupName) }}">
+                                        <button type="button" class="btn btn-link btn-xs p-0 flex-shrink-0 select-group-btn" data-group="{{ Str::slug($groupName) }}">
                                             Pilih Bagian Ini
                                         </button>
                                     </div>
@@ -82,7 +82,7 @@
                                                        {{ is_array(old('permissions')) && in_array($permName, old('permissions')) ? 'checked' : '' }}>
                                                 <label class="custom-control-label font-weight-normal" for="perm_{{ Str::slug($permName) }}">
                                                     {{ $permDesc }}
-                                                    <span class="d-block text-muted text-xs"><code>{{ $permName }}</code></span>
+                                                    <span class="d-block text-muted text-xs mt-1"><code class="perm-code">{{ $permName }}</code></span>
                                                 </label>
                                             </div>
                                         @endforeach
@@ -92,7 +92,7 @@
                         @endforeach
                     </div>
                 </div>
-                <div class="card-footer d-flex justify-content-end gap-2">
+                <div class="card-footer d-flex justify-content-end flex-wrap gap-2">
                     <a href="{{ route('roles.index') }}" class="btn btn-default">Batal</a>
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save"></i> Simpan Jabatan Baru
@@ -102,6 +102,16 @@
         </form>
     </div>
 </section>
+
+<style>
+    .perm-code {
+        background: var(--gray-100);
+        color: var(--gray-800);
+        padding: 1px 6px;
+        border-radius: 4px;
+        overflow-wrap: anywhere;
+    }
+</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

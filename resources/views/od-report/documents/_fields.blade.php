@@ -56,7 +56,7 @@
 {{-- Muncul saat status selesai atau tahap terakhir dipilih (rilis). --}}
 <div class="form-group" id="releaseFileField" hidden>
     <label for="file">File dokumen <span class="text-muted font-weight-normal">({{ $document?->hasFile() ? 'ganti, opsional' : ($document?->isFromRequest() ? 'wajib untuk rilis' : 'opsional') }})</span></label>
-    <input type="file" class="form-control-file @error('file') is-invalid @enderror" id="file" name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+    <input type="file" class="form-control-file mw-100 @error('file') is-invalid @enderror" id="file" name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
     <small class="form-text text-muted">PDF, Word, Excel, PowerPoint. Maks 50 MB.</small>
     @error('file')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
 </div>

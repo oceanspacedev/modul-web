@@ -233,4 +233,21 @@ class TrainingAttendanceFeatureTest extends TestCase
             ->assertSee('Pelatihan ini dibatalkan')
             ->assertDontSee('https://zoom.us/test-zoom');
     }
+
+    public function test_live_polled_attendance_template_places_proof_input_inside_attendance_form(): void
+    {
+        $this->training->update([
+            'is_attendance_active' => false,
+            'require_attendance_proof' => true,
+        ]);
+
+        $html = $this->get("/training/portal/{$this->participant->token}")
+            ->assertOk()
+            ->getContent();
+
+        $this->assertMatchesRegularExpression(
+            '/function buildAttendanceOpenHTML\s*\([\s\S]*?proofFieldHtml\s*=[\s\S]*?id="attendanceProofInput"[\s\S]*?<form[^>]*id="attendanceForm"[\s\S]*?\$\{proofFieldHtml\}[\s\S]*?<\/form>/',
+            $html
+        );
+    }
 }

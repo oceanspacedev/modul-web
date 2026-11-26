@@ -95,32 +95,34 @@
             </div>
             <div class="card-body p-0">
                 <p class="small text-muted px-3 pt-3 mb-2">Setiap pengajuan baru dikirim ke nomor ini.</p>
-                <table class="table mb-0">
-                    <tbody>
-                        @forelse ($recipients as $recipient)
-                            <tr>
-                                <td><strong>{{ $recipient->name }}</strong></td>
-                                <td>{{ App\Support\WhatsAppNumber::toLocal($recipient->whatsapp) ?? $recipient->whatsapp }}</td>
-                                <td class="text-right">
-                                    <form action="{{ route('document-category.recipients.destroy', $recipient) }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Hapus nomor '.$recipient->name.'?'))">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-default btn-xs text-danger">Hapus</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td class="small text-muted">
-                                    Belum ada nomor.
-                                    @if ($fallbackWhatsapp)
-                                        Sementara dikirim ke nomor admin OD ({{ App\Support\WhatsAppNumber::toLocal($fallbackWhatsapp) ?? $fallbackWhatsapp }}).
-                                    @endif
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <tbody>
+                            @forelse ($recipients as $recipient)
+                                <tr>
+                                    <td><strong>{{ $recipient->name }}</strong></td>
+                                    <td>{{ App\Support\WhatsAppNumber::toLocal($recipient->whatsapp) ?? $recipient->whatsapp }}</td>
+                                    <td class="text-right text-nowrap">
+                                        <form action="{{ route('document-category.recipients.destroy', $recipient) }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Hapus nomor '.$recipient->name.'?'))">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-default btn-xs text-danger">Hapus</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="small text-muted">
+                                        Belum ada nomor.
+                                        @if ($fallbackWhatsapp)
+                                            Sementara dikirim ke nomor admin OD ({{ App\Support\WhatsAppNumber::toLocal($fallbackWhatsapp) ?? $fallbackWhatsapp }}).
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

@@ -35,7 +35,7 @@
         <div class="row">
             @if ($show['users'])
             <div class="col-xl col-md-4 col-6 mb-3">
-                <a href="/user" class="stat-tile">
+                <a href="/user" class="stat-tile h-100">
                     <div class="min-w-0">
                         <p class="stat-tile-label">Total Pengguna</p>
                         <p class="stat-tile-value">{{ $data['totalUser'] }}</p>
@@ -47,7 +47,7 @@
 
             @if ($show['trainings'])
             <div class="col-xl col-md-4 col-6 mb-3">
-                <a href="/training" class="stat-tile">
+                <a href="/training" class="stat-tile h-100">
                     <div class="min-w-0">
                         <p class="stat-tile-label">Jadwal Pelatihan</p>
                         <p class="stat-tile-value">{{ $data['totalTraining'] }}</p>
@@ -59,7 +59,7 @@
 
             @if ($show['videos'])
             <div class="col-xl col-md-4 col-6 mb-3">
-                <a href="/video" class="stat-tile">
+                <a href="/video" class="stat-tile h-100">
                     <div class="min-w-0">
                         <p class="stat-tile-label">Video Materi</p>
                         <p class="stat-tile-value">{{ $data['totalVideo'] }}</p>
@@ -71,7 +71,7 @@
 
             @if ($show['trainings'])
             <div class="col-xl col-md-4 col-6 mb-3">
-                <a href="/training" class="stat-tile">
+                <a href="/training" class="stat-tile h-100">
                     <div class="min-w-0">
                         <p class="stat-tile-label">Peserta Pelatihan</p>
                         <p class="stat-tile-value">{{ $data['totalParticipant'] }}</p>
@@ -83,7 +83,7 @@
 
             @if ($show['documents'])
             <div class="col-xl col-md-4 col-6 mb-3">
-                <a href="/document" class="stat-tile">
+                <a href="/document" class="stat-tile h-100">
                     <div class="min-w-0">
                         <p class="stat-tile-label">Dokumen Modul</p>
                         <p class="stat-tile-value">{{ $data['totalDocument'] }}</p>
@@ -95,7 +95,7 @@
 
             @if ($show['trainings'])
             <div class="col-xl col-md-4 col-6 mb-3">
-                <a href="/training" class="stat-tile">
+                <a href="/training" class="stat-tile h-100">
                     <div class="min-w-0">
                         <p class="stat-tile-label">Hasil Kuis Pelatihan</p>
                         <p class="stat-tile-value">{{ $data['totalQuizResult'] }}</p>
@@ -194,7 +194,7 @@
             @endif
 
             @if ($show['videos'])
-            <div class="col-lg">
+            <div class="col-xl col-lg-6">
                 {{-- 2. Grafik Popularitas Video Materi --}}
                 <div class="card dash-card is-compact">
                     <div class="card-header">
@@ -264,7 +264,7 @@
             @endif
 
             @if ($show['trainings'])
-            <div class="col-lg">
+            <div class="col-xl col-lg-6">
                 {{-- 3. Grafik Distribusi Nilai & Evaluasi Kuis --}}
                 <div class="card dash-card is-compact">
                     <div class="card-header">
@@ -377,7 +377,7 @@
             @endif
 
             @if ($show['masterData'])
-            <div class="col-lg">
+            <div class="col-xl col-lg-6">
                 {{-- 4. Grafik Komposisi Modul & Master Data --}}
                 <div class="card dash-card is-compact">
                     <div class="card-header">

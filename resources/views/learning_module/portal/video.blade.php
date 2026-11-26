@@ -10,7 +10,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header :title="$video->title" :subtitle="$module->title.' · materi '.($position + 1).' dari '.$items->count()" eyebrow="Modul Saya / Materi">
+        <x-page-header class="text-break" :title="$video->title" :subtitle="$module->title.' · materi '.($position + 1).' dari '.$items->count()" eyebrow="Modul Saya / Materi">
             <x-slot:actions>
                 <a href="{{ $module->url('show') }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
             </x-slot:actions>
@@ -39,7 +39,7 @@
                 <div class="card-header">
                     <h3 class="card-title">Deskripsi</h3>
                 </div>
-                <div class="card-body text-muted" style="white-space: pre-line;">{{ $video->description }}</div>
+                <div class="card-body text-muted text-break" style="white-space: pre-line;">{{ $video->description }}</div>
             </div>
         @endif
     </div>

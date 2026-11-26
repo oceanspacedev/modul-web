@@ -12,16 +12,42 @@
 </div>
 <div class="modal-body">
     <!-- STATS SUMMARY -->
-    <div class="row no-gutters mb-4 border rounded text-center">
-        <div class="col-3 p-3 border-right">
+    <style>
+        .answer-sheet-stats {
+            border: 1px solid var(--ring);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+        .answer-sheet-stat {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--ring);
+        }
+        .answer-sheet-stat:nth-child(odd) {
+            border-right: 1px solid var(--ring);
+        }
+        .answer-sheet-stat:nth-last-child(-n+2) {
+            border-bottom: 0;
+        }
+        @media (min-width: 768px) {
+            .answer-sheet-stat {
+                padding: 1rem;
+                border-bottom: 0;
+            }
+            .answer-sheet-stat:not(:last-child) {
+                border-right: 1px solid var(--ring);
+            }
+        }
+    </style>
+    <div class="row no-gutters mb-4 text-center answer-sheet-stats">
+        <div class="col-6 col-md-3 answer-sheet-stat">
             <p class="stat-tile-label">Nilai Akhir</p>
             <p class="stat-tile-value">{{ $quiz->score }}</p>
         </div>
-        <div class="col-3 p-3 border-right">
+        <div class="col-6 col-md-3 answer-sheet-stat">
             <p class="stat-tile-label">Nilai PG ({{ $quiz->correct_answers }} Benar)</p>
             <p class="stat-tile-value">{{ $quiz->mc_score ?? $quiz->score }}</p>
         </div>
-        <div class="col-3 p-3 border-right">
+        <div class="col-6 col-md-3 answer-sheet-stat">
             <p class="stat-tile-label">Nilai Essay</p>
             @if($quiz->essay_status === 'graded')
                 <p class="stat-tile-value">{{ $quiz->essay_score }}</p>
@@ -29,7 +55,7 @@
                 <p class="text-sm text-muted mb-0 mt-1">Belum Dinilai</p>
             @endif
         </div>
-        <div class="col-3 p-3">
+        <div class="col-6 col-md-3 answer-sheet-stat">
             <p class="stat-tile-label">Waktu Submit</p>
             <p class="text-sm font-weight-bold mb-0 mt-1">{{ \Carbon\Carbon::parse($quiz->submitted_at)->format('d/m/Y H:i') }}</p>
         </div>
@@ -112,7 +138,7 @@
         @endphp
         <div class="p-3 mb-3 rounded border">
             <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                <div>
+                <div class="min-w-0 text-break">
                     <span class="badge badge-secondary mr-1">
                         #{{ $qIndex + 1 }} {{ $isEssay ? '(Essay)' : '(PG)' }}
                     </span>
@@ -121,7 +147,7 @@
                         <img src="{{ $question->imageUrl() }}" alt="Gambar soal" class="quiz-img quiz-opt-img mt-2">
                     @endif
                 </div>
-                <div>
+                <div class="flex-shrink-0">
                     @if($isEssay)
                         <span class="badge badge-primary">Tersimpan</span>
                     @else
@@ -136,20 +162,20 @@
                 @if($isEssay)
                     <div class="mb-2">
                         <span class="text-muted d-block">Jawaban Essay Peserta:</span>
-                        <div class="p-2 bg-light rounded border mt-1" style="white-space: pre-wrap;">{{ $userAns ?: '(Tidak ada jawaban)' }}</div>
+                        <div class="p-2 bg-light rounded border mt-1 text-break" style="white-space: pre-wrap; overflow-wrap: anywhere;">{{ $userAns ?: '(Tidak ada jawaban)' }}</div>
                     </div>
                     @if($question->correct_answer)
-                        <div class="text-muted"><strong>Pedoman Acuan Jawaban:</strong> {{ $question->correct_answer }}</div>
+                        <div class="text-muted text-break"><strong>Pedoman Acuan Jawaban:</strong> {{ $question->correct_answer }}</div>
                     @endif
                 @else
-                    <div class="mb-1">
+                    <div class="mb-1 text-break">
                         Jawaban Peserta: <strong>{{ strtoupper($userAns ?? '-') }}</strong> ({{ $question->{'option_' . $userAns} ?? '-' }})
                         @if($userAns && $question->optionImageUrl($userAns))
                             <img src="{{ $question->optionImageUrl($userAns) }}" alt="Gambar jawaban peserta" class="quiz-img quiz-img-thumb mt-1">
                         @endif
                     </div>
                     @if($question->correct_answer)
-                        <div class="text-success">
+                        <div class="text-success text-break">
                             Kunci Jawaban: <strong>{{ strtoupper($question->correct_answer) }}</strong> ({{ $question->{'option_' . $question->correct_answer} ?? '-' }})
                             @if($question->optionImageUrl($question->correct_answer))
                                 <img src="{{ $question->optionImageUrl($question->correct_answer) }}" alt="Gambar kunci jawaban" class="quiz-img quiz-img-thumb mt-1">

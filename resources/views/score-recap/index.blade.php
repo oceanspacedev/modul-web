@@ -4,7 +4,11 @@
     <section class="content-header">
         <div class="container-fluid">
             <x-page-header title="Rekap Nilai" subtitle="Export nilai pelatihan dan pretest/posttest dari banyak kegiatan sekaligus dalam satu file Excel." />
+        </div>
+    </section>
 
+    <section class="content">
+        <div class="container-fluid">
             <x-flash />
 
             <div class="row">

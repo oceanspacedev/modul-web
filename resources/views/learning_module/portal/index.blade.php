@@ -23,23 +23,23 @@
                     <div class="card h-100 mb-0">
                         <div class="card-body d-flex flex-column">
                             <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                                <h3 class="section-title min-w-0">{{ $module->title }}</h3>
+                                <h3 class="section-title min-w-0 text-break">{{ $module->title }}</h3>
                                 @if($p->hasPassed())
-                                    <span class="badge badge-success">Lulus</span>
+                                    <span class="badge badge-success flex-shrink-0">Lulus</span>
                                 @elseif($p->posttests->isNotEmpty())
-                                    <span class="badge badge-danger">Belum Lulus</span>
+                                    <span class="badge badge-danger flex-shrink-0">Belum Lulus</span>
                                 @elseif($stage === 'posttest')
-                                    <span class="badge badge-primary">Siap Posttest</span>
+                                    <span class="badge badge-primary flex-shrink-0">Siap Posttest</span>
                                 @elseif($stage === 'selesai')
-                                    <span class="badge badge-success">Selesai</span>
+                                    <span class="badge badge-success flex-shrink-0">Selesai</span>
                                 @elseif($stage === 'materi')
-                                    <span class="badge badge-warning">Pelajari Materi</span>
+                                    <span class="badge badge-warning flex-shrink-0">Pelajari Materi</span>
                                 @else
-                                    <span class="badge badge-secondary">Belum Mulai</span>
+                                    <span class="badge badge-secondary flex-shrink-0">Belum Mulai</span>
                                 @endif
                             </div>
                             @if($module->description)
-                                <p class="text-muted small mb-3">{{ \Illuminate\Support\Str::limit($module->description, 140) }}</p>
+                                <p class="text-muted small mb-3 text-break">{{ \Illuminate\Support\Str::limit($module->description, 140) }}</p>
                             @endif
 
                             <div class="small text-muted mb-3 mt-auto">

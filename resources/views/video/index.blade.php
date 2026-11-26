@@ -16,7 +16,7 @@
 [data-theme="dark"] .video-thumb { background: var(--black); }
 .video-thumb-empty {
     background: var(--gray-100);
-    color: var(--gray-400);
+    color: var(--gray-500);
 }
 .video-thumb-play {
     position: absolute;
@@ -146,13 +146,13 @@
 
                             {{-- Card Body --}}
                             <div class="card-body d-flex flex-column p-3">
-                                <h3 class="video-card-title text-sm font-weight-bold mb-1" title="{{ $v->title }}">
+                                <h3 class="video-card-title text-sm font-weight-bold text-break mb-1" title="{{ $v->title }}">
                                     <a href="{{ route('video.show', $v->id) }}">
                                         {{ Str::limit($v->title, 55) }}
                                     </a>
                                 </h3>
 
-                                <p class="text-muted small flex-grow-1 mb-3">
+                                <p class="text-muted small text-break flex-grow-1 mb-3">
                                     {{ Str::limit($v->description ?? 'Tidak ada deskripsi.', 90) }}
                                 </p>
 
@@ -168,7 +168,7 @@
 
                             {{-- Card Footer --}}
                             @can('update', $v)
-                            <div class="card-footer d-flex justify-content-end align-items-center gap-1 px-3 py-2">
+                            <div class="card-footer d-flex flex-wrap justify-content-end align-items-center gap-1 px-3 py-2">
                                 @if($v->quizModule && ($v->quizModule->has_pretest || $v->quizModule->has_posttest))
                                     <a href="{{ $v->quizModule->url('questions.index') }}" class="btn btn-default btn-xs" title="Soal pretest/posttest">
                                         Soal Kuis
@@ -177,7 +177,10 @@
                                 <a href="{{ route('video.edit', $v->id) }}" class="btn btn-default btn-xs" title="Edit Video">
                                     Edit
                                 </a>
-                                <button type="button" class="btn btn-default btn-xs text-danger" title="Hapus Video" onclick="confirmDelete('{{ $v->id }}', '{{ addslashes($v->title) }}')">
+                                <button type="button" class="btn btn-default btn-xs text-danger" title="Hapus Video"
+                                    data-destroy-url="{{ route('video.destroy', $v->id) }}"
+                                    data-video-title="{{ $v->title }}"
+                                    onclick="confirmDelete(this.dataset.destroyUrl, this.dataset.videoTitle)">
                                     Hapus
                                 </button>
                             </div>
@@ -191,51 +194,13 @@
 
             @if($videos->hasPages())
                 <div class="card-footer d-flex justify-content-center">
-                    {{ $videos->links() }}
+                    {{ $videos->links('pagination::bootstrap-4') }}
                 </div>
             @endif
         @endif
         </div>
     </div>
 </section>
-
-{{-- MODAL VIDEO PLAYER --}}
-<div class="modal fade modal-center" id="videoPlayerModal" tabindex="-1" role="dialog" aria-labelledby="videoModalLabel" aria-hidden="true" data-backdrop="static">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title text-truncate pr-3" id="modalVideoTitle">Putar Video</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup" onclick="stopModalVideo()">&times;</button>
-            </div>
-            <div class="modal-body p-0">
-                {{-- HTML5 Video Player Container --}}
-                <div id="modalHtmlVideoContainer" class="embed-responsive embed-responsive-16by9 bg-black" style="display: none;">
-                    <video id="activeModalVideo" class="embed-responsive-item" controls preload="auto" playsinline>
-                        <source id="modalVideoSource" src="" type="video/mp4">
-                        Browser Anda tidak mendukung tag video HTML5.
-                    </video>
-                </div>
-
-                {{-- Iframe Embed Container (YouTube, Google Drive, Vimeo) --}}
-                <div id="modalIframeContainer" class="embed-responsive embed-responsive-16by9 bg-black" style="display: none;">
-                    <iframe id="modalVideoIframe" class="embed-responsive-item" src="" frameborder="0" allowfullscreen allow="autoplay; encrypted-media"></iframe>
-                </div>
-
-                <div class="p-3">
-                    <p class="text-muted small mb-0" id="modalVideoDesc"></p>
-                </div>
-            </div>
-            <div class="modal-footer justify-content-between">
-                <a href="#" id="modalWatchFullLink" class="btn btn-default">
-                    <i class="fas fa-external-link-alt"></i> Buka di Halaman Penuh
-                </a>
-                <button type="button" class="btn btn-default" data-dismiss="modal" onclick="stopModalVideo()">
-                    Tutup
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 {{-- MODAL DELETE CONFIRMATION --}}
 @auth
@@ -244,60 +209,18 @@
     @method('DELETE')
 </form>
 @endauth
-
-<script>
-function openVideoPlayer(id, title, type, url, embedUrl, desc) {
-    document.getElementById('modalVideoTitle').innerText = title;
-    document.getElementById('modalVideoDesc').innerText = desc || 'Tidak ada deskripsi tambahan.';
-    document.getElementById('modalWatchFullLink').href = '/video/watch/' + id;
-
-    var htmlVideoContainer = document.getElementById('modalHtmlVideoContainer');
-    var iframeContainer = document.getElementById('modalIframeContainer');
-    var video = document.getElementById('activeModalVideo');
-    var source = document.getElementById('modalVideoSource');
-    var iframe = document.getElementById('modalVideoIframe');
-
-    if (type === 'link' && embedUrl) {
-        htmlVideoContainer.style.display = 'none';
-        iframeContainer.style.display = 'block';
-        iframe.src = embedUrl;
-    } else {
-        iframeContainer.style.display = 'none';
-        htmlVideoContainer.style.display = 'block';
-        source.src = url;
-        video.load();
-        video.play().catch(function(e) {
-            console.log('Autoplay prevented:', e);
-        });
-    }
-
-    $('#videoPlayerModal').modal('show');
-
-    // Send view increment
-    fetch('/video/watch/' + id, {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    });
-}
-
-function stopModalVideo() {
-    var video = document.getElementById('activeModalVideo');
-    video.pause();
-    video.currentTime = 0;
-    document.getElementById('modalVideoIframe').src = '';
-}
-
-$('#videoPlayerModal').on('hidden.bs.modal', function () {
-    stopModalVideo();
-});
+@endsection
 
 @auth
-function confirmDelete(id, title) {
+@section('footer')
+<script>
+function confirmDelete(destroyUrl, title) {
     if (confirm('Apakah Anda yakin ingin menghapus video "' + title + '"? Data dan file akan dihapus permanen.')) {
         var form = document.getElementById('deleteVideoForm');
-        form.action = '/video-manage/' + id;
+        form.action = destroyUrl;
         form.submit();
     }
 }
-@endauth
 </script>
 @endsection
+@endauth

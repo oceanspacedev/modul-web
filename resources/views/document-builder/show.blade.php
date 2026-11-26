@@ -74,14 +74,14 @@
 </section>
 
 <style>
-    .builder-paper { background: #fff; max-width: 820px; margin: 0 auto 2rem; padding: 3rem 3.5rem; box-shadow: 0 1px 6px rgba(0, 0, 0, .12); color: #212529; font-size: .95rem; line-height: 1.6; }
+    .builder-paper { background: #fff; max-width: 820px; margin: 0 auto 2rem; padding: 3rem 3.5rem; box-shadow: 0 1px 6px rgba(0, 0, 0, .12); color: #212529; font-size: .95rem; line-height: 1.6; overflow-wrap: anywhere; }
     /* The paper is pinned to the light palette (.theme-light); keep its own ink color and give it a deeper shadow on the dark page. */
     [data-theme="dark"] .builder-paper.theme-light { color: #212529; }
     @media screen { [data-theme="dark"] .builder-paper.theme-light { box-shadow: 0 1px 6px rgba(0, 0, 0, .5); } }
     .builder-paper-company { text-align: center; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; }
     .builder-paper-kind { text-align: center; font-weight: 700; text-transform: uppercase; font-size: 1.05rem; }
     .builder-paper-title { text-align: center; font-size: 1.3rem; font-weight: 700; margin: .25rem 0 1.25rem; }
-    .builder-paper-identity { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: .88rem; }
+    .builder-paper-identity { width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 1.5rem; font-size: .88rem; overflow-wrap: anywhere; word-break: break-word; }
     .builder-paper-identity th, .builder-paper-identity td { border: 1px solid #343a40; padding: .3rem .6rem; vertical-align: top; }
     .builder-paper-identity th { width: 32%; font-weight: 600; }
     .builder-paper-section { margin-bottom: 1.1rem; page-break-inside: auto; }
@@ -89,7 +89,10 @@
     .builder-paper-section p { margin: 0 0 .5rem; text-align: justify; }
     .builder-paper-section ul, .builder-paper-section ol { padding-left: 1.4rem; margin-bottom: .5rem; }
     .builder-paper-items li { margin-bottom: .35rem; text-align: justify; }
-    @media (max-width: 576px) { .builder-paper { padding: 1.5rem 1.25rem; } }
+    @media (max-width: 575.98px) {
+        .builder-paper { padding: 1.25rem 1rem; }
+        .builder-paper-identity th { width: 38%; }
+    }
     @media print {
         @page { size: A4; margin: 18mm 16mm; }
         .main-sidebar, .main-header, .main-footer, .content-header, .no-print, .flash-stack { display: none !important; }

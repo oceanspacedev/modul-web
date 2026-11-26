@@ -53,20 +53,21 @@
                             <h3 class="card-title">Sumber Video</h3>
                         </div>
                         <div class="card-body">
-                            <div class="btn-group btn-group-toggle w-100 mb-3" data-toggle="buttons">
-                                <label class="btn btn-default active w-50 py-2" id="labelOptionFile" onclick="switchVideoType('file')">
-                                    <input type="radio" name="video_type" id="option_file" value="file" autocomplete="off" checked>
+                            @php $videoType = old('video_type', 'file'); @endphp
+                            <div class="btn-group btn-group-toggle segmented w-100 mb-3" data-toggle="buttons">
+                                <label class="btn btn-sm justify-content-center {{ $videoType === 'file' ? 'active' : '' }}" style="flex: 1;" id="labelOptionFile" onclick="switchVideoType('file')">
+                                    <input type="radio" name="video_type" id="option_file" value="file" autocomplete="off" @checked($videoType === 'file')>
                                     <i class="fas fa-file-upload mr-1"></i> Upload File
                                 </label>
-                                <label class="btn btn-default w-50 py-2" id="labelOptionLink" onclick="switchVideoType('link')">
-                                    <input type="radio" name="video_type" id="option_link" value="link" autocomplete="off">
+                                <label class="btn btn-sm justify-content-center {{ $videoType === 'link' ? 'active' : '' }}" style="flex: 1;" id="labelOptionLink" onclick="switchVideoType('link')">
+                                    <input type="radio" name="video_type" id="option_link" value="link" autocomplete="off" @checked($videoType === 'link')>
                                     <i class="fas fa-link mr-1"></i> Link Video
                                 </label>
                             </div>
 
                             {{-- SECTION 1: UPLOAD FILE LOKAL --}}
-                            <div id="sectionFile">
-                                                                <div class="custom-file">
+                            <div id="sectionFile" style="{{ $videoType === 'link' ? 'display: none;' : '' }}">
+                                <div class="custom-file">
                                     <input type="file" name="video_file" id="video_file" class="custom-file-input @error('video_file') is-invalid @enderror"
                                         accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-matroska" onchange="displaySelectedVideo(this)">
                                     <label class="custom-file-label" for="video_file" id="video_file_label">Pilih file video...</label>
@@ -86,7 +87,7 @@
                             </div>
 
                             {{-- SECTION 2: INPUT LINK EKSTERNAL --}}
-                            <div id="sectionLink" style="display: none;">
+                            <div id="sectionLink" style="{{ $videoType === 'file' ? 'display: none;' : '' }}">
                                                                 <div class="input-group">
                                     <div class="input-group-prepend">
                                         <span class="input-group-text"><i class="fas fa-link"></i></span>
@@ -170,11 +171,16 @@
         </form>
     </div>
 </section>
+@endsection
 
+@section('footer')
 @include('video.partials.thumbnail-capture')
 <script>
 function switchVideoType(type) {
-    if (type === 'file') {
+    var isFile = type === 'file';
+    document.getElementById('labelOptionFile').classList.toggle('active', isFile);
+    document.getElementById('labelOptionLink').classList.toggle('active', !isFile);
+    if (isFile) {
         document.getElementById('sectionFile').style.display = 'block';
         document.getElementById('sectionLink').style.display = 'none';
         document.getElementById('video_file').required = true;
@@ -282,9 +288,9 @@ document.getElementById('uploadVideoForm').addEventListener('submit', function(e
 // Check if old input selected link
 @if(old('video_type') === 'link')
     document.getElementById('option_link').checked = true;
-    document.getElementById('labelOptionLink').click();
+    switchVideoType('link');
 @else
-    document.getElementById('video_file').required = true;
+    switchVideoType('file');
 @endif
 </script>
 @endsection

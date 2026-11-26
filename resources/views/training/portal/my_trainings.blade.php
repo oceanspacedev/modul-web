@@ -83,7 +83,7 @@
                                 @endif
                             </td>
                             <td class="small {{ $todoClass }}">{{ $todo }}</td>
-                            <td class="text-right">
+                            <td class="text-right text-nowrap">
                                 <a href="/training/portal/{{ $part->token }}" target="_blank" rel="noopener" class="btn {{ $needsAction ? 'btn-primary' : 'btn-default' }} btn-xs" title="Dibuka di tab baru">
                                     Buka Sesi <i class="fas fa-external-link-alt"></i>
                                 </a>
@@ -102,7 +102,7 @@
 
             @if($participations->hasPages())
                 <div class="card-footer d-flex justify-content-end">
-                    {{ $participations->links() }}
+                    {{ $participations->links('pagination::bootstrap-4') }}
                 </div>
             @endif
         </div>

@@ -219,4 +219,21 @@ class DocumentBuilderFromRequestTest extends TestCase
         $this->actingAs($pic)->get(route('document-builder.create'))->assertDontSee(route('document-builder.edit', $draft), false);
         $this->actingAs($pic)->get(route('od-report.requests.show', $process->documentRequest))->assertDontSee(route('document-builder.edit', $draft), false);
     }
+
+    public function test_form_origin_banner_adds_wrapping_classes_for_long_requester_metadata(): void
+    {
+        $pic = $this->member();
+        $process = $this->process($pic);
+        $process->documentRequest->update([
+            'nama' => str_repeat('LongUnbrokenRequester', 4),
+            'jabatan' => str_repeat('JabatanTanpaSpasi', 3),
+            'departemen' => str_repeat('DepartemenPanjang', 3),
+        ]);
+
+        $this->actingAs($pic)
+            ->get(route('document-builder.form', [$process->category, 'permintaan' => $process->id]))
+            ->assertOk()
+            ->assertSee('<div class="small min-w-0 text-break">', false)
+            ->assertSee(str_repeat('LongUnbrokenRequester', 4));
+    }
 }

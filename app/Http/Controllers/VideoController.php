@@ -62,8 +62,17 @@ class VideoController extends Controller
         $video->load([
             'training',
             'quizModule.items.materialable',
-            'comments' => fn ($q) => $q->with(['user.divisi', 'replies.user.divisi']),
-        ]);
+            'comments' => fn ($q) => $q->with([
+                'video.training',
+                'user.divisi',
+                'user.roles',
+                'replies.video.training',
+                'replies.user.divisi',
+                'replies.user.roles',
+            ]),
+        ])->loadCount('allComments');
+
+        $request->user()?->loadMissing(['divisi', 'roles']);
 
         $quiz = $video->activeQuiz();
         $quizProgress = null;
@@ -169,6 +178,8 @@ class VideoController extends Controller
 
     public function edit(Video $video): View
     {
+        $video->loadMissing('quizModule');
+
         return view('video.edit', [
             'title' => 'Edit Video: '.$video->title,
             'active' => 'video',

@@ -33,7 +33,7 @@
                             </div>
                         @endif
                     </div>
-                    <div class="card-footer d-flex justify-content-between">
+                    <div class="card-footer d-flex flex-wrap justify-content-between gap-2">
                         <a href="{{ route('od-report.documents.index') }}" class="btn btn-default">Kembali</a>
                         <button type="submit" class="btn btn-primary">Simpan</button>
                     </div>
@@ -51,7 +51,7 @@
                             @if ($document->sistem)
                                 <p class="mb-1">Sistem/alat: {{ $document->sistem }}</p>
                             @endif
-                            <p class="mb-2" style="white-space: pre-line;">{{ $document->tujuan }}</p>
+                            <p class="mb-2 text-break" style="white-space: pre-line;">{{ $document->tujuan }}</p>
                             @if (Route::has('od-report.requests.show'))
                                 <a href="{{ route('od-report.requests.show', $request) }}">Buka permintaan &rarr;</a>
                             @endif
@@ -64,9 +64,9 @@
                     <div class="card-body p-0">
                         @forelse ($document->activities as $activity)
                             <div class="px-3 py-2 border-bottom small">
-                                <div class="d-flex justify-content-between">
-                                    <strong>{{ $activity->name }}</strong>
-                                    <span class="badge {{ $activity->badgeClass() }}">{{ $activity->result }}</span>
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <strong class="min-w-0 text-break">{{ $activity->name }}</strong>
+                                    <span class="badge {{ $activity->badgeClass() }} flex-shrink-0">{{ $activity->result }}</span>
                                 </div>
                                 <span class="text-muted">{{ $activity->date->format('d/m/Y') }} &middot; {{ $activity->user->nama_lengkap }}</span>
                             </div>
