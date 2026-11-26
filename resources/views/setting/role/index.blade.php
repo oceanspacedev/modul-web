@@ -277,7 +277,7 @@
                                             @endforeach
                                         </ul>
                                     </div>
-                                    <div class="card-footer d-flex align-items-center gap-2">
+                                    <div class="card-footer d-flex align-items-center flex-wrap gap-2">
                                         <a href="{{ route('roles.edit', $role->id) }}" class="btn btn-default btn-sm flex-grow-1">Atur Hak Akses</a>
                                         @unless ($role->isBuiltIn())
                                             <form action="{{ route('roles.destroy', $role->id) }}" method="POST" class="d-inline m-0" onsubmit="return confirm(@js('Hapus jabatan '.$role->name.'?'))">
@@ -322,7 +322,7 @@
                         Hak akses mengikuti jabatan. Centang <strong>Trainer</strong> untuk memberi akses tambahan kelola training, video, dan dokumen.
                     </div>
 
-                    <div class="card-body table-responsive p-0">
+                    <div class="card-body table-responsive p-0{{ $users->isEmpty() ? ' table-empty-wrap' : '' }}">
                         <table class="table table-hover mb-0" id="userRoleTable">
                             <thead>
                                 <tr>
@@ -381,8 +381,10 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6">
-                                            <x-empty-state icon="fa-search" title="Pengguna tidak ditemukan" text="Coba ubah kata kunci atau filter jabatan." />
+                                        <td colspan="6" class="text-wrap table-empty-cell">
+                                            <div class="table-empty-sticky">
+                                                <x-empty-state icon="fa-search" title="Pengguna tidak ditemukan" text="Coba ubah kata kunci atau filter jabatan." />
+                                            </div>
                                         </td>
                                     </tr>
                                 @endforelse
@@ -403,6 +405,11 @@
 @endsection
 
 @section('footer')
+<style>
+    .table-empty-wrap { container-type: inline-size; }
+    .table-empty-wrap .table tbody td.table-empty-cell { padding: 0 !important; }
+    .table-empty-sticky { position: sticky; left: 0; width: min(100%, 100vw); width: 100cqi; max-width: 100%; }
+</style>
 <script>
     $(function () {
         function store(key, value) {

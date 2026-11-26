@@ -1,21 +1,21 @@
 <div class="d-flex align-items-start gap-2 px-3 py-2 border-bottom">
     <div class="flex-grow-1 min-w-0">
         <div class="d-flex align-items-center gap-2 flex-wrap">
-            <strong>{{ $activity->name }}</strong>
+            <strong class="text-break">{{ $activity->name }}</strong>
             <span class="badge {{ $activity->badgeClass() }}">{{ $activity->result }}</span>
             @if ($activity->document)
-                <span class="badge badge-light"><i class="far fa-file-alt"></i> {{ $activity->document->title }}</span>
+                <span class="badge badge-light badge-wrap text-left"><i class="far fa-file-alt"></i> {{ $activity->document->title }}</span>
             @endif
         </div>
         @if ($activity->kendala || $activity->solusi || $activity->keterangan)
-            <div class="small text-muted">
+            <div class="small text-muted text-break">
                 @if ($activity->kendala) Kendala: {{ $activity->kendala }}. @endif
                 @if ($activity->solusi) Solusi: {{ $activity->solusi }}. @endif
                 @if ($activity->keterangan) {{ $activity->keterangan }} @endif
             </div>
         @endif
     </div>
-    <div class="text-nowrap">
+    <div class="text-nowrap flex-shrink-0">
         @if ($movable)
             @foreach (['up' => ['fa-arrow-up', $first], 'down' => ['fa-arrow-down', $last]] as $direction => [$icon, $disabled])
                 <form action="{{ route('od-report.daily.move', $activity) }}" method="POST" class="d-inline">

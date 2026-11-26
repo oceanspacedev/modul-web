@@ -24,7 +24,7 @@
     <details class="border-top">
         <summary class="px-3 py-3 text-sm font-weight-bold">Urutan peserta dan aturan kuis</summary>
         <div class="list-group list-group-flush">
-            <div class="list-group-item d-flex align-items-start justify-content-between gap-2">
+            <div class="list-group-item d-flex flex-wrap align-items-start justify-content-between gap-2">
                 <div class="min-w-0">
                     <div class="text-sm font-weight-bold">Urutan Langkah Peserta</div>
                     <div class="text-muted text-xs">
@@ -34,7 +34,7 @@
                 <button type="button" class="btn btn-default btn-sm text-nowrap" aria-label="Ubah urutan langkah peserta" data-toggle="modal" data-target="#portalStepsModal">Ubah</button>
             </div>
 
-            <div class="list-group-item d-flex align-items-start justify-content-between gap-2">
+            <div class="list-group-item d-flex flex-wrap align-items-start justify-content-between gap-2">
                 <div class="min-w-0">
                     <div class="text-sm font-weight-bold">Aturan Kuis</div>
                     @forelse(array_filter(\App\Models\Training::PHASES, fn ($phase) => $training->hasPhase($phase)) as $phase)

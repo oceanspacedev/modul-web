@@ -42,7 +42,7 @@ class LearningModulePortalController extends Controller
 
     public function show(Request $request, LearningModule $module): View
     {
-        $module->load('items.materialable')->loadCount('questions');
+        $module->loadMissing($module->isOwned() ? ['items.materialable', 'source'] : 'items.materialable')->loadCount('questions');
 
         return view('learning_module.portal.show', [
             'title' => $module->title,
@@ -54,7 +54,7 @@ class LearningModulePortalController extends Controller
 
     public function quiz(Request $request, LearningModule $module, string $phase): View|RedirectResponse
     {
-        $module->load(['items.materialable', 'questions']);
+        $module->loadMissing($module->isOwned() ? ['items.materialable', 'questions', 'source'] : ['items.materialable', 'questions']);
 
         if ($redirect = $this->guardPhase($module, $request->user(), $phase)) {
             return $redirect;

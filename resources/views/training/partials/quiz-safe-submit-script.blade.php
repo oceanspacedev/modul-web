@@ -59,7 +59,8 @@
             box = document.createElement('div');
             box.id = 'quizSendStatus';
             box.setAttribute('role', 'status');
-            box.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;';
+            // Lapisan penutup mengikuti tema: warna permukaan 95% (putih di mode terang). Nilai pertama cadangan untuk browser lama.
+            box.style.cssText = 'position:fixed;inset:0;z-index:2000;background:var(--surface, #fff);background:color-mix(in srgb, var(--surface) 95%, transparent);color:var(--gray-950);display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;';
             document.body.appendChild(box);
         }
         box.innerHTML = '<div style="max-width:360px">' + html + '</div>';

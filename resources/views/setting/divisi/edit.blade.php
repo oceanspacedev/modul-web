@@ -8,7 +8,11 @@
                     <a href="{{ route('divisi.index') }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
                 </x-slot:actions>
             </x-page-header>
+        </div>
+    </section>
 
+    <section class="content">
+        <div class="container-fluid">
             <x-flash />
 
             <div class="row">
@@ -43,7 +47,7 @@
                                     <small class="form-text text-muted">Disarankan sebagai approval line default karyawan divisi ini.</small>
                                 </div>
                             </div>
-                            <div class="card-footer d-flex justify-content-end gap-2">
+                            <div class="card-footer d-flex justify-content-end flex-wrap gap-2">
                                 <a href="{{ route('divisi.index') }}" class="btn btn-default">Batal</a>
                                 <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
                             </div>

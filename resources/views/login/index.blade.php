@@ -7,6 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Login | Modul</title>
     @include('layout.partials.favicon')
+    @include('layout.partials.theme')
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,17 +23,55 @@
             --gray-200: #e4e4e7;
             --gray-300: #d4d4d8;
             --gray-400: #a1a1aa;
-            --gray-500: #71717a;
+            --gray-500: #67676f;
             --gray-700: #3f3f46;
             --gray-950: #09090b;
             --primary-500: #3ddf67;
             --primary-600: #00d639;
-            --primary-700: #00852e;
+            --primary-700: #007829;
             --primary-800: #006b25;
             --on-primary: #09090b;
             --danger-600: #dc2626;
+            --danger-50: #fef2f2;
+            --danger-700: #b91c1c;
+            --danger-ring: rgba(220, 38, 38, 0.15);
+            --success-50: #ecfdf5;
+            --success-700: #047857;
+            --success-ring: rgba(5, 150, 105, 0.2);
+            --whatsapp: #16a34a;
+            --surface: #ffffff;
             --ring-input: rgba(9, 9, 11, 0.1);
-            --focus-ring: 0 0 0 1px #00d639, 0 0 0 4px rgba(0, 214, 57, 0.2);
+            --shadow-xs: 0 1px 2px rgba(9, 9, 11, 0.05);
+            --focus-ring: 0 0 0 1px var(--primary-600), 0 0 0 4px rgba(0, 214, 57, 0.2);
+            color-scheme: light;
+        }
+
+        /* Dark theme: same values as the THEME TOKENS section of resources/css/app.css
+           (this page does not load app.css). The gray scale is inverted: 50 = page, 950 = strongest text. */
+        [data-theme="dark"] {
+            color-scheme: dark;
+            --gray-50: #0c0c0e;
+            --gray-100: #1e1e22;
+            --gray-200: #2a2a2f;
+            --gray-300: #3a3a41;
+            --gray-400: #8a8a94;
+            --gray-500: #9c9ca7;
+            --gray-700: #d0d0d7;
+            --gray-950: #fafafa;
+            --primary-500: #3ddf67;
+            --primary-700: #4ade80;
+            --primary-800: #86efac;
+            --danger-50: #2e1316;
+            --danger-600: #f87171;
+            --danger-700: #fca5a5;
+            --danger-ring: rgba(248, 113, 113, 0.3);
+            --success-50: #0b2a20;
+            --success-700: #6ee7b7;
+            --success-ring: rgba(52, 211, 153, 0.3);
+            --whatsapp: #4ade80;
+            --surface: #151517;
+            --ring-input: rgba(255, 255, 255, 0.14);
+            --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
         }
 
         *, *::before, *::after {
@@ -69,7 +108,7 @@
         }
 
         .login-card {
-            background: #ffffff;
+            background: var(--surface);
             border: 1px solid var(--gray-200);
             border-radius: 12px;
             padding: 32px;
@@ -117,15 +156,15 @@
         }
 
         .alert-box.alert-error {
-            background: #fef2f2;
-            color: #b91c1c;
-            box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.15);
+            background: var(--danger-50);
+            color: var(--danger-700);
+            box-shadow: inset 0 0 0 1px var(--danger-ring);
         }
 
         .alert-box.alert-success {
-            background: #ecfdf5;
-            color: #047857;
-            box-shadow: inset 0 0 0 1px rgba(5, 150, 105, 0.2);
+            background: var(--success-50);
+            color: var(--success-700);
+            box-shadow: inset 0 0 0 1px var(--success-ring);
         }
 
         /* Fields */
@@ -155,16 +194,16 @@
             font-family: inherit;
             font-size: 14px;
             color: var(--gray-950);
-            background: #ffffff;
+            background: var(--surface);
             border: 1px solid var(--ring-input);
             border-radius: 8px;
-            box-shadow: 0 1px 2px rgba(9, 9, 11, 0.05);
+            box-shadow: var(--shadow-xs);
             outline: none;
             transition: border-color 0.1s ease, box-shadow 0.1s ease;
         }
 
         .form-input::placeholder {
-            color: var(--gray-400);
+            color: var(--gray-500);
         }
 
         .form-input:focus {
@@ -177,10 +216,10 @@
             display: flex;
             align-items: stretch;
             height: 40px;
-            background: #ffffff;
+            background: var(--surface);
             border: 1px solid var(--ring-input);
             border-radius: 8px;
-            box-shadow: 0 1px 2px rgba(9, 9, 11, 0.05);
+            box-shadow: var(--shadow-xs);
             overflow: hidden;
             transition: border-color 0.1s ease, box-shadow 0.1s ease;
         }
@@ -208,7 +247,7 @@
             width: 40px;
             border: 0;
             border-left: 1px solid var(--gray-200);
-            background: #ffffff;
+            background: var(--surface);
             color: var(--gray-500);
             font-size: 14px;
             cursor: pointer;
@@ -217,6 +256,11 @@
         .input-toggle-password:hover {
             color: var(--gray-950);
             background: var(--gray-50);
+        }
+
+        [data-theme="dark"] .input-toggle-password:hover,
+        [data-theme="dark"] .btn-social:hover {
+            background: var(--gray-100);
         }
 
         .otp-input-box {
@@ -230,16 +274,39 @@
             padding-left: 0.5em;
             font-variant-numeric: tabular-nums;
             color: var(--gray-950);
-            background: #ffffff;
+            background: var(--surface);
             border: 1px solid var(--ring-input);
             border-radius: 8px;
-            box-shadow: 0 1px 2px rgba(9, 9, 11, 0.05);
+            box-shadow: var(--shadow-xs);
             outline: none;
         }
 
         .otp-input-box:focus {
             border-color: var(--primary-600);
             box-shadow: var(--focus-ring);
+        }
+
+        .otp-input-box::placeholder {
+            color: var(--gray-500);
+        }
+
+        /* Browser autofill paints its own light fill; keep the dark surface and light text in dark mode. */
+        [data-theme="dark"] .form-input:-webkit-autofill,
+        [data-theme="dark"] .otp-input-box:-webkit-autofill {
+            -webkit-text-fill-color: var(--gray-950);
+            caret-color: var(--gray-950);
+            box-shadow: inset 0 0 0 1000px var(--surface);
+            transition: background-color 9999s ease-out;
+        }
+
+        [data-theme="dark"] .form-input:-webkit-autofill:focus,
+        [data-theme="dark"] .otp-input-box:-webkit-autofill:focus {
+            box-shadow: inset 0 0 0 1000px var(--surface), var(--focus-ring);
+        }
+
+        [data-theme="dark"] .input-joined .form-input:-webkit-autofill,
+        [data-theme="dark"] .input-joined .form-input:-webkit-autofill:focus {
+            box-shadow: inset 0 0 0 1000px var(--surface);
         }
 
         .login-options {
@@ -271,8 +338,13 @@
             height: 16px;
             border: 1px solid var(--gray-300);
             border-radius: 4px;
-            background: #ffffff;
+            background: var(--surface);
             cursor: pointer;
+        }
+
+        /* The inverted gray-300 is too faint for a control outline on the dark card. */
+        [data-theme="dark"] .remember input:not(:checked) {
+            border-color: var(--gray-400);
         }
 
         .remember input::after {
@@ -374,14 +446,14 @@
             height: 40px;
             border: 1px solid var(--ring-input);
             border-radius: 8px;
-            background: #ffffff;
+            background: var(--surface);
             color: var(--gray-950);
             font-family: inherit;
             font-size: 14px;
             font-weight: 500;
             text-decoration: none;
             cursor: pointer;
-            box-shadow: 0 1px 2px rgba(9, 9, 11, 0.05);
+            box-shadow: var(--shadow-xs);
             transition: background-color 0.1s ease;
         }
 
@@ -390,7 +462,7 @@
         }
 
         .btn-social .icon-whatsapp {
-            color: #16a34a;
+            color: var(--whatsapp);
             font-size: 16px;
         }
 
@@ -439,6 +511,45 @@
             color: var(--gray-500);
         }
 
+        /* Theme toggle, pinned to the top-right corner. Shows the icon of the theme the click switches TO. */
+        .theme-toggle {
+            position: fixed;
+            top: calc(16px + env(safe-area-inset-top, 0px));
+            right: calc(16px + env(safe-area-inset-right, 0px));
+            z-index: 10;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--gray-500);
+            font-size: 15px;
+            cursor: pointer;
+            transition: background-color 0.1s ease, color 0.1s ease;
+        }
+
+        .theme-toggle:hover {
+            color: var(--gray-950);
+            background: var(--gray-100);
+        }
+
+        .theme-toggle:focus-visible {
+            box-shadow: var(--focus-ring);
+            outline: none;
+        }
+
+        .theme-toggle .theme-toggle-light,
+        [data-theme="dark"] .theme-toggle .theme-toggle-dark {
+            display: none;
+        }
+
+        [data-theme="dark"] .theme-toggle .theme-toggle-light {
+            display: inline-block;
+        }
+
         .hidden {
             display: none !important;
         }
@@ -464,6 +575,8 @@
 </head>
 
 <body>
+    @include('layout.partials.theme-toggle')
+
     <div class="login-wrapper">
         <img src="{{ asset('images/logo.svg') }}" alt="Modul" class="login-logo">
 
@@ -521,7 +634,8 @@
                             <button type="button"
                                     id="togglePasswordBtn"
                                     class="input-toggle-password"
-                                    title="Lihat/Sembunyikan password">
+                                    title="Lihat/Sembunyikan password"
+                                    aria-label="Lihat atau sembunyikan kata sandi">
                                 <i class="fas fa-eye" id="togglePasswordIcon"></i>
                             </button>
                         </div>

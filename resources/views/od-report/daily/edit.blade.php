@@ -10,6 +10,8 @@
 
 <section class="content">
     <div class="container-fluid">
+        <x-flash />
+
         <div class="row">
             <div class="col-lg-8">
                 <form action="{{ route('od-report.daily.update', $activity) }}" method="POST" class="card">
@@ -19,7 +21,7 @@
                     <div class="card-body pb-0">
                         @include('od-report.daily._fields')
                     </div>
-                    <div class="card-footer d-flex justify-content-between">
+                    <div class="card-footer d-flex flex-wrap justify-content-between gap-2">
                         <a href="{{ request('back') === 'weekly' ? route('od-report.weekly') : route('od-report.daily.index') }}" class="btn btn-default">Kembali</a>
                         <button type="submit" class="btn btn-primary">Simpan</button>
                     </div>

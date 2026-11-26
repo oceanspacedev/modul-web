@@ -10,12 +10,15 @@
 
     <header class="portal-header">
         <div class="container portal-container">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="h6 mb-0">{{ $training->title }}</h1>
+            <div class="d-flex justify-content-between align-items-center gap-2 quiz-header-inner">
+                <div class="quiz-header-title min-w-0">
+                    <h1 class="h6 mb-0 text-truncate">{{ $training->title }}</h1>
                     <span class="text-muted small">Form Evaluasi Pelatihan</span>
                 </div>
-                <span class="badge badge-primary">{{ $questionCount }} Pertanyaan</span>
+                <div class="portal-header-side quiz-header-meta">
+                    <span class="badge badge-primary">{{ $questionCount }} Pertanyaan</span>
+                    @include('layout.partials.theme-toggle', ['class' => 'portal-theme-toggle'])
+                </div>
             </div>
         </div>
     </header>
@@ -52,14 +55,14 @@
         @endif
 
         <div class="content-card">
-            <div class="content-card-header">
+            <div class="content-card-header flex-wrap">
                 <span>Data Anda</span>
                 <span class="text-muted small font-weight-normal">Terisi otomatis</span>
             </div>
             <dl class="row mb-0 small">
                 @foreach($identity as $label => $value)
                     <dt class="col-5 col-sm-4 text-muted font-weight-normal">{{ $label }}</dt>
-                    <dd class="col-7 col-sm-8 mb-1 font-weight-bold">{{ $value }}</dd>
+                    <dd class="col-7 col-sm-8 mb-1 font-weight-bold text-break">{{ $value }}</dd>
                 @endforeach
             </dl>
         </div>
@@ -71,8 +74,8 @@
             @foreach($sections as $section)
                 <div class="content-card">
                     @if(filled($section['title']))
-                        <div class="content-card-header">
-                            <span>{{ $section['title'] }}</span>
+                        <div class="content-card-header flex-wrap">
+                            <span class="min-w-0 text-break">{{ $section['title'] }}</span>
                             @if(collect($section['questions'])->contains(fn ($q) => $q->isScale()))
                                 <span class="text-muted small font-weight-normal">1 = terendah, 5 = tertinggi</span>
                             @endif
@@ -88,7 +91,7 @@
                             $old = is_scalar($old) ? (string) $old : '';
                         @endphp
                         <fieldset class="rating-question">
-                            <legend>
+                            <legend class="text-break">
                                 {{ $number }}. {{ $question->question }}
                                 @if($question->is_required)
                                     <span class="text-danger">*</span>
@@ -108,9 +111,9 @@
                                     @endforeach
                                 </div>
                                 @if(filled($question->low_label) || filled($question->high_label))
-                                    <div class="rating-scale-labels">
-                                        <span>{{ $question->low_label }}</span>
-                                        <span>{{ $question->high_label }}</span>
+                                    <div class="rating-scale-labels gap-2">
+                                        <span class="min-w-0 text-break">{{ $question->low_label }}</span>
+                                        <span class="min-w-0 text-break">{{ $question->high_label }}</span>
                                     </div>
                                 @endif
                             @elseif($question->type === \App\Models\TrainingEvaluationQuestion::TYPE_CHOICE && $question->hasLongOptionList())
@@ -126,7 +129,7 @@
                                     <label class="option-label">
                                         <input type="radio" name="{{ $field }}" value="{{ $option }}" @required($question->is_required)
                                             @checked($old === (string) $option)>
-                                        <div>{{ $option }}</div>
+                                        <div class="min-w-0 text-break">{{ $option }}</div>
                                     </label>
                                 @endforeach
                             @else
@@ -143,7 +146,7 @@
                 <p class="text-muted small mb-3">
                     {{ $continuesToQuiz ? 'Setelah dikirim, Anda langsung masuk ke kuis.' : 'Evaluasi hanya bisa dikirim satu kali.' }}
                 </p>
-                <div class="d-flex justify-content-center gap-2">
+                <div class="d-flex justify-content-center flex-wrap gap-2">
                     <a href="/training/portal/{{ $participant->token }}" class="btn btn-default px-4">Kembali</a>
                     <button type="submit" class="btn btn-primary px-4" id="btnSubmitEvaluation">
                         {{ $continuesToQuiz ? 'Kirim & Lanjut ke Kuis' : 'Kirim Evaluasi' }}

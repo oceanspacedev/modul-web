@@ -3,7 +3,7 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <div>
+                <div class="min-w-0 pr-2">
                     <h5 class="modal-title" id="participantDetailsTitle_{{ $part->id }}">{{ $userName }}</h5>
                     <p class="participant-detail-identity">{{ $userIdKaryawan }} &middot; {{ $userDivisi }}</p>
                     @if(filled($userEmail) && $userEmail !== '-')

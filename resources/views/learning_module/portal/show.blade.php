@@ -16,7 +16,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header :title="($module->isOwned() ? 'Kuis Dokumen: ' : '').$module->title" :subtitle="$module->hasQuiz() ? $module->questions_count.' soal · nilai minimal lulus '.$module->passing_score : 'Materi tanpa kuis'" :eyebrow="$module->isOwned() ? 'Dokumen' : 'Modul Saya'">
+        <x-page-header class="text-break" :title="($module->isOwned() ? 'Kuis Dokumen: ' : '').$module->title" :subtitle="$module->hasQuiz() ? $module->questions_count.' soal · nilai minimal lulus '.$module->passing_score : 'Materi tanpa kuis'" :eyebrow="$module->isOwned() ? 'Dokumen' : 'Modul Saya'">
             <x-slot:actions>
                 <a href="{{ $backUrl }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
             </x-slot:actions>
@@ -33,15 +33,15 @@
         @endif
 
         @if($module->description)
-            <p class="text-muted mb-4" style="white-space: pre-line;">{{ $module->description }}</p>
+            <p class="text-muted text-break mb-4" style="white-space: pre-line;">{{ $module->description }}</p>
         @endif
 
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title">Langkah Belajar</h3>
-                <div class="card-tools d-flex align-items-center gap-2 small text-muted">
+                <div class="card-tools d-flex flex-wrap align-items-center gap-2 mw-100 small text-muted">
                     <span>{{ $completed }}/{{ $total }} materi selesai</span>
-                    <div class="progress" style="width: 120px;">
+                    <div class="progress" style="width: 120px; max-width: 100%; min-width: 72px;">
                         <div class="progress-bar" role="progressbar" style="width: {{ $percent }}%" aria-valuenow="{{ $percent }}" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                 </div>
@@ -51,7 +51,7 @@
             @if($module->has_pretest)
             <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <div class="min-w-0">
-                    <div class="d-flex align-items-center gap-2 mb-1">
+                    <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
                         <span class="badge {{ $stepBadge('pretest') }}">Langkah {{ ++$step }}</span>
                         <h4 class="section-title">Pretest</h4>
                     </div>
@@ -81,7 +81,7 @@
 
             {{-- MATERI --}}
             <div class="{{ $module->has_pretest ? 'border-top' : '' }}">
-                <div class="card-body d-flex justify-content-between align-items-center gap-2">
+                <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge {{ $stepBadge('materi') }}">Langkah {{ ++$step }}</span>
                         <h4 class="section-title">Materi</h4>
@@ -97,9 +97,9 @@
                         @foreach($module->availableItems() as $index => $item)
                             @php $done = $progress->isItemCompleted($item); @endphp
                             <li class="list-group-item d-flex align-items-center flex-wrap gap-2">
-                                <i class="fas {{ $done ? 'fa-check-circle text-success' : 'fa-circle text-muted' }}"></i>
-                                <i class="fas {{ $item->isVideo() ? 'fa-play-circle' : 'fa-file-alt' }} text-muted"></i>
-                                <span class="flex-grow-1 min-w-0">{{ $index + 1 }}. {{ $item->title() }}</span>
+                                <i class="fas {{ $done ? 'fa-check-circle text-success' : 'fa-circle text-muted' }} flex-shrink-0"></i>
+                                <i class="fas {{ $item->isVideo() ? 'fa-play-circle' : 'fa-file-alt' }} text-muted flex-shrink-0"></i>
+                                <span class="flex-grow-1 min-w-0 text-break">{{ $index + 1 }}. {{ $item->title() }}</span>
                                 @if($item->isVideo())
                                     <a href="{{ $module->url('items.show', ['item' => $item]) }}" class="btn btn-sm {{ $done ? 'btn-default' : 'btn-outline-primary' }}">
                                         {{ $done ? 'Tonton Lagi' : 'Tonton Video' }}
@@ -120,7 +120,7 @@
             <div class="border-top">
                 <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
                     <div class="min-w-0">
-                        <div class="d-flex align-items-center gap-2 mb-1">
+                        <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
                             <span class="badge {{ $stepBadge('posttest') }}">Langkah {{ ++$step }}</span>
                             <h4 class="section-title">Posttest</h4>
                         </div>

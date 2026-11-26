@@ -3,38 +3,42 @@
 @section('content')
 <style>
     .pg-wrap { display: flex; gap: 24px; align-items: flex-start; }
-    .pg-toc { position: sticky; top: 76px; width: 250px; flex-shrink: 0; max-height: calc(100vh - 100px); overflow-y: auto; background: #fff; border: 1px solid var(--ring); border-radius: var(--radius-xl); padding: 12px 8px; }
+    .pg-toc { position: sticky; top: calc(var(--topbar-height, 57px) + 1rem); width: 250px; flex-shrink: 0; max-height: calc(100vh - var(--topbar-height, 57px) - 2rem); overflow-y: auto; background: var(--surface); border: 1px solid var(--ring); border-radius: var(--radius-xl); padding: 12px 8px; }
     .pg-toc .toc-title { font-size: .75rem; color: var(--gray-500); font-weight: 500; padding: 6px 10px; }
     .pg-toc a { display: block; padding: 5px 10px; border-radius: var(--radius-lg); color: var(--gray-700); font-size: .875rem; }
     .pg-toc a:hover { background: var(--gray-50); text-decoration: none; color: var(--gray-950); }
+    /* On a dark surface --gray-50 is darker than the panel; lift the hover instead. */
+    [data-theme="dark"] .pg-toc a:hover { background: var(--gray-100); }
     .pg-body { flex: 1; min-width: 0; }
-    .pg-card { background: #fff; border: 1px solid var(--ring); border-radius: var(--radius-xl); padding: 24px 28px; margin-bottom: 20px; scroll-margin-top: 76px; }
+    .pg-card { background: var(--surface); border: 1px solid var(--ring); border-radius: var(--radius-xl); padding: 24px 28px; margin-bottom: 20px; scroll-margin-top: calc(var(--topbar-height, 57px) + 1rem); }
     .pg-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
     .pg-card h2 { font-family: var(--font-heading); font-size: 1.125rem; font-weight: 600; color: var(--gray-950); margin: 0; }
-    .pg-card h3 { font-family: var(--font-heading); font-size: 1rem; font-weight: 600; color: var(--gray-950); margin: 22px 0 8px; scroll-margin-top: 76px; }
+    .pg-card h3 { font-family: var(--font-heading); font-size: 1rem; font-weight: 600; color: var(--gray-950); margin: 22px 0 8px; scroll-margin-top: calc(var(--topbar-height, 57px) + 1rem); }
     .pg-card p, .pg-card li { color: var(--gray-700); font-size: .875rem; line-height: 1.65; }
     .pg-card ol, .pg-card ul { padding-left: 20px; }
     .pg-card li { margin-bottom: 4px; }
     .pg-card a:not(.btn) { color: var(--primary-700); }
     .pg-shot { margin: 14px 0; border: 1px solid var(--ring); border-radius: var(--radius-lg); overflow: hidden; background: var(--gray-50); }
     .pg-shot img { width: 100%; display: block; }
-    .pg-shot figcaption { font-size: .75rem; color: var(--gray-500); padding: 6px 12px; border-top: 1px solid var(--ring); background: #fff; }
+    .pg-shot figcaption { font-size: .75rem; color: var(--gray-500); padding: 6px 12px; border-top: 1px solid var(--ring); background: var(--surface); }
     .pg-note { border: 1px solid var(--ring); background: var(--gray-50); padding: 10px 14px; border-radius: var(--radius-lg); margin: 12px 0; font-size: .875rem; color: var(--gray-700); }
     .pg-warn { border-color: rgba(217, 119, 6, 0.2); background: var(--warning-50); color: var(--warning-700); }
+    [data-theme="dark"] .pg-warn { border-color: rgba(251, 191, 36, 0.25); }
     .pg-card .pg-note li { color: inherit; }
     .pg-more { border: 1px solid var(--ring); border-radius: var(--radius-lg); margin: 12px 0; }
     .pg-more summary { cursor: pointer; padding: 8px 14px; font-size: .875rem; color: var(--gray-700); font-weight: 500; }
     .pg-more > div { padding: 0 14px 6px; border-top: 1px solid var(--ring); }
     .pg-card table { font-size: .875rem; }
     .pg-card code { background: var(--gray-100); padding: 1px 6px; border-radius: 4px; color: var(--gray-800); font-size: .8125rem; }
-    @media (max-width: 991px) { .pg-wrap { flex-direction: column; align-items: stretch; } .pg-toc { position: static; width: 100%; max-height: none; } }
+    @media (max-width: 991.98px) { .pg-wrap { flex-direction: column; align-items: stretch; } .pg-toc { position: static; width: 100%; max-height: none; } }
+    @media (max-width: 575.98px) { .pg-wrap { gap: 16px; } .pg-card { padding: 16px; } }
 </style>
 
-<div class="content-header">
+<section class="content-header">
     <div class="container-fluid">
         <x-page-header title="Panduan Penggunaan" subtitle="Langkah singkat memakai aplikasi Modul. Pilih bagian sesuai kebutuhan Anda." eyebrow="Bantuan" />
     </div>
-</div>
+</section>
 
 <section class="content">
     <div class="container-fluid">
@@ -354,38 +358,42 @@
                 {{-- 14 --}}
                 <div class="pg-card" id="faq">
                     <div class="pg-head"><h2>14. Masalah umum</h2></div>
-                    <table class="table table-sm table-bordered">
-                        <tr><th style="width:38%">Masalah</th><th>Solusi</th></tr>
-                        <tr><td>Tidak bisa login</td><td>Cek username dan password. Terlalu sering salah? Tunggu 1 menit. Akun diarsipkan? Hubungi admin.</td></tr>
-                        <tr><td>OTP tidak masuk</td><td>Pastikan nomor WA di akun benar, tunggu 60 detik lalu kirim ulang.</td></tr>
-                        <tr><td>Menu tidak muncul</td><td>Jabatan belum punya izin. Minta admin mengatur di Jabatan &amp; Hak Akses.</td></tr>
-                        <tr><td>Peserta tidak bisa absen</td><td>Pemateri belum klik <b>Buka Presensi</b>, jam buka terjadwalnya belum tiba, atau batas waktunya sudah habis (buka lagi lewat <b>Buka Presensi</b>).</td></tr>
-                        <tr><td>Peserta tidak bisa membuka kuis</td><td>Kuis belum dibuka (atau jadwal bukanya belum tiba), jam tutupnya sudah lewat (buka lagi dari Kontrol Sesi), belum ada soal, atau batas percobaannya sudah habis. Naikkan batas di <b>Aturan Kuis</b>, atau pakai <b>Reset Kuis Peserta</b> untuk menghapus hasil satu peserta agar ia bisa mengulang.</td></tr>
-                        <tr><td>Kunci jawaban salah, padahal peserta sudah mengerjakan</td><td>Perbaiki kuncinya lewat <b>Edit</b> di halaman soal (soal yang kuncinya rusak bertanda <b>Kunci jawaban tidak valid</b>), lalu tekan <b>Hitung Ulang Nilai</b> di halaman soal atau di menu <b>Opsi</b> halaman detail. Nilai semua peserta dihitung lagi memakai kunci saat ini; jawaban peserta dan nilai essay tidak berubah.</td></tr>
-                        <tr><td>WA ke peserta tidak terkirim</td><td>No. HP kosong/salah. Perbaiki di data user, lalu <b>Kirim Notifikasi WA</b>.</td></tr>
-                        <tr><td>Video Google Drive tidak bisa diputar</td><td>Ubah akses menjadi "Siapa saja yang memiliki link".</td></tr>
-                        <tr><td>Upload gagal / "413 Request Entity Too Large"</td><td>File terlalu besar untuk server. Hubungi administrator.</td></tr>
-                        <tr><td>Tombol posttest video belum muncul</td><td>Tonton video sampai selesai.</td></tr>
-                        <tr><td>Pretest/posttest tidak muncul</td><td>Kuis belum punya soal. Tambahkan minimal 1 soal.</td></tr>
-                        <tr><td>Soal AI gagal dibuat</td><td>API key AI belum diatur di <b>Pengaturan AI</b>, provider yang dipilih tidak bisa membaca materinya (video hanya bisa dibaca Gemini), atau dokumen tidak terbaca. Hubungi administrator.</td></tr>
-                        <tr><td>Soal AI atau Scan Off Cam memuat sangat lama / tidak selesai</td><td>Prosesnya menunggu giliran di antrean; satu proses AI dikerjakan dalam satu waktu. Bila lebih dari 15 menit, minta administrator memastikan antrean (<b>Horizon</b>) berjalan, lalu ulangi.</td></tr>
-                        <tr><td>Soal hasil Import Excel belum muncul</td><td>Import berjalan di belakang layar. Tunggu kabarnya di menu <b>Notifikasi</b>, lalu muat ulang halaman soal. Bila notifikasinya "Import soal gagal", perbaiki baris yang disebut dan impor ulang.</td></tr>
-                        <tr><td>Import soal ditolak</td><td>Notifikasi "Import soal gagal" (Excel) atau pesan merah (Import Teks Cepat) menyebut nomor baris/soal dan sebabnya. Yang paling sering: baris pertama bukan judul kolom template, kunci jawaban bukan huruf pilihan yang terisi, dua pilihan berisi teks sama, atau soal pilihan ganda tanpa baris KUNCI. Tidak ada soal yang tersimpan sampai seluruh file/teks benar.</td></tr>
-                        <tr><td>Pencarian tidak menampilkan hasil</td><td>Kotak pencarian (User, Jabatan &amp; Hak Akses, Area, Divisi, Posisi, Tipe Dokumen, pelatihan, video, dokumen, modul) mencari sendiri sesaat setelah Anda berhenti mengetik; tidak perlu menekan Enter. Pencarian mencakup seluruh data, bukan hanya halaman yang sedang tampil. Daftar dibagi 25 baris per halaman; nomor halaman ada di bawah tabel.</td></tr>
-                        <tr><td>Peserta tidak terlihat di detail pelatihan</td><td>Tabel menampilkan 50 peserta per halaman. Cari namanya di kotak <b>Cari peserta</b> (tekan Enter) atau buka halaman berikutnya.</td></tr>
-                        <tr><td>User tidak terlihat saat memilih peserta</td><td>Daftar menampilkan 100 user dulu. Ketik nama, ID karyawan, atau username di kotak pencarian, atau klik tombol <b>Tampilkan &hellip; berikutnya</b> di bawah daftar.</td></tr>
-                    </table>
+                    <div class="table-frame table-responsive">
+                        <table class="table table-sm table-bordered mb-0">
+                            <tr><th style="width:38%">Masalah</th><th>Solusi</th></tr>
+                            <tr><td>Tidak bisa login</td><td>Cek username dan password. Terlalu sering salah? Tunggu 1 menit. Akun diarsipkan? Hubungi admin.</td></tr>
+                            <tr><td>OTP tidak masuk</td><td>Pastikan nomor WA di akun benar, tunggu 60 detik lalu kirim ulang.</td></tr>
+                            <tr><td>Menu tidak muncul</td><td>Jabatan belum punya izin. Minta admin mengatur di Jabatan &amp; Hak Akses.</td></tr>
+                            <tr><td>Peserta tidak bisa absen</td><td>Pemateri belum klik <b>Buka Presensi</b>, jam buka terjadwalnya belum tiba, atau batas waktunya sudah habis (buka lagi lewat <b>Buka Presensi</b>).</td></tr>
+                            <tr><td>Peserta tidak bisa membuka kuis</td><td>Kuis belum dibuka (atau jadwal bukanya belum tiba), jam tutupnya sudah lewat (buka lagi dari Kontrol Sesi), belum ada soal, atau batas percobaannya sudah habis. Naikkan batas di <b>Aturan Kuis</b>, atau pakai <b>Reset Kuis Peserta</b> untuk menghapus hasil satu peserta agar ia bisa mengulang.</td></tr>
+                            <tr><td>Kunci jawaban salah, padahal peserta sudah mengerjakan</td><td>Perbaiki kuncinya lewat <b>Edit</b> di halaman soal (soal yang kuncinya rusak bertanda <b>Kunci jawaban tidak valid</b>), lalu tekan <b>Hitung Ulang Nilai</b> di halaman soal atau di menu <b>Opsi</b> halaman detail. Nilai semua peserta dihitung lagi memakai kunci saat ini; jawaban peserta dan nilai essay tidak berubah.</td></tr>
+                            <tr><td>WA ke peserta tidak terkirim</td><td>No. HP kosong/salah. Perbaiki di data user, lalu <b>Kirim Notifikasi WA</b>.</td></tr>
+                            <tr><td>Video Google Drive tidak bisa diputar</td><td>Ubah akses menjadi "Siapa saja yang memiliki link".</td></tr>
+                            <tr><td>Upload gagal / "413 Request Entity Too Large"</td><td>File terlalu besar untuk server. Hubungi administrator.</td></tr>
+                            <tr><td>Tombol posttest video belum muncul</td><td>Tonton video sampai selesai.</td></tr>
+                            <tr><td>Pretest/posttest tidak muncul</td><td>Kuis belum punya soal. Tambahkan minimal 1 soal.</td></tr>
+                            <tr><td>Soal AI gagal dibuat</td><td>API key AI belum diatur di <b>Pengaturan AI</b>, provider yang dipilih tidak bisa membaca materinya (video hanya bisa dibaca Gemini), atau dokumen tidak terbaca. Hubungi administrator.</td></tr>
+                            <tr><td>Soal AI atau Scan Off Cam memuat sangat lama / tidak selesai</td><td>Prosesnya menunggu giliran di antrean; satu proses AI dikerjakan dalam satu waktu. Bila lebih dari 15 menit, minta administrator memastikan antrean (<b>Horizon</b>) berjalan, lalu ulangi.</td></tr>
+                            <tr><td>Soal hasil Import Excel belum muncul</td><td>Import berjalan di belakang layar. Tunggu kabarnya di menu <b>Notifikasi</b>, lalu muat ulang halaman soal. Bila notifikasinya "Import soal gagal", perbaiki baris yang disebut dan impor ulang.</td></tr>
+                            <tr><td>Import soal ditolak</td><td>Notifikasi "Import soal gagal" (Excel) atau pesan merah (Import Teks Cepat) menyebut nomor baris/soal dan sebabnya. Yang paling sering: baris pertama bukan judul kolom template, kunci jawaban bukan huruf pilihan yang terisi, dua pilihan berisi teks sama, atau soal pilihan ganda tanpa baris KUNCI. Tidak ada soal yang tersimpan sampai seluruh file/teks benar.</td></tr>
+                            <tr><td>Pencarian tidak menampilkan hasil</td><td>Kotak pencarian (User, Jabatan &amp; Hak Akses, Area, Divisi, Posisi, Tipe Dokumen, pelatihan, video, dokumen, modul) mencari sendiri sesaat setelah Anda berhenti mengetik; tidak perlu menekan Enter. Pencarian mencakup seluruh data, bukan hanya halaman yang sedang tampil. Daftar dibagi 25 baris per halaman; nomor halaman ada di bawah tabel.</td></tr>
+                            <tr><td>Peserta tidak terlihat di detail pelatihan</td><td>Tabel menampilkan 50 peserta per halaman. Cari namanya di kotak <b>Cari peserta</b> (tekan Enter) atau buka halaman berikutnya.</td></tr>
+                            <tr><td>User tidak terlihat saat memilih peserta</td><td>Daftar menampilkan 100 user dulu. Ketik nama, ID karyawan, atau username di kotak pencarian, atau klik tombol <b>Tampilkan &hellip; berikutnya</b> di bawah daftar.</td></tr>
+                        </table>
+                    </div>
                 </div>
 
                 {{-- 15 --}}
                 <div class="pg-card" id="akses">
                     <div class="pg-head"><h2>15. Hak akses per fitur</h2></div>
-                    <table class="table table-sm table-bordered">
-                        <tr><th>Fitur</th><th class="text-center">ADMIN</th><th class="text-center">Jabatan lain</th><th class="text-center">+ Trainer</th></tr>
-                        <tr><td>Dashboard, menonton &amp; komentar video, Pelatihan Saya, Modul Saya, melihat dokumen</td><td class="text-center"><i class="fas fa-check text-muted" aria-label="Ya"></i></td><td class="text-center"><i class="fas fa-check text-muted" aria-label="Ya"></i></td><td class="text-center"><i class="fas fa-check text-muted" aria-label="Ya"></i></td></tr>
-                        <tr><td>Kelola pelatihan, video, dokumen, Modul Belajar</td><td class="text-center"><i class="fas fa-check text-muted" aria-label="Ya"></i></td><td class="text-center">–</td><td class="text-center"><i class="fas fa-check text-muted" aria-label="Ya"></i></td></tr>
-                        <tr><td>User, Jabatan &amp; Hak Akses, Master Data</td><td class="text-center"><i class="fas fa-check text-muted" aria-label="Ya"></i></td><td class="text-center">–</td><td class="text-center">–</td></tr>
-                    </table>
+                    <div class="table-frame table-responsive mb-2">
+                        <table class="table table-sm table-bordered mb-0">
+                            <tr><th>Fitur</th><th class="text-center">ADMIN</th><th class="text-center">Jabatan lain</th><th class="text-center">+ Trainer</th></tr>
+                            <tr><td>Dashboard, menonton &amp; komentar video, Pelatihan Saya, Modul Saya, melihat dokumen</td><td class="text-center"><i class="fas fa-check text-muted" aria-label="Ya"></i></td><td class="text-center"><i class="fas fa-check text-muted" aria-label="Ya"></i></td><td class="text-center"><i class="fas fa-check text-muted" aria-label="Ya"></i></td></tr>
+                            <tr><td>Kelola pelatihan, video, dokumen, Modul Belajar</td><td class="text-center"><i class="fas fa-check text-muted" aria-label="Ya"></i></td><td class="text-center">–</td><td class="text-center"><i class="fas fa-check text-muted" aria-label="Ya"></i></td></tr>
+                            <tr><td>User, Jabatan &amp; Hak Akses, Master Data</td><td class="text-center"><i class="fas fa-check text-muted" aria-label="Ya"></i></td><td class="text-center">–</td><td class="text-center">–</td></tr>
+                        </table>
+                    </div>
                     <p class="small text-muted mb-0">Ini pengaturan bawaan dan bisa diubah per jabatan. Menu Sistem hanya untuk super admin.</p>
                 </div>
 

@@ -67,7 +67,7 @@
                     <span>{{ $training->training_date->translatedFormat('j F Y') }} · {{ substr($training->start_time, 0, 5) }}–{{ substr($training->end_time, 0, 5) }} WIB</span>
                     <x-training-status-badge :status="$training->status" />
                     @if($training->trainer)
-                        <span>Pemateri <strong>{{ $training->trainer->nama_lengkap }}</strong>@if($training->trainer->divisi) · {{ $training->trainer->divisi->name }}@endif</span>
+                        <span class="min-w-0 text-break">Pemateri <strong>{{ $training->trainer->nama_lengkap }}</strong>@if($training->trainer->divisi) · {{ $training->trainer->divisi->name }}@endif</span>
                     @endif
                     @if($training->meeting_link)
                         <a href="{{ $training->meeting_link }}" target="_blank" rel="noopener">Buka {{ $training->meetingPlatformLabel() }} <i class="fas fa-external-link-alt" aria-hidden="true"></i></a>
@@ -450,6 +450,7 @@
                     <tbody role="rowgroup">
                         @php
                             $hasEssay = $mainPhase !== null && $training->questionsFor($mainPhase)->contains('type', 'essay');
+                            $participantModals = [];
                         @endphp
                         @forelse($participants as $part)
                         @php
@@ -473,6 +474,7 @@
                             }
                             $evaluationAverage = $part->evaluation?->average($training->evaluationQuestions);
                             $evaluationScore = $evaluationAverage === null ? null : number_format($evaluationAverage, 1).' / '.\App\Support\TrainingEvaluationForm::SCALE_MAX;
+                            $participantModals[] = compact('part', 'userName', 'userIdKaryawan', 'userDivisi', 'userEmail', 'userNoWa', 'waState', 'waSummary', 'quizResults', 'evaluationScore');
                         @endphp
                         <tr role="row" class="training-participant">
                             <td role="cell" class="training-person">
@@ -491,70 +493,6 @@
                                         </button>
                                     </form>
                                 @endif
-
-                                <div class="modal fade text-left" id="waLogModal_{{ $part->id }}" tabindex="-1" role="dialog" aria-labelledby="waLogTitle_{{ $part->id }}" aria-hidden="true">
-                                    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title" id="waLogTitle_{{ $part->id }}">{{ $part->waLogs->isNotEmpty() ? 'Riwayat Undangan WhatsApp' : 'Status WhatsApp' }}: {{ $userName }}</h5>
-                                                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup"><span aria-hidden="true">&times;</span></button>
-                                            </div>
-                                            <div class="modal-body text-wrap">
-                                                <p class="mb-2">Nomor WhatsApp {{ $userNoWa }} · {{ $waState['label'] }}</p>
-                                                @if($waState['detail'])
-                                                    <p class="text-muted mb-3">{{ $waState['detail'] }}</p>
-                                                @endif
-                                                @if($part->waLogs->isNotEmpty())
-                                                    <p class="mb-3 text-sm">
-                                                        Otomatis: {{ $waSummary['autoSuccess'] }}x berhasil, {{ $waSummary['autoFailed'] }}x gagal
-                                                        @if($waSummary['manual'] > 0)
-                                                            · Manual: {{ $waSummary['manual'] }}x
-                                                        @endif
-                                                    </p>
-                                                    <div class="table-responsive">
-                                                        <table class="table table-sm mb-0">
-                                                            <thead>
-                                                                <tr>
-                                                                    <th>Waktu</th>
-                                                                    <th>Cara</th>
-                                                                    <th>Hasil</th>
-                                                                    <th>Nomor</th>
-                                                                    <th>Keterangan</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                @foreach($part->waLogs as $waLog)
-                                                                    <tr>
-                                                                        <td class="text-nowrap">{{ $waLog->created_at->isoFormat('D MMM Y, HH:mm:ss') }}</td>
-                                                                        <td class="text-nowrap">{{ $waLog->isManual() ? 'Manual' : 'Otomatis' }}</td>
-                                                                        <td class="text-nowrap">
-                                                                            <span class="status-dot is-{{ $waLog->isManual() ? 'warning' : ($waLog->success ? 'success' : 'danger') }}">{{ $waLog->resultLabel() }}</span>
-                                                                        </td>
-                                                                        <td class="text-nowrap">{{ $waLog->phone ?? '-' }}</td>
-                                                                        <td>
-                                                                            {{ $waLog->detail }}
-                                                                            @if($waLog->sender)
-                                                                                <span class="text-muted">{{ $waLog->detail ? '·' : '' }} oleh {{ $waLog->sender->nama_lengkap }}</span>
-                                                                            @elseif(! $waLog->isManual() && ! $waLog->detail)
-                                                                                <span class="text-muted">Broadcast / pengingat</span>
-                                                                            @endif
-                                                                        </td>
-                                                                    </tr>
-                                                                @endforeach
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                    @if($waSummary['autoSuccess'] + $waSummary['autoFailed'] + $waSummary['manual'] > $part->waLogs->count())
-                                                        <p class="text-muted text-sm mt-3 mb-0">Menampilkan {{ $part->waLogs->count() }} riwayat terbaru.</p>
-                                                    @endif
-                                                    <p class="text-muted text-sm mt-3 mb-0">"Dibuka manual" berarti teks undangan sudah dibuka di WhatsApp. Status pengiriman hanya terlihat di WhatsApp.</p>
-                                                @else
-                                                    <p class="text-muted mb-0">Belum ada riwayat undangan.</p>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
                             </td>
                             @if($hasAttendanceColumn)
                                 <td role="cell" class="training-participant-detail">
@@ -685,53 +623,6 @@
                                         </form>
                                     </div>
                                 </div>
-
-                                {{-- Modal per peserta tetap di dalam sel ini: di luar <td> browser memindahkannya keluar tabel dan memisahkan <form> dari isinya. --}}
-                                @include('training.detail.participant-details')
-
-                                <!-- MODAL ATUR PRESENSI MANUAL -->
-                                @if($training->has_attendance)
-                                <div class="modal fade text-left" id="editAttendanceModal_{{ $part->id }}" tabindex="-1" role="dialog" aria-hidden="true">
-                                    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">
-                                                    Atur Presensi Peserta
-                                                </h5>
-                                                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
-                                                    <span aria-hidden="true">&times;</span>
-                                                </button>
-                                            </div>
-                                            <form action="/training/{{ $training->id }}/update-attendance/{{ $part->id }}" method="POST">
-                                                @csrf
-                                                <div class="modal-body">
-                                                    <div class="mb-3">
-                                                        <strong class="d-block text-sm">{{ $userName }}</strong>
-                                                        <span class="text-muted text-xs">{{ $userIdKaryawan }} &bull; {{ $userDivisi }}</span>
-                                                    </div>
-                                                    <div class="form-group mb-3">
-                                                        <label class="mb-1">Status Kehadiran</label>
-                                                        <select name="attendance_status" class="form-control form-control-sm">
-                                                            <option value="pending" {{ $part->attendance_status === 'pending' ? 'selected' : '' }}>Belum Absen</option>
-                                                            <option value="hadir" {{ $part->attendance_status === 'hadir' ? 'selected' : '' }}>Hadir</option>
-                                                            <option value="tidak_hadir" {{ $part->attendance_status === 'tidak_hadir' ? 'selected' : '' }}>Tidak Hadir</option>
-                                                        </select>
-                                                        <small class="text-muted d-block mt-1">Pilih 'Belum Absen' untuk mengizinkan peserta absen kembali.</small>
-                                                    </div>
-                                                    <div class="form-group mb-0">
-                                                        <label class="mb-1">Catatan / Alasan</label>
-                                                        <input type="text" name="attendance_notes" class="form-control form-control-sm" value="{{ $part->attendance_notes }}" placeholder="Keterangan izin/sakit/hadir...">
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
-                                                    <button type="submit" class="btn btn-primary">Simpan</button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                                @endif
                             </td>
                         </tr>
                         @empty
@@ -752,6 +643,129 @@
                     </tbody>
                 </table>
             </div>
+            @foreach($participantModals as $modalData)
+                @php
+                    $part = $modalData['part'];
+                    $userName = $modalData['userName'];
+                    $userIdKaryawan = $modalData['userIdKaryawan'];
+                    $userDivisi = $modalData['userDivisi'];
+                    $userEmail = $modalData['userEmail'];
+                    $userNoWa = $modalData['userNoWa'];
+                    $waState = $modalData['waState'];
+                    $waSummary = $modalData['waSummary'];
+                    $quizResults = $modalData['quizResults'];
+                    $evaluationScore = $modalData['evaluationScore'];
+                @endphp
+                <div class="modal fade text-left" id="waLogModal_{{ $part->id }}" tabindex="-1" role="dialog" aria-labelledby="waLogTitle_{{ $part->id }}" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="waLogTitle_{{ $part->id }}">{{ $part->waLogs->isNotEmpty() ? 'Riwayat Undangan WhatsApp' : 'Status WhatsApp' }}: {{ $userName }}</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup"><span aria-hidden="true">&times;</span></button>
+                            </div>
+                            <div class="modal-body text-wrap">
+                                <p class="mb-2">Nomor WhatsApp {{ $userNoWa }} · {{ $waState['label'] }}</p>
+                                @if($waState['detail'])
+                                    <p class="text-muted mb-3">{{ $waState['detail'] }}</p>
+                                @endif
+                                @if($part->waLogs->isNotEmpty())
+                                    <p class="mb-3 text-sm">
+                                        Otomatis: {{ $waSummary['autoSuccess'] }}x berhasil, {{ $waSummary['autoFailed'] }}x gagal
+                                        @if($waSummary['manual'] > 0)
+                                            · Manual: {{ $waSummary['manual'] }}x
+                                        @endif
+                                    </p>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Waktu</th>
+                                                    <th>Cara</th>
+                                                    <th>Hasil</th>
+                                                    <th>Nomor</th>
+                                                    <th>Keterangan</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($part->waLogs as $waLog)
+                                                    <tr>
+                                                        <td class="text-nowrap">{{ $waLog->created_at->isoFormat('D MMM Y, HH:mm:ss') }}</td>
+                                                        <td class="text-nowrap">{{ $waLog->isManual() ? 'Manual' : 'Otomatis' }}</td>
+                                                        <td class="text-nowrap">
+                                                            <span class="status-dot is-{{ $waLog->isManual() ? 'warning' : ($waLog->success ? 'success' : 'danger') }}">{{ $waLog->resultLabel() }}</span>
+                                                        </td>
+                                                        <td class="text-nowrap">{{ $waLog->phone ?? '-' }}</td>
+                                                        <td>
+                                                            {{ $waLog->detail }}
+                                                            @if($waLog->sender)
+                                                                <span class="text-muted">{{ $waLog->detail ? '·' : '' }} oleh {{ $waLog->sender->nama_lengkap }}</span>
+                                                            @elseif(! $waLog->isManual() && ! $waLog->detail)
+                                                                <span class="text-muted">Broadcast / pengingat</span>
+                                                            @endif
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    @if($waSummary['autoSuccess'] + $waSummary['autoFailed'] + $waSummary['manual'] > $part->waLogs->count())
+                                        <p class="text-muted text-sm mt-3 mb-0">Menampilkan {{ $part->waLogs->count() }} riwayat terbaru.</p>
+                                    @endif
+                                    <p class="text-muted text-sm mt-3 mb-0">"Dibuka manual" berarti teks undangan sudah dibuka di WhatsApp. Status pengiriman hanya terlihat di WhatsApp.</p>
+                                @else
+                                    <p class="text-muted mb-0">Belum ada riwayat undangan.</p>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @include('training.detail.participant-details')
+
+                <!-- MODAL ATUR PRESENSI MANUAL -->
+                @if($training->has_attendance)
+                <div class="modal fade text-left" id="editAttendanceModal_{{ $part->id }}" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">
+                                    Atur Presensi Peserta
+                                </h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <form action="/training/{{ $training->id }}/update-attendance/{{ $part->id }}" method="POST">
+                                @csrf
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <strong class="d-block text-sm">{{ $userName }}</strong>
+                                        <span class="text-muted text-xs">{{ $userIdKaryawan }} &bull; {{ $userDivisi }}</span>
+                                    </div>
+                                    <div class="form-group mb-3">
+                                        <label class="mb-1">Status Kehadiran</label>
+                                        <select name="attendance_status" class="form-control form-control-sm">
+                                            <option value="pending" {{ $part->attendance_status === 'pending' ? 'selected' : '' }}>Belum Absen</option>
+                                            <option value="hadir" {{ $part->attendance_status === 'hadir' ? 'selected' : '' }}>Hadir</option>
+                                            <option value="tidak_hadir" {{ $part->attendance_status === 'tidak_hadir' ? 'selected' : '' }}>Tidak Hadir</option>
+                                        </select>
+                                        <small class="text-muted d-block mt-1">Pilih 'Belum Absen' untuk mengizinkan peserta absen kembali.</small>
+                                    </div>
+                                    <div class="form-group mb-0">
+                                        <label class="mb-1">Catatan / Alasan</label>
+                                        <input type="text" name="attendance_notes" class="form-control form-control-sm" value="{{ $part->attendance_notes }}" placeholder="Keterangan izin/sakit/hadir...">
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                                    <button type="submit" class="btn btn-primary">Simpan</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                @endif
+            @endforeach
             @if($participants->total() > 0)
             <div class="training-roster-footer">
                 <span class="text-muted small">
@@ -784,7 +798,7 @@
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <div>
+                <div class="min-w-0 pr-2">
                     <h5 class="modal-title" id="uploadTrainingVideoModalLabel">Upload Video Materi Pelatihan</h5>
                     <small class="text-muted">Video akan otomatis masuk ke Galeri Video Materi dengan judul pelatihan ini.</small>
                 </div>
@@ -918,7 +932,7 @@
     <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <div>
+                <div class="min-w-0 pr-2">
                     <h5 class="modal-title" id="scanZoomModalLabel">
                         <i class="fas fa-video text-muted mr-1"></i> Rekap Kamera Peserta
                     </h5>
@@ -938,7 +952,7 @@
                     @if($cameraMonitorStep)
                         <div class="card mb-3">
                             <div class="card-body d-flex justify-content-between align-items-center flex-wrap" style="gap: 12px;">
-                                <div class="flex-grow-1" style="min-width: 240px; flex-basis: 0;">
+                                <div class="flex-grow-1" style="flex: 1 1 240px; min-width: 0;">
                                     <span class="section-title d-block mb-1">Dari monitoring {{ $meetingLabel }}
                                         @if($hasMeetingCameraData)<span class="badge bg-success ml-1">Disarankan</span>@endif
                                     </span>
@@ -1000,7 +1014,7 @@
 
                     <div class="card mb-3">
                         <div class="card-body d-flex justify-content-between align-items-center flex-wrap" style="gap: 12px;">
-                            <div class="flex-grow-1" style="min-width: 240px; flex-basis: 0;">
+                            <div class="flex-grow-1" style="flex: 1 1 240px; min-width: 0;">
                                 <span class="section-title d-block mb-1">Isi sendiri</span>
                                 <span class="text-muted text-sm">Pilih status kamera tiap peserta langsung dari daftar semua peserta.</span>
                             </div>
@@ -1061,10 +1075,12 @@
                                         <th colspan="2" class="text-xs">
                                             <span class="camera-group-title"></span>
                                             <span class="camera-bulk d-none">
-                                                <span class="ml-2">Isi semua yang kosong:</span>
-                                                <button type="button" class="btn btn-default btn-xs ml-1" data-bulk-status="on_cam">On Cam</button>
-                                                <button type="button" class="btn btn-default btn-xs ml-1" data-bulk-status="partial">Tidak Full On Cam</button>
-                                                <button type="button" class="btn btn-default btn-xs ml-1" data-bulk-status="off_cam">Full Off Cam</button>
+                                                <span class="d-inline-flex flex-wrap align-items-center gap-1 mt-1">
+                                                    <span>Isi semua yang kosong:</span>
+                                                    <button type="button" class="btn btn-default btn-xs" data-bulk-status="on_cam">On Cam</button>
+                                                    <button type="button" class="btn btn-default btn-xs" data-bulk-status="partial">Tidak Full On Cam</button>
+                                                    <button type="button" class="btn btn-default btn-xs" data-bulk-status="off_cam">Full Off Cam</button>
+                                                </span>
                                                 <span class="d-block text-muted font-weight-normal mt-1">Peserta yang sudah punya rekap sebelumnya tidak diubah.</span>
                                             </span>
                                         </th>
@@ -1222,13 +1238,33 @@ document.addEventListener('DOMContentLoaded', function() {
     const videoForm = document.getElementById('uploadTrainingVideoForm');
     if (videoForm) {
         let isSubmitting = false;
+        const submitBtn = document.getElementById('btnSubmitVideo');
+        const defaultBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+
+        function resetUploadSubmitState() {
+            isSubmitting = false;
+            videoForm.style.pointerEvents = '';
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.style.pointerEvents = '';
+                submitBtn.innerHTML = defaultBtnHtml;
+            }
+        }
+
+        window.addEventListener('pageshow', resetUploadSubmitState);
+        if (typeof $ !== 'undefined') {
+            $('#uploadTrainingVideoModal').on('show.bs.modal', resetUploadSubmitState);
+        }
+
         videoForm.addEventListener('submit', function(e) {
+            if (!videoForm.checkValidity()) {
+                return;
+            }
             if (isSubmitting) {
                 e.preventDefault();
                 return false;
             }
             isSubmitting = true;
-            const submitBtn = document.getElementById('btnSubmitVideo');
             if (submitBtn) {
                 submitBtn.style.pointerEvents = 'none';
                 submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span> Mengunggah Video, mohon tunggu...';
@@ -2397,6 +2433,11 @@ if (typeof $ !== 'undefined') {
     reviewTable.addEventListener('mousedown', e => {
         if (e.target.matches('.camera-pair-select')) fillPairOptions(e.target);
     });
+    if (typeof $ !== 'undefined') {
+        $(reviewTable).on('select2:opening', '.camera-pair-select', function () {
+            fillPairOptions(this);
+        });
+    }
 
     reviewTable.addEventListener('change', e => {
         const select = e.target.closest('.camera-pair-select');

@@ -8,7 +8,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header :title="($isPretest ? 'Pretest' : 'Posttest').($maxAttempts === 1 ? '' : ' ke-'.$attemptNumber)" :subtitle="$module->title.' · '.$questions->count().' soal'" eyebrow="Modul Saya / Kuis">
+        <x-page-header class="text-break" :title="($isPretest ? 'Pretest' : 'Posttest').($maxAttempts === 1 ? '' : ' ke-'.$attemptNumber)" :subtitle="$module->title.' · '.$questions->count().' soal'" eyebrow="Modul Saya / Kuis">
             <x-slot:actions>
                 <a href="{{ $backUrl }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
             </x-slot:actions>
@@ -45,9 +45,9 @@
             <div class="card mb-4">
                 <div class="card-header">
                     <h3 class="card-title">Soal</h3>
-                    <div class="card-tools d-flex align-items-center gap-2 small text-muted">
+                    <div class="card-tools d-flex flex-wrap align-items-center gap-2 mw-100 small text-muted">
                         <span><span id="answeredCount">0</span>/{{ $questions->count() }} soal terjawab</span>
-                        <div class="progress" style="width: 120px;">
+                        <div class="progress" style="width: 120px; max-width: 100%; min-width: 72px;">
                             <div class="progress-bar" id="answeredBar" role="progressbar" style="width: 0%"></div>
                         </div>
                     </div>
@@ -55,7 +55,7 @@
 
                 @foreach($questions as $index => $question)
                     <div class="card-body {{ $loop->first ? '' : 'border-top' }}">
-                        <p class="font-weight-bold mb-3" style="white-space: pre-line;">{{ $index + 1 }}. {{ $question->question }}</p>
+                        <p class="font-weight-bold mb-3 text-break" style="white-space: pre-line;">{{ $index + 1 }}. {{ $question->question }}</p>
                         @if($question->imageUrl())
                             <img src="{{ $question->imageUrl() }}" alt="Gambar soal {{ $index + 1 }}" class="quiz-img mb-3">
                         @endif
@@ -64,7 +64,7 @@
                                 <input type="radio" class="custom-control-input" id="q{{ $question->id }}_{{ $letter }}"
                                     name="answers[{{ $question->id }}]" value="{{ $letter }}"
                                     {{ old('answers.'.$question->id) === $letter ? 'checked' : '' }}>
-                                <label class="custom-control-label font-weight-normal" for="q{{ $question->id }}_{{ $letter }}">
+                                <label class="custom-control-label font-weight-normal text-break" for="q{{ $question->id }}_{{ $letter }}">
                                     {{ strtoupper($letter) }}. {{ $text }}
                                     @if($question->optionImageUrl($letter))
                                         <img src="{{ $question->optionImageUrl($letter) }}" alt="Gambar pilihan {{ strtoupper($letter) }}" class="quiz-img quiz-opt-img mt-1">
@@ -75,7 +75,7 @@
                     </div>
                 @endforeach
 
-                <div class="card-footer d-flex justify-content-between align-items-center gap-2">
+                <div class="card-footer d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <span class="text-muted small">Soal yang tidak dijawab dihitung salah.</span>
                     <button type="submit" class="btn btn-primary" id="btnSubmit">Kirim Jawaban</button>
                 </div>

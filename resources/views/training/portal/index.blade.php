@@ -10,12 +10,13 @@
 
     <header class="portal-header">
         <div class="container portal-container">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
+            <div class="d-flex justify-content-between align-items-center gap-2">
+                <div class="min-w-0">
                     <span class="portal-brand"><img src="{{ asset('images/logo.svg') }}" alt="" class="brand-logo"> Modul <span class="portal-brand-sub">Portal Pelatihan</span></span>
                 </div>
-                <div class="text-muted small">
-                    {{ $user->nama_lengkap }}
+                <div class="portal-header-side">
+                    <span class="portal-header-name text-muted small">{{ $user->nama_lengkap }}</span>
+                    @include('layout.partials.theme-toggle', ['class' => 'portal-theme-toggle'])
                 </div>
             </div>
         </div>
@@ -243,13 +244,15 @@
             // ---- HTML builders (pakai nilai requireProof dari API, bukan Blade) ----
 
             function buildAttendanceOpenHTML(requireProof) {
-                let proofHtml = '';
+                let proofInfoHtml = '';
+                let proofFieldHtml = '';
                 if (requireProof) {
-                    proofHtml = `
+                    proofInfoHtml = `
                         <div class="alert alert-info py-2 px-3 small mb-3">
                             <i class="fas fa-info-circle mr-1"></i> <strong>{{ $proofText['requiredTitle'] }}:</strong>
                             {{ $proofText['required'] }}
-                        </div>
+                        </div>`;
+                    proofFieldHtml = `
                         <div class="form-group mb-3">
                             <label class="small font-weight-bold text-dark mb-1" for="attendanceProofInput">
                                 {{ $proofText['upload'] }} <span class="text-danger">*</span>
@@ -265,7 +268,7 @@
                                     {{ $proofText['pick'] }}
                                 </label>
                             </div>
-                            <small class="form-text text-muted">Format: JPG, PNG, atau WEBP. Maksimal 5MB.</small>
+                            <small class="form-text text-muted">Format: JPG, PNG, atau WEBP. Maksimal 5MB. {{ $proofText['hint'] }}</small>
                             <div id="proofPreviewWrapper" class="mt-2 text-center d-none">
                                 <img id="proofPreviewImg" src="#" alt="Preview Screenshot"
                                     class="img-fluid rounded border shadow-sm"
@@ -282,12 +285,13 @@
                     <p class="text-muted small mb-3">
                         Sesi presensi telah dibuka! Silakan lakukan konfirmasi kehadiran Anda:
                     </p>
-                    ${proofHtml}
+                    ${proofInfoHtml}
                     <form action="/training/portal/${TOKEN}/attendance" method="POST"
                           enctype="multipart/form-data" id="attendanceForm">
                         <input type="hidden" name="_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="status" value="hadir">
-                        <div class="d-flex gap-2">
+                        ${proofFieldHtml}
+                        <div class="d-flex flex-wrap gap-2">
                             <button type="submit" class="btn btn-primary flex-grow-1">
                                 <i class="fas fa-check-circle mr-1"></i> Saya Hadir
                             </button>

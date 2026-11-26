@@ -27,7 +27,7 @@
                 </div>
             </div>
 
-            <div class="card-body table-responsive p-0" style="min-height: 260px;">
+            <div class="card-body table-responsive p-0">
                 <table class="table table-hover mb-0">
                     <thead>
                         <tr>
@@ -131,7 +131,7 @@
 
             @if($modules->hasPages())
                 <div class="card-footer d-flex justify-content-end">
-                    {{ $modules->links() }}
+                    {{ $modules->links('pagination::bootstrap-4') }}
                 </div>
             @endif
         </div>

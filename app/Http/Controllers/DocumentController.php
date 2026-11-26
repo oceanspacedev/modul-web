@@ -159,7 +159,7 @@ class DocumentController extends Controller
 
     public function edit(Document $document): View
     {
-        $document->load(['versions', 'divisi', 'role', 'dokumentype']);
+        $document->load(['versions', 'divisi', 'role', 'dokumentype', 'quizModule']);
 
         return view('document.edit', [
             'title' => 'Dokumen',

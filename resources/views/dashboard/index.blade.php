@@ -35,7 +35,7 @@
         <div class="row">
             @if ($show['users'])
             <div class="col-xl col-md-4 col-6 mb-3">
-                <a href="/user" class="stat-tile">
+                <a href="/user" class="stat-tile h-100">
                     <div class="min-w-0">
                         <p class="stat-tile-label">Total Pengguna</p>
                         <p class="stat-tile-value">{{ $data['totalUser'] }}</p>
@@ -47,7 +47,7 @@
 
             @if ($show['trainings'])
             <div class="col-xl col-md-4 col-6 mb-3">
-                <a href="/training" class="stat-tile">
+                <a href="/training" class="stat-tile h-100">
                     <div class="min-w-0">
                         <p class="stat-tile-label">Jadwal Pelatihan</p>
                         <p class="stat-tile-value">{{ $data['totalTraining'] }}</p>
@@ -59,7 +59,7 @@
 
             @if ($show['videos'])
             <div class="col-xl col-md-4 col-6 mb-3">
-                <a href="/video" class="stat-tile">
+                <a href="/video" class="stat-tile h-100">
                     <div class="min-w-0">
                         <p class="stat-tile-label">Video Materi</p>
                         <p class="stat-tile-value">{{ $data['totalVideo'] }}</p>
@@ -71,7 +71,7 @@
 
             @if ($show['trainings'])
             <div class="col-xl col-md-4 col-6 mb-3">
-                <a href="/training" class="stat-tile">
+                <a href="/training" class="stat-tile h-100">
                     <div class="min-w-0">
                         <p class="stat-tile-label">Peserta Pelatihan</p>
                         <p class="stat-tile-value">{{ $data['totalParticipant'] }}</p>
@@ -83,7 +83,7 @@
 
             @if ($show['documents'])
             <div class="col-xl col-md-4 col-6 mb-3">
-                <a href="/document" class="stat-tile">
+                <a href="/document" class="stat-tile h-100">
                     <div class="min-w-0">
                         <p class="stat-tile-label">Dokumen Modul</p>
                         <p class="stat-tile-value">{{ $data['totalDocument'] }}</p>
@@ -95,7 +95,7 @@
 
             @if ($show['trainings'])
             <div class="col-xl col-md-4 col-6 mb-3">
-                <a href="/training" class="stat-tile">
+                <a href="/training" class="stat-tile h-100">
                     <div class="min-w-0">
                         <p class="stat-tile-label">Hasil Kuis Pelatihan</p>
                         <p class="stat-tile-value">{{ $data['totalQuizResult'] }}</p>
@@ -194,7 +194,7 @@
             @endif
 
             @if ($show['videos'])
-            <div class="col-lg">
+            <div class="col-xl col-lg-6">
                 {{-- 2. Grafik Popularitas Video Materi --}}
                 <div class="card dash-card is-compact">
                     <div class="card-header">
@@ -264,7 +264,7 @@
             @endif
 
             @if ($show['trainings'])
-            <div class="col-lg">
+            <div class="col-xl col-lg-6">
                 {{-- 3. Grafik Distribusi Nilai & Evaluasi Kuis --}}
                 <div class="card dash-card is-compact">
                     <div class="card-header">
@@ -377,7 +377,7 @@
             @endif
 
             @if ($show['masterData'])
-            <div class="col-lg">
+            <div class="col-xl col-lg-6">
                 {{-- 4. Grafik Komposisi Modul & Master Data --}}
                 <div class="card dash-card is-compact">
                     <div class="card-header">
@@ -451,33 +451,119 @@
 <script src="{{ asset('template') }}/plugins/chart.js/Chart.bundle.min.js"></script>
 <script>
 $(document).ready(function() {
+    // Warna grafik dibaca dari token CSS (resources/css/app.css) saat digambar, supaya ikut tema terang/gelap.
+    function chartPalette() {
+        var styles = getComputedStyle(document.documentElement);
+        var token = function (name, fallback) {
+            return styles.getPropertyValue(name).trim() || fallback;
+        };
+        var dark = (window.ModulTheme ? window.ModulTheme.get() : document.documentElement.getAttribute('data-theme')) === 'dark';
+
+        return {
+            text: token('--gray-500', '#71717a'),
+            grid: token('--gray-100', '#f4f4f5'),
+            zeroLine: token('--gray-200', '#e4e4e7'),
+            surface: token('--surface', '#ffffff'),
+            brand: token('--primary-600', '#00d639'),
+            brandStrong: token('--primary-700', '#00852e'),
+            done: '#16a34a', // hijau "Done": terbaca di kedua tema, tidak ada token dengan nilai ini
+            neutral: token('--gray-400', '#a1a1aa'),
+            // --gray-300 nyaris hilang di kartu gelap (1,6:1); di tema gelap pakai abu-abu yang masih terlihat.
+            neutralSoft: dark ? '#66666f' : token('--gray-300', '#d4d4d8'),
+            dark: dark,
+            // Tooltip = chip berwarna kebalikan halaman (gelap di tema terang, terang di tema gelap).
+            tooltipBg: token('--inverse-surface', '#18181b'),
+            tooltipTitle: dark ? token('--on-inverse', '#18181b') : token('--white', '#ffffff'),
+            tooltipBody: token('--gray-300', '#d4d4d8'),
+        };
+    }
+
+    // "#rrggbb" / "#rgb" → "rgba(r,g,b,a)" untuk isian transparan di bawah garis.
+    function withAlpha(color, alpha) {
+        var hex = String(color).replace('#', '');
+        if (hex.length === 3) hex = hex.replace(/(.)/g, '$1$1');
+        if (!/^[0-9a-f]{6}$/i.test(hex)) return color;
+        var n = parseInt(hex, 16);
+        return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + alpha + ')';
+    }
+
+    function paintTooltip(tooltips, c) {
+        tooltips.backgroundColor = c.tooltipBg;
+        tooltips.titleFontColor = c.tooltipTitle;
+        tooltips.bodyFontColor = c.tooltipBody;
+    }
+
+    function paintValueAxis(axis, c) {
+        axis.gridLines.color = c.grid;
+        axis.gridLines.zeroLineColor = c.zeroLine;
+        axis.ticks.fontColor = c.text;
+    }
+
+    // Setiap grafik didaftarkan bersama fungsi pewarnanya; dipakai saat dibuat dan saat tema berganti.
+    var themedCharts = [];
+    function createChart(canvas, config, paint) {
+        paint(config.data, config.options, chartPalette());
+        var chart = new Chart(canvas.getContext('2d'), config);
+        themedCharts.push({ chart: chart, paint: paint });
+        return chart;
+    }
+
     // Global Chart.js styling
     Chart.defaults.global.defaultFontFamily = "'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif";
-    Chart.defaults.global.defaultFontColor = '#71717a';
+    Chart.defaults.global.defaultFontColor = chartPalette().text;
+
+    document.addEventListener('themechange', function () {
+        var c = chartPalette();
+        Chart.defaults.global.defaultFontColor = c.text;
+        themedCharts.forEach(function (entry) {
+            entry.paint(entry.chart.data, entry.chart.options, c);
+            entry.chart.update();
+        });
+    });
 
     @if ($od)
     // -------------------------------------------------------------
     // OD Report: aktivitas 30 hari terakhir (Done vs Proses)
     // -------------------------------------------------------------
     var odChart = @json($od['chart']);
-    new Chart(document.getElementById('chartOdActivities').getContext('2d'), {
+    createChart(document.getElementById('chartOdActivities'), {
         type: 'line',
         data: {
             labels: odChart.map(function (d) { return d.label; }),
             datasets: [
-                { label: 'Done', data: odChart.map(function (d) { return d.done; }), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,.08)', pointRadius: 2, lineTension: .3 },
-                { label: 'Proses', data: odChart.map(function (d) { return d.open; }), borderColor: '#00852e', backgroundColor: 'rgba(0,133,46,.06)', pointRadius: 2, lineTension: .3 },
+                { label: 'Done', data: odChart.map(function (d) { return d.done; }), pointRadius: 2, lineTension: .3 },
+                { label: 'Proses', data: odChart.map(function (d) { return d.open; }), pointRadius: 2, lineTension: .3 },
             ],
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            legend: { position: 'bottom' },
+            legend: { position: 'bottom', labels: {} },
+            tooltips: {},
             scales: {
                 xAxes: [{ gridLines: { display: false }, ticks: { maxTicksLimit: 10 } }],
-                yAxes: [{ gridLines: { color: '#f4f4f5' }, ticks: { beginAtZero: true, precision: 0 } }],
+                yAxes: [{ gridLines: {}, ticks: { beginAtZero: true, precision: 0 } }],
             },
         },
+    }, function (data, options, c) {
+        data.datasets[0].borderColor = c.done;
+        data.datasets[0].backgroundColor = withAlpha(c.done, .08);
+        data.datasets[1].borderColor = c.brandStrong;
+        data.datasets[1].backgroundColor = withAlpha(c.brandStrong, .06);
+        options.legend.labels.fontColor = c.text;
+        options.scales.xAxes[0].ticks.fontColor = c.text;
+        options.scales.yAxes[0].gridLines.color = c.grid;
+        options.scales.yAxes[0].ticks.fontColor = c.text;
+        // Garis nol dan tooltip bawaan Chart.js berwarna hitam: di tema gelap ikuti palet seperti grafik lain.
+        if (c.dark) {
+            options.scales.yAxes[0].gridLines.zeroLineColor = c.zeroLine;
+            paintTooltip(options.tooltips, c);
+        } else {
+            options.scales.yAxes[0].gridLines.zeroLineColor = 'rgba(0,0,0,0.25)';
+            options.tooltips.backgroundColor = 'rgba(0,0,0,0.8)';
+            options.tooltips.titleFontColor = '#fff';
+            options.tooltips.bodyFontColor = '#fff';
+        }
     });
     @endif
 
@@ -491,16 +577,14 @@ $(document).ready(function() {
         var labelsPelatihan = {!! json_encode($data['chartTrainingLabels']) !!};
         var dataPelatihan = {!! json_encode($data['chartTrainingParticipants']) !!};
 
-        window.chartPelatihan = new Chart(ctxPelatihan.getContext('2d'), {
+        window.chartPelatihan = createChart(ctxPelatihan, {
             type: 'bar',
             data: {
                 labels: labelsPelatihan,
                 datasets: [{
                     label: 'Jumlah Peserta',
                     data: dataPelatihan,
-                    backgroundColor: '#00d639',
                     borderWidth: 0,
-                    hoverBackgroundColor: '#00852e',
                     maxBarThickness: 40,
                     borderRadius: 6
                 }]
@@ -510,9 +594,6 @@ $(document).ready(function() {
                 maintainAspectRatio: false,
                 legend: { display: false },
                 tooltips: {
-                    backgroundColor: '#18181b',
-                    titleFontColor: '#ffffff',
-                    bodyFontColor: '#d4d4d8',
                     cornerRadius: 8,
                     xPadding: 12,
                     yPadding: 10,
@@ -525,19 +606,24 @@ $(document).ready(function() {
                 scales: {
                     xAxes: [{
                         gridLines: { display: false, drawBorder: false },
-                        ticks: { fontColor: '#71717a', fontSize: 11 }
+                        ticks: { fontSize: 11 }
                     }],
                     yAxes: [{
-                        gridLines: { color: '#f4f4f5', zeroLineColor: '#e4e4e7', drawBorder: false },
+                        gridLines: { drawBorder: false },
                         ticks: {
                             beginAtZero: true,
                             precision: 0,
-                            fontColor: '#71717a',
                             fontSize: 11
                         }
                     }]
                 }
             }
+        }, function (data, options, c) {
+            data.datasets[0].backgroundColor = c.brand;
+            data.datasets[0].hoverBackgroundColor = c.brandStrong;
+            paintTooltip(options.tooltips, c);
+            options.scales.xAxes[0].ticks.fontColor = c.text;
+            paintValueAxis(options.scales.yAxes[0], c);
         });
     }
 
@@ -552,16 +638,14 @@ $(document).ready(function() {
         var labelsVideo = {!! json_encode($data['chartVideoLabels']) !!};
         var dataVideo = {!! json_encode($data['chartVideoViews']) !!};
 
-        window.chartVideo = new Chart(ctxVideo.getContext('2d'), {
+        window.chartVideo = createChart(ctxVideo, {
             type: 'horizontalBar',
             data: {
                 labels: labelsVideo,
                 datasets: [{
                     label: 'Total Views',
                     data: dataVideo,
-                    backgroundColor: '#00d639',
                     borderWidth: 0,
-                    hoverBackgroundColor: '#00852e',
                     maxBarThickness: 24,
                     borderRadius: 6
                 }]
@@ -571,9 +655,6 @@ $(document).ready(function() {
                 maintainAspectRatio: false,
                 legend: { display: false },
                 tooltips: {
-                    backgroundColor: '#18181b',
-                    titleFontColor: '#ffffff',
-                    bodyFontColor: '#d4d4d8',
                     cornerRadius: 8,
                     xPadding: 12,
                     yPadding: 10,
@@ -585,20 +666,25 @@ $(document).ready(function() {
                 },
                 scales: {
                     xAxes: [{
-                        gridLines: { color: '#f4f4f5', zeroLineColor: '#e4e4e7', drawBorder: false },
+                        gridLines: { drawBorder: false },
                         ticks: {
                             beginAtZero: true,
                             precision: 0,
-                            fontColor: '#71717a',
                             fontSize: 11
                         }
                     }],
                     yAxes: [{
                         gridLines: { display: false, drawBorder: false },
-                        ticks: { fontColor: '#71717a', fontSize: 10 }
+                        ticks: { fontSize: 10 }
                     }]
                 }
             }
+        }, function (data, options, c) {
+            data.datasets[0].backgroundColor = c.brand;
+            data.datasets[0].hoverBackgroundColor = c.brandStrong;
+            paintTooltip(options.tooltips, c);
+            paintValueAxis(options.scales.xAxes[0], c);
+            options.scales.yAxes[0].ticks.fontColor = c.text;
         });
     }
 
@@ -606,26 +692,20 @@ $(document).ready(function() {
 
     @if ($show['masterData'])
     // -------------------------------------------------------------
-    // 4. Chart Komposisi Konten Sistem (Doughnut - blue + zinc grays)
+    // 4. Chart Komposisi Konten Sistem (Doughnut - primary green + zinc grays)
     // -------------------------------------------------------------
     var ctxContent = document.getElementById('chartContentComposition');
     if (ctxContent) {
         var labelsContent = {!! json_encode($data['chartContentLabels']) !!};
         var dataContent = {!! json_encode($data['chartContentValues']) !!};
 
-        window.chartContent = new Chart(ctxContent.getContext('2d'), {
+        window.chartContent = createChart(ctxContent, {
             type: 'doughnut',
             data: {
                 labels: labelsContent,
                 datasets: [{
                     data: dataContent,
-                    backgroundColor: [
-                        '#00d639', // video - primary
-                        '#a1a1aa', // dokumen - zinc 400
-                        '#d4d4d8'  // pelatihan - zinc 300
-                    ],
-                    borderWidth: 2,
-                    borderColor: '#ffffff'
+                    borderWidth: 2
                 }]
             },
             options: {
@@ -636,9 +716,6 @@ $(document).ready(function() {
                     display: false
                 },
                 tooltips: {
-                    backgroundColor: '#18181b',
-                    titleFontColor: '#ffffff',
-                    bodyFontColor: '#d4d4d8',
                     cornerRadius: 8,
                     xPadding: 12,
                     yPadding: 10,
@@ -651,6 +728,16 @@ $(document).ready(function() {
                     }
                 }
             }
+        }, function (data, options, c) {
+            // Urutan warna sama dengan .dash-legend-dot.is-1/2/3 di app.css
+            data.datasets[0].backgroundColor = [
+                c.brand,       // video - primary
+                c.neutral,     // dokumen - gray 400
+                c.neutralSoft  // pelatihan - gray 300
+            ];
+            // Celah antar irisan = warna kartu
+            data.datasets[0].borderColor = c.surface;
+            paintTooltip(options.tooltips, c);
         });
     }
 

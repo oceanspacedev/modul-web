@@ -24,6 +24,7 @@
             <span class="game-meta" title="Jawaban benar beruntun" @unless($showsAnswers) hidden @endunless><i class="fas fa-fire"></i> <span id="streakCount">0</span></span>
             <span class="game-meta" title="Poin" @unless($showsAnswers) hidden @endunless><span id="scoreBadge">0</span> poin</span>
             <button type="button" class="game-icon-btn" id="btnSoundToggle" title="Suara aktif" aria-label="Suara"><i class="fas fa-volume-up" id="soundIcon"></i></button>
+            @include('layout.partials.theme-toggle', ['class' => 'portal-theme-toggle'])
         </div>
     </header>
 
@@ -40,7 +41,7 @@
             @endif
 
             <div class="game-eyebrow">{{ $phaseLabel }}</div>
-            <h2 class="game-title">{{ $module->title }}</h2>
+            <h2 class="game-title text-break">{{ $module->title }}</h2>
             <p class="game-lead">
                 @if($isPretest)
                     Pretest mengukur pemahaman awal Anda. Jawab sebisanya, materi terbuka setelah pretest selesai.
@@ -186,7 +187,7 @@
         });
 
         function showBanner(kind, html) {
-            banner.className = 'game-feedback is-' + kind;
+            banner.className = 'game-feedback flex-wrap is-' + kind;
             banner.innerHTML = html;
             banner.style.display = 'inline-flex';
         }

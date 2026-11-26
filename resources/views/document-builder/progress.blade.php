@@ -20,8 +20,10 @@
                 <i class="fas fa-exclamation-circle text-danger fa-2x mb-3"></i>
                 <h5 class="mb-1">Dokumen gagal disusun</h5>
                 <p class="text-muted small" data-error></p>
-                <a href="{{ route('document-builder.answers', $draft) }}" class="btn btn-primary btn-sm">Coba Lagi</a>
-                <a href="{{ route('document-builder.edit', $draft) }}" class="btn btn-default btn-sm">Isi Manual</a>
+                <div class="d-flex flex-wrap justify-content-center gap-2">
+                    <a href="{{ route('document-builder.answers', $draft) }}" class="btn btn-primary btn-sm">Coba Lagi</a>
+                    <a href="{{ route('document-builder.edit', $draft) }}" class="btn btn-default btn-sm">Isi Manual</a>
+                </div>
             </div>
         </div>
     </div>

@@ -8,7 +8,11 @@
                     <a href="{{ route('document.index') }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
                 </x-slot:actions>
             </x-page-header>
+        </div>
+    </section>
 
+    <section class="content">
+        <div class="container-fluid">
             <x-flash />
 
             <form action="{{ route('document.store') }}" method="POST" enctype="multipart/form-data">
@@ -46,10 +50,10 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-lg-5 form-group mb-lg-0">
+                            <div class="col-lg-8 form-group mb-lg-0">
                                 <label for="role_id">Jabatan <span class="text-danger">*</span></label>
-                                <select class="custom-select col-lg-12 select2" multiple="multiple" name="role_id[]" data-placeholder="Cari jabatan..."
-                                    id="role_id" required>
+                                <select class="custom-select select2" multiple="multiple" name="role_id[]" data-placeholder="Cari jabatan..."
+                                    id="role_id" style="width: 100%;" required>
                                     <option value="0" @selected(in_array('0', (array) old('role_id', []), true))>SEMUA JABATAN</option>
                                     @foreach ($roles as $role)
                                         <option value="{{ $role->id }}" @selected(in_array((string) $role->id, array_map('strval', (array) old('role_id', [])), true))>{{ $role->name }}</option>
@@ -57,11 +61,11 @@
                                 </select>
                                 <small class="form-text text-muted">Beberapa jabatan = satu dokumen per jabatan, masing-masing dengan soal sendiri.</small>
                             </div>
-                            <div class="col-lg-3 form-group mb-0">
+                            <div class="col-lg-4 form-group mb-0">
                                 <label for="divisi_id">Divisi <span class="text-danger">*</span></label>
                                 <select class="custom-select select2" name="divisi_id" style="width: 100%;"
                                     id="divisi_id" required>
-                                    <option value="">--Pilih Divisi--</option>
+                                    <option value="">Pilih Divisi...</option>
                                     @foreach ($divisis as $divisi)
                                         <option value="{{ $divisi->id }}" @selected(old('divisi_id') == $divisi->id)>
                                             {{ $divisi->name }}</option>
@@ -74,7 +78,7 @@
                             @include('learning_module.partials.quiz-rules-fields', ['quiz' => null])
                         </div>
                     </div>
-                    <div class="card-footer d-flex justify-content-end gap-2">
+                    <div class="card-footer d-flex flex-wrap justify-content-end gap-2">
                         <a href="{{ route('document.index') }}" class="btn btn-default">Batal</a>
                         <button type="submit" class="btn btn-primary">Simpan</button>
                     </div>

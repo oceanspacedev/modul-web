@@ -1,0 +1,21 @@
+/* Dark-mode rules for views. Owned by the theme work; see THEME TOKENS in app.css. */
+
+/* ---------------------------------------------------------
+   training/show: camera recap modal (#scanZoomModal)
+   --------------------------------------------------------- */
+
+/* Rows that need a name check get Bootstrap's .table-warning (a pale yellow
+   fill meant for dark text). In dark the row text is light, so use the deep
+   amber tint instead. */
+[data-theme="dark"] #zoomReviewTable .table-warning,
+[data-theme="dark"] #zoomReviewTable .table-warning > td,
+[data-theme="dark"] #zoomReviewTable .table-warning > th {
+    background-color: var(--warning-50);
+}
+
+/* Screenshot counter chip sits on top of an image: keep it a dark chip with
+   white text (.badge-dark's --gray-900 fill inverts to near-white in dark). */
+[data-theme="dark"] #zoomThumbGrid .badge-dark {
+    background: rgba(9, 9, 11, 0.75) !important;
+    color: var(--white) !important;
+}

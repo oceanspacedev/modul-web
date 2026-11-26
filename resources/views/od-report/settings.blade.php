@@ -13,7 +13,7 @@
 
         <div class="card">
             <div class="card-header"><h3 class="card-title">Status dokumen</h3></div>
-            <div class="card-body p-0">
+            <div class="card-body table-responsive p-0">
                 <table class="table mb-0">
                     <thead>
                         <tr>
@@ -30,8 +30,8 @@
                                     <form action="{{ route('od-report.settings.statuses.update', $status) }}" method="POST" class="d-flex gap-2 m-0" id="status-form-{{ $status->id }}">
                                         @csrf
                                         @method('PUT')
-                                        <input type="text" name="name" value="{{ $status->name }}" maxlength="30" required class="form-control form-control-sm" aria-label="Nama status">
-                                        <select name="type" class="custom-select custom-select-sm" style="width: 120px;" aria-label="Tipe status">
+                                        <input type="text" name="name" value="{{ $status->name }}" maxlength="30" required class="form-control form-control-sm" style="min-width: 140px;" aria-label="Nama status">
+                                        <select name="type" class="custom-select custom-select-sm form-control-sm" style="width: 120px;" aria-label="Tipe status">
                                             @foreach (App\Models\OdDocumentStatus::TYPES as $type => $label)
                                                 <option value="{{ $type }}" @selected($status->type === $type)>{{ $label }}</option>
                                             @endforeach
@@ -55,8 +55,8 @@
             <div class="card-footer">
                 <form action="{{ route('od-report.settings.statuses.store') }}" method="POST" class="d-flex flex-wrap gap-2 m-0">
                     @csrf
-                    <input type="text" name="name" maxlength="30" required placeholder="Status baru" class="form-control form-control-sm @error('name') is-invalid @enderror" style="max-width: 240px;" value="{{ old('name') }}">
-                    <select name="type" class="custom-select custom-select-sm" style="width: 120px;" aria-label="Tipe status baru">
+                    <input type="text" name="name" maxlength="30" required placeholder="Status baru" class="form-control form-control-sm @error('name') is-invalid @enderror" style="flex: 1 1 180px; max-width: 240px;" value="{{ old('name') }}">
+                    <select name="type" class="custom-select custom-select-sm form-control-sm" style="width: 120px;" aria-label="Tipe status baru">
                         @foreach (App\Models\OdDocumentStatus::TYPES as $type => $label)
                             <option value="{{ $type }}">{{ $label }}</option>
                         @endforeach
@@ -71,7 +71,7 @@
             <div class="card-header">
                 <h3 class="card-title" title="Daily Report yang sudah disimpan otomatis masuk ke spreadsheet Weekly Report">Sinkron Google Sheets</h3>
                 @if ($sheet['enabled'])
-                    <div class="card-tools d-flex gap-2">
+                    <div class="card-tools d-flex flex-wrap gap-2">
                         <a href="{{ $sheet['open'] }}" target="_blank" rel="noopener" class="btn btn-default btn-sm"><i class="fas fa-table"></i> Buka</a>
                         <form action="{{ route('od-report.settings.sheet-sync') }}" method="POST" class="m-0">
                             @csrf
@@ -85,8 +85,8 @@
                     @csrf
                     @method('PUT')
                     <div class="d-flex flex-wrap gap-2">
-                        <input type="url" name="sheet_link" value="{{ old('sheet_link', $sheet['link']) }}" maxlength="300" placeholder="Link spreadsheet Weekly Report" aria-label="Link spreadsheet" title="Kosongkan kedua link untuk mematikan sinkron" class="form-control form-control-sm flex-grow-1 @error('sheet_link') is-invalid @enderror" style="flex-basis: 260px; width: auto;">
-                        <input type="url" name="sheet_url" value="{{ old('sheet_url', $sheet['url']) }}" maxlength="300" placeholder="URL Web App (…/exec)" aria-label="URL Web App (Apps Script)" class="form-control form-control-sm flex-grow-1 @error('sheet_url') is-invalid @enderror" style="flex-basis: 260px; width: auto;">
+                        <input type="url" name="sheet_link" value="{{ old('sheet_link', $sheet['link']) }}" maxlength="300" placeholder="Link spreadsheet Weekly Report" aria-label="Link spreadsheet" title="Kosongkan kedua link untuk mematikan sinkron" class="form-control form-control-sm flex-grow-1 @error('sheet_link') is-invalid @enderror" style="flex-basis: 260px; width: auto; min-width: 0; max-width: 100%;">
+                        <input type="url" name="sheet_url" value="{{ old('sheet_url', $sheet['url']) }}" maxlength="300" placeholder="URL Web App (…/exec)" aria-label="URL Web App (Apps Script)" class="form-control form-control-sm flex-grow-1 @error('sheet_url') is-invalid @enderror" style="flex-basis: 260px; width: auto; min-width: 0; max-width: 100%;">
                         <input type="date" name="sheet_from" value="{{ old('sheet_from', $sheet['enabled'] ? $sheet['from'] : today()->toDateString()) }}" aria-label="Kirim mulai tanggal" title="Kirim mulai tanggal. Ganti spreadsheet: atur juga tanggal ini agar pekerjaan lama tidak ikut terkirim." class="form-control form-control-sm @error('sheet_from') is-invalid @enderror" style="width: 160px;">
                         <button type="submit" class="btn btn-primary btn-sm text-nowrap"><i class="fas fa-save"></i> Simpan &amp; Tes</button>
                     </div>
@@ -126,7 +126,7 @@
                             @method('PUT')
                             <label for="import_{{ $type }}" class="mb-1">{{ $label }}</label>
                             <div class="d-flex flex-wrap gap-2">
-                                <input type="url" id="import_{{ $type }}" name="link" value="{{ $bag->any() ? old('link') : $import[$type] }}" required maxlength="300" placeholder="Link Google Sheets" title="Akses sheet: siapa saja yang memiliki link" class="form-control form-control-sm flex-grow-1 @if ($bag->has('link')) is-invalid @endif" style="flex-basis: 220px; width: auto;">
+                                <input type="url" id="import_{{ $type }}" name="link" value="{{ $bag->any() ? old('link') : $import[$type] }}" required maxlength="300" placeholder="Link Google Sheets" title="Akses sheet: siapa saja yang memiliki link" class="form-control form-control-sm flex-grow-1 @if ($bag->has('link')) is-invalid @endif" style="flex-basis: 220px; width: auto; min-width: 0; max-width: 100%;">
                                 @if ($type === App\Services\OdSheetImport::WEEKLY)
                                     <input type="month" name="from" value="{{ $bag->any() ? old('from') : $import['from'] }}" required title="Mulai bulan" aria-label="Mulai bulan" class="form-control form-control-sm @if ($bag->has('from')) is-invalid @endif" style="max-width: 150px;">
                                 @endif
@@ -141,10 +141,10 @@
                                 <details class="mt-2" @if ($bag->has('positions.*')) open @endif>
                                     <summary class="text-muted">Atur posisi @if ($unmatched)<span class="text-danger">· {{ $unmatched }} belum ada orangnya</span>@endif</summary>
                                 @foreach ($import['positions'] as $position => $userId)
-                                    <div class="d-flex align-items-center gap-2 mt-2">
-                                        <span class="text-muted text-truncate flex-shrink-0" style="width: 130px;" title="{{ $position }}">{{ str_replace('ORGANIZATION DEVELOPMENT', 'OD', $position) }}</span>
-                                        <div class="flex-grow-1" style="min-width: 0;">
-                                            <select name="positions[{{ $position }}]" class="custom-select custom-select-sm" style="width: 100%;" aria-label="Anggota untuk {{ $position }}">
+                                    <div class="form-row align-items-center mt-2">
+                                        <div class="col-sm-4 text-muted text-truncate mb-1 mb-sm-0" title="{{ $position }}">{{ str_replace('ORGANIZATION DEVELOPMENT', 'OD', $position) }}</div>
+                                        <div class="col-sm-8" style="min-width: 0;">
+                                            <select name="positions[{{ $position }}]" class="custom-select custom-select-sm form-control-sm" style="width: 100%;" aria-label="Anggota untuk {{ $position }}">
                                                 <option value="">Otomatis: {{ $import['auto'][$position]?->nama_lengkap ?? 'belum ada' }}</option>
                                                 @foreach ($import['members'] as $member)
                                                     <option value="{{ $member->id }}" @selected($userId === $member->id)>{{ $member->nama_lengkap }}</option>

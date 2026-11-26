@@ -8,14 +8,18 @@
                     <a href="{{ route('user.index') }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
                 </x-slot:actions>
             </x-page-header>
+        </div>
+    </section>
 
+    <section class="content">
+        <div class="container-fluid">
             <x-flash />
 
             <form action="{{ route('user.update', $user) }}" method="POST">
                 @csrf
                 @method('PUT')
                 @include('setting.user._form')
-                <div class="d-flex justify-content-end gap-2 mb-4">
+                <div class="d-flex justify-content-end flex-wrap gap-2 mb-0">
                     <a href="{{ route('user.index') }}" class="btn btn-default">Batal</a>
                     <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
                 </div>

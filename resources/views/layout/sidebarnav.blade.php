@@ -1,9 +1,12 @@
 @auth
 <aside class="main-sidebar sidebar-light-primary">
-    <a href="/dashboard" class="brand-link">
+    <a href="{{ auth()->user()->homeUrl() }}" class="brand-link">
         <img src="{{ asset('images/logo.svg') }}" alt="" class="brand-logo">
         <span class="brand-text">Modul</span>
     </a>
+    <button type="button" class="sidebar-close d-lg-none" data-widget="pushmenu" data-auto-collapse-size="0" aria-label="Tutup menu">
+        <i class="fas fa-times" aria-hidden="true"></i>
+    </button>
 
     <div class="sidebar">
         <nav>
@@ -87,7 +90,7 @@
                 @endcanany
 
                 @canany(['manage-learning-modules', 'view-learning-modules'])
-                <li class="nav-item {{ (request()->is('learning-module*') || request()->is('modul-saya*')) ? 'menu-open' : '' }}">
+                <li class="nav-item {{ (($active ?? '') === 'learning-module' || request()->is('learning-module*') || request()->is('modul-saya*')) ? 'menu-open' : '' }}">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-graduation-cap"></i>
                         <p>
@@ -180,7 +183,7 @@
                 <li class="nav-item">
                     <a href="{{ route('od-report.settings.index') }}" class="nav-link {{ ($active ?? '') === 'od-settings' ? 'active' : '' }}">
                         <i class="nav-icon fas fa-cog"></i>
-                        <p>Pengaturan</p>
+                        <p>Pengaturan OD</p>
                     </a>
                 </li>
                 @endcan

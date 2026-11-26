@@ -79,7 +79,7 @@ class OdRequestController extends Controller
     public function show(Request $request, DocumentRequest $documentRequest): View
     {
         $this->authorizeView($request, $documentRequest);
-        $documentRequest->load(['category', 'processes.status', 'processes.pic', 'processes.builderDraft', 'processes.attachments', 'histories.user', 'comments.user', 'user']);
+        $documentRequest->load(['category', 'processes.status', 'processes.pic', 'processes.builderDraft', 'processes.attachments', 'histories.user', 'histories.process', 'comments.user', 'user']);
 
         return view('od-report.requests.show', [
             'title' => $documentRequest->code,

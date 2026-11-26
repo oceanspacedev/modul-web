@@ -51,7 +51,7 @@
         <div class="row">
             @forelse ($categories as $category)
                 <div class="col-sm-6 col-lg-4 d-flex">
-                    <a href="{{ route('document-builder.form', $category) }}" class="card card-outline card-primary flex-fill text-reset builder-category">
+                    <a href="{{ route('document-builder.form', $category) }}" class="card flex-fill text-reset builder-category">
                         <div class="card-body">
                             <div class="mb-2">
                                 <span class="badge badge-primary mr-1">{{ $category->code }}</span>
@@ -77,7 +77,7 @@
 </section>
 
 <style>
-    .builder-category { transition: box-shadow .15s, transform .15s; }
-    .builder-category:hover { box-shadow: 0 4px 14px rgba(0, 0, 0, .12); transform: translateY(-1px); text-decoration: none; }
+    .builder-category { transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+    .builder-category:hover { border-color: var(--primary-600) !important; box-shadow: var(--shadow-lg) !important; transform: translateY(-1px); text-decoration: none; }
 </style>
 @endsection

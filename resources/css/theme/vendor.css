@@ -1,0 +1,495 @@
+/* Dark-mode rules for vendor. Owned by the theme work; see THEME TOKENS in app.css. */
+
+/* =========================================================
+   VENDOR DARK MODE
+   Dark values for everything app.css does NOT restyle: the light
+   colors baked into Bootstrap 4.6 / AdminLTE 3.1, Select2,
+   daterangepicker, bootstrap-datepicker and OverlayScrollbars.
+
+   How the cascade is arranged:
+   - This file is imported at the top of app.css, so it loads AFTER
+     every plugin stylesheet and BEFORE the app's own rules.
+   - Each rule mirrors the plugin's own selector and is scoped with
+     :where([data-theme="dark"]), which adds no specificity. A rule
+     here therefore beats the plugin rule it mirrors (same weight,
+     later), and loses to any app.css rule for the same selector
+     (same weight, later still). app.css stays the single authority
+     for whatever it already styles with tokens.
+   - Keep base rules above their variants (.table td before
+     .table-warning td), because equal-weight rules resolve by order.
+   - Only tokens are used, so a .theme-light subtree resolves these
+     rules back to the light palette.
+   Light mode never matches anything in this file.
+   ========================================================= */
+
+/* ---------- Text elements ---------- */
+:where([data-theme="dark"]) caption,
+:where([data-theme="dark"]) .blockquote-footer,
+:where([data-theme="dark"]) .figure-caption {
+    color: var(--gray-500);
+}
+
+:where([data-theme="dark"]) pre,
+:where([data-theme="dark"]) .form-control-plaintext,
+:where([data-theme="dark"]) .dropdown-item-text {
+    color: var(--gray-950);
+}
+
+:where([data-theme="dark"]) .mark,
+:where([data-theme="dark"]) mark {
+    background-color: var(--warning-50);
+    color: var(--gray-950);
+}
+
+:where([data-theme="dark"]) blockquote {
+    background-color: var(--surface);
+}
+
+:where([data-theme="dark"]) .img-thumbnail {
+    background-color: var(--surface);
+    border-color: var(--gray-200);
+}
+
+:where([data-theme="dark"]) .jumbotron,
+:where([data-theme="dark"]) .breadcrumb {
+    background-color: var(--gray-100);
+}
+
+:where([data-theme="dark"]) .content-header .breadcrumb {
+    background-color: transparent;
+}
+
+:where([data-theme="dark"]) .breadcrumb-item.active,
+:where([data-theme="dark"]) .breadcrumb-item + .breadcrumb-item::before,
+:where([data-theme="dark"]) .link-muted {
+    color: var(--gray-500);
+}
+
+/* ---------- Utilities ---------- */
+/* app.css remaps the utilities themselves with tokens (.text-dark, .text-body, .text-muted,
+   .text-secondary, .text-primary/-info/-success/-danger/-warning, .bg-white, .border*, .shadow*).
+   Only what a token alone cannot do is listed here. */
+
+/* AdminLTE pins dark text on .bg-white / .bg-light. */
+:where([data-theme="dark"]) .bg-white,
+:where([data-theme="dark"]) .bg-white > a,
+:where([data-theme="dark"]) .bg-light,
+:where([data-theme="dark"]) .bg-light > a {
+    color: var(--gray-950) !important;
+}
+
+/* .bg-light is --gray-50 in app.css: the page color, right for light mode where it is a faint
+   tint on a white card. In dark that is darker than the card, so inset boxes, strips and the
+   unfilled segments of a stage track would sink or vanish; lift them one step above the surface.
+   Real [data-theme] scope on purpose: it has to outrank the !important utility in app.css. */
+[data-theme="dark"] .bg-light:where(:not(.theme-light, .theme-light *)) {
+    background-color: var(--gray-100) !important;
+}
+
+/* Bootstrap gives a link inside a status alert its own near-black shade (.alert-warning
+   .alert-link is #533f03), unreadable on the deep dark tints. Follow the alert text instead. */
+:where([data-theme="dark"]) .alert .alert-link {
+    color: inherit;
+}
+
+:where([data-theme="dark"]) a.text-dark:focus,
+:where([data-theme="dark"]) a.text-dark:hover {
+    color: var(--gray-950) !important;
+}
+
+:where([data-theme="dark"]) a.text-secondary:focus,
+:where([data-theme="dark"]) a.text-secondary:hover {
+    color: var(--gray-700) !important;
+}
+
+:where([data-theme="dark"]) .border-dark {
+    border-color: var(--gray-700) !important;
+}
+
+:where([data-theme="dark"]) .border-white {
+    border-color: var(--surface) !important;
+}
+
+:where([data-theme="dark"]) .shadow-lg {
+    box-shadow: var(--shadow-lg) !important;
+}
+
+/* ---------- Buttons ---------- */
+/* A bare .btn (no color variant) carries Bootstrap's near-black text. The :not() list keeps this
+   equal-weight rule from overriding the variants, which are declared after .btn in Bootstrap. */
+:where([data-theme="dark"]) .btn:where(:not(.btn-primary, .btn-secondary, .btn-success, .btn-info, .btn-warning, .btn-danger, .btn-light, .btn-dark, .btn-link, .btn-default, .btn-tool, [class*="btn-outline-"])),
+:where([data-theme="dark"]) .btn:where(:not(.btn-primary, .btn-secondary, .btn-success, .btn-info, .btn-warning, .btn-danger, .btn-light, .btn-dark, .btn-link, .btn-default, .btn-tool, [class*="btn-outline-"])):hover {
+    color: var(--gray-950);
+}
+
+:where([data-theme="dark"]) .btn-tool:hover {
+    color: var(--gray-700);
+}
+
+/* ---------- Dropdowns ---------- */
+:where([data-theme="dark"]) .dropdown-item.disabled,
+:where([data-theme="dark"]) .dropdown-item:disabled,
+:where([data-theme="dark"]) .nav-link.disabled {
+    color: var(--gray-400);
+}
+
+/* ---------- Forms ---------- */
+/* Fields, checkboxes and switches are themed in app.css (FORMS), next to the rules that restyle them. */
+:where([data-theme="dark"]) .form-check-input:disabled ~ .form-check-label,
+:where([data-theme="dark"]) .form-check-input[disabled] ~ .form-check-label {
+    color: var(--gray-500);
+}
+
+:where([data-theme="dark"]) .invalid-feedback {
+    color: var(--danger-600);
+}
+
+:where([data-theme="dark"]) .valid-feedback {
+    color: var(--success-600);
+}
+
+:where([data-theme="dark"]) .custom-control-input:not(:disabled):active ~ .custom-control-label::before {
+    background-color: var(--primary-200);
+    border-color: var(--primary-200);
+}
+
+:where([data-theme="dark"]) .custom-file-input:disabled ~ .custom-file-label,
+:where([data-theme="dark"]) .custom-file-input[disabled] ~ .custom-file-label {
+    background-color: var(--gray-100);
+}
+
+:where([data-theme="dark"]) .custom-range::-webkit-slider-runnable-track {
+    background-color: var(--gray-300);
+}
+
+:where([data-theme="dark"]) .custom-range::-moz-range-track {
+    background-color: var(--gray-300);
+}
+
+/* Native controls follow color-scheme (set with the tokens); these fill in what it leaves out. */
+:where([data-theme="dark"]) input[type="checkbox"],
+:where([data-theme="dark"]) input[type="radio"],
+:where([data-theme="dark"]) input[type="range"],
+:where([data-theme="dark"]) progress {
+    accent-color: var(--primary-600);
+}
+
+/* Option lists inherit the select's own background on some platforms. */
+:where([data-theme="dark"]) select option,
+:where([data-theme="dark"]) select optgroup {
+    background-color: var(--surface-raised);
+    color: var(--gray-950);
+}
+
+/* Autofill: the browser's fill can only be covered with an inset shadow. The second shadow keeps
+   the field's own ring, so these need a real [data-theme] scope to outrank .form-control. */
+[data-theme="dark"] input:-webkit-autofill,
+[data-theme="dark"] textarea:-webkit-autofill,
+[data-theme="dark"] select:-webkit-autofill {
+    -webkit-text-fill-color: var(--gray-950);
+    caret-color: var(--gray-950);
+    box-shadow: inset 0 0 0 1000px var(--info-50), var(--shadow-xs) !important;
+}
+
+[data-theme="dark"] input:-webkit-autofill:focus:not(.is-invalid),
+[data-theme="dark"] textarea:-webkit-autofill:focus:not(.is-invalid),
+[data-theme="dark"] select:-webkit-autofill:focus:not(.is-invalid) {
+    box-shadow: inset 0 0 0 1000px var(--info-50), var(--focus-ring) !important;
+}
+
+/* ---------- Tables ---------- */
+:where([data-theme="dark"]) .table td,
+:where([data-theme="dark"]) .table th,
+:where([data-theme="dark"]) .table thead th,
+:where([data-theme="dark"]) .table tbody + tbody,
+:where([data-theme="dark"]) .table-bordered,
+:where([data-theme="dark"]) .table-bordered td,
+:where([data-theme="dark"]) .table-bordered th {
+    border-color: var(--gray-200);
+}
+
+:where([data-theme="dark"]) .table .thead-light th {
+    color: var(--gray-700);
+    background-color: var(--gray-100);
+    border-color: var(--gray-200);
+}
+
+:where([data-theme="dark"]) .table-striped tbody tr:nth-of-type(odd) {
+    background-color: var(--gray-100);
+}
+
+:where([data-theme="dark"]) .table-hover tbody tr:hover {
+    color: var(--gray-950);
+    background-color: var(--gray-100);
+}
+
+/* Contextual rows: pastel fills become the deep tints. .table-dark keeps Bootstrap's own dark pair. */
+:where([data-theme="dark"]) .table-active,
+:where([data-theme="dark"]) .table-active > td,
+:where([data-theme="dark"]) .table-active > th,
+:where([data-theme="dark"]) .table-light,
+:where([data-theme="dark"]) .table-light > td,
+:where([data-theme="dark"]) .table-light > th,
+:where([data-theme="dark"]) .table-secondary,
+:where([data-theme="dark"]) .table-secondary > td,
+:where([data-theme="dark"]) .table-secondary > th {
+    background-color: var(--gray-100);
+}
+
+:where([data-theme="dark"]) .table-primary,
+:where([data-theme="dark"]) .table-primary > td,
+:where([data-theme="dark"]) .table-primary > th {
+    background-color: var(--primary-50);
+}
+
+:where([data-theme="dark"]) .table-success,
+:where([data-theme="dark"]) .table-success > td,
+:where([data-theme="dark"]) .table-success > th {
+    background-color: var(--success-50);
+}
+
+:where([data-theme="dark"]) .table-info,
+:where([data-theme="dark"]) .table-info > td,
+:where([data-theme="dark"]) .table-info > th {
+    background-color: var(--info-50);
+}
+
+:where([data-theme="dark"]) .table-warning,
+:where([data-theme="dark"]) .table-warning > td,
+:where([data-theme="dark"]) .table-warning > th {
+    background-color: var(--warning-50);
+}
+
+:where([data-theme="dark"]) .table-danger,
+:where([data-theme="dark"]) .table-danger > td,
+:where([data-theme="dark"]) .table-danger > th {
+    background-color: var(--danger-50);
+}
+
+:where([data-theme="dark"]) :is(.table-light, .table-secondary, .table-primary, .table-success, .table-info, .table-warning, .table-danger) :is(td, th),
+:where([data-theme="dark"]) :is(.table-light, .table-secondary, .table-primary, .table-success, .table-info, .table-warning, .table-danger) tbody + tbody {
+    border-color: var(--gray-200);
+}
+
+:where([data-theme="dark"]) .table-hover :is(.table-active, .table-light, .table-secondary):hover,
+:where([data-theme="dark"]) .table-hover :is(.table-active, .table-light, .table-secondary):hover > :is(td, th) {
+    background-color: var(--gray-200);
+}
+
+:where([data-theme="dark"]) .table-hover .table-primary:hover,
+:where([data-theme="dark"]) .table-hover .table-primary:hover > :is(td, th) {
+    background-color: var(--primary-100);
+}
+
+:where([data-theme="dark"]) .table-hover .table-success:hover,
+:where([data-theme="dark"]) .table-hover .table-success:hover > :is(td, th) {
+    background-color: var(--success-50);
+}
+
+:where([data-theme="dark"]) .table-hover .table-info:hover,
+:where([data-theme="dark"]) .table-hover .table-info:hover > :is(td, th) {
+    background-color: var(--info-50);
+}
+
+:where([data-theme="dark"]) .table-hover .table-warning:hover,
+:where([data-theme="dark"]) .table-hover .table-warning:hover > :is(td, th) {
+    background-color: var(--warning-50);
+}
+
+:where([data-theme="dark"]) .table-hover .table-danger:hover,
+:where([data-theme="dark"]) .table-hover .table-danger:hover > :is(td, th) {
+    background-color: var(--danger-50);
+}
+
+/* ---------- Navbar (generic .navbar-light; the admin topbar is styled in app.css) ---------- */
+:where([data-theme="dark"]) .navbar-light .navbar-brand,
+:where([data-theme="dark"]) .navbar-light .navbar-brand:focus,
+:where([data-theme="dark"]) .navbar-light .navbar-brand:hover,
+:where([data-theme="dark"]) .navbar-light .navbar-nav .active > .nav-link,
+:where([data-theme="dark"]) .navbar-light .navbar-nav .nav-link.active,
+:where([data-theme="dark"]) .navbar-light .navbar-nav .nav-link.show,
+:where([data-theme="dark"]) .navbar-light .navbar-nav .show > .nav-link,
+:where([data-theme="dark"]) .navbar-light .navbar-text a {
+    color: var(--gray-950);
+}
+
+:where([data-theme="dark"]) .navbar-light .navbar-nav .nav-link,
+:where([data-theme="dark"]) .navbar-light .navbar-text {
+    color: var(--gray-600);
+}
+
+:where([data-theme="dark"]) .navbar-light .navbar-nav .nav-link:focus,
+:where([data-theme="dark"]) .navbar-light .navbar-nav .nav-link:hover {
+    color: var(--gray-800);
+}
+
+:where([data-theme="dark"]) .navbar-light .navbar-nav .nav-link.disabled {
+    color: var(--gray-400);
+}
+
+:where([data-theme="dark"]) .navbar-light .navbar-toggler {
+    color: var(--gray-600);
+    border-color: var(--gray-200);
+}
+
+/* ---------- List group ---------- */
+:where([data-theme="dark"]) .list-group-item.disabled,
+:where([data-theme="dark"]) .list-group-item:disabled {
+    color: var(--gray-400);
+    background-color: var(--surface);
+}
+
+:where([data-theme="dark"]) .list-group-item-action,
+:where([data-theme="dark"]) .list-group-item-action:focus,
+:where([data-theme="dark"]) .list-group-item-action:hover {
+    color: var(--gray-700);
+}
+
+:where([data-theme="dark"]) .list-group-item-action:active {
+    color: var(--gray-950);
+    background-color: var(--gray-100);
+}
+
+/* Modal, popover, tooltip, toast, dropdown menu and .close: themed in app.css only. */
+
+/* ---------- AdminLTE widgets ---------- */
+:where([data-theme="dark"]) .callout a {
+    color: var(--gray-700);
+}
+
+:where([data-theme="dark"]) .callout a:hover {
+    color: var(--gray-950);
+}
+
+/* Loading overlay over a card: a dark scrim instead of the white veil. */
+:where([data-theme="dark"]) .card .overlay,
+:where([data-theme="dark"]) .info-box .overlay,
+:where([data-theme="dark"]) .overlay-wrapper .overlay,
+:where([data-theme="dark"]) .small-box .overlay {
+    background-color: var(--overlay);
+}
+
+:where([data-theme="dark"]) .card .border-right,
+:where([data-theme="dark"]) .card .border-left,
+:where([data-theme="dark"]) .card .nav.flex-column > li,
+:where([data-theme="dark"]) .tab-custom-content {
+    border-color: var(--gray-200);
+}
+
+:where([data-theme="dark"]) .timeline::before {
+    background-color: var(--gray-200);
+}
+
+:where([data-theme="dark"]) .timeline > div > .timeline-item {
+    background-color: var(--surface);
+    color: var(--gray-700);
+}
+
+:where([data-theme="dark"]) .timeline > div > .timeline-item > .time {
+    color: var(--gray-500);
+}
+
+:where([data-theme="dark"]) .timeline > div > .timeline-item > .timeline-header {
+    border-bottom-color: var(--gray-200);
+    color: var(--gray-700);
+}
+
+:where([data-theme="dark"]) .timeline > .time-label > span {
+    background-color: var(--surface);
+}
+
+/* ---------- Select2 (default theme) ---------- */
+/* Only what app.css (FORMS) leaves out; the dropdown, search field and disabled states live there. */
+:where([data-theme="dark"]) .select2-container--default .select2-search--inline .select2-search__field::placeholder {
+    color: var(--gray-500);
+}
+
+:where([data-theme="dark"]) .select2-container--default .select2-results__group {
+    color: var(--gray-500);
+}
+
+/* ---------- daterangepicker ---------- */
+/* Only what app.css (FORMS, date pickers) leaves out. */
+:where([data-theme="dark"]) .daterangepicker td.week,
+:where([data-theme="dark"]) .daterangepicker th.week {
+    color: var(--gray-400);
+}
+
+:where([data-theme="dark"]) .daterangepicker .calendar-time select.disabled {
+    color: var(--gray-400);
+}
+
+:where([data-theme="dark"]) .daterangepicker.show-ranges.single.rtl .drp-calendar.left,
+:where([data-theme="dark"]) .daterangepicker.show-ranges.single.ltr .drp-calendar.left,
+:where([data-theme="dark"]) .daterangepicker.show-ranges.rtl .drp-calendar.right,
+:where([data-theme="dark"]) .daterangepicker.show-ranges.ltr .drp-calendar.left {
+    border-color: var(--gray-200);
+}
+
+/* ---------- bootstrap-datepicker 1.2 ---------- */
+/* Only what app.css (FORMS, date pickers) leaves out. */
+:where([data-theme="dark"]) .datepicker-dropdown::before {
+    border-bottom-color: var(--gray-200);
+}
+
+/* In 1.2.0 the arrow that points DOWN (picker above the field) is on .datepicker-orient-bottom. */
+:where([data-theme="dark"]) .datepicker-dropdown.datepicker-orient-bottom::before {
+    border-top-color: var(--gray-200);
+}
+
+:where([data-theme="dark"]) .datepicker-dropdown.datepicker-orient-bottom::after {
+    border-top-color: var(--surface-raised);
+}
+
+:where([data-theme="dark"]) .datepicker table tr td.range,
+:where([data-theme="dark"]) .datepicker table tr td.range:hover,
+:where([data-theme="dark"]) .datepicker table tr td.range.disabled,
+:where([data-theme="dark"]) .datepicker table tr td.range.disabled:hover {
+    background: var(--gray-100);
+}
+
+:where([data-theme="dark"]) .datepicker thead tr:first-child th.cw {
+    background-color: transparent;
+}
+
+:where([data-theme="dark"]) .datepicker table tr td span.old,
+:where([data-theme="dark"]) .datepicker table tr td span.new {
+    color: var(--gray-400);
+}
+
+:where([data-theme="dark"]) .datepicker table tr td.disabled,
+:where([data-theme="dark"]) .datepicker table tr td.disabled:hover,
+:where([data-theme="dark"]) .datepicker table tr td span.disabled,
+:where([data-theme="dark"]) .datepicker table tr td span.disabled:hover {
+    background: none;
+    color: var(--gray-400);
+}
+
+/* "Today" is a yellow gradient with black text in the plugin; use the warning tint pair instead. */
+:where([data-theme="dark"]) .datepicker table tr td.today,
+:where([data-theme="dark"]) .datepicker table tr td.today:hover,
+:where([data-theme="dark"]) .datepicker table tr td.today:hover:hover,
+:where([data-theme="dark"]) .datepicker table tr td.today:active,
+:where([data-theme="dark"]) .datepicker table tr td.today:hover:active,
+:where([data-theme="dark"]) .datepicker table tr td.today.disabled,
+:where([data-theme="dark"]) .datepicker table tr td.today.disabled:hover,
+:where([data-theme="dark"]) .datepicker table tr td.today.disabled:hover:hover {
+    background-color: var(--warning-50);
+    background-image: none;
+    border-color: transparent;
+    color: var(--warning-700);
+}
+
+/* ---------- OverlayScrollbars ---------- */
+/* .os-theme-dark draws black handles for a light page; give them a visible gray. */
+:where([data-theme="dark"]) .os-theme-dark > .os-scrollbar > .os-scrollbar-track > .os-scrollbar-handle {
+    background: var(--gray-300);
+}
+
+:where([data-theme="dark"]) .os-theme-dark > .os-scrollbar:hover > .os-scrollbar-track > .os-scrollbar-handle {
+    background: var(--gray-400);
+}
+
+:where([data-theme="dark"]) .os-theme-dark > .os-scrollbar > .os-scrollbar-track > .os-scrollbar-handle.active {
+    background: var(--gray-500);
+}

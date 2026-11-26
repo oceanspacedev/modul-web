@@ -58,7 +58,7 @@
                 </div>
 
                 <div class="col-lg-4">
-                    <div class="card builder-sticky">
+                    <div class="card builder-sticky sticky-below-topbar">
                         <div class="card-header"><h3 class="card-title">Info Dokumen</h3></div>
                         <div class="card-body">
                             @foreach ([
@@ -73,12 +73,14 @@
                                     <label for="{{ $field }}" class="small font-weight-bold mb-1">{{ $label }}</label>
                                     <input type="text" class="form-control form-control-sm @error($field) is-invalid @enderror" id="{{ $field }}" name="{{ $field }}"
                                         maxlength="{{ $max }}" value="{{ old($field, $draft->{$field}) }}" @required($isRequired)>
+                                    @error($field)<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                             @endforeach
                             <div class="form-group">
                                 <label for="effective_date" class="small font-weight-bold mb-1">Tanggal Berlaku</label>
                                 <input type="date" class="form-control form-control-sm @error('effective_date') is-invalid @enderror" id="effective_date" name="effective_date"
                                     value="{{ old('effective_date', $draft->effective_date?->format('Y-m-d')) }}">
+                                @error('effective_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
 
                             <button type="submit" class="btn btn-primary btn-block"><i class="fas fa-save"></i> Simpan</button>
@@ -94,11 +96,11 @@
 
 <style>
     .builder-row { display: flex; gap: .5rem; align-items: flex-start; margin-bottom: .5rem; }
-    .builder-row-num { flex: 0 0 26px; height: 26px; margin-top: 4px; border-radius: 50%; background: #e9ecef; font-size: .75rem; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+    .builder-row-num { flex: 0 0 26px; height: 26px; margin-top: 4px; border-radius: 50%; background: var(--gray-100); color: var(--gray-700); font-size: .75rem; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
     .builder-row-tools { display: flex; flex-direction: column; gap: 2px; }
     .builder-row-tools .btn { padding: 0 .4rem; line-height: 1.4; }
     [data-numbered="0"] .builder-row-num { display: none; }
-    @media (min-width: 992px) { .builder-sticky { position: sticky; top: 1rem; } }
+    @media (min-width: 992px) { .builder-sticky { position: sticky; top: calc(var(--topbar-height, 57px) + 1rem); } }
 </style>
 @endsection
 

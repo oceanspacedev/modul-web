@@ -14,7 +14,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header :title="$isEdit ? 'Edit Modul Belajar' : 'Tambah Modul Belajar'" :subtitle="$isEdit ? $module->title : 'Atur informasi modul, sasaran peserta, dan urutan materi.'" 
+        <x-page-header class="text-break" :title="$isEdit ? 'Edit Modul Belajar' : 'Tambah Modul Belajar'" :subtitle="$isEdit ? $module->title : 'Atur informasi modul, sasaran peserta, dan urutan materi.'" 
             :breadcrumbs="$isEdit
                 ? ['Modul Belajar' => null, 'Kelola Modul' => route('learning-module.index'), $module->title => route('learning-module.show', $module), 'Edit' => null]
                 : ['Modul Belajar' => null, 'Kelola Modul' => route('learning-module.index'), 'Tambah' => null]">
@@ -182,12 +182,12 @@ $(function () {
         }
         var isVideo = key.indexOf('video:') === 0;
         var $row = $('<li class="list-group-item d-flex align-items-center py-2"></li>');
-        $row.append('<span class="text-muted mr-2 material-number"></span>');
-        $row.append('<i class="fas ' + (isVideo ? 'fa-play-circle' : 'fa-file-alt') + ' text-muted mr-2"></i>');
-        $row.append($('<span class="flex-grow-1 text-truncate"></span>').text(labels[key]));
+        $row.append('<span class="text-muted mr-2 material-number flex-shrink-0"></span>');
+        $row.append('<i class="fas ' + (isVideo ? 'fa-play-circle' : 'fa-file-alt') + ' text-muted mr-2 flex-shrink-0"></i>');
+        $row.append($('<span class="flex-grow-1 min-w-0 text-truncate"></span>').text(labels[key]));
         $row.append($('<input type="hidden" name="items[]">').val(key));
         $row.append(
-            '<div class="btn-group btn-group-sm ml-2">' +
+            '<div class="btn-group btn-group-sm ml-2 flex-shrink-0">' +
                 '<button type="button" class="btn btn-default btn-up" title="Naikkan"><i class="fas fa-arrow-up"></i></button>' +
                 '<button type="button" class="btn btn-default btn-down" title="Turunkan"><i class="fas fa-arrow-down"></i></button>' +
                 '<button type="button" class="btn btn-default text-danger btn-remove" title="Hapus"><i class="fas fa-times"></i></button>' +

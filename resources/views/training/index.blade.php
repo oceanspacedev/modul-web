@@ -20,7 +20,7 @@
 
         <div class="card">
             <div class="card-header filter-toolbar">
-                <div class="btn-group btn-group-sm filter-tabs">
+                <div class="btn-group btn-group-sm filter-tabs flex-wrap">
                     <a href="/training" class="btn {{ !request('status') ? 'btn-secondary active' : 'btn-default' }}">Semua ({{ $stats['total'] }})</a>
                     <a href="/training?status=scheduled" class="btn {{ request('status') === 'scheduled' ? 'btn-secondary active' : 'btn-default' }}">Dijadwalkan ({{ $stats['scheduled'] }})</a>
                     <a href="/training?status=ongoing" class="btn {{ request('status') === 'ongoing' ? 'btn-secondary active' : 'btn-default' }}">Berlangsung ({{ $stats['ongoing'] }})</a>
@@ -103,7 +103,7 @@
                                             <a class="dropdown-item" href="/training/{{ $t->id }}/questions">
                                                 Kelola Soal Kuis
                                             </a>
-                                            <a class="dropdown-item btn-upload-video-shortcut" href="javascript:void(0)" data-toggle="modal" data-target="#uploadTrainingVideoModal" data-id="{{ $t->id }}" data-title="{{ addslashes($t->title) }}" data-date="{{ \Carbon\Carbon::parse($t->training_date)->format('d F Y') }}">
+                                            <a class="dropdown-item btn-upload-video-shortcut" href="javascript:void(0)" data-toggle="modal" data-target="#uploadTrainingVideoModal" data-id="{{ $t->id }}" data-title="{{ $t->title }}" data-date="{{ \Carbon\Carbon::parse($t->training_date)->format('d F Y') }}">
                                                 Upload Video Materi
                                             </a>
                                             <a class="dropdown-item" href="/training/{{ $t->id }}/edit">
@@ -137,7 +137,7 @@
 
             @if($trainings->hasPages())
                 <div class="card-footer d-flex justify-content-end">
-                    {{ $trainings->withQueryString()->links() }}
+                    {{ $trainings->withQueryString()->links('pagination::bootstrap-4') }}
                 </div>
             @endif
         </div>
@@ -149,7 +149,7 @@
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <div>
+                <div class="min-w-0 pr-2">
                     <h5 class="modal-title" id="uploadTrainingVideoModalLabel">Upload Video Materi Pelatihan</h5>
                     <small class="text-muted">Video akan otomatis masuk ke Galeri Video Materi dengan judul pelatihan ini.</small>
                 </div>
@@ -263,9 +263,9 @@ function updateIndexThumbLabel(input) {
 document.addEventListener('DOMContentLoaded', function() {
     // When clicking shortcut upload video button in table
     $('.btn-upload-video-shortcut').on('click', function() {
-        var id = $(this).data('id');
-        var title = $(this).data('title');
-        var date = $(this).data('date');
+        var id = $(this).attr('data-id') || '';
+        var title = $(this).attr('data-title') || '';
+        var date = $(this).attr('data-date') || '';
 
         $('#indexModalTrainingId').val(id);
         $('#indexModalVideoTitle').val(title);
@@ -275,13 +275,33 @@ document.addEventListener('DOMContentLoaded', function() {
     var form = document.getElementById('uploadTrainingVideoIndexForm');
     if (form) {
         var isSubmitting = false;
+        var btn = document.getElementById('btnIndexSubmitVideo');
+        var defaultBtnHtml = btn ? btn.innerHTML : '';
+
+        function resetUploadSubmitState() {
+            isSubmitting = false;
+            form.style.pointerEvents = '';
+            if (btn) {
+                btn.disabled = false;
+                btn.style.pointerEvents = '';
+                btn.innerHTML = defaultBtnHtml;
+            }
+        }
+
+        window.addEventListener('pageshow', resetUploadSubmitState);
+        if (typeof $ !== 'undefined') {
+            $('#uploadTrainingVideoModal').on('show.bs.modal', resetUploadSubmitState);
+        }
+
         form.addEventListener('submit', function(e) {
+            if (!form.checkValidity()) {
+                return;
+            }
             if (isSubmitting) {
                 e.preventDefault();
                 return false;
             }
             isSubmitting = true;
-            var btn = document.getElementById('btnIndexSubmitVideo');
             if (btn) {
                 btn.style.pointerEvents = 'none';
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span> Mengunggah Video, mohon tunggu...';

@@ -3,7 +3,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header title="Edit Video" :subtitle="$video->title" :breadcrumbs="['Video Materi' => route('video.index'), $video->title => route('video.show', ['video' => $video->id, 'preview' => 1]), 'Edit' => null]">
+        <x-page-header class="text-break" title="Edit Video" :subtitle="$video->title" :breadcrumbs="['Video Materi' => route('video.index'), $video->title => route('video.show', ['video' => $video->id, 'preview' => 1]), 'Edit' => null]">
             <x-slot:actions>
                 <a href="{{ route('video.index') }}" class="btn btn-default">
                     <i class="fas fa-arrow-left"></i> Kembali ke Galeri
@@ -53,28 +53,29 @@
                             <h3 class="card-title">Sumber Video</h3>
                         </div>
                         <div class="card-body">
-                            <div class="btn-group btn-group-toggle w-100 mb-3" data-toggle="buttons">
-                                <label class="btn btn-default {{ $video->video_type === 'file' ? 'active' : '' }} w-50 py-2" id="labelOptionFile" onclick="switchVideoType('file')">
-                                    <input type="radio" name="video_type" id="option_file" value="file" autocomplete="off" {{ $video->video_type === 'file' ? 'checked' : '' }}>
+                            @php $videoType = old('video_type', $video->video_type); @endphp
+                            <div class="btn-group btn-group-toggle segmented w-100 mb-3" data-toggle="buttons">
+                                <label class="btn btn-sm justify-content-center {{ $videoType === 'file' ? 'active' : '' }}" style="flex: 1;" id="labelOptionFile" onclick="switchVideoType('file')">
+                                    <input type="radio" name="video_type" id="option_file" value="file" autocomplete="off" @checked($videoType === 'file')>
                                     <i class="fas fa-file-upload mr-1"></i> Upload File
                                 </label>
-                                <label class="btn btn-default {{ $video->video_type === 'link' ? 'active' : '' }} w-50 py-2" id="labelOptionLink" onclick="switchVideoType('link')">
-                                    <input type="radio" name="video_type" id="option_link" value="link" autocomplete="off" {{ $video->video_type === 'link' ? 'checked' : '' }}>
+                                <label class="btn btn-sm justify-content-center {{ $videoType === 'link' ? 'active' : '' }}" style="flex: 1;" id="labelOptionLink" onclick="switchVideoType('link')">
+                                    <input type="radio" name="video_type" id="option_link" value="link" autocomplete="off" @checked($videoType === 'link')>
                                     <i class="fas fa-link mr-1"></i> Link Video
                                 </label>
                             </div>
 
                             {{-- SECTION FILE --}}
-                            <div id="sectionFile" style="{{ $video->video_type === 'link' ? 'display: none;' : '' }}">
+                            <div id="sectionFile" style="{{ $videoType === 'link' ? 'display: none;' : '' }}">
                                 @if($video->isFile() && $video->video_file)
-                                    <div class="mb-3" style="max-width: 480px;">
+                                    <div class="mb-3 w-100" style="max-width: 480px;">
                                         <label class="d-block text-muted small">Video saat ini</label>
                                         <div class="embed-responsive embed-responsive-16by9 bg-black rounded">
                                             <video class="embed-responsive-item" controls preload="metadata">
                                                 <source src="{{ $video->video_url }}" type="video/mp4">
                                             </video>
                                         </div>
-                                                                            </div>
+                                    </div>
                                 @endif
 
                                 <label for="video_file">Ganti file <span class="text-muted">(opsional)</span></label>
@@ -84,11 +85,14 @@
                                     <label class="custom-file-label" for="video_file" id="video_file_label">Pilih file video...</label>
                                 </div>
                                 <small class="form-text text-muted">MP4, WebM, MOV, atau MKV. Maks. 2 GB.</small>
+                                @error('video_file')
+                                    <span class="d-block text-danger small mt-1">{{ $message }}</span>
+                                @enderror
                             </div>
 
                             {{-- SECTION LINK --}}
-                            <div id="sectionLink" style="{{ $video->video_type === 'file' ? 'display: none;' : '' }}">
-                                                                <div class="input-group">
+                            <div id="sectionLink" style="{{ $videoType === 'file' ? 'display: none;' : '' }}">
+                                <div class="input-group">
                                     <div class="input-group-prepend">
                                         <span class="input-group-text"><i class="fas fa-link"></i></span>
                                     </div>
@@ -97,6 +101,9 @@
                                         value="{{ old('video_link', $video->video_link) }}">
                                 </div>
                                 <small class="form-text text-muted">YouTube, Google Drive (akses publik), Vimeo, atau link .mp4.</small>
+                                @error('video_link')
+                                    <span class="d-block text-danger small mt-1">{{ $message }}</span>
+                                @enderror
                             </div>
                         </div>
                     </div>
@@ -131,6 +138,9 @@
                                         accept="image/png,image/jpeg,image/webp" onchange="displayNewThumbnail(this)">
                                     <label class="custom-file-label" for="thumbnail" id="thumbnail_label">Pilih gambar...</label>
                                 </div>
+                                @error('thumbnail')
+                                    <span class="d-block text-danger small mt-1">{{ $message }}</span>
+                                @enderror
                                 @if($video->isFile() && $video->video_file)
                                     <button type="button" class="btn btn-default btn-sm btn-block mt-2" id="btnCaptureCover">
                                         <i class="fas fa-camera"></i> Ambil cover dari video
@@ -155,11 +165,16 @@
         </form>
     </div>
 </section>
+@endsection
 
+@section('footer')
 @include('video.partials.thumbnail-capture')
 <script>
 function switchVideoType(type) {
-    if (type === 'file') {
+    var isFile = type === 'file';
+    document.getElementById('labelOptionFile').classList.toggle('active', isFile);
+    document.getElementById('labelOptionLink').classList.toggle('active', !isFile);
+    if (isFile) {
         document.getElementById('sectionFile').style.display = 'block';
         document.getElementById('sectionLink').style.display = 'none';
     } else {

@@ -32,13 +32,13 @@
                     <li class="py-3 border-top">
                         @if($question->isScale())
                             <div class="d-flex justify-content-between align-items-baseline gap-2 text-sm">
-                                <span>{{ $question->question }}</span>
+                                <span class="min-w-0 text-break">{{ $question->question }}</span>
                                 <strong class="text-nowrap">{{ $item['average'] === null ? '-' : number_format($item['average'], 2) }}</strong>
                             </div>
                             <div class="rating-bar mt-1" aria-hidden="true"><span style="width: {{ round(($item['average'] ?? 0) / $scaleMax * 100) }}%"></span></div>
                         @else
                             <details>
-                                <summary class="text-sm">
+                                <summary class="text-sm text-break">
                                     {{ $question->question }} <span class="text-muted">({{ $item['answered'] }} jawaban)</span>
                                 </summary>
                                 <div class="mt-2">
@@ -50,7 +50,7 @@
                                         @foreach($options as $option)
                                             @php $share = $item['answered'] > 0 ? round($option['count'] / $item['answered'] * 100) : 0; @endphp
                                             <div class="d-flex justify-content-between align-items-baseline gap-2 text-sm text-muted">
-                                                <span>{{ $option['label'] }}{{ $option['removed'] ? ' (opsi lama)' : '' }}</span>
+                                                <span class="min-w-0 text-break">{{ $option['label'] }}{{ $option['removed'] ? ' (opsi lama)' : '' }}</span>
                                                 <span class="text-nowrap">{{ $option['count'] }} · {{ $share }}%</span>
                                             </div>
                                             <div class="rating-bar mb-2" aria-hidden="true"><span style="width: {{ $share }}%"></span></div>
@@ -64,7 +64,7 @@
                                         @endif
                                         @forelse($item['entries'] as $entry)
                                             <div class="text-sm border-left pl-2 mb-2">
-                                                <strong>{{ $entry['name'] }}</strong>
+                                                <strong class="text-break">{{ $entry['name'] }}</strong>
                                                 <span class="text-muted">· {{ $entry['at']->format('d M Y H:i') }}</span>
                                                 <div class="text-break" style="white-space: pre-line;">{{ $entry['text'] }}</div>
                                             </div>

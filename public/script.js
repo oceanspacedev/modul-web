@@ -134,27 +134,23 @@ $(document).ready(function () {
         $("#modalOption").modal("hide");
     });
 
-    $("#tanggal").daterangepicker();
+    if ($.fn.daterangepicker) {
+        $("#tanggal").daterangepicker();
 
-    $("#tanggalExport").daterangepicker({
-        parentEl: "#exportAbsent .modal-body",
-    });
+        $("#tanggalExport").daterangepicker({
+            parentEl: "#exportAbsent .modal-body",
+        });
 
-    $("#bulanChart").datepicker({
-        format: "yyyy-mm",
-        startView: "months",
-        minViewMode: "months",
-    });
+        $("#tanggalChart").daterangepicker();
+    }
 
-    $("#tanggalChart").daterangepicker();
-    
-    // Fix Bootstrap table-responsive clipping dropdowns dynamically
-    $(document).on('show.bs.dropdown', '.table-responsive', function () {
-        $(this).css('overflow', 'inherit');
-    });
-    $(document).on('hide.bs.dropdown', '.table-responsive', function () {
-        $(this).css('overflow', '');
-    });
+    if ($.fn.datepicker) {
+        $("#bulanChart").datepicker({
+            format: "yyyy-mm",
+            startView: "months",
+            minViewMode: "months",
+        });
+    }
 });
 
 
@@ -181,9 +177,26 @@ $(function () {
 });
 
 
+// Topbar sticky border saat halaman digulir.
+$(function () {
+    var $header = $(".main-header");
+    if (!$header.length) {
+        return;
+    }
+
+    function syncScrolled() {
+        $header.toggleClass("is-scrolled", window.scrollY > 4);
+    }
+
+    syncScrolled();
+    window.addEventListener("scroll", syncScrolled, { passive: true });
+});
+
+
 // Sidebar ciut (layar >= 992px): sidebar tidak melebar saat di-hover (lihat app.css). Nama menu yang di-hover
 // atau difokus tampil di samping ikonnya, lengkap dengan submenunya kalau ada, supaya submenu tetap bisa dibuka.
-// Pilihan ciut/lebar dari tombol menu juga diingat untuk halaman berikutnya (dipasang lagi di header.blade.php).
+// Di layar < 992px sidebar berperan sebagai drawer geser (sinkron memakai matchMedia agar tidak terpengaruh
+// lebar scrollbar di sekitar 992px). Pilihan ciut/lebar diingat untuk halaman berikutnya (header.blade.php).
 $(function () {
     var $sidebar = $(".main-sidebar");
     if (!$sidebar.length) {
@@ -194,6 +207,7 @@ $(function () {
     var $flyout = $('<div class="sidebar-flyout" role="tooltip" hidden></div>').appendTo("body");
     var hideTimer = null;
     var current = null;
+    var openedAt = 0;
 
     function isCollapsed() {
         return wide.matches && $("body").hasClass("sidebar-collapse");
@@ -204,6 +218,7 @@ $(function () {
         var run = function () {
             $flyout.prop("hidden", true);
             current = null;
+            openedAt = 0;
         };
         if (delay) {
             hideTimer = setTimeout(run, delay);
@@ -221,22 +236,34 @@ $(function () {
             return;
         }
         current = link;
+        openedAt = Date.now();
 
-        // Nama menu tanpa panah submenu dan badge di dalam <p>.
+        // Nama menu tanpa panah submenu dan badge di dalam <p>; badge notifikasi dipindah ke judul flyout bila aktif.
         var $label = $(link).children("p").clone();
         $label.find(".right").remove();
-        $flyout.empty().append($('<div class="sidebar-flyout-title"></div>').text($.trim($label.text())));
+        var $badge = $(link).find("[data-notification-count]").first();
+        var $title = $('<div class="sidebar-flyout-title"></div>').text($.trim($label.text()));
+        if ($badge.length && !$badge.prop("hidden")) {
+            $title.append(" ").append($('<span class="badge badge-primary ml-2"></span>').text($.trim($badge.text())));
+        }
+        $flyout.empty().append($title);
 
         var $children = $(link).parent().children(".nav-treeview").find("> .nav-item > .nav-link");
         $flyout.toggleClass("has-menu", $children.length > 0);
         if ($children.length) {
             var $menu = $('<div class="sidebar-flyout-menu"></div>').appendTo($flyout);
             $children.each(function () {
-                $('<a class="sidebar-flyout-link"></a>')
+                var $item = $('<a class="sidebar-flyout-link"></a>')
                     .attr("href", this.getAttribute("href"))
                     .toggleClass("active", $(this).hasClass("active"))
-                    .text($.trim($(this).text()))
-                    .appendTo($menu);
+                    .text($.trim($(this).text()));
+                if (this.hasAttribute("target")) {
+                    $item.attr("target", this.getAttribute("target"));
+                }
+                if (this.hasAttribute("rel")) {
+                    $item.attr("rel", this.getAttribute("rel"));
+                }
+                $item.appendTo($menu);
             });
         }
 
@@ -247,12 +274,42 @@ $(function () {
         $flyout.css("top", Math.max(8, top));
     }
 
+    function syncViewport() {
+        hide();
+        var $body = $("body");
+        if (wide.matches) {
+            var rememberCollapsed = false;
+            try {
+                rememberCollapsed = localStorage.getItem("sidebar-collapsed") === "1";
+            } catch (err) {}
+            $body.removeClass("sidebar-open sidebar-closed").toggleClass("sidebar-collapse", rememberCollapsed);
+        } else {
+            $body.removeClass("sidebar-open").addClass("sidebar-closed sidebar-collapse");
+        }
+    }
+
     $sidebar
         .on("mouseenter focusin", ".nav-sidebar > .nav-item > .nav-link", function () {
             show(this);
         })
         .on("mouseleave focusout", ".nav-sidebar > .nav-item > .nav-link", function () {
             hide(150);
+        })
+        .on("click", ".nav-sidebar > .nav-item > .nav-link", function (e) {
+            if (!isCollapsed()) {
+                return;
+            }
+            if ($(this).parent().children(".nav-treeview").length) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                if (current === this && !$flyout.prop("hidden")) {
+                    if (Date.now() - openedAt > 400) {
+                        hide();
+                    }
+                } else {
+                    show(this);
+                }
+            }
         });
 
     // Jeda 150ms di atas memberi waktu kursor pindah dari ikon ke submenu di flyout.
@@ -264,6 +321,27 @@ $(function () {
             hide(150);
         });
 
+    document.addEventListener("pointerdown", function (e) {
+        if (!$flyout.prop("hidden") && e.target && e.target.closest && !e.target.closest(".main-sidebar, .sidebar-flyout")) {
+            hide();
+        }
+    });
+
+    document.addEventListener("keydown", function (e) {
+        if (e.key !== "Escape") {
+            return;
+        }
+        hide();
+        if (!wide.matches && $("body").hasClass("sidebar-open")) {
+            var $toggle = $('[data-widget="pushmenu"]').first();
+            if ($toggle.length && $.fn.PushMenu) {
+                $toggle.PushMenu("collapse");
+            } else {
+                $("body").removeClass("sidebar-open").addClass("sidebar-closed sidebar-collapse");
+            }
+        }
+    });
+
     $sidebar[0].addEventListener("scroll", function () {
         hide();
     }, true);
@@ -271,13 +349,24 @@ $(function () {
         hide();
     });
 
+    if (wide.addEventListener) {
+        wide.addEventListener("change", syncViewport);
+    } else if (wide.addListener) {
+        wide.addListener(syncViewport);
+    }
+
     $(document).on("collapsed.lte.pushmenu shown.lte.pushmenu", function (e) {
         hide();
-        // Di layar kecil tombol menu membuka sidebar sebagai panel, dan AdminLTE menciutkannya sendiri saat jendela
-        // diperkecil; keduanya bukan pilihan yang perlu diingat.
+        var $body = $("body");
         if (!wide.matches) {
+            if (e.type === "shown") {
+                $body.addClass("sidebar-open").removeClass("sidebar-closed sidebar-collapse");
+            } else {
+                $body.removeClass("sidebar-open").addClass("sidebar-closed sidebar-collapse");
+            }
             return;
         }
+        $body.removeClass("sidebar-open sidebar-closed");
         try {
             localStorage.setItem("sidebar-collapsed", e.type === "collapsed" ? "1" : "0");
         } catch (err) {}

@@ -55,8 +55,17 @@ class LearningModulePolicy
             return false;
         }
 
-        return $module->isOwnedByVideo()
-            || ($module->source instanceof Document && $user->can('view', $module->source));
+        if ($module->isOwnedByVideo()) {
+            return true;
+        }
+
+        if ($module->source_type === LearningModuleItem::TYPE_DOCUMENT) {
+            $module->loadMissing('source');
+
+            return $module->source instanceof Document && $user->can('view', $module->source);
+        }
+
+        return false;
     }
 
     private function manages(User $user, LearningModule $module): bool

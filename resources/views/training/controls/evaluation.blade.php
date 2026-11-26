@@ -16,7 +16,7 @@
         'extraControl' => ['url' => route('training.toggle-evaluation', $training), 'label' => 'Nonaktifkan', 'class' => 'text-danger'],
     ])
 @else
-    <div class="list-group-item d-flex align-items-start justify-content-between gap-2">
+    <div class="list-group-item d-flex flex-wrap align-items-start justify-content-between gap-2">
         <div class="min-w-0">
             <div class="text-sm font-weight-bold">Form Evaluasi</div>
             <div class="text-muted text-xs">Peserta tidak diminta mengisi evaluasi</div>

@@ -88,6 +88,9 @@
                 option.disabled = !matches;
             }
             if (account.selectedOptions[0]?.disabled) account.value = '';
+            if (typeof $ !== 'undefined' && $(account).hasClass('select2-hidden-accessible')) {
+                $(account).trigger('change.select2');
+            }
             account.required = canMonitor && enabled.checked;
         }
 

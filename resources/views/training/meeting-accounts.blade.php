@@ -20,8 +20,10 @@
         <div class="row">
             <section class="col-lg-5" aria-labelledby="add-meeting-account">
                 <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title" id="add-meeting-account">Tambah akun penyelenggara</h2>
+                    </div>
                     <div class="card-body">
-                        <h2 class="h5" id="add-meeting-account">Tambah akun penyelenggara</h2>
                         <p class="text-muted">Akun dipakai untuk mencatat aktivitas peserta di meeting pelatihan dan bisa dipilih lagi saat membuat pelatihan lain.</p>
                         <form method="POST" action="{{ route('training.meeting-accounts.store') }}" id="meeting-account-form">
                             @csrf
@@ -71,12 +73,14 @@
 
             <section class="col-lg-7" aria-labelledby="meeting-saved-accounts">
                 <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title" id="meeting-saved-accounts">Akun tersimpan</h2>
+                    </div>
                     <div class="card-body">
-                        <h2 class="h5" id="meeting-saved-accounts">Akun tersimpan</h2>
                         @forelse($accounts as $account)
                             @php($accountProvider = $providers[$account->provider] ?? null)
-                            <details class="border-top py-3">
-                                <summary>{{ $account->name }} <span class="text-muted small">· {{ $accountProvider?->label() ?? $account->provider }}</span></summary>
+                            <details class="{{ $loop->first ? 'pb-3' : 'border-top py-3' }}">
+                                <summary style="cursor: pointer;"><span class="font-weight-bold">{{ $account->name }}</span> <span class="text-muted small">· {{ $accountProvider?->label() ?? $account->provider }}</span></summary>
                                 @if($accountProvider)
                                     <form method="POST" action="{{ route('training.meeting-accounts.update', $account) }}" class="mt-3">
                                         @csrf
@@ -113,9 +117,13 @@
                                 @endif
                             </details>
                         @empty
-                            <p class="text-muted mb-0">Belum ada akun yang tersimpan.</p>
+                            <x-empty-state icon="fa-video" title="Belum ada akun tersimpan" text="Tambahkan akun penyelenggara meeting untuk mulai mencatat aktivitas peserta." />
                         @endforelse
-                        {{ $accounts->links('pagination::bootstrap-4') }}
+                        @if($accounts->hasPages())
+                            <div class="mt-3">
+                                {{ $accounts->links('pagination::bootstrap-4') }}
+                            </div>
+                        @endif
                     </div>
                 </div>
             </section>

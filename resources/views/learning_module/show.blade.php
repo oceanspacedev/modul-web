@@ -9,7 +9,7 @@
 @section('content')
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header :title="$module->title" :subtitle="$subtitle" :breadcrumbs="$module->isOwned() ? $module->adminBreadcrumbs('Rekap Nilai') : ['Modul Belajar' => null, 'Kelola Modul' => route('learning-module.index'), $module->title => null]">
+        <x-page-header class="text-break" :title="$module->title" :subtitle="$subtitle" :breadcrumbs="$module->isOwned() ? $module->adminBreadcrumbs('Rekap Nilai') : ['Modul Belajar' => null, 'Kelola Modul' => route('learning-module.index'), $module->title => null]">
             <x-slot:actions>
                 <a href="{{ $module->managementUrl() }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
                 <a href="{{ $module->url('questions.index') }}" class="btn btn-default">Kelola Soal ({{ $module->questions_count }})</a>
@@ -154,12 +154,12 @@
             <ul class="list-group list-group-flush">
                 @forelse($module->items as $index => $item)
                     <li class="list-group-item d-flex align-items-center">
-                        <span class="text-muted mr-2">{{ $index + 1 }}.</span>
-                        <i class="fas {{ $item->isVideo() ? 'fa-play-circle' : 'fa-file-alt' }} text-muted mr-2"></i>
+                        <span class="text-muted mr-2 flex-shrink-0">{{ $index + 1 }}.</span>
+                        <i class="fas {{ $item->isVideo() ? 'fa-play-circle' : 'fa-file-alt' }} text-muted mr-2 flex-shrink-0"></i>
                         @if($item->materialable)
-                            {{ $item->title() }}
+                            <span class="flex-grow-1 min-w-0 text-break">{{ $item->title() }}</span>
                         @else
-                            <span class="text-muted font-italic">Materi sudah dihapus (tidak lagi diwajibkan)</span>
+                            <span class="flex-grow-1 min-w-0 text-break text-muted font-italic">Materi sudah dihapus (tidak lagi diwajibkan)</span>
                         @endif
                     </li>
                 @empty

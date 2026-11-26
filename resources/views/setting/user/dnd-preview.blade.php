@@ -8,6 +8,12 @@
                     <a href="{{ route('user.index') }}" class="btn btn-default">Batal</a>
                 </x-slot:actions>
             </x-page-header>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            <x-flash />
 
             <div class="row mb-2">
                 @foreach ([
@@ -130,7 +136,7 @@
                 </div>
             @endif
 
-            <form action="{{ route('user.dnd.process') }}" method="POST" class="d-flex justify-content-end gap-2 mb-4" onsubmit="this.querySelector('button').disabled = true">
+            <form action="{{ route('user.dnd.process') }}" method="POST" class="d-flex justify-content-end flex-wrap gap-2 mb-0" onsubmit="this.querySelector('button').disabled = true">
                 @csrf
                 <input type="hidden" name="token" value="{{ $token }}">
                 <a href="{{ route('user.index') }}" class="btn btn-default">Batal</a>

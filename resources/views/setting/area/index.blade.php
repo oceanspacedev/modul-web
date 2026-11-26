@@ -10,7 +10,11 @@
                     </button>
                 </x-slot:actions>
             </x-page-header>
+        </div>
+    </section>
 
+    <section class="content">
+        <div class="container-fluid">
             <x-flash />
 
             <div class="card">
@@ -49,7 +53,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4">
+                                    <td colspan="4" class="text-wrap">
                                         @if (filled(request('search')))
                                             <x-empty-state icon="fa-search" title="Tidak ada hasil" text="Tidak ada area yang cocok dengan pencarian ini." />
                                         @else

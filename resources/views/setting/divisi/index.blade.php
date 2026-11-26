@@ -10,7 +10,11 @@
                     </button>
                 </x-slot:actions>
             </x-page-header>
+        </div>
+    </section>
 
+    <section class="content">
+        <div class="container-fluid">
             <x-flash />
 
             <div class="card">
@@ -20,7 +24,7 @@
                         <x-search-field placeholder="Cari divisi, area, atau kepala divisi..." :clear-url="route('divisi.index')" style="max-width: 360px;" />
                     </form>
                 </div>
-                <div class="card-body table-responsive p-0">
+                <div class="card-body table-responsive p-0{{ $divisis->isEmpty() ? ' table-empty-wrap' : '' }}">
                     <table class="table table-head-fixed text-nowrap">
                         <thead>
                             <tr>
@@ -53,12 +57,14 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6">
-                                        @if (filled(request('search')))
-                                            <x-empty-state icon="fa-search" title="Tidak ada hasil" text="Tidak ada divisi yang cocok dengan pencarian ini." />
-                                        @else
-                                            <x-empty-state icon="fa-sitemap" title="Belum ada divisi" text="Tambahkan divisi pertama untuk mengelompokkan karyawan."><button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addDivisi">Tambah Divisi</button></x-empty-state>
-                                        @endif
+                                    <td colspan="6" class="text-wrap table-empty-cell">
+                                        <div class="table-empty-sticky">
+                                            @if (filled(request('search')))
+                                                <x-empty-state icon="fa-search" title="Tidak ada hasil" text="Tidak ada divisi yang cocok dengan pencarian ini." />
+                                            @else
+                                                <x-empty-state icon="fa-sitemap" title="Belum ada divisi" text="Tambahkan divisi pertama untuk mengelompokkan karyawan."><button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addDivisi">Tambah Divisi</button></x-empty-state>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @endforelse
@@ -116,4 +122,9 @@
             </div>
         </div>
     </form>
+<style>
+    .table-empty-wrap { container-type: inline-size; }
+    .table-empty-wrap .table tbody td.table-empty-cell { padding: 0 !important; }
+    .table-empty-sticky { position: sticky; left: 0; width: min(100%, 100vw); width: 100cqi; max-width: 100%; }
+</style>
 @endsection

@@ -5,7 +5,7 @@
 <!-- KONFIRMASI KEHADIRAN (tidak tampil bila pelatihan tanpa presensi) -->
 @if($training->has_attendance)
 <div class="content-card" id="attendanceCard">
-    <div class="content-card-header">
+    <div class="content-card-header flex-wrap">
         <span><span class="badge badge-primary mr-1">Langkah {{ $stepNumber['attendance'] }}</span> Presensi Kehadiran</span>
         <div class="d-flex align-items-center gap-2">
             @if($participant->attendance_status === 'hadir')
@@ -55,7 +55,7 @@
                 <strong>Konfirmasi Tidak Hadir Telah Dicatat</strong>
             </div>
             @if($participant->attendance_notes)
-                <div class="small mt-1">Keterangan: {{ $participant->attendance_notes }}</div>
+                <div class="small mt-1 text-break">Keterangan: {{ $participant->attendance_notes }}</div>
             @endif
         </div>
     @else
@@ -120,7 +120,7 @@
                     </div>
                 </div>
 
-                <div class="d-flex gap-2">
+                <div class="d-flex flex-wrap gap-2">
                     <button type="submit" class="btn btn-primary flex-grow-1">
                         <i class="fas fa-check-circle mr-1"></i> Saya Hadir
                     </button>

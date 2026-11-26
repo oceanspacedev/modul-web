@@ -3,7 +3,7 @@
 @section('content')
     <section class="content-header">
         <div class="container-fluid">
-            <x-page-header title="Edit Dokumen" :subtitle="$document->name" :breadcrumbs="['Dokumen' => route('document.index'), $document->name => null, 'Edit' => null]">
+            <x-page-header class="text-break" title="Edit Dokumen" :subtitle="$document->name" :breadcrumbs="['Dokumen' => route('document.index'), $document->name => null, 'Edit' => null]">
                 <x-slot:actions>
                     <span class="badge badge-secondary">v{{ $document->version ?? 1 }}</span>
                     <a href="{{ $document->file_url }}" target="_blank" class="btn btn-default">
@@ -12,7 +12,11 @@
                     <a href="{{ route('document.index') }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
                 </x-slot:actions>
             </x-page-header>
+        </div>
+    </section>
 
+    <section class="content">
+        <div class="container-fluid">
             <x-flash />
 
             <form action="{{ route('document.update', $document) }}" method="POST" enctype="multipart/form-data">
@@ -40,7 +44,7 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-lg-3 form-group">
+                            <div class="col-lg-4 form-group">
                                 <label for="document_type">Tipe Dokumen</label>
                                 <select class="custom-select select2" name="document_type" id="document_type" style="width: 100%;" required>
                                     @foreach ($documentypes as $documentype)
@@ -52,10 +56,10 @@
                                 </select>
                             </div>
 
-                            <div class="col-lg-3 form-group">
+                            <div class="col-lg-4 form-group">
                                 <label for="divisi_id">Divisi</label>
                                 <select class="custom-select select2" name="divisi_id" id="divisi_id" style="width: 100%;" required>
-                                    <option value="">--Pilih Divisi--</option>
+                                    <option value="">Pilih Divisi...</option>
                                     @foreach ($divisis as $divisi)
                                         <option value="{{ $divisi->id }}"
                                             {{ $divisi->id == $document->divisi_id ? 'selected' : '' }}>
@@ -64,7 +68,7 @@
                                 </select>
                             </div>
 
-                            <div class="col-lg-3 form-group">
+                            <div class="col-lg-4 form-group">
                                 <label for="role_id">Jabatan</label>
                                 <select class="custom-select select2" name="role_id" id="role_id" style="width: 100%;" required>
                                     <option value="0">SEMUA JABATAN</option>
@@ -79,7 +83,7 @@
 
                         @include('learning_module.partials.quiz-rules-fields', ['quiz' => $quiz])
                     </div>
-                    <div class="card-footer d-flex justify-content-end gap-2">
+                    <div class="card-footer d-flex flex-wrap justify-content-end gap-2">
                         <a href="{{ route('document.index') }}" class="btn btn-default">Batal</a>
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save"></i> Simpan
@@ -95,7 +99,7 @@
                     <span class="badge badge-secondary">{{ $document->versions->count() }}</span>
                 </div>
                 <div class="card-body p-0 table-responsive">
-                    <table class="table table-hover mb-0 text-sm">
+                    <table class="table table-hover mb-0">
                         <thead>
                             <tr>
                                 <th style="width: 80px;" class="text-center">Versi</th>

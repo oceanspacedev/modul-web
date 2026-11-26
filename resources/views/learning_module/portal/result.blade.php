@@ -20,7 +20,7 @@
 
 <section class="content-header">
     <div class="container-fluid">
-        <x-page-header :title="'Hasil '.($attempt->isPretest() ? 'Pretest' : 'Posttest').' ke-'.$attempt->attempt_number" :subtitle="$module->title.' · '.$attempt->submitted_at->format('d M Y H:i')" eyebrow="Modul Saya / Hasil">
+        <x-page-header class="text-break" :title="'Hasil '.($attempt->isPretest() ? 'Pretest' : 'Posttest').' ke-'.$attempt->attempt_number" :subtitle="$module->title.' · '.$attempt->submitted_at->format('d M Y H:i')" eyebrow="Modul Saya / Hasil">
             <x-slot:actions>
                 <a href="{{ $backUrl }}" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali</a>
             </x-slot:actions>

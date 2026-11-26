@@ -10,21 +10,25 @@
 
     <header class="quiz-header">
         <div class="container portal-container">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="h6 mb-0">{{ $training->title }}</h1>
+            <div class="d-flex justify-content-between align-items-center gap-2 quiz-header-inner">
+                <div class="quiz-header-title min-w-0">
+                    <h1 class="h6 mb-0 text-truncate">{{ $training->title }}</h1>
                     <span class="text-muted small">{{ $phase === 'pretest' ? 'Pretest Pelatihan' : 'Kuis Evaluasi Pelatihan' }}</span>
                 </div>
-                <div class="d-flex align-items-center flex-wrap justify-content-end gap-2">
-                    <span class="badge badge-warning" id="deadlineBadge" title="Kuis ditutup otomatis saat waktu habis" hidden>
-                        <i class="far fa-clock"></i> Sisa waktu <span id="deadlineClock"></span>
-                    </span>
-                    <span class="badge badge-secondary" title="Maksimal 3 kali keluar halaman">
-                        <i class="fas fa-shield-alt"></i> Toleransi Keluar: 3x
-                    </span>
-                    <span class="badge badge-primary">
-                        {{ $questions->count() }} Soal
-                    </span>
+                {{-- Tombol tema di luar grup badge yang membungkus, supaya tidak menambah baris header di ponsel. --}}
+                <div class="d-flex align-items-center flex-nowrap gap-2 quiz-header-meta">
+                    <div class="d-flex align-items-center flex-wrap justify-content-end gap-2">
+                        <span class="badge badge-warning" id="deadlineBadge" title="Kuis ditutup otomatis saat waktu habis" hidden>
+                            <i class="far fa-clock"></i> Sisa waktu <span id="deadlineClock"></span>
+                        </span>
+                        <span class="badge badge-secondary" title="Maksimal 3 kali keluar halaman">
+                            <i class="fas fa-shield-alt"></i> Toleransi Keluar: 3x
+                        </span>
+                        <span class="badge badge-primary">
+                            {{ $questions->count() }} Soal
+                        </span>
+                    </div>
+                    @include('layout.partials.theme-toggle', ['class' => 'portal-theme-toggle'])
                 </div>
             </div>
         </div>
@@ -58,7 +62,7 @@
                     @if($q->type === 'essay')
                         <span class="badge badge-primary mr-2">Essay / Uraian</span>
                     @endif
-                    <strong class="d-block mt-2" style="font-size: 0.9375rem;">{{ $q->question }}</strong>
+                    <strong class="d-block mt-2 text-break" style="font-size: 0.9375rem;">{{ $q->question }}</strong>
                     @if($q->imageUrl())
                         <img src="{{ $q->imageUrl() }}" alt="Gambar soal {{ $index + 1 }}" class="quiz-img mt-2">
                     @endif
@@ -74,7 +78,7 @@
                         @foreach($q->options() as $optKey => $optVal)
                             <label class="option-label" for="q_{{ $q->id }}_{{ $optKey }}">
                                 <input type="radio" name="answers[{{ $q->id }}]" value="{{ $optKey }}" id="q_{{ $q->id }}_{{ $optKey }}" {{ $loop->first ? 'required' : '' }}>
-                                <div>
+                                <div class="min-w-0 text-break">
                                     <strong>{{ strtoupper($optKey) }}.</strong> {{ $optVal }}
                                     @if($q->optionImageUrl($optKey))
                                         <img src="{{ $q->optionImageUrl($optKey) }}" alt="Gambar pilihan {{ strtoupper($optKey) }}" class="quiz-img quiz-opt-img mt-1">
@@ -89,7 +93,7 @@
 
             <div class="card p-4 text-center mb-5">
                 <p class="text-muted small mb-3">Pastikan Anda telah memeriksa kembali seluruh jawaban.</p>
-                <div class="d-flex justify-content-center gap-2">
+                <div class="d-flex justify-content-center flex-wrap gap-2">
                     <a href="/training/portal/{{ $participant->token }}" class="btn btn-default px-4">Batal</a>
                     <button type="submit" id="btnSubmitQuiz" class="btn btn-primary px-4" onclick="return confirm('Kirimkan seluruh jawaban kuis ini?')">
                         Kirim Jawaban

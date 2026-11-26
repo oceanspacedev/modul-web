@@ -23,8 +23,8 @@
         @if ($source?->documentRequest)
             @php($origin = $source->documentRequest)
             <div class="alert alert-light border d-flex align-items-start gap-2">
-                <i class="fas fa-inbox text-info mt-1"></i>
-                <div class="small">
+                <i class="fas fa-inbox text-info mt-1 flex-shrink-0"></i>
+                <div class="small min-w-0 text-break">
                     <strong>Dari permintaan <span class="badge badge-info">{{ $origin->code }}</span></strong>
                     · {{ $origin->nama }} ({{ $origin->jabatan }}, {{ $origin->departemen }}){{ $source->prioritas ? ' · Prioritas '.$source->prioritas : '' }}
                     <div class="text-muted">{{ $draft ? 'Data permintaan ikut dikirim ke AI.' : 'Jawaban terisi dari permintaan. Cek dan lengkapi dulu, data permintaan juga ikut dikirim ke AI.' }}</div>
@@ -57,7 +57,7 @@
                         <div class="card builder-step mb-2" data-step data-required="{{ $question['required'] ? 1 : 0 }}">
                             <button type="button" class="builder-step-head" data-step-toggle aria-expanded="true">
                                 <span class="builder-step-num" data-step-num>{{ $i + 1 }}</span>
-                                <span class="flex-fill text-left">
+                                <span class="flex-fill min-w-0 text-left">
                                     <span class="d-block font-weight-bold">{{ $question['label'] }} @if ($question['required'])<span class="text-danger">*</span>@endif</span>
                                     <span class="d-block small text-muted">{{ $question['hint'] }}</span>
                                 </span>
@@ -81,40 +81,42 @@
                 </div>
 
                 <div class="col-lg-4">
-                    <div class="card builder-sticky">
-                        <div class="card-body">
-                            <div class="form-group">
-                                <label for="company" class="small font-weight-bold mb-1">Badan Usaha</label>
-                                <input type="text" class="form-control form-control-sm" id="company" name="company" maxlength="150" value="{{ old('company', $company) }}" placeholder="Nama perusahaan di kop dokumen">
-                            </div>
+                    <div class="builder-sticky sticky-below-topbar">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label for="company" class="small font-weight-bold mb-1">Badan Usaha</label>
+                                    <input type="text" class="form-control form-control-sm" id="company" name="company" maxlength="150" value="{{ old('company', $company) }}" placeholder="Nama perusahaan di kop dokumen">
+                                </div>
 
-                            @if ($aiReady)
-                                <button type="submit" name="mode" value="ai" class="btn btn-primary btn-block" data-submit-ai
-                                    @if ($draft && $draft->hasContent()) onclick="return confirm('Isi dokumen yang sekarang akan diganti hasil AI. Lanjutkan?')" @endif>
-                                    <i class="fas fa-magic"></i> {{ $draft ? 'Susun Ulang dengan AI' : 'Susun dengan AI' }}
+                                @if ($aiReady)
+                                    <button type="submit" name="mode" value="ai" class="btn btn-primary btn-block" data-submit-ai
+                                        @if ($draft && $draft->hasContent()) onclick="return confirm('Isi dokumen yang sekarang akan diganti hasil AI. Lanjutkan?')" @endif>
+                                        <i class="fas fa-magic"></i> {{ $draft ? 'Susun Ulang dengan AI' : 'Susun dengan AI' }}
+                                    </button>
+                                @else
+                                    <div class="alert alert-light border small mb-2">AI belum aktif. Dokumen diisi manual.</div>
+                                @endif
+                                <button type="submit" name="mode" value="manual" class="btn btn-default btn-block">
+                                    {{ $draft ? 'Simpan Jawaban Saja' : 'Isi Manual' }}
                                 </button>
-                            @else
-                                <div class="alert alert-light border small mb-2">AI belum aktif. Dokumen diisi manual.</div>
-                            @endif
-                            <button type="submit" name="mode" value="manual" class="btn btn-default btn-block">
-                                {{ $draft ? 'Simpan Jawaban Saja' : 'Isi Manual' }}
-                            </button>
-                            <p class="small text-muted mt-2 mb-0">Wajib: {{ $required }}</p>
+                                <p class="small text-muted mt-2 mb-0">Wajib: {{ $required }}</p>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="card">
-                        <div class="card-header"><h3 class="card-title"><i class="far fa-lightbulb text-warning"></i> Tips</h3></div>
-                        <div class="card-body small">
-                            <ul class="pl-3 mb-0">
-                                @foreach ($template['tips'] as $tip)
-                                    <li>{{ $tip }}</li>
-                                @endforeach
-                                <li>Makin detail jawaban, makin spesifik hasilnya</li>
-                            </ul>
-                            @can('manage-od-report')
-                                <a href="{{ route('document-category.builder-steps.edit', $category) }}" class="d-inline-block mt-2"><i class="fas fa-sliders-h"></i> Atur langkah</a>
-                            @endcan
+                        <div class="card">
+                            <div class="card-header"><h3 class="card-title"><i class="far fa-lightbulb text-warning"></i> Tips</h3></div>
+                            <div class="card-body small">
+                                <ul class="pl-3 mb-0">
+                                    @foreach ($template['tips'] as $tip)
+                                        <li>{{ $tip }}</li>
+                                    @endforeach
+                                    <li>Makin detail jawaban, makin spesifik hasilnya</li>
+                                </ul>
+                                @can('manage-od-report')
+                                    <a href="{{ route('document-category.builder-steps.edit', $category) }}" class="d-inline-block mt-2"><i class="fas fa-sliders-h"></i> Atur langkah</a>
+                                @endcan
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -125,15 +127,16 @@
 
 <style>
     .builder-step { overflow: hidden; }
-    .builder-step-head { display: flex; align-items: center; gap: .75rem; width: 100%; padding: .75rem 1rem; background: none; border: 0; }
-    .builder-step-head:focus { outline: none; box-shadow: inset 0 0 0 2px rgba(0, 123, 255, .25); }
-    .builder-step-num { flex: 0 0 28px; height: 28px; border-radius: 50%; border: 2px solid #ced4da; display: inline-flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 600; color: #6c757d; }
-    .builder-step.is-done .builder-step-num { background: #28a745; border-color: #28a745; color: #fff; }
-    .builder-step.is-open { box-shadow: 0 0 0 2px rgba(0, 123, 255, .35); }
+    .builder-step-head { display: flex; align-items: center; gap: .75rem; width: 100%; padding: .75rem 1rem; background: none; border: 0; color: var(--gray-950); }
+    .builder-step-head:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--primary-600); }
+    .builder-step-num { flex: 0 0 28px; height: 28px; border-radius: 50%; border: 2px solid var(--gray-300); display: inline-flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 600; color: var(--gray-500); }
+    .builder-step.is-done .builder-step-num { background: var(--success-solid); border-color: var(--success-solid); color: var(--on-solid); }
+    .builder-step.is-open { border-color: var(--primary-600) !important; box-shadow: var(--focus-ring) !important; }
     .builder-step-body { padding: 0 1rem 1rem 3.4rem; }
     .builder-step.is-collapsed .builder-step-body { display: none; }
     .builder-step.is-collapsed [data-step-chevron] { transform: rotate(-90deg); }
-    @media (min-width: 992px) { .builder-sticky { position: sticky; top: 1rem; } }
+    @media (max-width: 575.98px) { .builder-step-body { padding: 0 1rem 1rem; } }
+    @media (min-width: 992px) { .builder-sticky { position: sticky; top: calc(var(--topbar-height, 57px) + 1rem); } }
 </style>
 @endsection
 

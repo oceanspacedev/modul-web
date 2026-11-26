@@ -12,7 +12,11 @@
                     @endcan
                 </x-slot:actions>
             </x-page-header>
+        </div>
+    </section>
 
+    <section class="content">
+        <div class="container-fluid">
             <x-flash />
 
             @can('restore', App\Models\Document::class)
@@ -102,9 +106,9 @@
                                             @endcan
                                         @endif
                                     </td>
-                                    <td>{{ $document->divisi->name }}</td>
+                                    <td>{{ $document->divisi?->name ?? '-' }}</td>
                                     <td>{{ $document->role->name ?? 'SEMUA JABATAN' }}</td>
-                                    <td>{{ $document->dokumentype->name }}</td>
+                                    <td>{{ $document->dokumentype?->name ?? '-' }}</td>
                                     <td>
                                         <button type="button" class="btn btn-xs btn-default"
                                             onclick="openDocumentHistory('{{ $document->id }}')" title="Klik untuk lihat riwayat versi">
@@ -113,7 +117,7 @@
                                     </td>
                                     <td>
                                         @if ($document->trashed())
-                                            <span class="badge badge-danger">TERHAPUS</span>
+                                            <span class="badge badge-danger">Terhapus</span>
                                             <div class="small text-muted mt-1">{{ $document->deleted_at->format('d M Y, H:i') }}</div>
                                         @elseif ($document->is_active)
                                             <span class="badge badge-success">Aktif</span>
@@ -209,7 +213,7 @@
     </section>
 
     <!-- Modal Riwayat Versi Dokumen -->
-    <div class="modal fade" id="documentHistoryModal" tabindex="-1" role="dialog" aria-labelledby="historyModalLabel" aria-hidden="true">
+    <div class="modal fade modal-center" id="documentHistoryModal" tabindex="-1" role="dialog" aria-labelledby="historyModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -223,10 +227,11 @@
                         <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
                         <p class="small text-muted mt-2 mb-0">Memuat data...</p>
                     </div>
+                    <p id="historyError" class="text-danger text-center py-3 mb-0" style="display: none;">Gagal memuat riwayat.</p>
 
                     <div id="historyContent" style="display: none;">
                         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 p-2 bg-light rounded border text-sm">
-                            <div><span class="text-muted">Dokumen:</span> <span id="histDocName" class="font-weight-bold ml-1"></span></div>
+                            <div><span class="text-muted">Dokumen:</span> <span id="histDocName" class="font-weight-bold ml-1 text-break"></span></div>
                             <div><span class="text-muted">Divisi:</span> <span id="histDocDivisi" class="ml-1"></span></div>
                             <div><span class="text-muted">Versi Aktif:</span> <span id="histDocVersion" class="badge badge-secondary ml-1"></span></div>
                         </div>
@@ -250,7 +255,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer justify-content-between">
+                <div class="modal-footer flex-wrap justify-content-between gap-2">
                     @can('create', App\Models\Document::class)
                     <a href="#" id="histEditLink" class="btn btn-default">
                         <i class="fas fa-edit"></i> Edit Dokumen
@@ -261,54 +266,101 @@
             </div>
         </div>
     </div>
+@endsection
 
-
+@section('footer')
     <script>
     function openDocumentHistory(id) {
         $('#documentHistoryModal').modal('show');
         $('#historyLoading').show();
+        $('#historyError').hide();
         $('#historyContent').hide();
 
-        fetch('/document/' + id + '/history', {
+        fetch('/document/' + encodeURIComponent(id) + '/history', {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+            return response.json();
+        })
         .then(data => {
-            document.getElementById('histDocName').innerText = data.document.name;
-            document.getElementById('histDocDivisi').innerText = data.document.divisi;
-            document.getElementById('histDocVersion').innerText = 'v' + data.document.version;
+            document.getElementById('histDocName').textContent = data.document.name ?? '';
+            document.getElementById('histDocDivisi').textContent = data.document.divisi ?? '-';
+            document.getElementById('histDocVersion').textContent = 'v' + (data.document.version ?? 1);
             const histEditLink = document.getElementById('histEditLink');
-            if (histEditLink) histEditLink.href = '/document/' + data.document.id + '/edit';
+            if (histEditLink) histEditLink.href = '/document/' + encodeURIComponent(data.document.id) + '/edit';
 
             var tbody = document.getElementById('historyTableBody');
-            tbody.innerHTML = '';
+            tbody.replaceChildren();
 
-            if (data.versions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-2">Belum ada riwayat.</td></tr>';
+            if (!Array.isArray(data.versions) || data.versions.length === 0) {
+                var emptyRow = document.createElement('tr');
+                var emptyCell = document.createElement('td');
+                emptyCell.colSpan = 6;
+                emptyCell.className = 'text-center text-muted py-2';
+                emptyCell.textContent = 'Belum ada riwayat.';
+                emptyRow.appendChild(emptyCell);
+                tbody.appendChild(emptyRow);
             } else {
                 data.versions.forEach(function(ver, index) {
                     var isLatest = (index === 0);
                     var row = document.createElement('tr');
 
-                    row.innerHTML = `
-                        <td class="text-center">
-                            <span class="badge ${isLatest ? 'badge-success' : 'badge-secondary'}">
-                                v${ver.version_number}
-                            </span>
-                        </td>
-                        <td>
-                            <i class="fas fa-file-pdf text-muted mr-1"></i>
-                            ${ver.file_name}
-                        </td>
-                        <td>${ver.change_note || '-'}</td>
-                        <td>${ver.created_at}</td>
-                        <td class="text-muted">${ver.created_by || 'Admin'}</td>
-                        <td class="text-center">
-                            <a href="${ver.file_url}" target="_blank" class="btn btn-xs btn-default" title="Buka File">
-                                <i class="fas fa-eye"></i> Buka
-                            </a>
-                        </td>
-                    `;
+                    var versionCell = document.createElement('td');
+                    versionCell.className = 'text-center';
+                    var versionBadge = document.createElement('span');
+                    versionBadge.className = 'badge ' + (isLatest ? 'badge-success' : 'badge-secondary');
+                    versionBadge.textContent = 'v' + (ver.version_number ?? '');
+                    versionCell.appendChild(versionBadge);
+                    row.appendChild(versionCell);
+
+                    var fileCell = document.createElement('td');
+                    fileCell.className = 'text-break';
+                    var fileIcon = document.createElement('i');
+                    fileIcon.className = 'fas fa-file-pdf text-muted mr-1';
+                    fileCell.appendChild(fileIcon);
+                    fileCell.appendChild(document.createTextNode(ver.file_name || ''));
+                    row.appendChild(fileCell);
+
+                    var noteCell = document.createElement('td');
+                    noteCell.className = 'text-break';
+                    noteCell.textContent = ver.change_note || '-';
+                    row.appendChild(noteCell);
+
+                    var dateCell = document.createElement('td');
+                    dateCell.textContent = ver.created_at || '-';
+                    row.appendChild(dateCell);
+
+                    var authorCell = document.createElement('td');
+                    authorCell.className = 'text-muted';
+                    authorCell.textContent = ver.created_by || 'Admin';
+                    row.appendChild(authorCell);
+
+                    var actionCell = document.createElement('td');
+                    actionCell.className = 'text-center';
+                    var fileUrl = String(ver.file_url || '');
+                    if (/^(?:\/(?![\/\\])|https?:\/\/)/i.test(fileUrl)) {
+                        var link = document.createElement('a');
+                        link.href = fileUrl;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        link.className = 'btn btn-xs btn-default';
+                        link.title = 'Buka File';
+                        var eyeIcon = document.createElement('i');
+                        eyeIcon.className = 'fas fa-eye mr-1';
+                        link.appendChild(eyeIcon);
+                        link.appendChild(document.createTextNode('Buka'));
+                        actionCell.appendChild(link);
+                    } else {
+                        var dash = document.createElement('span');
+                        dash.className = 'text-muted';
+                        dash.textContent = '-';
+                        actionCell.appendChild(dash);
+                    }
+                    row.appendChild(actionCell);
+
                     tbody.appendChild(row);
                 });
             }
@@ -318,7 +370,8 @@
         })
         .catch(err => {
             console.error('Error fetching history:', err);
-            $('#historyLoading').html('<p class="text-danger text-center mb-0">Gagal memuat riwayat.</p>');
+            $('#historyLoading').hide();
+            $('#historyError').show();
         });
     }
     </script>

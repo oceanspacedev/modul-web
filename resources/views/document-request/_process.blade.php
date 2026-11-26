@@ -2,14 +2,15 @@
      $templateMode = kategori terpilih bertemplate (mis. Jobdesk). Bagian [data-mode] yang tidak dipakai disembunyikan dan
      dinonaktifkan supaya tidak ikut terkirim; JavaScript form menyesuaikannya saat kategori diganti. --}}
 @php
-    $priorityColors = ['Urgent' => '#dc2626', 'High' => '#ea580c', 'Medium' => '#ca8a04', 'Low' => '#059669'];
+    // Titik prioritas: isian status yang sama di tema terang dan gelap (kontras >= 3:1 di kedua permukaan).
+    $priorityColors = ['Urgent' => 'var(--danger-solid)', 'High' => '#ea580c', 'Medium' => '#ca8a04', 'Low' => 'var(--success-solid)'];
     $templateMode ??= false;
     $lampiranError = $errors->first("proses.$i.lampiran*");
 @endphp
 <div class="request-doc" data-process>
-    <div class="request-doc-head">
+    <div class="request-doc-head gap-2">
         <span><span class="request-doc-number" data-process-number>1</span> Dokumen</span>
-        <button type="button" class="btn btn-link btn-sm text-danger ml-auto p-0" data-remove-process><i class="fas fa-trash-alt"></i> Hapus</button>
+        <button type="button" class="btn btn-link btn-sm text-danger ml-auto p-0 flex-shrink-0" data-remove-process><i class="fas fa-trash-alt"></i> Hapus</button>
     </div>
     <div class="request-doc-body">
         <div class="form-group">
@@ -31,7 +32,7 @@
             </div>
             <div class="form-group">
                 <label for="proses-{{ $i }}-lampiran">Lampiran <span class="text-muted font-weight-normal">(opsional)</span></label>
-                <input type="file" class="form-control-file @if ($lampiranError) is-invalid @endif" id="proses-{{ $i }}-lampiran" name="proses[{{ $i }}][lampiran][]" multiple
+                <input type="file" class="form-control-file mw-100 @if ($lampiranError) is-invalid @endif" id="proses-{{ $i }}-lampiran" name="proses[{{ $i }}][lampiran][]" multiple
                     accept="{{ collect(App\Models\OdDocumentAttachment::LAMPIRAN_EXTENSIONS)->map(fn ($e) => '.'.$e)->implode(',') }}" data-lampiran>
                 <small class="form-text text-muted">Word, PDF, Excel, atau Visio. Maks. {{ App\Models\OdDocumentAttachment::MAX_FILES }} file, total 10 MB.</small>
                 <div class="invalid-feedback{{ $lampiranError ? ' d-block' : '' }}" data-feedback="proses[{{ $i }}][lampiran][]">{{ $lampiranError }}</div>
@@ -53,7 +54,7 @@
             </div>
             <div class="form-group">
                 <label for="proses-{{ $i }}-template">Template terisi <span class="text-danger">*</span></label>
-                <input type="file" class="form-control-file @error("proses.$i.template") is-invalid @enderror" id="proses-{{ $i }}-template" name="proses[{{ $i }}][template]" required
+                <input type="file" class="form-control-file mw-100 @error("proses.$i.template") is-invalid @enderror" id="proses-{{ $i }}-template" name="proses[{{ $i }}][template]" required
                     accept="{{ collect(App\Models\OdDocumentAttachment::TEMPLATE_EXTENSIONS)->map(fn ($e) => '.'.$e)->implode(',') }}" data-template-file>
                 <small class="form-text text-muted">Word, Excel, atau PDF. Maks. 10 MB.</small>
                 <div class="invalid-feedback{{ $errors->has("proses.$i.template") ? ' d-block' : '' }}" data-feedback="proses[{{ $i }}][template]">{{ $errors->first("proses.$i.template") }}</div>

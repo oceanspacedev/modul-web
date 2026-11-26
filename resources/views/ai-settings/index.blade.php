@@ -60,17 +60,17 @@
                                     placeholder="{{ $item['maskedKey'] ? 'Tersimpan '.$item['maskedKey'] : ($item['source'] === 'env' ? 'Memakai key dari .env' : 'Tempel API key') }}"
                                     class="form-control @error($key.'_api_key') is-invalid @enderror">
                                 <div class="input-group-append">
-                                    <button type="button" class="btn btn-default" data-ai-test><i class="fas fa-plug"></i> Tes API key</button>
+                                    <button type="button" class="btn btn-default btn-sm text-nowrap" data-ai-test><i class="fas fa-plug"></i> Tes API key</button>
                                 </div>
                                 @error($key.'_api_key')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
-                            <div class="d-flex justify-content-between mt-1">
-                                <span data-ai-status class="text-muted">
+                            <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mt-1">
+                                <span data-ai-status class="text-muted min-w-0 text-break">
                                     @if ($item['source'] === 'pengaturan')
                                         Kosongkan untuk memakai key tersimpan.
                                     @endif
                                 </span>
-                                <a href="{{ $provider->keyUrl() }}" target="_blank" rel="noopener" class="text-nowrap ml-2">Buat key <i class="fas fa-external-link-alt"></i></a>
+                                <a href="{{ $provider->keyUrl() }}" target="_blank" rel="noopener" class="text-nowrap">Buat key <i class="fas fa-external-link-alt"></i></a>
                             </div>
                             @if ($item['maskedKey'])
                                 <div class="custom-control custom-checkbox mt-2">
@@ -96,8 +96,10 @@
                 </div>
             @endforeach
 
-            <button type="submit" class="btn btn-primary" data-ai-save><i class="fas fa-save"></i> Simpan</button>
-            <span class="small text-muted ml-2" data-ai-next></span>
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-4 mb-xl-0">
+                <button type="submit" class="btn btn-primary" data-ai-save><i class="fas fa-save"></i> Simpan</button>
+                <span class="small text-muted" data-ai-next></span>
+            </div>
         </form>
         </div>
 
@@ -113,9 +115,9 @@
                     <div class="ai-chat-log px-3 py-2" data-chat-log aria-live="polite"></div>
                 </div>
                 <div class="card-footer">
-                    <form class="d-flex m-0" data-chat-form>
+                    <form class="d-flex gap-2 m-0" data-chat-form>
                         <input type="text" class="form-control form-control-sm" maxlength="2000" autocomplete="off" aria-label="Pesan" data-chat-input>
-                        <button type="submit" class="btn btn-primary btn-sm ml-2" aria-label="Kirim" data-chat-send><i class="fas fa-paper-plane"></i></button>
+                        <button type="submit" class="btn btn-primary btn-sm" aria-label="Kirim" data-chat-send><i class="fas fa-paper-plane"></i></button>
                     </form>
                 </div>
             </div>
@@ -126,8 +128,9 @@
 
 <style>
     @media (min-width: 1200px) {
-        .ai-chat { position: sticky; top: 1rem; }
+        .ai-chat { position: sticky; top: calc(var(--topbar-height, 57px) + 1rem); }
     }
+    [data-ai-status] { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
     .ai-chat-log { height: 360px; overflow-y: auto; }
     .ai-chat-empty { color: var(--gray-500); font-size: 0.8125rem; text-align: center; margin-top: 140px; }
     .ai-chat-msg { max-width: 85%; margin-bottom: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 12px; font-size: 0.875rem; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -215,7 +218,7 @@
             const status = panel.querySelector('[data-ai-status]');
 
             button.disabled = true;
-            status.className = 'text-muted';
+            status.className = 'text-muted min-w-0 text-break';
             status.textContent = 'Mengecek API key...';
 
             try {
@@ -232,11 +235,11 @@
                     throw new Error('API key valid, tapi tidak ada model yang bisa dipakai.');
                 }
 
-                status.className = 'text-success';
+                status.className = 'text-success min-w-0 text-break';
                 status.textContent = 'API key valid. ' + data.models.length + ' model tersedia.';
                 showModels(panel, data.models);
             } catch (error) {
-                status.className = 'text-danger';
+                status.className = 'text-danger min-w-0 text-break';
                 status.textContent = error.message;
                 hideModels(panel);
             } finally {

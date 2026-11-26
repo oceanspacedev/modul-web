@@ -23,7 +23,7 @@
 
 <div class="card mb-3">
     <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3 py-3">
-        <div id="completionStatus">
+        <div id="completionStatus" class="min-w-0">
             @if($done)
                 <span class="text-success font-weight-bold"><i class="fas fa-check-circle mr-1"></i> Video ini sudah selesai ditonton.</span>
             @elseif($video->isFile() || $youtubeId)

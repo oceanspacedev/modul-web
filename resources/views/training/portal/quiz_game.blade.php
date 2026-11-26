@@ -26,6 +26,7 @@
             <button type="button" class="game-icon-btn" id="btnSoundToggle" title="Suara Game Aktif" aria-label="Suara game">
                 <i class="fas fa-volume-up" id="soundIcon"></i>
             </button>
+            @include('layout.partials.theme-toggle', ['class' => 'portal-theme-toggle'])
         </div>
     </header>
 
@@ -34,8 +35,8 @@
         {{-- Layar 1: lembar pembuka --}}
         <div class="game-card" id="lobbyScreen">
             <div class="game-eyebrow">{{ $phase === 'pretest' ? 'Pretest Pelatihan' : 'Kuis Evaluasi Pelatihan' }}</div>
-            <h2 class="game-title">{{ $training->title }}</h2>
-            <p class="game-lead">
+            <h2 class="game-title text-break">{{ $training->title }}</h2>
+            <p class="game-lead text-break">
                 Kuis untuk <strong>{{ $participant->user->nama_lengkap }}</strong>. Jawab setiap soal sebelum waktunya habis.
             </p>
 
@@ -96,7 +97,7 @@
 
         {{-- Layar 3: hasil --}}
         <div class="game-card" id="finishScreen" style="display: none;">
-            <h2 class="game-title" id="finishTitle">Kuis selesai</h2>
+            <h2 class="game-title text-break" id="finishTitle">Kuis selesai</h2>
             <p class="game-lead" id="finishSubtitle">Menyimpan jawaban Anda...</p>
             <div class="alert alert-danger text-left" id="saveFailedBox" hidden>
                 Jawaban Anda <strong>belum tersimpan</strong> karena koneksi terputus. Jangan tutup halaman ini; periksa
@@ -176,9 +177,9 @@
         @endphp
         const QUIZ_QUESTIONS = @json($gameQuestions);
         const SHOW_ANSWERS = @json($showAnswers);
-        const PARTICIPANT_TOKEN = "{{ $participant->token }}";
+        const PARTICIPANT_TOKEN = @json($participant->token);
         const CURRENT_USER_ID = {{ (int)$participant->user_id }};
-        const CURRENT_USER_NAME = "{{ addslashes($participant->user->nama_lengkap) }}";
+        const CURRENT_USER_NAME = @json($participant->user->nama_lengkap);
         let INITIAL_LEADERBOARD = {!! json_encode(collect($leaderboard)->map(function($l) {
             return [
                 'user_id' => $l->user_id,
@@ -658,13 +659,24 @@
                     const isMe = row.user_id === CURRENT_USER_ID;
                     const item = document.createElement('div');
                     item.className = `leaderboard-row ${isMe ? 'is-current' : ''}`;
-                    item.innerHTML = `
-                        <div class="d-flex align-items-center">
-                            <strong class="mr-3 text-muted">#${i + 1}</strong>
-                            <span>${row.name} ${isMe ? '<span class="badge badge-primary ml-2">Anda</span>' : ''}</span>
-                        </div>
-                        <strong class="text-primary font-weight-bold">Nilai: ${row.score}</strong>
-                    `;
+                    const left = document.createElement('div');
+                    left.className = 'd-flex align-items-center';
+                    const rankEl = document.createElement('strong');
+                    rankEl.className = 'mr-3 text-muted';
+                    rankEl.textContent = `#${i + 1}`;
+                    const nameWrap = document.createElement('span');
+                    nameWrap.textContent = row.name || '';
+                    if (isMe) {
+                        const badge = document.createElement('span');
+                        badge.className = 'badge badge-primary ml-2';
+                        badge.textContent = 'Anda';
+                        nameWrap.append(' ', badge);
+                    }
+                    left.append(rankEl, nameWrap);
+                    const scoreEl = document.createElement('strong');
+                    scoreEl.className = 'text-primary font-weight-bold';
+                    scoreEl.textContent = `Nilai: ${row.score}`;
+                    item.append(left, scoreEl);
                     moreList.appendChild(item);
                 }
             } else if (moreContainer) {

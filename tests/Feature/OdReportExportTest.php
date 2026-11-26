@@ -11,7 +11,9 @@ use App\Models\OdActivity;
 use App\Models\OdDocument;
 use App\Models\OdDocumentStatus;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Excel as ExcelFormat;
@@ -223,5 +225,40 @@ class OdReportExportTest extends TestCase
         Queue::assertPushed(GenerateExportFile::class, fn (GenerateExportFile $job) => $job->filters === [
             'month' => '2026-11', 'member_id' => $this->staff->id,
         ]);
+    }
+
+    public function test_weekly_export_does_not_lazy_load_relations_when_activities_link_documents(): void
+    {
+        $doc = OdDocument::create([
+            'title' => 'SOP Mutu Cabang',
+            'jenis' => 'SOP',
+            'badan_usaha' => 'PT SMI',
+            'pic_user_id' => $this->staff->id,
+            'submitted_at' => today(),
+            'month' => '2026-11',
+            'od_document_status_id' => OdDocumentStatus::firstOfType(OdDocumentStatus::TYPE_OPEN)->id,
+        ]);
+
+        OdActivity::create([
+            'user_id' => $this->staff->id,
+            'od_document_id' => $doc->id,
+            'date' => '2026-11-10',
+            'name' => 'Menyusun SOP Mutu Cabang',
+            'result' => 'Done',
+            'saved_at' => now(),
+        ]);
+
+        Model::preventLazyLoading(true);
+        Model::handleLazyLoadingViolationUsing(null);
+
+        try {
+            $rows = (new OdWeeklyExport($this->leader, '2026-11'))->array();
+        } finally {
+            Model::handleLazyLoadingViolationUsing(function (Model $model, string $relation) {
+                Log::warning('Lazy loaded ['.$relation.'] on model ['.$model::class.'].');
+            });
+        }
+
+        $this->assertSame(['Organization Development Staff', 'MENYUSUN SOP MUTU CABANG'], $rows[1]);
     }
 }

@@ -83,7 +83,7 @@ class OdWeeklyExport implements FromArray, WithCustomValueBinder, WithEvents, Wi
             ->whereDate('date', '<=', end($weeks)->end()->toDateString())
             ->when($this->memberId, fn ($q) => $q->where('user_id', $this->memberId))
             ->when($this->search, fn ($q) => $q->where('name', 'like', '%'.$this->search.'%'))
-            ->with('user.position')
+            ->with(['user.position', 'document'])
             ->get();
 
         $rows = [];
