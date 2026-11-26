@@ -11,6 +11,8 @@
     color: inherit;
 }
 .video-mini-link:hover { background: var(--gray-50); text-decoration: none; color: inherit; }
+/* On a dark card --gray-50 is darker than the surface; lift the hover instead. */
+[data-theme="dark"] .video-mini-link:hover { background: var(--gray-100); }
 .video-mini-thumb {
     position: relative;
     flex-shrink: 0;
@@ -20,6 +22,8 @@
     overflow: hidden;
     background: var(--gray-900);
 }
+/* Letterbox behind a thumbnail stays dark in both themes (--gray-900 inverts to near-white). */
+[data-theme="dark"] .video-mini-thumb { background: var(--black); }
 .video-mini-thumb-empty { background: var(--gray-100); }
 .video-mini-thumb-play {
     position: absolute;
@@ -27,7 +31,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #ffffff;
+    color: var(--white);
     font-size: 0.75rem;
     background: rgba(9, 9, 11, 0.2);
 }

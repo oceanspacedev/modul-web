@@ -468,7 +468,7 @@
 
                 <!-- STEP 3: REVIEW & EDIT GENERATED QUESTIONS -->
                 <div id="aiStepReview" class="d-none">
-                    <div class="d-flex align-items-center justify-content-between mb-3 py-2 px-3 border rounded bg-white">
+                    <div class="d-flex align-items-center justify-content-between mb-3 py-2 px-3 border rounded" style="background-color: var(--surface);">
                         <strong>Hasil Soal AI (<span id="aiReviewCountText">0</span> Soal)</strong>
                         <div class="d-flex align-items-center gap-2">
                             <button type="button" class="btn btn-xs btn-default" id="btnAiSelectAll">Pilih Semua</button>

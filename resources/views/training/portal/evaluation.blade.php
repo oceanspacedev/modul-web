@@ -15,7 +15,10 @@
                     <h1 class="h6 mb-0">{{ $training->title }}</h1>
                     <span class="text-muted small">Form Evaluasi Pelatihan</span>
                 </div>
-                <span class="badge badge-primary">{{ $questionCount }} Pertanyaan</span>
+                <div class="portal-header-side">
+                    <span class="badge badge-primary">{{ $questionCount }} Pertanyaan</span>
+                    @include('layout.partials.theme-toggle', ['class' => 'portal-theme-toggle'])
+                </div>
             </div>
         </div>
     </header>

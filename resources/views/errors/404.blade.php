@@ -7,6 +7,7 @@
     @include('layout.partials.portal-head')
 </head>
 <body class="page-center">
+    @include('layout.partials.theme-toggle', ['class' => 'portal-theme-toggle is-floating'])
     <div class="error-card">
         <div class="error-icon">
             <i class="fas fa-link"></i>

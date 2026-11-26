@@ -1,0 +1,151 @@
+/* Dark-mode rules for portal. Owned by the theme work; see THEME TOKENS in app.css. */
+
+/* =========================================================
+   THEME TOGGLE ON STANDALONE PAGES
+   The participant portal and error pages have no admin topbar.
+   Pages with a header bar (portal, quiz, game) carry the button
+   at the right end of that bar; pages without one (result, 404)
+   float it in the top-right corner (.is-floating).
+   This file is imported before the main rules, so selectors here
+   carry the extra .theme-toggle class to win over them.
+   ========================================================= */
+.theme-toggle.portal-theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: var(--surface);
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-lg);
+    color: var(--gray-600);
+    font-size: 13px;
+    line-height: 1;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.theme-toggle.portal-theme-toggle:hover {
+    background: var(--gray-100);
+    color: var(--gray-950);
+}
+
+.theme-toggle.portal-theme-toggle:focus {
+    outline: 0;
+}
+
+.theme-toggle.portal-theme-toggle:focus-visible {
+    box-shadow: var(--focus-ring);
+}
+
+/* Pages without a header bar. Their content starts below the button
+   (result page: 3rem top padding) or is a centred card whose corner
+   holds no control (404). */
+.theme-toggle.portal-theme-toggle.is-floating {
+    position: fixed;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    right: calc(12px + env(safe-area-inset-right, 0px));
+    z-index: 1030;
+}
+
+/* The portal header keeps the participant name and the button on one line. */
+.portal-header-side {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.portal-header-side > .portal-header-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 575.98px) {
+    .portal-header-side > .portal-header-name {
+        max-width: 40vw;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .theme-toggle.portal-theme-toggle {
+        transition: none;
+    }
+}
+
+@media print {
+    .theme-toggle.portal-theme-toggle {
+        display: none;
+    }
+}
+
+/* =========================================================
+   PARTICIPANT PORTAL — DARK
+   The portal rules in app.css are written with tokens (cards, bars
+   and options sit on --surface, .bg-white and .list-group-item
+   follow it, the modal sheet is --surface-raised), so they adapt by
+   themselves. Only the cases where a token alone gives the wrong
+   result in dark are listed here.
+   ========================================================= */
+
+[data-theme="dark"] .content-card .list-group-item-action:hover,
+[data-theme="dark"] .content-card .list-group-item-action:focus {
+    background-color: var(--gray-100);
+    color: var(--gray-950);
+}
+
+/* Hover must lift the row off the card (--gray-50 is darker than the card in dark). */
+[data-theme="dark"] .option-label:hover,
+[data-theme="dark"] .rating-option:hover span {
+    background: var(--gray-100);
+}
+
+/* The hover rule above outranks the checked state in app.css; restate it so a selected answer
+   keeps its fill while hovered, as it does in light. */
+[data-theme="dark"] .option-label:has(input:checked) {
+    background: var(--primary-50);
+}
+
+[data-theme="dark"] .rating-option input:checked + span {
+    background: var(--primary-600);
+}
+
+/* Question pictures are often dark line art on a transparent background: keep them on white.
+   (.quiz-img and .game-option-image already carry var(--white) in app.css.) */
+[data-theme="dark"] .game-question-image {
+    background: var(--white);
+}
+
+/* =========================================================
+   QUIZ GAME — DARK
+   ========================================================= */
+
+/* Hover must lift the option off the card instead of sinking it into the page color. */
+[data-theme="dark"] .game-option:hover:not(:disabled) {
+    background: var(--gray-100);
+    border-color: var(--gray-400);
+}
+
+[data-theme="dark"] .game-option-letter {
+    background: var(--gray-100);
+}
+
+/* The result letter box is a status fill. In dark the status color is a light tint,
+   so its glyph must be dark (white on it would be about 1.5:1). */
+[data-theme="dark"] .game-option.is-correct .game-option-letter,
+[data-theme="dark"] .game-option.is-wrong .game-option-letter {
+    color: var(--black);
+}
+
+/* Unpicked options after an answer: 0.45 opacity leaves the text under 3:1 on a dark card. */
+[data-theme="dark"] .game-option.is-dimmed {
+    opacity: 0.6;
+}
+
+/* Timer line: a light bar on the dark track; red when urgent (already a token). */
+[data-theme="dark"] .game-timer-track {
+    background: var(--gray-200);
+}

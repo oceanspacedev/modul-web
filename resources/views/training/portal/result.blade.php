@@ -7,6 +7,7 @@
     @include('layout.partials.portal-head')
 </head>
 <body>
+    @include('layout.partials.theme-toggle', ['class' => 'portal-theme-toggle is-floating'])
 
     <main class="container portal-container py-5">
         @if(session('success'))

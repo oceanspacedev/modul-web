@@ -14,8 +14,9 @@
                 <div>
                     <span class="portal-brand"><img src="{{ asset('images/logo.svg') }}" alt="" class="brand-logo"> Modul <span class="portal-brand-sub">Portal Pelatihan</span></span>
                 </div>
-                <div class="text-muted small">
-                    {{ $user->nama_lengkap }}
+                <div class="portal-header-side">
+                    <span class="portal-header-name text-muted small">{{ $user->nama_lengkap }}</span>
+                    @include('layout.partials.theme-toggle', ['class' => 'portal-theme-toggle'])
                 </div>
             </div>
         </div>

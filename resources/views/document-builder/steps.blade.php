@@ -100,11 +100,22 @@
     .step-editor { display: none; margin: 0 1.25rem 1rem 3.7rem; padding: 1rem; background: #f8f9fa; border-radius: .5rem; }
     .step-item.is-editing .step-editor { display: block; }
     .step-item.is-editing .step-summary { background: #fff7fb; }
-    .step-item.is-editing [data-edit] { color: #fff !important; background: #e83e8c !important; border-color: #e83e8c !important; }
+    .step-item.is-editing [data-edit] { color: var(--on-solid) !important; background: #e83e8c !important; border-color: #e83e8c !important; }
     .step-field-label { font-size: .8rem; font-weight: 600; margin-bottom: .25rem; }
     .step-add { display: block; width: 100%; padding: .75rem; border: 0; background: none; color: #e83e8c; font-weight: 600; text-align: left; padding-left: 1.25rem; }
     .step-add:hover:not(:disabled) { background: #fff7fb; }
     .step-add:disabled { color: #adb5bd; }
+    /* Dark theme: the Bootstrap grays and pink tints above have no token with the same light value, so they are overridden here. */
+    [data-theme="dark"] .step-item { border-bottom-color: var(--gray-200); }
+    [data-theme="dark"] .step-num { background: var(--gray-200); color: var(--gray-800); }
+    [data-theme="dark"] .badge-danger-soft { background: var(--danger-50); color: var(--danger-700); }
+    [data-theme="dark"] .step-hint,
+    [data-theme="dark"] .step-example { color: var(--gray-500); }
+    [data-theme="dark"] .step-editor { background: var(--gray-100); }
+    [data-theme="dark"] .step-item.is-editing .step-summary,
+    [data-theme="dark"] .step-add:hover:not(:disabled) { background: rgba(232, 62, 140, .12); }
+    [data-theme="dark"] .step-add { color: #f472b6; }
+    [data-theme="dark"] .step-add:disabled { color: var(--gray-400); }
     @media (max-width: 576px) {
         .step-summary { flex-wrap: wrap; }
         .step-actions { width: 100%; justify-content: flex-end; }

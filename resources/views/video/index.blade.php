@@ -12,6 +12,8 @@
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     overflow: hidden;
 }
+/* Letterbox behind a thumbnail stays dark in both themes (--gray-900 inverts to near-white). */
+[data-theme="dark"] .video-thumb { background: var(--black); }
 .video-thumb-empty {
     background: var(--gray-100);
     color: var(--gray-400);
@@ -31,7 +33,7 @@
     height: 44px;
     border-radius: 9999px;
     background: rgba(255, 255, 255, 0.92);
-    color: var(--gray-950);
+    color: var(--black);
     box-shadow: var(--shadow-xs);
     transition: transform 0.15s ease;
 }
@@ -46,9 +48,9 @@
     font-size: 0.6875rem;
     font-weight: 500;
     background: rgba(9, 9, 11, 0.7);
-    color: #ffffff;
+    color: var(--white);
 }
-.video-thumb-tag.is-top { top: 8px; left: 8px; background: #ffffff; color: var(--gray-950); box-shadow: 0 0 0 1px var(--ring); }
+.video-thumb-tag.is-top { top: 8px; left: 8px; background: var(--surface-raised); color: var(--gray-950); box-shadow: 0 0 0 1px var(--ring); }
 .video-thumb-tag.is-bottom { bottom: 8px; right: 8px; }
 .video-card-title a { color: var(--gray-950); }
 .video-card-title a:hover { color: var(--primary-700); text-decoration: none; }

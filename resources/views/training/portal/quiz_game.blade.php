@@ -26,6 +26,7 @@
             <button type="button" class="game-icon-btn" id="btnSoundToggle" title="Suara Game Aktif" aria-label="Suara game">
                 <i class="fas fa-volume-up" id="soundIcon"></i>
             </button>
+            @include('layout.partials.theme-toggle', ['class' => 'portal-theme-toggle'])
         </div>
     </header>
 

@@ -15,16 +15,20 @@
                     <h1 class="h6 mb-0">{{ $training->title }}</h1>
                     <span class="text-muted small">{{ $phase === 'pretest' ? 'Pretest Pelatihan' : 'Kuis Evaluasi Pelatihan' }}</span>
                 </div>
-                <div class="d-flex align-items-center flex-wrap justify-content-end gap-2">
-                    <span class="badge badge-warning" id="deadlineBadge" title="Kuis ditutup otomatis saat waktu habis" hidden>
-                        <i class="far fa-clock"></i> Sisa waktu <span id="deadlineClock"></span>
-                    </span>
-                    <span class="badge badge-secondary" title="Maksimal 3 kali keluar halaman">
-                        <i class="fas fa-shield-alt"></i> Toleransi Keluar: 3x
-                    </span>
-                    <span class="badge badge-primary">
-                        {{ $questions->count() }} Soal
-                    </span>
+                {{-- Tombol tema di luar grup badge yang membungkus, supaya tidak menambah baris header di ponsel. --}}
+                <div class="d-flex align-items-center flex-nowrap gap-2">
+                    <div class="d-flex align-items-center flex-wrap justify-content-end gap-2">
+                        <span class="badge badge-warning" id="deadlineBadge" title="Kuis ditutup otomatis saat waktu habis" hidden>
+                            <i class="far fa-clock"></i> Sisa waktu <span id="deadlineClock"></span>
+                        </span>
+                        <span class="badge badge-secondary" title="Maksimal 3 kali keluar halaman">
+                            <i class="fas fa-shield-alt"></i> Toleransi Keluar: 3x
+                        </span>
+                        <span class="badge badge-primary">
+                            {{ $questions->count() }} Soal
+                        </span>
+                    </div>
+                    @include('layout.partials.theme-toggle', ['class' => 'portal-theme-toggle'])
                 </div>
             </div>
         </div>

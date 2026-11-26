@@ -95,6 +95,8 @@
 <style>
     .builder-row { display: flex; gap: .5rem; align-items: flex-start; margin-bottom: .5rem; }
     .builder-row-num { flex: 0 0 26px; height: 26px; margin-top: 4px; border-radius: 50%; background: #e9ecef; font-size: .75rem; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+    /* Dark theme: #e9ecef has no token with the same light value; the number inherits light text, so the fill must go dark. */
+    [data-theme="dark"] .builder-row-num { background: var(--gray-200); color: var(--gray-800); }
     .builder-row-tools { display: flex; flex-direction: column; gap: 2px; }
     .builder-row-tools .btn { padding: 0 .4rem; line-height: 1.4; }
     [data-numbered="0"] .builder-row-num { display: none; }

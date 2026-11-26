@@ -128,8 +128,14 @@
     .builder-step-head { display: flex; align-items: center; gap: .75rem; width: 100%; padding: .75rem 1rem; background: none; border: 0; }
     .builder-step-head:focus { outline: none; box-shadow: inset 0 0 0 2px rgba(0, 123, 255, .25); }
     .builder-step-num { flex: 0 0 28px; height: 28px; border-radius: 50%; border: 2px solid #ced4da; display: inline-flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 600; color: #6c757d; }
-    .builder-step.is-done .builder-step-num { background: #28a745; border-color: #28a745; color: #fff; }
+    .builder-step.is-done .builder-step-num { background: #28a745; border-color: #28a745; color: var(--on-solid); }
     .builder-step.is-open { box-shadow: 0 0 0 2px rgba(0, 123, 255, .35); }
+    /* Dark theme: the Bootstrap grays above have no token with the same light value, so they are overridden here. */
+    [data-theme="dark"] .builder-step-head { color: var(--gray-950); }
+    [data-theme="dark"] .builder-step-head:focus { box-shadow: inset 0 0 0 2px rgba(96, 165, 250, .45); }
+    [data-theme="dark"] .builder-step-num { border-color: var(--gray-300); color: var(--gray-500); }
+    [data-theme="dark"] .builder-step.is-done .builder-step-num { border-color: #28a745; color: var(--on-solid); }
+    [data-theme="dark"] .builder-step.is-open { box-shadow: 0 0 0 2px rgba(96, 165, 250, .55); }
     .builder-step-body { padding: 0 1rem 1rem 3.4rem; }
     .builder-step.is-collapsed .builder-step-body { display: none; }
     .builder-step.is-collapsed [data-step-chevron] { transform: rotate(-90deg); }

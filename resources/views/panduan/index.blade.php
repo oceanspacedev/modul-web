@@ -3,12 +3,14 @@
 @section('content')
 <style>
     .pg-wrap { display: flex; gap: 24px; align-items: flex-start; }
-    .pg-toc { position: sticky; top: 76px; width: 250px; flex-shrink: 0; max-height: calc(100vh - 100px); overflow-y: auto; background: #fff; border: 1px solid var(--ring); border-radius: var(--radius-xl); padding: 12px 8px; }
+    .pg-toc { position: sticky; top: 76px; width: 250px; flex-shrink: 0; max-height: calc(100vh - 100px); overflow-y: auto; background: var(--surface); border: 1px solid var(--ring); border-radius: var(--radius-xl); padding: 12px 8px; }
     .pg-toc .toc-title { font-size: .75rem; color: var(--gray-500); font-weight: 500; padding: 6px 10px; }
     .pg-toc a { display: block; padding: 5px 10px; border-radius: var(--radius-lg); color: var(--gray-700); font-size: .875rem; }
     .pg-toc a:hover { background: var(--gray-50); text-decoration: none; color: var(--gray-950); }
+    /* On a dark surface --gray-50 is darker than the panel; lift the hover instead. */
+    [data-theme="dark"] .pg-toc a:hover { background: var(--gray-100); }
     .pg-body { flex: 1; min-width: 0; }
-    .pg-card { background: #fff; border: 1px solid var(--ring); border-radius: var(--radius-xl); padding: 24px 28px; margin-bottom: 20px; scroll-margin-top: 76px; }
+    .pg-card { background: var(--surface); border: 1px solid var(--ring); border-radius: var(--radius-xl); padding: 24px 28px; margin-bottom: 20px; scroll-margin-top: 76px; }
     .pg-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
     .pg-card h2 { font-family: var(--font-heading); font-size: 1.125rem; font-weight: 600; color: var(--gray-950); margin: 0; }
     .pg-card h3 { font-family: var(--font-heading); font-size: 1rem; font-weight: 600; color: var(--gray-950); margin: 22px 0 8px; scroll-margin-top: 76px; }
@@ -18,9 +20,10 @@
     .pg-card a:not(.btn) { color: var(--primary-700); }
     .pg-shot { margin: 14px 0; border: 1px solid var(--ring); border-radius: var(--radius-lg); overflow: hidden; background: var(--gray-50); }
     .pg-shot img { width: 100%; display: block; }
-    .pg-shot figcaption { font-size: .75rem; color: var(--gray-500); padding: 6px 12px; border-top: 1px solid var(--ring); background: #fff; }
+    .pg-shot figcaption { font-size: .75rem; color: var(--gray-500); padding: 6px 12px; border-top: 1px solid var(--ring); background: var(--surface); }
     .pg-note { border: 1px solid var(--ring); background: var(--gray-50); padding: 10px 14px; border-radius: var(--radius-lg); margin: 12px 0; font-size: .875rem; color: var(--gray-700); }
     .pg-warn { border-color: rgba(217, 119, 6, 0.2); background: var(--warning-50); color: var(--warning-700); }
+    [data-theme="dark"] .pg-warn { border-color: rgba(251, 191, 36, 0.25); }
     .pg-card .pg-note li { color: inherit; }
     .pg-more { border: 1px solid var(--ring); border-radius: var(--radius-lg); margin: 12px 0; }
     .pg-more summary { cursor: pointer; padding: 8px 14px; font-size: .875rem; color: var(--gray-700); font-weight: 500; }

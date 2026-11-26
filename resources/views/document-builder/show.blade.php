@@ -25,7 +25,8 @@
             <div class="alert alert-light border no-print">Dokumen masih kosong. <a href="{{ route('document-builder.edit', $draft) }}">Isi sekarang</a> atau <a href="{{ route('document-builder.answers', $draft) }}">susun dengan AI</a>.</div>
         @endunless
 
-        <article class="builder-paper">
+        {{-- theme-light: kertas dokumen tetap putih dengan teks gelap walau tampilan sedang mode gelap. --}}
+        <article class="builder-paper theme-light">
             @if ($draft->company)
                 <div class="builder-paper-company">{{ $draft->company }}</div>
             @endif
@@ -74,6 +75,9 @@
 
 <style>
     .builder-paper { background: #fff; max-width: 820px; margin: 0 auto 2rem; padding: 3rem 3.5rem; box-shadow: 0 1px 6px rgba(0, 0, 0, .12); color: #212529; font-size: .95rem; line-height: 1.6; }
+    /* The paper is pinned to the light palette (.theme-light); keep its own ink color and give it a deeper shadow on the dark page. */
+    [data-theme="dark"] .builder-paper.theme-light { color: #212529; }
+    @media screen { [data-theme="dark"] .builder-paper.theme-light { box-shadow: 0 1px 6px rgba(0, 0, 0, .5); } }
     .builder-paper-company { text-align: center; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; }
     .builder-paper-kind { text-align: center; font-weight: 700; text-transform: uppercase; font-size: 1.05rem; }
     .builder-paper-title { text-align: center; font-size: 1.3rem; font-weight: 700; margin: .25rem 0 1.25rem; }

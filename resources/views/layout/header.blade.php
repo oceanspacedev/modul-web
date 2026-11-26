@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ isset($title) && is_string($title) && $title !== '' ? $title.' · Modul' : 'Modul' }}</title>
     @include('layout.partials.favicon')
+    @include('layout.partials.theme')
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="{{ asset('template') }}/plugins/fontawesome-free/css/all.min.css">
@@ -67,6 +68,9 @@
                     </form>
                 </li>
                 @endImpersonating
+                <li class="nav-item mr-1">
+                    @include('layout.partials.theme-toggle', ['class' => 'nav-link topbar-toggle'])
+                </li>
                 <li class="nav-item dropdown mr-2">
                     <a href="#" class="nav-link topbar-toggle notification-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Notifikasi">
                         <i class="far fa-bell"></i>
@@ -152,6 +156,9 @@
                         <a href="{{ route('document-request.create') }}" class="nav-link {{ ($active ?? '') === 'document-request' ? 'text-dark' : '' }}">
                             Permintaan Dokumen
                         </a>
+                    </li>
+                    <li class="nav-item">
+                        @include('layout.partials.theme-toggle', ['class' => 'nav-link topbar-toggle'])
                     </li>
                     <li class="nav-item">
                         <a href="{{ route('login') }}" class="btn btn-primary btn-sm">

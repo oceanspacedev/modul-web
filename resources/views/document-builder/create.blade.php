@@ -79,5 +79,6 @@
 <style>
     .builder-category { transition: box-shadow .15s, transform .15s; }
     .builder-category:hover { box-shadow: 0 4px 14px rgba(0, 0, 0, .12); transform: translateY(-1px); text-decoration: none; }
+    [data-theme="dark"] .builder-category:hover { box-shadow: 0 4px 14px rgba(0, 0, 0, .55); }
 </style>
 @endsection
