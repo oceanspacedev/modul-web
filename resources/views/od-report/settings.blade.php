@@ -104,26 +104,67 @@
                     </div>
                 @endif
 
-                <details class="mt-2" @unless ($sheet['enabled']) open @endunless>
-                    <summary class="text-muted">Apps Script &amp; cara pasang</summary>
-                    <ol class="text-muted pl-3 mt-2 mb-2">
-                        <li>Buka spreadsheet → <b>Ekstensi → Apps Script</b>. Hapus isi <code>Code.gs</code>, tempel kode di bawah, simpan.</li>
-                        <li><b>Deploy → Deployment baru → Aplikasi web</b>. Jalankan sebagai: Saya, Akses: Siapa saja.</li>
-                        <li>Salin URL berakhiran <code>/exec</code> ke kolom URL Web App.</li>
-                    </ol>
-                    <div class="apps-script">
-                        <div class="apps-script-bar">
-                            <span class="text-muted"><i class="fas fa-code mr-1"></i>apps-script.gs</span>
-                            <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-default btn-sm" data-copy-target="appsScriptCode">
-                                    <i class="far fa-copy"></i> <span>Salin kode</span>
-                                </button>
-                                <a href="{{ route('od-report.settings.apps-script') }}" class="btn btn-default btn-sm"><i class="fas fa-download"></i> Unduh</a>
+                <details class="apps-guide mt-3" @unless ($sheet['enabled']) open @endunless>
+                    <summary>Cara pasang Apps Script</summary>
+
+                    <ol class="apps-steps">
+                        <li class="apps-step">
+                            <span class="apps-step-num" aria-hidden="true">1</span>
+                            <div class="apps-step-body">
+                                <h4 class="apps-step-title">Buka editor Apps Script</h4>
+                                <p>Buka spreadsheet Weekly Report, lalu pilih menu <span class="apps-path">Ekstensi › Apps Script</span>.</p>
                             </div>
-                        </div>
-                        <pre class="apps-script-code" id="appsScriptCode" tabindex="0"><code>{{ $sheet['script'] }}</code></pre>
+                        </li>
+                        <li class="apps-step">
+                            <span class="apps-step-num" aria-hidden="true">2</span>
+                            <div class="apps-step-body">
+                                <h4 class="apps-step-title">Tempel kode</h4>
+                                <p>Hapus semua isi <code>Code.gs</code>, tempel kode di bawah, lalu klik <b>Simpan</b> sebelum Deploy.</p>
+                                <div class="apps-script">
+                                    <div class="apps-script-bar">
+                                        <span class="text-muted"><i class="fas fa-code mr-1"></i>Code.gs</span>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-primary btn-sm" data-copy-target="appsScriptCode">
+                                                <i class="far fa-copy"></i> <span>Salin kode</span>
+                                            </button>
+                                            <a href="{{ route('od-report.settings.apps-script') }}" class="btn btn-default btn-sm"><i class="fas fa-download"></i> Unduh</a>
+                                        </div>
+                                    </div>
+                                    <pre class="apps-script-code" id="appsScriptCode" tabindex="0"><code>{{ $sheet['script'] }}</code></pre>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="apps-step">
+                            <span class="apps-step-num" aria-hidden="true">3</span>
+                            <div class="apps-step-body">
+                                <h4 class="apps-step-title">Deploy sebagai aplikasi web</h4>
+                                <p>Klik <span class="apps-path">Deploy › Deployment baru</span>, pilih jenis <b>Aplikasi web</b>, lalu atur:</p>
+                                <dl class="apps-settings">
+                                    <dt>Jalankan sebagai</dt><dd>Saya</dd>
+                                    <dt>Yang memiliki akses</dt><dd>Siapa saja</dd>
+                                </dl>
+                                <p>Klik <b>Deploy</b>, lalu izinkan akses. Muncul "Google belum memverifikasi aplikasi ini"? Klik <b>Lanjutan › Buka (tidak aman)</b>.</p>
+                            </div>
+                        </li>
+                        <li class="apps-step">
+                            <span class="apps-step-num" aria-hidden="true">4</span>
+                            <div class="apps-step-body">
+                                <h4 class="apps-step-title">Hubungkan ke Modul</h4>
+                                <p>Salin <b>URL Web App</b> (berakhiran <code>/exec</code>). Di kolom atas, isi link spreadsheet, URL Web App, dan tanggal mulai kirim, lalu klik <b>Simpan &amp; Tes</b>.</p>
+                            </div>
+                        </li>
+                    </ol>
+
+                    <div class="apps-notes">
+                        <div class="apps-notes-title"><i class="fas fa-info-circle mr-1"></i>Perlu diketahui</div>
+                        <ul>
+                            <li><b>Kode diperbarui:</b> tempel kode baru, lalu <span class="apps-path">Deploy › Kelola deployment › Edit › Versi baru</span>. Tanpa versi baru, Web App tetap menjalankan kode lama. URL-nya tetap sama.</li>
+                            <li><b>Ganti spreadsheet:</b> cukup ganti link di kolom atas, tidak perlu pasang ulang. Akun yang memasang skrip harus bisa mengedit spreadsheet baru, dan spreadsheet tempat skrip ditempel jangan dihapus.</li>
+                            <li><b>Baris dari Modul:</b> ditandai kolom H "SYNC ID" (disembunyikan). Edit memperbarui baris itu, hapus mengosongkannya. Baris yang diketik manual tidak diubah.</li>
+                            <li><b>Baris &amp; tab baru:</b> pekerjaan mengisi baris kosong pertama di blok POSISI + WEEK; kalau penuh, satu baris ditambah. Tab bulan baru dibuat otomatis dari tab bulan terakhir.</li>
+                            <li><b>Keamanan:</b> siapa pun yang tahu URL Web App bisa mengirim baris ke spreadsheet, jadi jangan disebar.</li>
+                        </ul>
                     </div>
-                    <div class="text-muted mt-1">Kode diganti? <b>Deploy → Kelola deployment → Edit → Versi baru</b>, URL tetap sama.</div>
                 </details>
             </div>
         </div>

@@ -174,7 +174,8 @@ class OdSheetSyncTest extends TestCase
         $leader = $this->leader();
 
         $this->actingAs($leader)->get(route('od-report.settings.index'))->assertOk()
-            ->assertSee('Apps Script &amp; cara pasang', false)
+            ->assertSee('Cara pasang Apps Script')
+            ->assertSee('Deploy sebagai aplikasi web')
             ->assertSee('function doPost(e)')
             ->assertSee(route('od-report.settings.apps-script'));
 
@@ -251,6 +252,33 @@ class OdSheetSyncTest extends TestCase
             'sheet_link' => self::SHEET_ID,
             'sheet_url' => self::URL,
         ])->assertSessionHas('error', 'Tersimpan, tapi belum tersambung: Spreadsheet tidak bisa dibuka: akses ditolak');
+    }
+
+    public function test_save_explains_why_the_web_app_answered_with_a_page_instead_of_data(): void
+    {
+        $missingCode = '<html><head><title>Salah</title><script>var a = "doGet";</script></head><body style="margin:20px">'
+            .'<div><img alt="Google Apps Script" src="//ssl.gstatic.com/logo.png"></div>'
+            .'<div style="text-align:center">Fungsi skrip tidak ditemukan: doGet</div></body></html>';
+        $login = '<html><body><form action="https://accounts.google.com/v3/signin">Login</form></body></html>';
+
+        $cases = [
+            [$missingCode, 'Web App belum berisi kode Modul (Google: "Fungsi skrip tidak ditemukan: doGet"). Simpan kode di Apps Script, lalu Deploy › Kelola deployment › Edit › Versi baru › Deploy.'],
+            [$login, 'Web App meminta login Google. Di Apps Script, ubah akses deployment menjadi "Siapa saja".'],
+            ['<html><body>Halaman lain</body></html>', 'Web App tidak membalas data yang dikenali. Pastikan URL-nya URL Web App yang berakhiran /exec.'],
+        ];
+
+        $pages = Http::sequence();
+        foreach ($cases as [$page]) {
+            $pages->push($page, 200, ['Content-Type' => 'text/html']);
+        }
+        Http::fake([self::URL.'*' => $pages]);
+
+        foreach ($cases as [, $message]) {
+            $this->actingAs($this->leader())->put(route('od-report.settings.sheet.update'), [
+                'sheet_link' => self::SHEET_ID,
+                'sheet_url' => self::URL,
+            ])->assertSessionHas('error', 'Tersimpan, tapi belum tersambung: '.$message);
+        }
     }
 
     public function test_editing_a_published_activity_into_another_report_month_clears_the_old_sheet_row(): void

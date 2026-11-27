@@ -1,32 +1,3 @@
-/**
- * OD Report → Google Sheets "Weekly Report Organization Development"
- *
- * Menerima pekerjaan Daily Report yang sudah "Simpan Laporan" dari website OD Report
- * lalu menuliskannya ke tab bulan (Nov'26, Des'26, ...) pada blok POSISI + WEEK yang sesuai.
- *
- * Cara pasang (sekali saja, oleh pemilik spreadsheet):
- *  1. Buka spreadsheet Weekly Report → Ekstensi → Apps Script.
- *  2. Hapus isi Code.gs, tempel seluruh file ini, lalu Simpan.
- *  3. Deploy → Deployment baru → jenis "Aplikasi web":
- *       Jalankan sebagai : Saya
- *       Yang memiliki akses : Siapa saja
- *     Izinkan akses saat diminta, lalu salin URL yang berakhiran /exec.
- *  4. Di Modul, buka menu Pengaturan → Sinkron Google Sheets (akun OD Leader),
- *     isi link spreadsheet + URL /exec, lalu Simpan & Tes.
- *  Setiap kali file ini diubah: Deploy → Kelola deployment → pensil → Versi: Versi baru → Deploy.
- *
- * Catatan:
- *  - Tanpa kode rahasia: siapa pun yang tahu URL /exec bisa mengirim baris ke spreadsheet ini.
- *  - Kolom H ("SYNC ID", disembunyikan) dipakai untuk mengenali baris yang dibuat website,
- *    sehingga edit memperbarui baris yang sama dan hapus mengosongkan isi barisnya.
- *    Baris lama yang diketik manual (tanpa SYNC ID) tidak pernah diubah.
- *  - Pekerjaan baru mengisi baris kosong pertama di blok POSISI + WEEK yang sesuai.
- *    Kalau blok sudah penuh, satu baris ditambahkan di ujung blok (merge ikut memanjang).
- *    Merge POSISI / WEEK yang ada tidak pernah dipotong.
- *  - Tab bulan yang belum ada dibuat otomatis dengan menyalin struktur tab bulan terakhir
- *    (posisi, blok week, baris kosong) lalu mengosongkan isi pekerjaannya.
- */
-
 const KEY_COL = 8;   // kolom H
 const TAB_RE = /^(Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agt|Ags|AGS|Sep|Sept|Okt|Nov|Des)'\d{2}$/i;
 

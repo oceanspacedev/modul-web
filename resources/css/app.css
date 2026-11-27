@@ -7472,3 +7472,132 @@ html:has(.training-create) {
     outline: none;
     box-shadow: inset var(--focus-ring);
 }
+
+/* Pengaturan → cara pasang Apps Script: langkah bernomor + catatan. */
+.apps-guide > summary {
+    color: var(--gray-950);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.apps-steps {
+    margin: 16px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.apps-step {
+    position: relative;
+    display: flex;
+    gap: 12px;
+    padding-bottom: 20px;
+}
+
+/* Garis penghubung antar nomor langkah. */
+.apps-step:not(:last-child)::before {
+    content: "";
+    position: absolute;
+    top: 30px;
+    bottom: 4px;
+    left: 13px;
+    width: 2px;
+    border-radius: 2px;
+    background: var(--gray-200);
+}
+
+.apps-step-num {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: var(--primary-600);
+    color: var(--on-primary);
+    font-weight: 700;
+    font-size: .8125rem;
+}
+
+.apps-step-body {
+    flex: 1;
+    min-width: 0;
+    padding-top: 3px;
+    color: var(--gray-600);
+}
+
+.apps-step-body > p {
+    margin-bottom: 8px;
+}
+
+.apps-step-body > p:last-child {
+    margin-bottom: 0;
+}
+
+.apps-step-title {
+    margin: 0 0 4px;
+    color: var(--gray-950);
+    font-family: var(--font-heading);
+    font-size: .9375rem;
+    font-weight: 600;
+}
+
+.apps-path {
+    padding: 1px 6px;
+    border-radius: var(--radius-md);
+    background: var(--gray-100);
+    color: var(--gray-900);
+    font-weight: 600;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+}
+
+.apps-settings {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 6px 16px;
+    max-width: 360px;
+    margin: 0 0 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    background: var(--surface-sunken);
+}
+
+.apps-settings dt {
+    color: var(--gray-500);
+    font-weight: 500;
+}
+
+.apps-settings dd {
+    margin: 0;
+    color: var(--gray-950);
+    font-weight: 600;
+}
+
+.apps-notes {
+    padding: 12px 14px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    background: var(--surface-sunken);
+    color: var(--gray-600);
+}
+
+.apps-notes-title {
+    margin-bottom: 6px;
+    color: var(--gray-950);
+    font-weight: 600;
+}
+
+.apps-notes ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.apps-notes li + li {
+    margin-top: 4px;
+}
+
+.apps-notes b {
+    color: var(--gray-900);
+}
