@@ -7,7 +7,7 @@
 
 @section('content')
 <section class="content-header">
-    <div class="container-fluid">
+    <div class="@auth container-fluid @else container @endauth">
         <x-page-header title="Lacak Permintaan Dokumen" subtitle="Masukkan kode tiket, mis. IK-20261118-AB12 atau HD-2026-00012" eyebrow="Permintaan Dokumen">
             <x-slot:actions>
                 <a href="{{ route('document-request.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Ajukan baru</a>
@@ -17,7 +17,7 @@
 </section>
 
 <section class="content">
-    <div class="container-fluid" style="max-width: 860px;">
+    <div class="@auth container-fluid @else container @endauth">
         <x-flash />
 
         @if (session('submitted') && $documentRequest)

@@ -12,7 +12,7 @@
 
 @section('content')
 <section class="content-header">
-    <div class="container-fluid">
+    <div class="@auth container-fluid @else container @endauth">
         <x-page-header title="Permintaan Dokumen" subtitle="Ajukan pembuatan dokumen ke tim Organization Development" eyebrow="Human Capital">
             <x-slot:actions>
                 <a href="{{ route('document-request.track') }}" class="btn btn-default"><i class="fas fa-search"></i> Lacak</a>
@@ -22,7 +22,7 @@
 </section>
 
 <section class="content">
-    <div class="container-fluid" style="max-width: 860px;">
+    <div class="@auth container-fluid @else container @endauth">
         <x-flash />
 
         <form action="{{ route('document-request.store') }}" method="POST" id="requestForm" class="card setup-wizard" enctype="multipart/form-data" novalidate>

@@ -1700,7 +1700,7 @@ a.stat-tile:hover {
 }
 
 /* Setup wizard: one Ya/Tidak question per screen (training/setup) */
-.setup-wizard {
+.setup-wizard:not(#requestForm) {
     max-width: 640px;
     margin: 0 auto;
 }

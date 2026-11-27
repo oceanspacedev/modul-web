@@ -303,4 +303,32 @@ class DocumentRequestTest extends TestCase
         $this->actingAs($staff)->delete(route('od-report.requests.destroy', $request))->assertRedirect();
         $this->assertNotSoftDeleted($request);
     }
+
+    public function test_document_request_pages_match_video_gallery_container_width_for_guests_and_signed_in_users(): void
+    {
+        $urls = [
+            route('document-request.create'),
+            route('document-request.track'),
+            route('document-request.example'),
+        ];
+
+        foreach ($urls as $url) {
+            $guestHtml = $this->get($url)->assertOk()->getContent();
+            $this->assertStringNotContainsString('max-width: 860px', $guestHtml);
+            $this->assertMatchesRegularExpression('/<section class="content-header">\s*<div class="\s*container\s*">/', $guestHtml);
+            $this->assertMatchesRegularExpression('/<section class="content">\s*<div class="\s*container\s*">/', $guestHtml);
+        }
+
+        $user = User::factory()->staff()->create();
+
+        foreach ($urls as $url) {
+            $authHtml = $this->actingAs($user)->get($url)->assertOk()->getContent();
+            $this->assertStringNotContainsString('max-width: 860px', $authHtml);
+            $this->assertMatchesRegularExpression('/<section class="content-header">\s*<div class="\s*container-fluid\s*">/', $authHtml);
+            $this->assertMatchesRegularExpression('/<section class="content">\s*<div class="\s*container-fluid\s*">/', $authHtml);
+        }
+
+        $css = (string) file_get_contents(resource_path('css/app.css'));
+        $this->assertStringContainsString('.setup-wizard:not(#requestForm)', $css);
+    }
 }
