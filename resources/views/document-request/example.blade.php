@@ -2,7 +2,7 @@
 
 @section('content')
 <section class="content-header">
-    <div class="container-fluid">
+    <div class="@auth container-fluid @else container @endauth">
         <x-page-header :title="'Contoh Dokumen '.$category->code" :subtitle="$category->name" eyebrow="Permintaan Dokumen">
             <x-slot:actions>
                 <a href="{{ $category->exampleUrl() }}" class="btn btn-default" download="{{ $category->exampleFileName() }}"><i class="fas fa-download"></i> Unduh</a>
@@ -13,7 +13,7 @@
 </section>
 
 <section class="content">
-    <div class="container-fluid">
+    <div class="@auth container-fluid @else container @endauth">
         @if (filled($cloud['url']))
             <div class="alert alert-light border">
                 <strong>Dokumen yang sudah rilis</strong> ada di <a href="{{ $cloud['url'] }}" target="_blank" rel="noopener" class="text-break">{{ $cloud['url'] }}</a>
