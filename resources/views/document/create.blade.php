@@ -27,7 +27,7 @@
                             <x-file-dropzone name="file" required />
                         </div>
                         <div class="row">
-                            <div class="col-lg-4 form-group">
+                            <div class="col-lg-6 form-group">
                                 <label for="document_type">Tipe Dokumen <span class="text-danger">*</span></label>
                                 <select class="custom-select select2" name="document_type" id="document_type" style="width: 100%;"
                                     required>
@@ -42,14 +42,14 @@
                                     </small>
                                 @endif
                             </div>
-                            <div class="col-lg-8 form-group">
+                            <div class="col-lg-6 form-group">
                                 <label for="change_note">Catatan</label>
                                 <input type="text" class="form-control" id="change_note" name="change_note" value="{{ old('change_note') }}"
                                     placeholder="Catatan versi (opsional)">
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-lg-8 form-group mb-lg-0">
+                            <div class="col-lg-6 form-group mb-lg-0">
                                 <label for="role_id">Jabatan <span class="text-danger">*</span></label>
                                 <select class="custom-select select2" multiple="multiple" name="role_id[]" data-placeholder="Cari jabatan..."
                                     id="role_id" style="width: 100%;" required>
@@ -60,7 +60,7 @@
                                 </select>
                                 <small class="form-text text-muted">Beberapa jabatan = satu dokumen per jabatan, masing-masing dengan soal sendiri.</small>
                             </div>
-                            <div class="col-lg-4 form-group mb-0">
+                            <div class="col-lg-6 form-group mb-0">
                                 <label for="divisi_id">Divisi <span class="text-danger">*</span></label>
                                 <select class="custom-select select2" name="divisi_id" style="width: 100%;"
                                     id="divisi_id" required>
