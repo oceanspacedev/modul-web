@@ -28,6 +28,7 @@
 <!-- datepicker -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.2.0/js/bootstrap-datepicker.min.js"></script>
 <script src="{{ asset('script.js') }}?v={{ filemtime(public_path('script.js')) }}"></script>
+<script src="{{ asset('file-dropzone.js') }}?v={{ filemtime(public_path('file-dropzone.js')) }}"></script>
 <script>
     // Row dropdowns inside a scrolling table: position the menu fixed (Popper v1)
     // so the table's scroll box doesn't clip it.

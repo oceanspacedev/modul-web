@@ -93,13 +93,9 @@
                         @csrf
                         <input type="hidden" name="account_revision" value="{{ $monitorRevision }}">
                         <label for="meeting-chat-file" class="d-block">File TXT chat dari sesi ini</label>
-                        <div class="d-flex flex-wrap align-items-center gap-2">
-                            <div class="custom-file" style="max-width: 360px;">
-                                <input type="file" id="meeting-chat-file" name="chat_file" accept=".txt,text/plain" required class="custom-file-input" onchange="var lbl = this.nextElementSibling; if (lbl && this.files && this.files[0]) lbl.textContent = this.files[0].name;">
-                                <label class="custom-file-label" for="meeting-chat-file">Pilih file chat (.txt)...</label>
-                            </div>
-                            <button type="submit" class="btn btn-default btn-sm">Impor Chat</button>
-                        </div>
+                        <x-file-dropzone name="chat_file" id="meeting-chat-file" :extensions="['txt']" accept=".txt,text/plain"
+                            :max-mb="1" compact required />
+                        <button type="submit" class="btn btn-default btn-sm mt-2">Impor Chat</button>
                     </form>
                 @endif
                 <div id="meeting-chat-content" data-url="{{ route('training.meeting.chat.index', [$training, 'meeting' => $meetingCode, ...request()->only(['chat'])]) }}">

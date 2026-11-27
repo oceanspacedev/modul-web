@@ -198,8 +198,9 @@ class MaterialQuizTest extends TestCase
         $this->actingAs($this->admin)->get(route('video.edit', $video))->assertOk()->assertSee('Kelola soal (1)');
         $this->actingAs($this->admin)->get(route('video.index'))->assertOk()->assertSee('Pretest &amp; Posttest', false);
         $this->actingAs($this->admin)->get(route('video.show', ['video' => $video, 'preview' => 1]))->assertOk()->assertSee('Rekap Nilai');
-        $this->actingAs($this->admin)->get(route('document.create'))->assertOk()->assertSee('Aturan Kuis')->assertSee('satu dokumen per jabatan');
-        $this->actingAs($this->admin)->get(route('document.edit', $document))->assertOk();
+        $this->actingAs($this->admin)->get(route('document.create'))->assertOk()->assertSee('Aturan Kuis')->assertSee('satu dokumen per jabatan')
+            ->assertSee('class="file-dropzone-input" id="file" name="file" accept=".pdf,application/pdf"', false)->assertSee('Maks. 50 MB');
+        $this->actingAs($this->admin)->get(route('document.edit', $document))->assertOk()->assertSee('Klik atau seret versi baru ke sini');
         $this->actingAs($this->admin)->get($quiz->url('questions.index'))->assertOk()->assertSee('Kuis aktif');
         $this->actingAs($this->admin)->get(route('learning-module.create'))->assertOk()->assertSee('Aturan Kuis')->assertSee('Boleh dikerjakan');
 

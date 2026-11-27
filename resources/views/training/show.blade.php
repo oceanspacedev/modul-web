@@ -336,8 +336,8 @@
                             <i class="fas fa-download"></i> Unduh Template Excel (.xlsx)
                         </a>
                         <div class="form-group">
-                            <label for="importParticipantsFile">File Spreadsheet (.xlsx, .xls, .csv)</label>
-                            <input type="file" name="file" id="importParticipantsFile" class="form-control" accept=".xlsx,.xls,.csv" required>
+                            <label for="importParticipantsFile">File Spreadsheet</label>
+                            <x-file-dropzone name="file" id="importParticipantsFile" :extensions="['xlsx', 'xls', 'csv']" :max-mb="10" compact required />
                         </div>
                         <div class="custom-control custom-checkbox mb-3">
                             <input type="checkbox" class="custom-control-input" id="importParticipantsSendWa" name="send_wa" value="1">
@@ -842,12 +842,9 @@
 
                     {{-- Group 1: File Input --}}
                     <div class="form-group mb-3" id="showFileInputGroup">
-                        <label>Pilih File Video Rekaman <span class="text-danger">*</span></label>
-                        <div class="custom-file">
-                            <input type="file" name="video_file" id="showVideoFileInput" class="custom-file-input" accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-matroska" required onchange="updateShowFileName(this)">
-                            <label class="custom-file-label" id="showVideoFileLabel" for="showVideoFileInput">Pilih file video (MP4, MKV, WEBM, MOV)...</label>
-                        </div>
-                        <small class="text-muted">Maksimal ukuran file video: 2 GB.</small>
+                        <label for="showVideoFileInput">Pilih File Video Rekaman <span class="text-danger">*</span></label>
+                        <x-file-dropzone name="video_file" id="showVideoFileInput" :extensions="['mp4', 'webm', 'ogg', 'mov', 'mkv']"
+                            :max-mb="2048" types="MP4, WebM, OGG, MOV, atau MKV" compact required />
                     </div>
 
                     {{-- Group 2: Link Input --}}
@@ -865,11 +862,9 @@
 
                     {{-- Thumbnail Cover (Opsional) --}}
                     <div class="form-group mb-0">
-                        <label>Cover / Thumbnail Video (Opsional)</label>
-                        <div class="custom-file">
-                            <input type="file" name="thumbnail" id="showThumbInput" class="custom-file-input" accept="image/png,image/jpeg,image/webp" onchange="updateShowThumbLabel(this)">
-                            <label class="custom-file-label" id="showThumbLabel" for="showThumbInput">Pilih gambar thumbnail (JPG, PNG, WEBP)...</label>
-                        </div>
+                        <label for="showThumbInput">Cover / Thumbnail Video (Opsional)</label>
+                        <x-file-dropzone name="thumbnail" id="showThumbInput" :extensions="['jpg', 'jpeg', 'png', 'webp']"
+                            :max-mb="5" types="JPG, PNG, atau WebP" compact />
                         <small class="text-muted">Biarkan kosong jika ingin menggunakan cover video bawaan sistem.</small>
                     </div>
                 </div>
@@ -1181,18 +1176,6 @@ function toggleVideoTypeInShow(type) {
         linkGroup.style.display = 'block';
         fileInput.removeAttribute('required');
         linkInput.setAttribute('required', 'required');
-    }
-}
-
-function updateShowFileName(input) {
-    if (input.files && input.files[0]) {
-        document.getElementById('showVideoFileLabel').innerText = input.files[0].name;
-    }
-}
-
-function updateShowThumbLabel(input) {
-    if (input.files && input.files[0]) {
-        document.getElementById('showThumbLabel').innerText = input.files[0].name;
     }
 }
 

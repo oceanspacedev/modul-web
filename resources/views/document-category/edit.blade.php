@@ -52,7 +52,7 @@
                             </div>
 
                             <div class="form-group">
-                                <label for="example">File contoh <span class="text-muted font-weight-normal">(maks. 20 MB)</span></label>
+                                <label for="example">File contoh</label>
                                 @if ($category->hasExample())
                                     <div class="d-flex align-items-center gap-2 mb-2 small">
                                         <i class="far fa-file flex-shrink-0"></i>
@@ -67,15 +67,14 @@
                                         @endif
                                     </div>
                                 @endif
-                                <div class="custom-file">
-                                    <input type="file" class="custom-file-input @error('example') is-invalid @enderror" id="example" name="example" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png">
-                                    <label class="custom-file-label" for="example" data-browse="Pilih">{{ $category->hasExample() ? 'Ganti file...' : 'Pilih file...' }}</label>
-                                    @error('example')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                </div>
+                                <x-file-dropzone name="example" id="example" compact :max-mb="20"
+                                    :extensions="['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png']"
+                                    types="PDF, Word, Excel, PowerPoint, atau gambar"
+                                    :title="$category->hasExample() ? 'Klik atau seret file pengganti ke sini' : 'Klik untuk pilih atau seret file ke sini'" />
                             </div>
 
                             <div class="form-group">
-                                <label for="template">Template pengisian <span class="text-muted font-weight-normal">(opsional, maks. 10 MB)</span></label>
+                                <label for="template">Template pengisian <span class="text-muted font-weight-normal">(opsional)</span></label>
                                 @if ($category->hasTemplate())
                                     <div class="d-flex align-items-center gap-2 mb-2 small">
                                         <i class="far fa-file-word flex-shrink-0"></i>
@@ -86,11 +85,10 @@
                                         </div>
                                     </div>
                                 @endif
-                                <div class="custom-file">
-                                    <input type="file" class="custom-file-input @error('template') is-invalid @enderror" id="template" name="template" accept=".doc,.docx,.xls,.xlsx,.pdf">
-                                    <label class="custom-file-label" for="template" data-browse="Pilih">{{ $category->hasTemplate() ? 'Ganti file...' : 'Pilih file...' }}</label>
-                                    @error('template')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                </div>
+                                <x-file-dropzone name="template" id="template" compact :max-mb="10"
+                                    :extensions="['doc', 'docx', 'xls', 'xlsx', 'pdf']"
+                                    types="Word, Excel, atau PDF"
+                                    :title="$category->hasTemplate() ? 'Klik atau seret file pengganti ke sini' : 'Klik untuk pilih atau seret file ke sini'" />
                                 <small class="form-text text-muted">Bila diisi, pemohon mengunduh template ini, mengisinya, lalu mengunggahnya kembali. File contoh menjadi contoh pengisiannya.</small>
                             </div>
 
@@ -199,13 +197,6 @@
         });
 
         renumber();
-
-        ['example', 'template'].forEach(id => {
-            const input = document.getElementById(id);
-            input.addEventListener('change', () => {
-                if (input.files.length) input.nextElementSibling.textContent = input.files[0].name;
-            });
-        });
     })();
 </script>
 @endsection

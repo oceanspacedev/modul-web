@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * Pengaturan OD Report (Leader): daftar status dokumen, sinkron Google Sheets, dan import dari Google Sheets. Jenis,
@@ -20,6 +21,9 @@ use Illuminate\View\View;
  */
 class OdSettingController extends Controller
 {
+    /** Kode Apps Script yang ditempel di spreadsheet Weekly Report; ditampilkan dan bisa diunduh di halaman ini. */
+    public const APPS_SCRIPT = 'od-report/apps-script.gs';
+
     public function index(OdSheetSync $sheet, OdSheetImport $import): View
     {
         return view('od-report.settings', [
@@ -35,6 +39,7 @@ class OdSettingController extends Controller
                 'open' => $sheet->spreadsheetUrl(),
                 'pending' => $sheet->enabled() ? $sheet->pending()->count() : 0,
                 'last' => $sheet->status(),
+                'script' => file_get_contents(resource_path(self::APPS_SCRIPT)),
             ],
             'import' => [
                 'weekly' => OdSetting::value(OdSetting::IMPORT_WEEKLY_LINK),
@@ -45,6 +50,13 @@ class OdSettingController extends Controller
                 'auto' => collect(OdSheetImport::positionMap())->map(fn ($userId, $position) => OdSheetImport::autoMatch($position, $members)),
                 'last' => collect(OdSheetImport::TYPES)->map(fn ($label, $type) => $import->status($type)),
             ],
+        ]);
+    }
+
+    public function appsScript(): BinaryFileResponse
+    {
+        return response()->download(resource_path(self::APPS_SCRIPT), 'apps-script.gs', [
+            'Content-Type' => 'text/plain; charset=UTF-8',
         ]);
     }
 

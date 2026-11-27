@@ -115,29 +115,8 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ asset('file-dropzone.js') }}?v={{ filemtime(public_path('file-dropzone.js')) }}"></script>
     <script>
-        function previewAttendanceProof(input) {
-            if (input.files && input.files[0]) {
-                const file = input.files[0];
-                const label = document.getElementById('attendanceProofLabel');
-                const previewWrapper = document.getElementById('proofPreviewWrapper');
-                const previewImg = document.getElementById('proofPreviewImg');
-
-                if (label) {
-                    label.textContent = file.name;
-                }
-
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    if (previewImg && previewWrapper) {
-                        previewImg.src = e.target.result;
-                        previewWrapper.classList.remove('d-none');
-                    }
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
         // Foto dari kamera ponsel bisa belasan MB. Sebelum dikirim, foto diperkecil di perangkat peserta (sisi terpanjang
         // 1600px, JPEG) supaya unggahannya cepat di jaringan seluler dan tidak ditolak karena ukuran. Selama diproses
         // tombol kirim dimatikan. Perangkat yang tidak mendukung mengirim foto aslinya.
@@ -155,7 +134,11 @@
                 if (chosen && chosen.size > PROOF_MAX_BYTES) {
                     alert('Ukuran foto melebihi 5MB. Pilih foto lain atau ambil screenshot.');
                     clearProofInput();
+                    return;
                 }
+                // Foto bisa sudah diganti versi kecil: samakan baris file di kotak unggah.
+                const zone = input.closest('.file-dropzone');
+                if (zone && window.FileDropzone) window.FileDropzone.refresh(zone, false);
             };
 
             if (file.size <= 300 * 1024 || !/^image\//.test(file.type) || typeof DataTransfer === 'undefined') {
@@ -204,14 +187,10 @@
 
         function clearProofInput() {
             const input = document.getElementById('attendanceProofInput');
-            const label = document.getElementById('attendanceProofLabel');
-            const previewWrapper = document.getElementById('proofPreviewWrapper');
-            const previewImg = document.getElementById('proofPreviewImg');
+            const zone = input && input.closest('.file-dropzone');
 
             if (input) input.value = '';
-            if (label) label.textContent = '{{ $proofText['pick'] }}';
-            if (previewImg) previewImg.src = '#';
-            if (previewWrapper) previewWrapper.classList.add('d-none');
+            if (zone && window.FileDropzone) window.FileDropzone.refresh(zone, false);
         }
 
         // ---------------------------------------------------------------
@@ -257,28 +236,10 @@
                             <label class="small font-weight-bold text-dark mb-1" for="attendanceProofInput">
                                 {{ $proofText['upload'] }} <span class="text-danger">*</span>
                             </label>
-                            <div class="custom-file">
-                                <input type="file" name="attendance_proof" id="attendanceProofInput"
-                                    class="custom-file-input"
-                                    accept="image/png, image/jpeg, image/jpg, image/webp"
-                                    required
-                                    onchange="previewAttendanceProof(this)">
-                                <label class="custom-file-label text-muted text-truncate"
-                                    for="attendanceProofInput" id="attendanceProofLabel">
-                                    {{ $proofText['pick'] }}
-                                </label>
-                            </div>
-                            <small class="form-text text-muted">Format: JPG, PNG, atau WEBP. Maksimal 5MB. {{ $proofText['hint'] }}</small>
-                            <div id="proofPreviewWrapper" class="mt-2 text-center d-none">
-                                <img id="proofPreviewImg" src="#" alt="Preview Screenshot"
-                                    class="img-fluid rounded border shadow-sm"
-                                    style="max-height: 180px; object-fit: contain;">
-                                <div class="mt-1">
-                                    <button type="button" class="btn btn-link btn-xs text-danger" onclick="clearProofInput()">
-                                        <i class="fas fa-trash-alt mr-1"></i> {{ $proofText['replace'] }}
-                                    </button>
-                                </div>
-                            </div>
+                            <x-file-dropzone name="attendance_proof" id="attendanceProofInput" :extensions="['jpg', 'jpeg', 'png', 'webp']"
+                                accept="image/png, image/jpeg, image/jpg, image/webp" :max-mb="false" compact types="JPG, PNG, atau WEBP"
+                                :title="rtrim($proofText['pick'], '.')" required />
+                            <small class="form-text text-muted">{{ $proofText['hint'] }}</small>
                         </div>`;
                 }
                 return `
@@ -379,17 +340,8 @@
                         }
                     } else {
                         proofFieldWrapper.classList.add('d-none');
-                        if (proofInput) {
-                            proofInput.removeAttribute('required');
-                            proofInput.value = '';
-                        }
-                        // Reset preview
-                        const previewWrapper = document.getElementById('proofPreviewWrapper');
-                        const previewImg     = document.getElementById('proofPreviewImg');
-                        const proofLabel     = document.getElementById('attendanceProofLabel');
-                        if (previewWrapper) previewWrapper.classList.add('d-none');
-                        if (previewImg) previewImg.src = '#';
-                        if (proofLabel) proofLabel.textContent = '{{ $proofText['pick'] }}';
+                        if (proofInput) proofInput.removeAttribute('required');
+                        clearProofInput();
                         if (proofInfoBox) {
                             proofInfoBox.className = 'd-none';
                             proofInfoBox.innerHTML = '';

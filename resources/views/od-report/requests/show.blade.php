@@ -150,22 +150,23 @@
                                         </div>
                                     </div>
 
-                                    @if ($editable || $process->hasFile())
-                                        <div class="d-flex flex-wrap align-items-center gap-2 small">
-                                            @if ($process->hasFile())
-                                                <a href="{{ route('od-report.documents.file', $process) }}" target="_blank" class="text-break"><i class="fas fa-paperclip"></i> Dokumen rilis: {{ $process->file_name }}</a>
-                                            @endif
-                                            @if ($editable)
-                                                {{-- Muncul saat status Selesai dipilih: file dokumen yang dikirim ke WhatsApp pemohon. --}}
-                                                <span data-release-file class="mw-100" hidden>
-                                                    <span class="text-muted mr-1">{{ $process->hasFile() ? 'Ganti dokumen rilis (opsional)' : 'Dokumen rilis' }}</span>
-                                                    <input type="file" name="proses[{{ $process->id }}][file]" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-                                                        class="d-inline-block form-control-sm w-auto mw-100 @error("proses.{$process->id}.file") is-invalid @enderror" aria-label="Dokumen rilis {{ $process->title }}">
-                                                </span>
-                                            @endif
+                                    @if ($process->hasFile())
+                                        <div class="small">
+                                            <a href="{{ route('od-report.documents.file', $process) }}" target="_blank" class="text-break"><i class="fas fa-paperclip"></i> Dokumen rilis: {{ $process->file_name }}</a>
                                         </div>
-                                        @error("proses.{$process->id}.file")<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                                     @endif
+                                    @if ($editable)
+                                        {{-- Muncul saat status Selesai dipilih: file dokumen yang dikirim ke WhatsApp pemohon. --}}
+                                        <div data-release-file class="mt-2" hidden>
+                                            <label class="ticket-field-label" for="release-file-{{ $process->id }}">{{ $process->hasFile() ? 'Ganti dokumen rilis (opsional)' : 'Dokumen rilis' }}</label>
+                                            {{-- Pesan error di bawah tetap tampil walau kotak ini tersembunyi, jadi :error-key="false". --}}
+                                            <x-file-dropzone name="proses[{{ $process->id }}][file]" id="release-file-{{ $process->id }}" compact :max-mb="50"
+                                                :extensions="['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx']" types="PDF, Word, Excel, atau PowerPoint"
+                                                :error-key="false" :class="$errors->has('proses.'.$process->id.'.file') ? 'is-invalid' : ''"
+                                                aria-label="Dokumen rilis {{ $process->title }}" />
+                                        </div>
+                                    @endif
+                                    @error("proses.{$process->id}.file")<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                                 </div>
                             @endforeach
                         </div>

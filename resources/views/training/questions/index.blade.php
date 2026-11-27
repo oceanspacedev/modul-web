@@ -682,8 +682,8 @@ KUNCI: Acuan poin jawaban peserta
                     </a>
 
                     <div class="form-group mb-0">
-                        <label for="importExcelFile">File Spreadsheet (.xlsx, .xls, .csv)</label>
-                        <input type="file" name="file" id="importExcelFile" class="form-control" accept=".xlsx,.xls,.csv" required>
+                        <label for="importExcelFile">File Spreadsheet</label>
+                        <x-file-dropzone name="file" id="importExcelFile" :extensions="['xlsx', 'xls', 'csv']" :max-mb="10" compact required />
                     </div>
                     <ul class="small text-muted pl-3 mt-3 mb-0">
                         <li>Baris pertama harus berisi judul kolom seperti di template; kolom dibaca dari judulnya. Hanya sheet pertama yang dibaca.</li>

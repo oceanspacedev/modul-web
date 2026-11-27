@@ -186,11 +186,8 @@
                     {{-- Group 1: File Input --}}
                     <div class="form-group" id="indexFileInputGroup">
                         <label for="indexVideoFileInput">File Video Rekaman <span class="text-danger">*</span></label>
-                        <div class="custom-file">
-                            <input type="file" name="video_file" id="indexVideoFileInput" class="custom-file-input" accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-matroska" required onchange="updateIndexFileName(this)">
-                            <label class="custom-file-label" id="indexVideoFileLabel" for="indexVideoFileInput">Pilih file video (MP4, MKV, WEBM, MOV)...</label>
-                        </div>
-                        <small class="text-muted">Maksimal ukuran file video: 2 GB.</small>
+                        <x-file-dropzone name="video_file" id="indexVideoFileInput" :extensions="['mp4', 'webm', 'ogg', 'mov', 'mkv']"
+                            :max-mb="2048" types="MP4, WebM, OGG, MOV, atau MKV" compact required />
                     </div>
 
                     {{-- Group 2: Link Input --}}
@@ -209,10 +206,8 @@
                     {{-- Thumbnail Cover (Opsional) --}}
                     <div class="form-group mb-0">
                         <label for="indexThumbInput">Cover / Thumbnail Video <span class="text-muted">(opsional)</span></label>
-                        <div class="custom-file">
-                            <input type="file" name="thumbnail" id="indexThumbInput" class="custom-file-input" accept="image/png,image/jpeg,image/webp" onchange="updateIndexThumbLabel(this)">
-                            <label class="custom-file-label" id="indexThumbLabel" for="indexThumbInput">Pilih gambar thumbnail (JPG, PNG, WEBP)...</label>
-                        </div>
+                        <x-file-dropzone name="thumbnail" id="indexThumbInput" :extensions="['jpg', 'jpeg', 'png', 'webp']"
+                            :max-mb="5" types="JPG, PNG, atau WebP" compact />
                         <small class="text-muted">Biarkan kosong jika ingin menggunakan cover video bawaan sistem.</small>
                     </div>
                 </div>
@@ -245,18 +240,6 @@ function toggleVideoTypeInIndex(type) {
         linkGroup.style.display = 'block';
         fileInput.removeAttribute('required');
         linkInput.setAttribute('required', 'required');
-    }
-}
-
-function updateIndexFileName(input) {
-    if (input.files && input.files[0]) {
-        document.getElementById('indexVideoFileLabel').innerText = input.files[0].name;
-    }
-}
-
-function updateIndexThumbLabel(input) {
-    if (input.files && input.files[0]) {
-        document.getElementById('indexThumbLabel').innerText = input.files[0].name;
     }
 }
 

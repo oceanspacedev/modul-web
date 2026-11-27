@@ -299,7 +299,7 @@
                             <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">&times;</button>
                         </div>
                         <div class="modal-body">
-                            <input class="form-control" type="file" name="file" accept=".xlsx,.xls,.csv" required>
+                            <x-file-dropzone name="file" id="importUserExcelFile" :extensions="['xlsx', 'xls', 'csv']" :max-mb="10" compact required :error-key="false" />
                             <small class="form-text text-muted">Gunakan kolom dari Download Template. User dicocokkan lewat id_karyawan lalu username; area, divisi, dan posisi baru dibuat otomatis. Password kosong untuk user baru memakai password default.</small>
                         </div>
                         <div class="modal-footer">
@@ -321,7 +321,7 @@
                             <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">&times;</button>
                         </div>
                         <div class="modal-body">
-                            <input class="form-control" type="file" name="file" accept=".json,.txt" required>
+                            <x-file-dropzone name="file" id="importUserJsonFile" :extensions="['json', 'txt']" :max-mb="12" compact required :error-key="false" />
                             <small class="form-text text-muted">User yang sudah ada hanya diperbarui email dan No. HP-nya. User baru mengikuti pola karyawan dengan posisi yang sama; bila belum ada, organization menjadi Divisi, title menjadi Posisi, dan jabatannya STAFF. User baru mendapat password acak dan login lewat OTP WhatsApp.</small>
                         </div>
                         <div class="modal-footer">

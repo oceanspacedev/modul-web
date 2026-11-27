@@ -52,7 +52,8 @@ window.videoThumbnail = {
         transfer.items.add(file);
         input.files = transfer.files;
 
-        document.getElementById('thumbnail_label').innerText = 'cover-otomatis.jpg (diambil dari video)';
+        // Tampilkan cover-otomatis.jpg di kotak unggah (tanpa event change, agar tidak dianggap cover manual).
+        if (window.FileDropzone) window.FileDropzone.refresh(input.closest('.file-dropzone'), false);
         var preview = document.getElementById('thumbnailPreview');
         preview.src = URL.createObjectURL(file);
         document.getElementById('thumbnailPreviewContainer').style.display = 'block';

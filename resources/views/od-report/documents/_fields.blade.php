@@ -56,9 +56,8 @@
 {{-- Muncul saat status selesai atau tahap terakhir dipilih (rilis). --}}
 <div class="form-group" id="releaseFileField" hidden>
     <label for="file">File dokumen <span class="text-muted font-weight-normal">({{ $document?->hasFile() ? 'ganti, opsional' : ($document?->isFromRequest() ? 'wajib untuk rilis' : 'opsional') }})</span></label>
-    <input type="file" class="form-control-file mw-100 @error('file') is-invalid @enderror" id="file" name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
-    <small class="form-text text-muted">PDF, Word, Excel, PowerPoint. Maks 50 MB.</small>
-    @error('file')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+    <x-file-dropzone name="file" id="file" compact :max-mb="50"
+        :extensions="['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx']" types="PDF, Word, Excel, atau PowerPoint" />
 </div>
 <script>
     document.addEventListener('DOMContentLoaded', function () {

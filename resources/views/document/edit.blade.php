@@ -27,20 +27,18 @@
                         <h3 class="card-title">Informasi Dokumen</h3>
                     </div>
                     <div class="card-body">
-                        <div class="row">
-                            <div class="col-lg-6 form-group">
-                                <label for="file">
-                                    Upload Versi Baru (PDF) <span class="badge badge-secondary ml-1">v{{ ($document->version ?? 1) + 1 }}</span>
-                                </label>
-                                <input type="file" accept="application/pdf" class="form-control" id="file" name="file">
-                                <small class="form-text text-muted">Kosongkan jika tidak ada pembaruan file.</small>
-                            </div>
+                        <div class="form-group">
+                            <label for="file">
+                                Upload Versi Baru <span class="badge badge-secondary ml-1">v{{ ($document->version ?? 1) + 1 }}</span>
+                            </label>
+                            <x-file-dropzone name="file" title="Klik atau seret versi baru ke sini" />
+                            <small class="form-text text-muted">Kosongkan jika file tidak berubah.</small>
+                        </div>
 
-                            <div class="col-lg-6 form-group">
-                                <label for="change_note">Catatan Revisi</label>
-                                <input type="text" class="form-control" id="change_note" name="change_note"
-                                    placeholder="Catatan perubahan (opsional)">
-                            </div>
+                        <div class="form-group">
+                            <label for="change_note">Catatan Revisi</label>
+                            <input type="text" class="form-control" id="change_note" name="change_note"
+                                placeholder="Catatan perubahan (opsional)">
                         </div>
 
                         <div class="row">

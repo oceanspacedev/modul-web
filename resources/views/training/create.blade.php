@@ -232,8 +232,9 @@
                                     <i class="fas fa-download"></i> Unduh Template Excel (.xlsx)
                                 </a>
                                 <div class="form-group">
-                                    <label for="importParticipantsFile">File Spreadsheet (.xlsx, .xls, .csv)</label>
-                                    <input type="file" name="participant_file" id="importParticipantsFile" class="form-control" accept=".xlsx,.xls,.csv">
+                                    <label for="importParticipantsFile">File Spreadsheet</label>
+                                    <x-file-dropzone name="participant_file" id="importParticipantsFile" :extensions="['xlsx', 'xls', 'csv']"
+                                        :max-mb="10" compact :error-key="false" />
                                 </div>
                                 <p class="small mb-2">
                                     Peserta dari file ditambahkan <b>setelah pelatihan disimpan</b>, bersama peserta yang Anda pilih di daftar.
@@ -457,7 +458,8 @@ document.addEventListener('DOMContentLoaded', function () {
     fileInput.addEventListener('change', showFile);
     document.getElementById('btnClearParticipantFile').addEventListener('click', function () {
         fileInput.value = '';
-        showFile();
+        // Event change ikut mengosongkan baris di kotak unggah dan memanggil showFile.
+        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
         refreshSummary();
     });
     showFile();

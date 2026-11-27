@@ -643,7 +643,7 @@
 
                     <div class="login-options">
                         <label class="remember">
-                            <input type="checkbox" name="remember">
+                            <input type="checkbox" name="remember" @checked(! session()->hasOldInput() || old('remember'))>
                             <span>Ingat saya</span>
                         </label>
                     </div>
@@ -737,6 +737,13 @@
                                placeholder="&bull;&bull;&bull;&bull;&bull;&bull;"
                                autocomplete="one-time-code"
                                required>
+                    </div>
+
+                    <div class="login-options">
+                        <label class="remember">
+                            <input type="checkbox" name="remember" id="otpRememberInput" checked>
+                            <span>Ingat saya</span>
+                        </label>
                     </div>
 
                     <div class="login-options">
@@ -992,7 +999,8 @@
                         },
                         body: JSON.stringify({
                             username: currentIdentifier,
-                            otp: otp
+                            otp: otp,
+                            remember: document.getElementById('otpRememberInput').checked
                         })
                     });
 

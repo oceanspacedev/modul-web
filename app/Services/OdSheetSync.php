@@ -7,6 +7,7 @@ use App\Models\OdActivity;
 use App\Models\OdSetting;
 use App\Support\OdTeam;
 use App\Support\OdWeek;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -76,19 +77,48 @@ class OdSheetSync
     public function ping(string $url, string $spreadsheetId): string
     {
         try {
-            $json = Http::timeout(20)->acceptJson()->get($url, ['action' => 'ping', 'w' => $spreadsheetId])->throw()->json();
+            $response = Http::timeout(20)->acceptJson()->get($url, ['action' => 'ping', 'w' => $spreadsheetId])->throw();
         } catch (Throwable $e) {
             throw new RuntimeException('Web App tidak bisa dihubungi: '.$e->getMessage(), previous: $e);
         }
 
+        $json = $response->json();
         if (! is_array($json)) {
-            throw new RuntimeException('Web App meminta login Google. Deploy ulang Apps Script dengan akses "Siapa saja".');
+            throw self::unreadable($response);
         }
         if (($json['ok'] ?? false) !== true) {
             throw new RuntimeException($json['error'] ?? 'Web App menolak permintaan.');
         }
 
         return (string) ($json['weekly'] ?? '');
+    }
+
+    /**
+     * Apps Script membalas HTML, bukan JSON: halaman login Google (akses bukan "Siapa saja") atau halaman error
+     * Apps Script, misalnya "Fungsi skrip tidak ditemukan: doGet" saat versi yang di-deploy belum berisi kode.
+     */
+    public static function unreadable(Response $response): RuntimeException
+    {
+        $body = $response->body();
+
+        if (str_contains($body, 'accounts.google.com') || str_contains((string) $response->effectiveUri(), 'accounts.google.com')) {
+            return new RuntimeException('Web App meminta login Google. Di Apps Script, ubah akses deployment menjadi "Siapa saja".');
+        }
+
+        $html = preg_match('~<body\b[^>]*>(.*)</body>~is', $body, $match) ? $match[1] : $body;
+        $text = trim((string) preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags(
+            (string) preg_replace('~<(script|style)\b.*?</\1>~is', ' ', $html)
+        ))));
+
+        if (preg_match('~\b(doGet|doPost)\b~', $text)) {
+            return new RuntimeException('Web App belum berisi kode Modul (Google: "'.Str::limit($text, 120).'"). Simpan kode di Apps Script, lalu Deploy › Kelola deployment › Edit › Versi baru › Deploy.');
+        }
+
+        if ($text !== '' && str_contains($body, 'Google Apps Script')) {
+            return new RuntimeException('Apps Script error: '.Str::limit($text, 200));
+        }
+
+        return new RuntimeException('Web App tidak membalas data yang dikenali. Pastikan URL-nya URL Web App yang berakhiran /exec.');
     }
 
     public static function key(OdActivity $activity): string
@@ -229,7 +259,7 @@ class OdSheetSync
 
         $json = $response->json();
         if (! is_array($json)) {
-            throw new RuntimeException('Web App Apps Script tidak bisa diakses tanpa login Google. Deploy ulang dengan akses "Siapa saja".');
+            throw self::unreadable($response);
         }
         if (($json['ok'] ?? false) !== true) {
             throw new RuntimeException('Spreadsheet menolak: '.($json['error'] ?? 'tanpa keterangan'));
