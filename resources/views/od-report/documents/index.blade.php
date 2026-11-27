@@ -156,8 +156,10 @@
             <div class="modal-body">
                 <p class="mb-2"><strong id="releaseDocument"></strong></p>
                 <label for="releaseFile">File dokumen</label>
-                <input type="file" class="form-control-file mw-100" id="releaseFile" name="file" required accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
-                <small class="form-text text-muted">PDF, Word, Excel, PowerPoint. Maks 50 MB. File dikirim ke pemohon lewat WhatsApp.</small>
+                {{-- Error rilis tampil di atas halaman (bag "release"), bukan di kotak ini. --}}
+                <x-file-dropzone name="file" id="releaseFile" compact required :max-mb="50" :error-key="false"
+                    :extensions="['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx']" types="PDF, Word, Excel, atau PowerPoint" />
+                <small class="form-text text-muted">File dikirim ke pemohon lewat WhatsApp.</small>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
@@ -203,7 +205,10 @@
                 $('#releaseForm').attr('action', this.form.action);
                 $('#releaseStatus').val(this.value);
                 $('#releaseDocument').text(this.dataset.title);
-                $('#releaseFile').val('');
+                // Kosongkan pilihan file sebelumnya, lalu beri tahu kotak unggah supaya daftar filenya ikut bersih.
+                const file = document.getElementById('releaseFile');
+                file.value = '';
+                file.dispatchEvent(new Event('change', { bubbles: true }));
                 $('#releaseModal').modal('show');
                 return;
             }

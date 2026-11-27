@@ -195,7 +195,7 @@
                         huruf pilihan yang terisi atau teks yang sama persis dengan salah satu pilihan; satu baris yang tidak jelas
                         membatalkan seluruh file.
                     </p>
-                    <input type="file" name="file" class="form-control-file mw-100" accept=".xlsx,.xls,.csv" required>
+                    <x-file-dropzone name="file" id="importModuleQuestionsFile" :extensions="['xlsx', 'xls', 'csv']" :max-mb="10" compact required :error-key="false" />
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>

@@ -101,22 +101,11 @@
                         <label class="small font-weight-bold text-dark mb-1" for="attendanceProofInput">
                             {{ $proofText['upload'] }} <span class="text-danger">*</span>
                         </label>
-                        <div class="custom-file">
-                            <input type="file" name="attendance_proof" id="attendanceProofInput" class="custom-file-input" accept="image/png, image/jpeg, image/jpg, image/webp" {{ $training->require_attendance_proof ? 'required' : '' }} onchange="previewAttendanceProof(this)">
-                            <label class="custom-file-label text-muted text-truncate" for="attendanceProofInput" id="attendanceProofLabel">
-                                {{ $proofText['pick'] }}
-                            </label>
-                        </div>
-                        <small class="form-text text-muted">Format: JPG, PNG, atau WEBP. Maksimal 5MB. {{ $proofText['hint'] }}</small>
-
-                        <div id="proofPreviewWrapper" class="mt-2 text-center d-none">
-                            <img id="proofPreviewImg" src="#" alt="Preview Screenshot" class="img-fluid rounded border shadow-sm" style="max-height: 180px; object-fit: contain;">
-                            <div class="mt-1">
-                                <button type="button" class="btn btn-link btn-xs text-danger" onclick="clearProofInput()">
-                                    <i class="fas fa-trash-alt mr-1"></i> {{ $proofText['replace'] }}
-                                </button>
-                            </div>
-                        </div>
+                        {{-- Tanpa batas ukuran di browser: foto besar diperkecil dulu di perangkat (shrinkAttendanceProof). --}}
+                        <x-file-dropzone name="attendance_proof" id="attendanceProofInput" :extensions="['jpg', 'jpeg', 'png', 'webp']"
+                            accept="image/png, image/jpeg, image/jpg, image/webp" :max-mb="false" compact types="JPG, PNG, atau WEBP"
+                            :title="rtrim($proofText['pick'], '.')" :required="(bool) $training->require_attendance_proof" />
+                        <small class="form-text text-muted">{{ $proofText['hint'] }}</small>
                     </div>
                 </div>
 

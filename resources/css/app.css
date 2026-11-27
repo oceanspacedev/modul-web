@@ -7189,7 +7189,8 @@ html:has(.training-create) {
     box-shadow: var(--focus-ring);
 }
 
-.file-dropzone.is-invalid .file-dropzone-area {
+.file-dropzone.is-invalid .file-dropzone-area,
+.file-dropzone-input.is-invalid + .file-dropzone-area {
     border-color: var(--danger-600);
 }
 
@@ -7236,21 +7237,27 @@ html:has(.training-create) {
     color: var(--gray-500);
 }
 
+.file-dropzone-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.file-dropzone-list:not(:empty) {
+    margin-top: 12px;
+}
+
 .file-dropzone-item {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-top: 12px;
     padding: 12px 14px;
     border: 1px solid var(--gray-200);
     border-radius: var(--radius-xl);
     background: var(--surface);
 }
 
-.file-dropzone-item[hidden] {
-    display: none;
-}
-
+/* Ikon file: warnanya mengikuti tipe (diisi file-dropzone.js lewat .is-<tipe>). */
 .file-dropzone-file-icon {
     position: relative;
     display: inline-flex;
@@ -7259,11 +7266,19 @@ html:has(.training-create) {
     justify-content: center;
     width: 40px;
     height: 44px;
+    overflow: hidden;
     border-radius: var(--radius-md);
-    background: var(--danger-50);
-    color: var(--danger-600);
+    background: var(--gray-100);
+    color: var(--gray-600);
     font-size: 1.25rem;
 }
+
+.file-dropzone-file-icon.is-pdf { background: var(--danger-50); color: var(--danger-600); }
+.file-dropzone-file-icon.is-word { background: var(--info-50); color: var(--info-600); }
+.file-dropzone-file-icon.is-excel { background: var(--success-50); color: var(--success-600); }
+.file-dropzone-file-icon.is-ppt { background: var(--warning-50); color: var(--warning-600); }
+.file-dropzone-file-icon.is-image,
+.file-dropzone-file-icon.is-video { background: var(--primary-50); color: var(--primary-700); }
 
 .file-dropzone-ext {
     position: absolute;
@@ -7272,12 +7287,47 @@ html:has(.training-create) {
     transform: translateX(-50%);
     padding: 0 3px;
     border-radius: 3px;
-    background: var(--danger-solid);
-    color: var(--on-solid);
+    background: currentColor;
     font-size: .5625rem;
     font-weight: 700;
     line-height: 1.4;
     letter-spacing: .02em;
+}
+
+/* Teks label di atas latar currentColor: pakai warna permukaan supaya kontras di kedua tema. */
+.file-dropzone-ext::first-line {
+    color: var(--surface);
+}
+
+.file-dropzone-file-icon.has-preview > img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.file-dropzone-file-icon.has-preview > i,
+.file-dropzone-file-icon.has-preview > .file-dropzone-ext {
+    visibility: hidden;
+}
+
+/* Versi ringkas untuk modal dan baris tabel. */
+.file-dropzone.is-compact .file-dropzone-area {
+    min-height: 128px;
+    padding: 20px 16px;
+    gap: 4px;
+}
+
+.file-dropzone.is-compact .file-dropzone-icon {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 4px;
+    font-size: 1rem;
+}
+
+.file-dropzone.is-compact .file-dropzone-title {
+    font-size: .9375rem;
 }
 
 .file-dropzone-info {

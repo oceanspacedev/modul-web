@@ -67,15 +67,8 @@
 
                             {{-- SECTION 1: UPLOAD FILE LOKAL --}}
                             <div id="sectionFile" style="{{ $videoType === 'link' ? 'display: none;' : '' }}">
-                                <div class="custom-file">
-                                    <input type="file" name="video_file" id="video_file" class="custom-file-input @error('video_file') is-invalid @enderror"
-                                        accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-matroska" onchange="displaySelectedVideo(this)">
-                                    <label class="custom-file-label" for="video_file" id="video_file_label">Pilih file video...</label>
-                                </div>
-                                <small class="form-text text-muted">MP4, WebM, MOV, atau MKV. Maks. 2 GB.</small>
-                                @error('video_file')
-                                    <span class="d-block text-danger small mt-1">{{ $message }}</span>
-                                @enderror
+                                <x-file-dropzone name="video_file" id="video_file" :extensions="['mp4', 'webm', 'ogg', 'mov', 'mkv']"
+                                    :max-mb="2048" types="MP4, WebM, OGG, MOV, atau MKV" onchange="displaySelectedVideo(this)" />
 
                                 {{-- Video Preview Container --}}
                                 <div id="videoPreviewContainer" class="mt-3" style="display: none;">
@@ -132,15 +125,9 @@
                                         <img id="thumbnailPreview" src="#" alt="Thumbnail Preview">
                                     </div>
                                 </div>
-                                <div class="custom-file">
-                                    <input type="file" name="thumbnail" id="thumbnail" class="custom-file-input @error('thumbnail') is-invalid @enderror"
-                                        accept="image/png,image/jpeg,image/webp" onchange="displaySelectedThumbnail(this)">
-                                    <label class="custom-file-label" for="thumbnail" id="thumbnail_label">Pilih gambar...</label>
-                                </div>
+                                <x-file-dropzone name="thumbnail" id="thumbnail" :extensions="['jpg', 'jpeg', 'png', 'webp']"
+                                    :max-mb="5" types="JPG, PNG, atau WebP" compact onchange="displaySelectedThumbnail(this)" />
                                 <small class="form-text text-muted">Kosongkan untuk cover otomatis.</small>
-                                @error('thumbnail')
-                                    <span class="d-block text-danger small mt-1">{{ $message }}</span>
-                                @enderror
                             </div>
                         </div>
 
@@ -194,19 +181,22 @@ function switchVideoType(type) {
 }
 
 function displaySelectedVideo(input) {
-    if (input.files && input.files[0]) {
-        var file = input.files[0];
-        document.getElementById('video_file_label').innerText = file.name;
-        
-        var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-        document.getElementById('videoFileInfo').innerText = 'Nama: ' + file.name + ' | Ukuran: ' + sizeMB + ' MB';
-        
-        var preview = document.getElementById('videoPreview');
-        preview.src = URL.createObjectURL(file);
-        document.getElementById('videoPreviewContainer').style.display = 'block';
-
-        videoThumbnail.fromSelectedFile(file);
+    var preview = document.getElementById('videoPreview');
+    if (preview.src) URL.revokeObjectURL(preview.src);
+    if (!input.files || !input.files[0]) {
+        // File dihapus dari kotak unggah.
+        preview.removeAttribute('src');
+        preview.load();
+        document.getElementById('videoPreviewContainer').style.display = 'none';
+        return;
     }
+    var file = input.files[0];
+    var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+    document.getElementById('videoFileInfo').innerText = 'Nama: ' + file.name + ' | Ukuran: ' + sizeMB + ' MB';
+    preview.src = URL.createObjectURL(file);
+    document.getElementById('videoPreviewContainer').style.display = 'block';
+
+    videoThumbnail.fromSelectedFile(file);
 }
 
 function previewVideoLink(url) {
@@ -242,16 +232,14 @@ function previewVideoLink(url) {
 }
 
 function displaySelectedThumbnail(input) {
-    if (input.files && input.files[0]) {
-        videoThumbnail.manual = true;
-        var file = input.files[0];
-        document.getElementById('thumbnail_label').innerText = file.name;
-        
-        var preview = document.getElementById('thumbnailPreview');
-        preview.src = URL.createObjectURL(file);
-        document.getElementById('thumbnailPreviewContainer').style.display = 'block';
-        document.getElementById('thumbnailPlaceholder').style.display = 'none';
+    var hasFile = !!(input.files && input.files[0]);
+    // Cover dihapus dari kotak unggah: cover otomatis boleh mengisi lagi.
+    videoThumbnail.manual = hasFile;
+    if (hasFile) {
+        document.getElementById('thumbnailPreview').src = URL.createObjectURL(input.files[0]);
     }
+    document.getElementById('thumbnailPreviewContainer').style.display = hasFile ? 'block' : 'none';
+    document.getElementById('thumbnailPlaceholder').style.display = hasFile ? 'none' : '';
 }
 
 // Upload progress tracking

@@ -363,6 +363,8 @@
 
         function mark(field, ok) {
             field.classList.toggle('is-invalid', !ok);
+            // Input file asli tersembunyi di dalam kotak unggah; tandai kotaknya supaya bingkainya merah.
+            field.closest('.file-dropzone')?.classList.toggle('is-invalid', !ok);
             const box = form.querySelector('[data-feedback="'+field.name+'"]');
             if (!box) { return; }
             box.textContent = ok ? '' : clientMessage(field);

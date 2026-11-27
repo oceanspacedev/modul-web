@@ -6,6 +6,7 @@
     $priorityColors = ['Urgent' => 'var(--danger-solid)', 'High' => '#ea580c', 'Medium' => '#ca8a04', 'Low' => 'var(--success-solid)'];
     $templateMode ??= false;
     $lampiranError = $errors->first("proses.$i.lampiran*");
+    $templateError = $errors->has("proses.$i.template");
 @endphp
 <div class="request-doc" data-process>
     <div class="request-doc-head gap-2">
@@ -32,9 +33,12 @@
             </div>
             <div class="form-group">
                 <label for="proses-{{ $i }}-lampiran">Lampiran <span class="text-muted font-weight-normal">(opsional)</span></label>
-                <input type="file" class="form-control-file mw-100 @if ($lampiranError) is-invalid @endif" id="proses-{{ $i }}-lampiran" name="proses[{{ $i }}][lampiran][]" multiple
-                    accept="{{ collect(App\Models\OdDocumentAttachment::LAMPIRAN_EXTENSIONS)->map(fn ($e) => '.'.$e)->implode(',') }}" data-lampiran>
-                <small class="form-text text-muted">Word, PDF, Excel, atau Visio. Maks. {{ App\Models\OdDocumentAttachment::MAX_FILES }} file, total 10 MB.</small>
+                {{-- Pesan error memakai kotak [data-feedback] di bawah (diisi juga oleh JavaScript form), jadi :error-key="false". --}}
+                <x-file-dropzone name="proses[{{ $i }}][lampiran][]" id="proses-{{ $i }}-lampiran" multiple compact
+                    :extensions="App\Models\OdDocumentAttachment::LAMPIRAN_EXTENSIONS" :max-files="App\Models\OdDocumentAttachment::MAX_FILES"
+                    :max-mb="intdiv(App\Models\OdDocumentAttachment::MAX_KB, 1024)" types="Word, PDF, Excel, atau Visio"
+                    :error-key="false" :class="$lampiranError ? 'is-invalid' : ''" data-lampiran />
+                <small class="form-text text-muted">Total maks. {{ intdiv(App\Models\OdDocumentAttachment::MAX_KB, 1024) }} MB.</small>
                 <div class="invalid-feedback{{ $lampiranError ? ' d-block' : '' }}" data-feedback="proses[{{ $i }}][lampiran][]">{{ $lampiranError }}</div>
             </div>
         </fieldset>
@@ -54,9 +58,9 @@
             </div>
             <div class="form-group">
                 <label for="proses-{{ $i }}-template">Template terisi <span class="text-danger">*</span></label>
-                <input type="file" class="form-control-file mw-100 @error("proses.$i.template") is-invalid @enderror" id="proses-{{ $i }}-template" name="proses[{{ $i }}][template]" required
-                    accept="{{ collect(App\Models\OdDocumentAttachment::TEMPLATE_EXTENSIONS)->map(fn ($e) => '.'.$e)->implode(',') }}" data-template-file>
-                <small class="form-text text-muted">Word, Excel, atau PDF. Maks. 10 MB.</small>
+                <x-file-dropzone name="proses[{{ $i }}][template]" id="proses-{{ $i }}-template" compact required
+                    :extensions="App\Models\OdDocumentAttachment::TEMPLATE_EXTENSIONS" :max-mb="intdiv(App\Models\OdDocumentAttachment::MAX_KB, 1024)"
+                    types="Word, Excel, atau PDF" :error-key="false" :class="$templateError ? 'is-invalid' : ''" data-template-file />
                 <div class="invalid-feedback{{ $errors->has("proses.$i.template") ? ' d-block' : '' }}" data-feedback="proses[{{ $i }}][template]">{{ $errors->first("proses.$i.template") }}</div>
             </div>
         </fieldset>

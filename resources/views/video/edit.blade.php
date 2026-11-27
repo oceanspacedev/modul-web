@@ -79,15 +79,8 @@
                                 @endif
 
                                 <label for="video_file">Ganti file <span class="text-muted">(opsional)</span></label>
-                                <div class="custom-file">
-                                    <input type="file" name="video_file" id="video_file" class="custom-file-input @error('video_file') is-invalid @enderror"
-                                        accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-matroska" onchange="displayNewVideo(this)">
-                                    <label class="custom-file-label" for="video_file" id="video_file_label">Pilih file video...</label>
-                                </div>
-                                <small class="form-text text-muted">MP4, WebM, MOV, atau MKV. Maks. 2 GB.</small>
-                                @error('video_file')
-                                    <span class="d-block text-danger small mt-1">{{ $message }}</span>
-                                @enderror
+                                <x-file-dropzone name="video_file" id="video_file" :extensions="['mp4', 'webm', 'ogg', 'mov', 'mkv']"
+                                    :max-mb="2048" types="MP4, WebM, OGG, MOV, atau MKV" onchange="displayNewVideo(this)" />
                             </div>
 
                             {{-- SECTION LINK --}}
@@ -133,14 +126,8 @@
                                         <img id="thumbnailPreview" src="#" alt="Preview cover">
                                     </div>
                                 </div>
-                                <div class="custom-file">
-                                    <input type="file" name="thumbnail" id="thumbnail" class="custom-file-input @error('thumbnail') is-invalid @enderror"
-                                        accept="image/png,image/jpeg,image/webp" onchange="displayNewThumbnail(this)">
-                                    <label class="custom-file-label" for="thumbnail" id="thumbnail_label">Pilih gambar...</label>
-                                </div>
-                                @error('thumbnail')
-                                    <span class="d-block text-danger small mt-1">{{ $message }}</span>
-                                @enderror
+                                <x-file-dropzone name="thumbnail" id="thumbnail" :extensions="['jpg', 'jpeg', 'png', 'webp']"
+                                    :max-mb="5" types="JPG, PNG, atau WebP" compact onchange="displayNewThumbnail(this)" />
                                 @if($video->isFile() && $video->video_file)
                                     <button type="button" class="btn btn-default btn-sm btn-block mt-2" id="btnCaptureCover">
                                         <i class="fas fa-camera"></i> Ambil cover dari video
@@ -185,7 +172,6 @@ function switchVideoType(type) {
 
 function displayNewVideo(input) {
     if (input.files && input.files[0]) {
-        document.getElementById('video_file_label').innerText = input.files[0].name;
         // Video diganti dan belum ada cover: ambil cover dari file baru.
         @unless($video->thumbnail)
             videoThumbnail.fromSelectedFile(input.files[0]);
@@ -194,13 +180,14 @@ function displayNewVideo(input) {
 }
 
 function displayNewThumbnail(input) {
-    if (input.files && input.files[0]) {
-        videoThumbnail.manual = true;
-        document.getElementById('thumbnail_label').innerText = input.files[0].name;
+    var hasFile = !!(input.files && input.files[0]);
+    // Cover baru dihapus dari kotak unggah: kembali tampilkan cover saat ini.
+    videoThumbnail.manual = hasFile;
+    if (hasFile) {
         document.getElementById('thumbnailPreview').src = URL.createObjectURL(input.files[0]);
-        document.getElementById('thumbnailPreviewContainer').style.display = 'block';
-        document.getElementById('thumbnailPlaceholder').style.display = 'none';
     }
+    document.getElementById('thumbnailPreviewContainer').style.display = hasFile ? 'block' : 'none';
+    document.getElementById('thumbnailPlaceholder').style.display = hasFile ? 'none' : '';
 }
 
 @if($video->isFile() && $video->video_file)
