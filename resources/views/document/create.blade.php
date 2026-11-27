@@ -22,13 +22,12 @@
                         <h3 class="card-title">Informasi Dokumen</h3>
                     </div>
                     <div class="card-body">
+                        <div class="form-group">
+                            <label for="file">File Dokumen <span class="text-danger">*</span></label>
+                            <x-file-dropzone name="file" required />
+                        </div>
                         <div class="row">
-                            <div class="col-lg-5 form-group">
-                                <label for="file">File Dokumen (PDF) <span class="text-danger">*</span></label>
-                                <input type="file" accept="application/pdf" class="form-control"
-                                    id="file" name="file" required>
-                            </div>
-                            <div class="col-lg-3 form-group">
+                            <div class="col-lg-4 form-group">
                                 <label for="document_type">Tipe Dokumen <span class="text-danger">*</span></label>
                                 <select class="custom-select select2" name="document_type" id="document_type" style="width: 100%;"
                                     required>
@@ -43,7 +42,7 @@
                                     </small>
                                 @endif
                             </div>
-                            <div class="col-lg-4 form-group">
+                            <div class="col-lg-8 form-group">
                                 <label for="change_note">Catatan</label>
                                 <input type="text" class="form-control" id="change_note" name="change_note" value="{{ old('change_note') }}"
                                     placeholder="Catatan versi (opsional)">
