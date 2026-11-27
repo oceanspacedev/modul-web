@@ -183,28 +183,25 @@ class OdReportService
     }
 
     /**
-     * Teks laporan harian siap salin. Leader mendapat teks gabungan tim diawali tanggal: bagiannya sendiri diawali
-     * nama depan, lalu pekerjaan anggota lain hari itu tanpa nama, nama pekerjaan KAPITAL.
+     * Teks laporan harian siap salin dalam format "Afternoon Briefing BusDev": per orang, nama depan KAPITAL lalu
+     * daftar pekerjaannya (Hasil / Kendala / Solusi). Leader mendapat gabungan tim (dirinya dulu), Staff hanya
+     * bagiannya sendiri. Orang tanpa pekerjaan hari itu dilewati.
      */
     public function dailyText(User $user, CarbonImmutable $date): string
     {
-        $dateLabel = $date->locale('id')->translatedFormat('l, d F Y');
-        $mine = $this->activitiesOn($user, $date);
-
-        if (! $user->can('manage-od-report')) {
-            return "DAILY REPORT · {$dateLabel}\n{$user->nama_lengkap}\n\n".$this->list($mine, false);
+        $people = collect([$user]);
+        if ($user->can('manage-od-report')) {
+            $people = $people->merge(OdTeam::query()->whereKeyNot($user->getKey())->get());
         }
 
-        $others = OdTeam::query()->whereKeyNot($user->getKey())->get()
-            ->map(fn (User $member) => $this->activitiesOn($member, $date))
-            ->filter(fn (Collection $list) => $list->isNotEmpty());
+        $sections = $people
+            ->map(fn (User $person) => [$person, $this->activitiesOn($person, $date)])
+            ->filter(fn (array $entry) => $entry[1]->isNotEmpty())
+            ->map(fn (array $entry) => mb_strtoupper(strtok($entry[0]->nama_lengkap, ' '))."\n".$this->list($entry[1]));
 
-        $text = "({$dateLabel})\n\n".strtok($user->nama_lengkap, ' ')."\n".$this->list($mine, true);
-        foreach ($others as $list) {
-            $text .= "\n\n".$this->list($list, true);
-        }
+        $header = "Terlampir\nAfternoon Briefing BusDev\n(".$date->locale('id')->translatedFormat('l, j F Y').')';
 
-        return $text;
+        return $header."\n\n".($sections->isEmpty() ? 'Belum ada pekerjaan hari ini.' : $sections->implode("\n\n\n"));
     }
 
     /** @return Collection<int, OdActivity> */
@@ -214,9 +211,9 @@ class OdReportService
     }
 
     /** @param Collection<int, OdActivity> $activities */
-    private function list(Collection $activities, bool $upper): string
+    private function list(Collection $activities): string
     {
-        return $activities->values()->map(fn (OdActivity $a, int $i) => ($i + 1).'. '.($upper ? mb_strtoupper($a->name) : $a->name)
+        return $activities->values()->map(fn (OdActivity $a, int $i) => ($i + 1).'. '.$a->name
             ."\n   Hasil : {$a->result}"
             ."\n   Kendala : ".($a->kendala ?: '-')
             ."\n   Solusi : ".($a->solusi ?: '-'))->implode("\n\n");

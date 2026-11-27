@@ -128,18 +128,24 @@ class OdActivityTest extends TestCase
             ->assertSee('Drafting IK Retur')->assertDontSee('On Progress</span>', false);
     }
 
-    public function test_leader_daily_text_combines_the_team(): void
+    public function test_daily_text_is_the_afternoon_briefing_per_person(): void
     {
-        $leader = $this->member(User::OD_LEADER, 'SEKAR AYUNING');
-        $staff = $this->member(User::OD_STAFF, 'RIZAL HAMDI');
-        $this->activity($leader, '2026-11-11', 'Review SOP', ['saved_at' => null]);
-        $this->activity($staff, '2026-11-11', 'drafting ik retur');
+        $leader = $this->member(User::OD_LEADER, 'Sekar Ayuning');
+        $staff = $this->member(User::OD_STAFF, 'Rizal Hamdi');
+        $this->member(User::OD_STAFF, 'Tanpa Kerja');
+        $this->activity($leader, '2026-11-11', 'Review SOP', ['saved_at' => null, 'result' => 'On Progress', 'kendala' => 'masuk review bu thia']);
+        $this->activity($leader, '2026-11-11', 'Rekap absensi');
+        $this->activity($staff, '2026-11-11', 'Drafting IK Retur');
 
         $this->actingAs($leader)->get(route('od-report.daily.index', ['teks' => 1]))->assertOk()
-            ->assertDontSee('Afternoon Briefing')->assertSee('(Rabu, 11 November 2026)')->assertSee('SEKAR')->assertSee('1. REVIEW SOP')->assertSee('1. DRAFTING IK RETUR');
+            ->assertSee("Terlampir\nAfternoon Briefing BusDev\n(Rabu, 11 November 2026)\n\n"
+                ."SEKAR\n1. Review SOP\n   Hasil : On Progress\n   Kendala : masuk review bu thia\n   Solusi : -\n\n"
+                ."2. Rekap absensi\n   Hasil : Done\n   Kendala : -\n   Solusi : -\n\n\n"
+                ."RIZAL\n1. Drafting IK Retur\n   Hasil : Done\n   Kendala : -\n   Solusi : -</pre>", false)
+            ->assertDontSee('TANPA');
 
         $this->actingAs($staff)->get(route('od-report.daily.index', ['teks' => 1]))
-            ->assertSee('DAILY REPORT')->assertSee('drafting ik retur')->assertDontSee('REVIEW SOP');
+            ->assertSee("(Rabu, 11 November 2026)\n\nRIZAL\n1. Drafting IK Retur", false)->assertDontSee('Review SOP');
     }
 
     public function test_dashboard_and_monthly_render_with_data(): void
