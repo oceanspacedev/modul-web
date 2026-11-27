@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\LoginOtp;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -159,6 +160,27 @@ class LoginWithWhatsAppTest extends TestCase
 
         $this->assertAuthenticatedAs($user);
         $this->assertTrue($otpRecord->fresh()->is_used);
+    }
+
+    public function test_otp_login_remembers_the_user_when_ingat_saya_is_checked(): void
+    {
+        $this->get(route('login'))->assertOk()
+            ->assertSee('<input type="checkbox" name="remember" checked>', false)
+            ->assertSee('<input type="checkbox" name="remember" id="otpRememberInput" checked>', false);
+
+        $remembered = User::factory()->staff()->create(['username' => 'otp_remember', 'no_hp' => '081299990021']);
+        $forgotten = User::factory()->staff()->create(['username' => 'otp_forget', 'no_hp' => '081299990022']);
+        $rememberCookie = Auth::guard('web')->getRecallerName();
+
+        foreach ([[$remembered, true], [$forgotten, false]] as [$user, $remember]) {
+            $this->postJson('/login/otp/request', ['username' => $user->no_hp]);
+            $otp = LoginOtp::where('user_id', $user->id)->latest()->first()->otp_code;
+
+            $response = $this->postJson('/login/otp/verify', ['username' => $user->no_hp, 'otp' => $otp, 'remember' => $remember])->assertOk();
+
+            $remember ? $response->assertCookie($rememberCookie) : $response->assertCookieMissing($rememberCookie);
+            Auth::logout();
+        }
     }
 
     public function test_otp_request_fails_if_user_has_no_whatsapp(): void
