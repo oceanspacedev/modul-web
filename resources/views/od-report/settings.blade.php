@@ -104,13 +104,26 @@
                     </div>
                 @endif
 
-                <details class="mt-2">
-                    <summary class="text-muted">Cara pasang Apps Script</summary>
-                    <ol class="text-muted pl-3 mt-2 mb-0">
-                        <li>Buka spreadsheet → <b>Ekstensi → Apps Script</b>, tempel isi <code>apps-script.gs</code>, simpan.</li>
+                <details class="mt-2" @unless ($sheet['enabled']) open @endunless>
+                    <summary class="text-muted">Apps Script &amp; cara pasang</summary>
+                    <ol class="text-muted pl-3 mt-2 mb-2">
+                        <li>Buka spreadsheet → <b>Ekstensi → Apps Script</b>. Hapus isi <code>Code.gs</code>, tempel kode di bawah, simpan.</li>
                         <li><b>Deploy → Deployment baru → Aplikasi web</b>. Jalankan sebagai: Saya, Akses: Siapa saja.</li>
                         <li>Salin URL berakhiran <code>/exec</code> ke kolom URL Web App.</li>
                     </ol>
+                    <div class="apps-script">
+                        <div class="apps-script-bar">
+                            <span class="text-muted"><i class="fas fa-code mr-1"></i>apps-script.gs</span>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-default btn-sm" data-copy-target="appsScriptCode">
+                                    <i class="far fa-copy"></i> <span>Salin kode</span>
+                                </button>
+                                <a href="{{ route('od-report.settings.apps-script') }}" class="btn btn-default btn-sm"><i class="fas fa-download"></i> Unduh</a>
+                            </div>
+                        </div>
+                        <pre class="apps-script-code" id="appsScriptCode" tabindex="0"><code>{{ $sheet['script'] }}</code></pre>
+                    </div>
+                    <div class="text-muted mt-1">Kode diganti? <b>Deploy → Kelola deployment → Edit → Versi baru</b>, URL tetap sama.</div>
                 </details>
             </div>
         </div>
@@ -168,4 +181,39 @@
         </div>
     </div>
 </section>
+@endsection
+
+@section('footer')
+<script>
+    // Tombol "Salin kode": salin isi Apps Script ke clipboard, dengan cadangan seleksi teks bila Clipboard API tidak ada.
+    document.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-copy-target]');
+        if (!button) return;
+        var source = document.getElementById(button.dataset.copyTarget);
+        var label = button.querySelector('span');
+        var text = source.textContent;
+
+        function done(ok) {
+            label.textContent = ok ? 'Tersalin' : 'Gagal, salin manual';
+            setTimeout(function () { label.textContent = 'Salin kode'; }, 2000);
+        }
+
+        function fallback() {
+            var range = document.createRange();
+            range.selectNodeContents(source);
+            var selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            var ok = false;
+            try { ok = document.execCommand('copy'); } catch (e) {}
+            done(ok);
+        }
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+        } else {
+            fallback();
+        }
+    });
+</script>
 @endsection

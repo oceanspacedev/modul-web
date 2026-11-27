@@ -177,6 +177,7 @@ Route::middleware('auth')->group(function () {
             Route::put('status/{status}', 'updateStatus')->whereNumber('status')->name('statuses.update');
             Route::delete('status/{status}', 'destroyStatus')->whereNumber('status')->name('statuses.destroy');
             Route::put('google-sheets', 'updateSheet')->name('sheet.update');
+            Route::get('apps-script', 'appsScript')->name('apps-script');
             Route::post('sinkron-sheet', 'syncSheet')->name('sheet-sync');
             Route::put('import-sheet/{type}', 'importSheet')->whereIn('type', ['weekly', 'approval'])->name('sheet-import');
         });

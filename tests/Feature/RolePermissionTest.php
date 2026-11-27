@@ -344,7 +344,7 @@ class RolePermissionTest extends TestCase
             ->get(route('dashboard'))
             ->assertOk()
             ->assertSee('href="'.route('dashboard').'" class="brand-link"', false)
-            ->assertSee('Pengaturan OD')
+            ->assertSee('href="'.route('od-report.settings.index').'"', false)
             ->assertSee('class="sidebar-close', false);
     }
 }

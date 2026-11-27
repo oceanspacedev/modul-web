@@ -169,6 +169,24 @@ class OdSheetSyncTest extends TestCase
         $this->actingAs($staff)->get(route('od-report.daily.index'))->assertOk()->assertDontSee('docs.google.com');
     }
 
+    public function test_settings_page_shows_and_serves_the_apps_script_code(): void
+    {
+        $leader = $this->leader();
+
+        $this->actingAs($leader)->get(route('od-report.settings.index'))->assertOk()
+            ->assertSee('Apps Script &amp; cara pasang', false)
+            ->assertSee('function doPost(e)')
+            ->assertSee(route('od-report.settings.apps-script'));
+
+        $response = $this->actingAs($leader)->get(route('od-report.settings.apps-script'))->assertOk()
+            ->assertDownload('apps-script.gs');
+        $this->assertStringContainsString('function upsert_(ss, en)', $response->streamedContent());
+
+        $this->actingAs(User::factory()->staff()->create())
+            ->get(route('od-report.settings.apps-script'))
+            ->assertRedirect();
+    }
+
     private function leader(): User
     {
         $leader = User::factory()->staff()->create();

@@ -7437,3 +7437,38 @@ html:has(.training-create) {
         padding: 24px 16px;
     }
 }
+
+/* Pengaturan → Sinkron Google Sheets: kode Apps Script yang bisa disalin / diunduh. */
+.apps-script {
+    overflow: hidden;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    background: var(--surface-sunken);
+}
+
+.apps-script-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--surface);
+}
+
+.apps-script-code {
+    max-height: 360px;
+    margin: 0;
+    padding: 12px 14px;
+    overflow: auto;
+    color: var(--gray-800);
+    font-size: .75rem;
+    line-height: 1.55;
+    tab-size: 2;
+}
+
+.apps-script-code:focus-visible {
+    outline: none;
+    box-shadow: inset var(--focus-ring);
+}
