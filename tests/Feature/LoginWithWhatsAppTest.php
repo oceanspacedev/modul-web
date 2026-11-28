@@ -6,6 +6,7 @@ use App\Models\LoginOtp;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class LoginWithWhatsAppTest extends TestCase
@@ -181,6 +182,77 @@ class LoginWithWhatsAppTest extends TestCase
             $remember ? $response->assertCookie($rememberCookie) : $response->assertCookieMissing($rememberCookie);
             Auth::logout();
         }
+    }
+
+    public function test_password_login_with_ingat_saya_survives_a_browser_restart(): void
+    {
+        $user = User::factory()->staff()->create([
+            'username' => 'pwd_remember',
+            'no_hp' => '081299990031',
+            'password' => Hash::make('password123'),
+        ]);
+
+        $response = $this->post('/login', ['username' => 'pwd_remember', 'password' => 'password123', 'remember' => 'on'])
+            ->assertRedirect($user->homeUrl());
+
+        $this->assertStaysSignedInAfterRestart($response, $user);
+    }
+
+    public function test_password_login_without_ingat_saya_ends_with_the_session(): void
+    {
+        $user = User::factory()->staff()->create([
+            'username' => 'pwd_forget',
+            'no_hp' => '081299990032',
+            'password' => Hash::make('password123'),
+        ]);
+
+        $this->post('/login', ['username' => 'pwd_forget', 'password' => 'password123'])
+            ->assertRedirect($user->homeUrl())
+            ->assertCookieMissing(Auth::guard('web')->getRecallerName());
+
+        $this->restartBrowser();
+        $this->get($user->homeUrl())->assertRedirect(route('login'));
+        $this->assertGuest();
+    }
+
+    public function test_otp_login_with_ingat_saya_survives_a_browser_restart(): void
+    {
+        $user = User::factory()->staff()->create(['username' => 'otp_restart', 'no_hp' => '081299990033']);
+
+        $this->postJson('/login/otp/request', ['username' => $user->no_hp])->assertOk();
+        $otp = LoginOtp::where('user_id', $user->id)->latest()->first()->otp_code;
+
+        $response = $this->postJson('/login/otp/verify', ['username' => $user->no_hp, 'otp' => $otp, 'remember' => true])->assertOk();
+
+        $this->assertStaysSignedInAfterRestart($response, $user);
+    }
+
+    /**
+     * Laptop dimatikan lalu dinyalakan: cookie sesi (dan sesi di server) sudah hilang, yang tersisa hanya cookie
+     * "Ingat saya". Pengguna harus tetap masuk tanpa diminta login lagi.
+     */
+    private function assertStaysSignedInAfterRestart(TestResponse $loginResponse, User $user): void
+    {
+        $recaller = Auth::guard('web')->getRecallerName();
+        $this->assertStringStartsWith('remember_web_', $recaller);
+        $loginResponse->assertCookie($recaller);
+        $cookie = $loginResponse->getCookie($recaller);
+        $this->assertGreaterThan(now()->addYear()->getTimestamp(), $cookie->getExpiresTime());
+
+        $this->restartBrowser();
+
+        $this->withCookie($recaller, $loginResponse->getCookie($recaller)->getValue())
+            ->get($user->homeUrl())
+            ->assertOk();
+        $this->assertAuthenticatedAs($user);
+    }
+
+    private function restartBrowser(): void
+    {
+        $this->app['auth']->forgetGuards();
+        $this->app['session']->driver()->flush();
+        $this->flushSession();
+        $this->defaultCookies = [];
     }
 
     public function test_otp_request_fails_if_user_has_no_whatsapp(): void
