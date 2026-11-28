@@ -109,6 +109,31 @@ class TrainingMeetingIntegrationTest extends TestCase
         $this->assertDatabaseCount(TrainingMeetingChatMessage::class, 0);
     }
 
+    public function test_live_monitoring_page_loads_the_mini_player_only_when_monitoring_runs_in_the_browser(): void
+    {
+        $admin = User::where('username', 'admin')->firstOrFail();
+        $training = $this->training($admin, $this->account($admin, 'player'));
+        $page = route('training.meeting.show', $training);
+
+        // The player script keeps the meeting client alive while the operator opens other pages, and
+        // returns to this page (refreshing only these regions) without reloading the client.
+        $this->actingAs($admin)->get($page)
+            ->assertOk()
+            ->assertSee('data-meeting-url="'.$page.'"', false)
+            ->assertSee('data-meeting-player', false)
+            ->assertSee('data-meeting-refresh="flash"', false)
+            ->assertSee('data-meeting-refresh="activity"', false)
+            ->assertSee('data-meeting-refresh="chat"', false)
+            ->assertSee(asset('meeting-player.js'), false)
+            ->assertSee(asset('meeting-clients/zoom.js'), false);
+
+        $training->update(['meeting_monitoring_enabled' => false]);
+        $this->get($page)
+            ->assertOk()
+            ->assertDontSee('data-meeting-player', false)
+            ->assertDontSee(asset('meeting-player.js'), false);
+    }
+
     private function claimsFor(string $jwt, string $secret): array
     {
         [$header, $body, $signature] = explode('.', $jwt);

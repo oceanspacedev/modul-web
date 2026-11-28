@@ -6,4 +6,4 @@
 <script defer src="https://source.zoom.us/{{ $zoomSdk }}/lib/vendor/react-redux.min.js"></script>
 <script defer src="https://source.zoom.us/{{ $zoomSdk }}/lib/vendor/lodash.min.js"></script>
 <script defer src="https://source.zoom.us/zoom-meeting-embedded-{{ $zoomSdk }}.min.js"></script>
-<script defer src="{{ asset('meeting-clients/zoom.js') }}"></script>
+<script defer src="{{ asset('meeting-clients/zoom.js') }}?v={{ filemtime(public_path('meeting-clients/zoom.js')) }}"></script>

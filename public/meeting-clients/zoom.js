@@ -14,6 +14,7 @@
     const heartbeatInterval = 12000;
     const maxBatchSize = 100;
     let currentRun = null;
+    let playerLayout = null;
 
     function setStatus(message, state) {
         if (status.textContent !== message) status.textContent = message;
@@ -258,6 +259,7 @@
             joinButton.disabled = false;
             currentRun = null;
         }
+        root.dispatchEvent(new CustomEvent('meeting-monitor:stopped'));
         updateLiveCount(null);
         setStatus(
             run.error ?? (run.hasGap
@@ -413,6 +415,10 @@
     joinForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (currentRun) return;
+        if (root.dataset.joinBlocked) {
+            setStatus(root.dataset.joinBlocked, 'warning');
+            return;
+        }
         if (!globalThis.crypto?.randomUUID) {
             setStatus('Buka halaman monitoring melalui HTTPS agar Zoom dapat digunakan.', 'warning');
             return;
@@ -442,6 +448,7 @@
             error: null,
         };
         currentRun = run;
+        root.dispatchEvent(new CustomEvent('meeting-monitor:started'));
         joinButton.disabled = true;
         setStatus('Menghubungkan ke Zoom…', 'waiting');
 
@@ -482,6 +489,7 @@
 
             run.joined = true;
             passcode.value = '';
+            applyPlayerLayout(run);
             monitoringStatus(run);
             void pump(run);
         } catch (error) {
@@ -496,6 +504,29 @@
                 finish(run);
             }
         }
+    });
+
+    // Pemutar mini (meeting-player.js) memberi tahu ukuran wadahnya. Saat mengambang, panel video Zoom dibuat
+    // seukuran pemutar dan tidak bisa digeser sendiri agar tetap berada di dalam pemutar.
+    function applyPlayerLayout(run) {
+        if (!playerLayout || !run?.joined || !run.client?.updateVideoOptions) return;
+
+        const { floating, width, height } = playerLayout;
+        const docked = Math.max(320, Math.min(width || 960, 960));
+        try {
+            run.client.updateVideoOptions({
+                isResizable: !floating,
+                popper: { disableDraggable: floating },
+                viewSizes: { default: floating ? { width, height } : { width: docked, height: Math.round(docked * 9 / 16) } },
+            });
+        } catch {
+            // Tampilan bawaan SDK tetap dipakai bila ukurannya tidak dapat diubah.
+        }
+    }
+
+    root.addEventListener('meeting-player:layout', (event) => {
+        playerLayout = event.detail;
+        applyPlayerLayout(currentRun);
     });
 
     leaveButton.addEventListener('click', () => {

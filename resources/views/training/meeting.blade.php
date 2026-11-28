@@ -13,13 +13,14 @@
 
 <section class="content training-detail">
     <div class="container-fluid">
-        <x-flash />
+        <div data-meeting-refresh="flash"><x-flash /></div>
 
         <section class="card" aria-labelledby="meeting-monitor-title">
             <div class="card-header">
                 <h2 class="card-title" id="meeting-monitor-title">Monitoring {{ $provider?->label() ?? 'meeting' }}</h2>
             </div>
             <div class="card-body" data-meeting-monitor
+                data-meeting-url="{{ route('training.meeting.show', $training) }}"
                 data-join-url="{{ route('training.meeting.join', $training) }}"
                 data-start-url="{{ route('training.meeting.monitors.start', $training) }}"
                 data-sync-url="{{ route('training.meeting.monitors.sync', [$training, '__MONITOR__']) }}"
@@ -45,7 +46,26 @@
                     </form>
                     <button type="button" class="btn btn-outline-danger btn-sm mb-2" data-meeting-leave hidden>Selesai Monitoring</button>
                     <p data-meeting-status role="status" class="mb-2">Siap bergabung.</p>
-                    <div data-meeting-client></div>
+                    {{-- Selama monitoring, pindah halaman membuka halaman tujuan di atas halaman ini dan klien meeting
+                         tetap berjalan di pemutar mini (public/meeting-player.js). --}}
+                    <div class="meeting-player" data-meeting-player aria-label="Pemutar meeting">
+                        <div class="meeting-player-bar" data-player-handle>
+                            <span class="meeting-player-title text-truncate">
+                                <i class="fas fa-video" aria-hidden="true"></i>
+                                <span class="text-truncate">{{ $training->title }}</span>
+                            </span>
+                            <span class="meeting-player-actions">
+                                <button type="button" class="meeting-player-btn" data-player-size aria-label="Perbesar pemutar" title="Perbesar pemutar"><i class="fas fa-expand-alt" aria-hidden="true"></i></button>
+                                <button type="button" class="meeting-player-btn" data-player-expand aria-label="Kembali ke halaman monitoring" title="Kembali ke halaman monitoring"><i class="fas fa-external-link-alt" aria-hidden="true"></i></button>
+                                <button type="button" class="meeting-player-btn is-danger" data-player-leave aria-label="Selesai monitoring" title="Selesai monitoring"><i class="fas fa-phone-slash" aria-hidden="true"></i></button>
+                                <button type="button" class="meeting-player-btn" data-player-close aria-label="Tutup pemutar" title="Tutup pemutar"><i class="fas fa-times" aria-hidden="true"></i></button>
+                            </span>
+                        </div>
+                        <div class="meeting-player-body">
+                            <div data-meeting-client></div>
+                        </div>
+                        <p class="meeting-player-status text-truncate" data-player-status role="status" aria-live="off"></p>
+                    </div>
                 @elseif($meetingCode !== $currentMeeting)
                     <p class="mb-0 text-muted">Riwayat rapat {{ $meetingCode }}.</p>
                 @else
@@ -74,7 +94,7 @@
                     <input id="meeting-participant-name" class="form-control" name="nama" value="{{ $participantName }}" maxlength="120" placeholder="Cari nama di meeting">
                     <button type="submit" class="btn btn-default">Cari</button>
                 </form>
-                <div id="meeting-activity-content" data-url="{{ route('training.meeting.activity', [$training, 'meeting' => $meetingCode, ...request()->only(['nama', 'aktivitas', 'chat'])]) }}">
+                <div id="meeting-activity-content" data-meeting-refresh="activity" data-url="{{ route('training.meeting.activity', [$training, 'meeting' => $meetingCode, ...request()->only(['nama', 'aktivitas', 'chat'])]) }}">
                     @include('training.detail.meeting-activity')
                 </div>
             </div>
@@ -98,7 +118,7 @@
                         <button type="submit" class="btn btn-default btn-sm mt-2">Impor Chat</button>
                     </form>
                 @endif
-                <div id="meeting-chat-content" data-url="{{ route('training.meeting.chat.index', [$training, 'meeting' => $meetingCode, ...request()->only(['chat'])]) }}">
+                <div id="meeting-chat-content" data-meeting-refresh="chat" data-url="{{ route('training.meeting.chat.index', [$training, 'meeting' => $meetingCode, ...request()->only(['chat'])]) }}">
                     @include('training.detail.meeting-chat')
                 </div>
             </div>
@@ -108,6 +128,7 @@
 
 @if($meetingAccount && $provider->supportsMonitoring())
     {{-- Klien pemantauan milik platformnya: memuat SDK dan mengirim aktivitas ke rute monitors. --}}
+    <script src="{{ asset('meeting-player.js') }}?v={{ filemtime(public_path('meeting-player.js')) }}"></script>
     @includeIf('training.meeting-clients.'.$provider->key())
     <script>
         (() => {
